@@ -65,6 +65,7 @@
         <version.plugin.groovy.eclipse.compiler>2.9.2-01</version.plugin.groovy.eclipse.compiler>
         <version.plugin.groovy.eclipse.batch>2.4.3-01</version.plugin.groovy.eclipse.batch>
         <version.plugin.deploy>2.8.2</version.plugin.deploy>
+        <version.plugin.nexus>1.6.6</version.plugin.nexus>
         <version.plugin.source>2.4</version.plugin.source>
         <version.plugin.javadoc>2.10.1</version.plugin.javadoc>
         <version.plugin.gpg>1.5</version.plugin.gpg>
@@ -178,6 +179,18 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>${version.plugin.nexus}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
             </plugin>
 
             <plugin>
