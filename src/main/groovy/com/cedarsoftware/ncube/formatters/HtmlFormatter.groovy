@@ -349,9 +349,9 @@ public class HtmlFormatter implements NCubeFormatter
             String name = (String)column.getMetaProperty("name")
             if (StringUtilities.hasContent(name))
             {
-                s.append('name: ')
+                s.append('<span class="rule-name">')
                 s.append(name)
-                s.append('<hr class="hr-rule"/>')
+                s.append('</span><hr class="hr-rule"/>')
             }
         }
     }
@@ -366,159 +366,121 @@ public class HtmlFormatter implements NCubeFormatter
  <meta charset="UTF-8">
  <title>NCube: </title>
  <style>
-.table-ncube
-{
-border-collapse:collapse;
-border:1px solid lightgray;
-font-family: "arial","helvetica", sans-serif;
-font-size: small;
-padding: 2px;
+.table-ncube {
+  border-collapse:collapse;
+  border:1px solid lightgray;
+  font-family: "arial","helvetica", sans-serif;
+  font-size: small;
+  padding: 2px;
 }
 
-.td-ncube .th-ncube .th-ncube-top
-{
-border:1px solid lightgray;
-font-family: "arial","helvetica", sans-serif;
-font-size: small;
-padding: 2px;
+.td-ncube .th-ncube .th-ncube-top {
+  border:1px solid lightgray;
+  font-family: "arial","helvetica", sans-serif;
+  font-size: small;
+  padding: 2px;
 }
 
-.td-ncube
-{
-color: black;
-background: white;
-text-align: center;
+.td-ncube {
+  color: black;
+  background: white;
+  text-align: center;
 }
 
-.th-ncube
-{
-padding-left: 4px !important;
-padding-right: 4px !important;
-color: white;
-font-weight: normal;
+.th-ncube {
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  color: white;
+  font-weight: normal;
 }
 
-.th-ncube-top
-{
-color: white;
-text-align: center;
-font-weight: normal;
+.th-ncube-top {
+  color: white;
+  text-align: center;
+  font-weight: normal;
 }
 
 .td-ncube:hover { background: #E0F0FF }
 .th-ncube:hover { background: #A2A2A2 }
 .th-ncube-top:hover { background: #A2A2A2 }
+.ncube-num { text-align: right; }
+.ncube-dead { background: #6495ED; }
+.ncube-head { background: #4D4D4D; }
 
-.ncube-num
-{
-text-align: right;
+.column {
+  background: #929292;
+  padding: 2px;
+  margin: 2px;
+  white-space: pre;
 }
 
-.ncube-dead
-{
-background: #6495ED;
+.column-code {
+  text-align: left;
+  vertical-align: top;
+  font-family:menlo,"Lucida Console",monaco,monospace,courier;
 }
 
-.ncube-head
-{
-background: #4D4D4D;
+.column-url {
+  text-align: left;
+  vertical-align: top;
 }
 
-.column
-{
-background: #929292;
-padding: 2px;
-margin: 2px;
-white-space: pre;
+.hr-rule {
+  margin:1px;
+  border-style:dashed;
+  border-color:darkgray;
 }
 
-.column-code
-{
-text-align: left;
-vertical-align: top;
-font-family:menlo,"Lucida Console",monaco,monospace,courier;
+.cell {
+  color: black;
+  background: white;
+  text-align: center;
+  vertical-align: middle;
+  white-space: pre;
+  padding: 2px;
+  margin: 2px;
+  word-break: normal;
+  word-wrap: normal;
 }
 
-.column-url
-{
-text-align: left;
-vertical-align: top;
+.rule-name  {
+  background:#555;
+  color:#e8e8e8;
+  border-radius:3px;
+  padding-left:5px;
+  padding-right:5px;
+  padding-top:1px;
+  padding-bottom:1px
 }
 
-.hr-rule
-{
-margin:1px;
-border-style:dashed;
-border-color:darkgray;
+.cell-def { color:#ccc; }
+
+.cell-url {
+  color: red;
+  text-align: left;
+  vertical-align: middle;
 }
 
-.cell
-{
-color: black;
-background: white;
-text-align: center;
-vertical-align: middle;
-white-space: pre;
-padding: 2px;
-margin: 2px;
-word-break: normal;
-word-wrap: normal;
+.cell-code {
+  text-align: left;
+  vertical-align: top;
+  font-family:menlo,"Lucida Console",monaco,monospace,courier;
 }
 
-.cell-def
-{
-color:#ccc;
+.cell-code-def {
+  color:#ccc;
+  text-align: left;
+  vertical-align: top;
+  font-family:menlo,"Lucida Console",monaco,monospace,courier;
 }
 
-.cell-url
-{
-color: red;
-text-align: left;
-vertical-align: middle;
-}
-
-.cell-code
-{
-text-align: left;
-vertical-align: top;
-font-family:menlo,"Lucida Console",monaco,monospace,courier;
-}
-
-.cell-code-def
-{
-color:#ccc;
-text-align: left;
-vertical-align: top;
-font-family:menlo,"Lucida Console",monaco,monospace,courier;
-}
-
-.odd-row {
-    background-color: #e0e0e0 !important;
-}
-
-.odd-row:hover {
-    background-color: #E0F0FF !important;
-}
-
-.cell-selected {
-    background-color: #D0E0FF !important;
-}
-
-.cell-selected:hover {
-    background-color: #E0F0FF !important;
-}
-
-th.ncube-dead:hover {
-    background: #76A7FF;
-}
-
-.th-ncube a, .th-ncube-top a {
-    color: #d0ffff;
-}
-
-.th-ncube > a:hover, .th-ncube-top > a:hover {
-    color: lightcyan;
-}
+.odd-row { background-color: #e0e0e0 !important; }
+.odd-row:hover { background-color: #E0F0FF !important; }
+.cell-selected { background-color: #D0E0FF !important; }
+.cell-selected:hover { background-color: #E0F0FF !important; }
+th.ncube-dead:hover { background: #76A7FF; }
+.th-ncube a, .th-ncube-top a { color: #d0ffff; }
+.th-ncube > a:hover, .th-ncube-top > a:hover { color: lightcyan; }
  </style>
 </head>
 <body>
