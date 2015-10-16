@@ -330,17 +330,32 @@ public class HtmlFormatter implements NCubeFormatter
         final boolean isCmd = column.value instanceof CommandCell
         final boolean isUrlCmd = isCmd && StringUtilities.hasContent(((CommandCell) column.value).url)
 
+        addColumnPrefixText(s, column)
         if (isUrlCmd)
         {
             s.append('<a href="#">')
         }
-        addColumnPrefixText(s, column)
         s.append(column.default ? "Default" : escapeHTML(column.toString()))
         if (isUrlCmd)
         {
             s.append("</a>")
         }
     }
+
+    private static void addColumnPrefixText(StringBuilder s, Column column)
+    {
+        if (column.value instanceof CommandCell)
+        {
+            String name = (String)column.getMetaProperty("name")
+            if (StringUtilities.hasContent(name))
+            {
+                s.append('name: ')
+                s.append(name)
+                s.append('<hr class="hr-rule"/>')
+            }
+        }
+    }
+
 
     private static String getHtmlPreamble()
     {
@@ -524,20 +539,6 @@ th.ncube-dead:hover {
   <body/>
 </html>
 """
-    }
-
-    private static void addColumnPrefixText(StringBuilder s, Column column)
-    {
-        if (column.value instanceof CommandCell)
-        {
-            String name = (String)column.getMetaProperty("name")
-            if (StringUtilities.hasContent(name))
-            {
-                s.append('name: ')
-                s.append(name)
-                s.append('<hr class="hr-rule"/>')
-            }
-        }
     }
 
     private static String getColumnCssClass(Column col)
