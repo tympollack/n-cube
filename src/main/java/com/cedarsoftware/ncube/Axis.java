@@ -822,11 +822,44 @@ public class Axis
                 return standardizeColumnValue(value);
 
             case RULE:
-                return new GroovyExpression(value, null, false);
+                return createExpressionFromValue(value);
 
             default:
                 throw new IllegalStateException("Unsupported axis type (" + type + ") for axis '" + name + "', trying to parse value: " + value);
         }
+    }
+
+    private GroovyExpression createExpressionFromValue(String value)
+    {
+        value = value.trim();
+        boolean isUrl = false;
+        boolean cache = false;
+        boolean madeChange;
+
+        do
+        {
+            madeChange = false;
+            // Place in loop to allow url|cache|http://... OR cache|url|http://...   OR url|http://  OR  cache|http://...
+            if (value.startsWith("url|"))
+            {
+                isUrl = true;
+                value = value.substring(4);
+                madeChange = true;
+            }
+
+            if (value.startsWith("cache|"))
+            {
+                cache = true;
+                value = value.substring(6);
+                madeChange = true;
+            }
+        } while (madeChange);
+
+        if (isUrl)
+        {
+            return new GroovyExpression(null, value, cache);
+        }
+        return new GroovyExpression(value, null, cache);
     }
 
     private Range parseRange(String value)

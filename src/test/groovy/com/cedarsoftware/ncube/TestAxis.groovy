@@ -1991,6 +1991,35 @@ class TestAxis
         assert set.get(4) == '"this is quoted"'
     }
 
+    @Test
+    void testRuleConditionParsing()
+    {
+        Axis axis = new Axis('rule', AxisType.RULE, AxisValueType.EXPRESSION, true)
+        GroovyExpression exp = axis.convertStringToColumnValue("true")
+        assert "true".equals(exp.getCmd())
+        assert exp.getUrl() == null
+
+        exp = axis.convertStringToColumnValue("cache|true")
+        assert 'true'.equals(exp.getCmd())
+        assert  null == exp.getUrl()
+        assert exp.isCacheable()
+
+        // These values allow a single-line edit widget to feed a GroovyExpression with all capabilities.
+        exp = axis.convertStringToColumnValue("url|http://www.foxnews.com")
+        assert "http://www.foxnews.com".equals(exp.getUrl())
+        assert !exp.isCacheable()
+
+        exp = axis.convertStringToColumnValue("url|cache|http://www.foxnews.com")
+        assert "http://www.foxnews.com".equals(exp.getUrl())
+        assert exp.getCmd() == null
+        assert exp.isCacheable()
+
+        exp = axis.convertStringToColumnValue("cache|url|http://www.foxnews.com")
+        assert "http://www.foxnews.com".equals(exp.getUrl())
+        assert exp.getCmd() == null
+        assert exp.isCacheable()
+    }
+
     private static boolean isValidRange(Axis axis, Range range)
     {
         try
