@@ -70,6 +70,10 @@ public class NCubeManager
     public static final String SEARCH_EXACT_MATCH_NAME = "exactMatchName";
     public static final String SEARCH_CACHE_RESULT = "cacheResult";
 
+    public static final String BRANCH_UPDATES = "updates";
+    public static final String BRANCH_MERGES = "merges";
+    public static final String BRANCH_CONFLICTS = "conflicts";
+
     private static final String SYS_BOOTSTRAP = "sys.bootstrap";
     private static final String CLASSPATH_CUBE = "sys.classpath";
 
@@ -977,7 +981,8 @@ public class NCubeManager
                 {
                     String message = "Conflict merging " + info.name + ". The cube has changed since your last update.";
                     NCube mergedCube = checkForConflicts(appId, errors, message, info, head, false);
-                    if (mergedCube != null) {
+                    if (mergedCube != null)
+                    {
                         NCubeInfoDto mergedDto = getPersister().commitMergedCubeToHead(appId, mergedCube, username);
                         dtosMerged.add(mergedDto);
                     }
@@ -998,9 +1003,9 @@ public class NCubeManager
         return committedCubes;
     }
 
-    private static NCube checkForConflicts(ApplicationID appId, Map errors, String message, NCubeInfoDto info, NCubeInfoDto head, boolean reverse)
+    private static NCube checkForConflicts(ApplicationID appId, Map<String, Map> errors, String message, NCubeInfoDto info, NCubeInfoDto head, boolean reverse)
     {
-        Map map = new LinkedHashMap();
+        Map<String, Object> map = new LinkedHashMap<>();
         map.put("message", message);
         map.put("sha1", info.sha1);
         map.put("headSha1", head != null ? head.sha1 : null);
@@ -1021,10 +1026,13 @@ public class NCubeManager
 
                     if (NCube.areCellChangeSetsCompatible(delta1, delta2))
                     {
-                        if (reverse) {
+                        if (reverse)
+                        {
                             headCube.mergeCellChangeSet(delta1);
                             return headCube;
-                        } else {
+                        }
+                        else
+                        {
                             branchCube.mergeCellChangeSet(delta2);
                             return branchCube;
                         }
@@ -1065,7 +1073,7 @@ public class NCubeManager
      * supplied branch.  If the merge cannot be done perfectly, an exception is
      * thrown indicating the cubes that are in conflict.
      */
-    public static List<NCubeInfoDto> updateBranch(ApplicationID appId, String username)
+    public static Map<String, Object> updateBranch(ApplicationID appId, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
@@ -1085,7 +1093,6 @@ public class NCubeManager
 
         List<NCubeInfoDto> updates = new ArrayList<>(records.size());
         List<NCubeInfoDto> dtosMerged = new ArrayList<>();
-
         Map<String, Map> conflicts = new LinkedHashMap<>();
 
         for (NCubeInfoDto head : headRecords)
@@ -1128,14 +1135,13 @@ public class NCubeManager
             }
         }
 
-        if (!conflicts.isEmpty())
-        {
-            throw new BranchMergeException("Conflict(s) updating branch", conflicts);
-        }
-
-        List<NCubeInfoDto> ret = getPersister().updateBranch(appId, updates, username);
-        ret.addAll(dtosMerged);
+        List<NCubeInfoDto> finalUpdates = getPersister().updateBranch(appId, updates, username);
         clearCache(appId);
+
+        Map<String, Object> ret = new LinkedHashMap<>();
+        ret.put(BRANCH_UPDATES, finalUpdates);
+        ret.put(BRANCH_MERGES, dtosMerged);
+        ret.put(BRANCH_CONFLICTS, conflicts);
         return ret;
     }
 
