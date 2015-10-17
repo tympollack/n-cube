@@ -447,6 +447,7 @@ public class HtmlFormatter implements NCubeFormatter
   background:#555;
   color:#e8e8e8;
   border-radius:3px;
+  font-family: "arial","helvetica", sans-serif;
   padding-left:5px;
   padding-right:5px;
   padding-top:1px;
@@ -557,7 +558,7 @@ th.ncube-dead:hover { background: #76A7FF; }
                 final CommandCell cmd = (CommandCell) defVal;
                 if (StringUtilities.hasContent(cmd.url))
                 {
-                    s.append('cell cell-url"><a href="#">')
+                    s.append('cell cell-url"><a class="cell-def" href="#">')
                     s.append(cmd.url)
                     s.append("</a>")
                 }
