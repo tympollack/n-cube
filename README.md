@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.3.7</version>
+  <version>3.3.8</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MJFgxTVFZZ3EkmdPabsQ5UremUg2HHPe7
@@ -95,6 +95,11 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.3.8
+ * Enhancement: Update Branch - no longer throws a BranchMergeException when there is a conflict.  Instead a Map is returned with keys of 'updates', 'merges', and 'conflicts'.  The 'updates' and 'merges' are now committed.  The conflicts are not committed and will therefore show up each time you run Update Branch until each one is resolved.
+ * Enhancement: Rule condition parsing improved so that a condition on an 'expression' Axis can be passed in with the notation url|http://foo.bar.baxz.  The 'url' prefix is recognized and used to indicate that the subsequent text is a URL, not expression code.  Similarly, the prefix 'cache' can be used, which will indicate that the expression should be marked as cached.  Both 'url' and 'cache' can be combined --> url|cache|com/foo/bar/baz.groovy.  The order of 'url' or 'cache' prefix does not matter, and 0, 1, or both can be used. 
+ * Bug fix: In the HTML view of an n-cube, rule condition formatting fixed when a rule condition was specified with a URL.  The anchor tag was including both the rule name and the URL (rule name should not have been included in the anchor tag).
+ * The rule name in the HTML view is now highlighted in a such a way that the 'name:' text is no longer needed, making the condition look nicer as their is less text.  The rule name is set off from the page with a different background color.
 * 3.3.7
  * GroovyExpression clears compiled class when cache=true (as it will only be used once).  Useful for cells containing expressions that returns Lists or Maps of data.
  * Added a small amount of padding to left and right side of column headers in the generated HTML.
