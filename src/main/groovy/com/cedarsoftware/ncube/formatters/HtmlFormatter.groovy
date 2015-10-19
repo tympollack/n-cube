@@ -608,7 +608,7 @@ th.ncube-dead:hover { background: #76A7FF; }
         }
         else if (cellValue instanceof byte[])
         {
-            return StringUtilities.encode((byte[]) cellValue)
+            return StringUtilities.encode(cellValue as byte[])
         }
         else if (isArray && MetaUtils.isPrimitive(cellValue.getClass().componentType))
         {
@@ -663,6 +663,10 @@ th.ncube-dead:hover { background: #76A7FF; }
 
     static String escapeHTML(String s)
     {
+        if (s == null)
+        {
+            return ''
+        }
         int len = s.length()
         StringBuilder out = new StringBuilder(len)
 

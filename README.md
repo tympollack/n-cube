@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.3.8</version>
+  <version>3.3.9</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MJFgxTVFZZ3EkmdPabsQ5UremUg2HHPe7
@@ -95,6 +95,8 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.3.9
+ * Bug fix: HtmlFormatter could throw an NPE when encoding the content of a cell.
 * 3.3.8
  * Enhancement: Update Branch - no longer throws a BranchMergeException when there is a conflict.  Instead a Map is returned with keys of 'updates', 'merges', and 'conflicts'.  The 'updates' and 'merges' are now committed.  The conflicts are not committed and will therefore show up each time you run Update Branch until each one is resolved.
  * Enhancement: Rule condition parsing improved so that a condition on an 'expression' Axis can be passed in with the notation url|http://foo.bar.baxz.  The 'url' prefix is recognized and used to indicate that the subsequent text is a URL, not expression code.  Similarly, the prefix 'cache' can be used, which will indicate that the expression should be marked as cached.  Both 'url' and 'cache' can be combined --> url|cache|com/foo/bar/baz.groovy.  The order of 'url' or 'cache' prefix does not matter, and 0, 1, or both can be used. 
