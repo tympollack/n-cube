@@ -4,8 +4,6 @@ n-cube 'ToDo' list
 ### n-cube engine
 
 * Datatypes
- * Additional datatypes: list, map, set, array containing only JSON primitive types
- * DefaultCellValue needs to be declared and processed like the cell type and requiredScopeKeys (nearly complete)
 * OptionalScope
  * Support additional (and subtractive) optional scope keys (minus sign (-) in front will remove an optional scope key)
  * Test all regular expression patterns to ensure they find cube names
@@ -36,7 +34,4 @@ n-cube 'ToDo' list
 * TODO: Where does cell menu go? (for cut/copy/paste)
 * TODO: Implement optional keys (with minus sign support)
 * TODO: test all regex's related to finding referenced cubes
-* TODO: test CellInfo (in preparation for list, array, set, map)
 * TODO: create visualization of n-cube in NCE
-* TODO: Change to snap-in design (nearly complete)
-* TODO: Show table-level default cell is light-gray in HTML view so that viewer's can tell the cell will be returning the n-cube cell default.
