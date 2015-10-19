@@ -28,10 +28,11 @@ n-cube 'ToDo' list
  * Decision theory
  * Simulated annealing
  * Swarm theory
-
+ * Run all tests
 
 ### n-cube editor (NCE)
 * TODO: Where does cell menu go? (for cut/copy/paste)
 * TODO: Implement optional keys (with minus sign support)
 * TODO: test all regex's related to finding referenced cubes
 * TODO: create visualization of n-cube in NCE
+* Run all tests
