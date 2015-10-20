@@ -596,7 +596,7 @@ th.ncube-dead:hover { background: #76A7FF; }
         }
         else if (cellValue instanceof CommandCell)
         {
-            return ((CommandCell) cellValue).cmd
+            return (cellValue as CommandCell).cmd
         }
         else if (cellValue instanceof Boolean || cellValue instanceof Character)
         {
