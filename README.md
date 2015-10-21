@@ -95,6 +95,11 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.3.10
+ * Bug fix: Created, deleted and then restored cubes were incorrectly showing as conflicts, when there was no original head cube.
+ * Bug fix: When choosing 'Accept Mine' in merge conflict resolution, the code was incorrectly pushing the branch cube to head.  Instead, it should have copied the head SHA1 to the branch so that it was updated for commit-overwrite on future commit.
+ * Bug fix: NPE occurring when Groovy Templates (with empty content) were being scanned for cube-name references.  This happened during searching the cell content for cube references. Fixed.
+ * Bug fix: NPE when computing SHA1 of column that had null value.  Granted, only the Default column should ever have a null, but to prevent NPE, null is converted to "" before .toString() for SHA1.
 * 3.3.9
  * Bug fix: HtmlFormatter could throw an NPE when encoding the content of a cell.
 * 3.3.8

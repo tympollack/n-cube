@@ -2277,7 +2277,9 @@ public class NCube<T>
 
             for (Column column : axis.getColumnsWithoutDefault())
             {
-                sha1Digest.update(column.getValue().toString().getBytes());
+                Object v = column.getValue();
+                Object safeVal = (v == null) ? "" : v;
+                sha1Digest.update(safeVal.toString().getBytes());
                 sha1Digest.update(sep);
                 if (!MapUtilities.isEmpty(column.metaProps))
                 {
@@ -2325,9 +2327,12 @@ public class NCube<T>
         for (Long colId : columns)
         {
             Axis axis = getAxisFromColumnId(colId);
-            Column column = axis.getColumnById(colId);
-            Object value = column.getValue();
-            list.add(value == null ? "null" : column.getValue().toString());
+            if (axis != null)
+            {   // Rare case where a column has an invalid ID.
+                Column column = axis.getColumnById(colId);
+                Object value = column.getValue();
+                list.add(value == null ? "null" : column.getValue().toString());
+            }
         }
         Collections.sort(list);
         StringBuilder s = new StringBuilder();

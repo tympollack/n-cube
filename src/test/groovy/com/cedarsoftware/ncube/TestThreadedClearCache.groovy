@@ -67,6 +67,7 @@ class TestThreadedClearCache
 
     private void concurrencyTestWithAppId()
     {
+        int numThreads = 4;
         def run =
         {
             long start = System.currentTimeMillis()
@@ -117,9 +118,9 @@ class TestThreadedClearCache
             }
         }
 
-        Thread[] threads = new Thread[16]
+        Thread[] threads = new Thread[numThreads]
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < numThreads; i++)
         {
             threads[i] = new Thread(run);
             threads[i].name = 'NCubeConcurrencyTest' + i
@@ -131,13 +132,13 @@ class TestThreadedClearCache
         clear.daemon = true;
 
         // Start all at the same time (more concurrent that starting them during construction)
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < numThreads; i++)
         {
             threads[i].start()
         }
         clear.start();
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < numThreads; i++)
         {
             try
             {

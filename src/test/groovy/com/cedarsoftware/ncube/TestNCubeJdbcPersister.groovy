@@ -636,13 +636,14 @@ class TestNCubeJdbcPersister
     }
 
     @Test
-    void testMergeOverwriteHeadCubeWithSQLException()
+    void testMergeAcceptMineWithSQLException()
     {
         Connection c = getConnectionThatThrowsSQLException();
         try
         {
-            new NCubeJdbcPersister().mergeOverwriteHeadCube(c, defaultSnapshotApp, "TestName", "Foo", USER_ID);
-        } catch (RuntimeException e)
+            new NCubeJdbcPersister().mergeAcceptBranchCube(c, defaultSnapshotApp, "TestName", USER_ID);
+        }
+        catch (RuntimeException e)
         {
             assertEquals(SQLException.class, e.cause.getClass());
             assertTrue(e.message.toLowerCase().contains("unable"));

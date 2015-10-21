@@ -49,14 +49,20 @@ public class GroovyTemplate extends ContentCmdCell
 
     public void getCubeNamesFromCommandText(final Set<String> cubeNames)
     {
-        Matcher m = Regexes.scripletPattern.matcher(getCmd());
+        String cmd = getCmd();
+        if (cmd == null)
+        {
+            return;
+        }
+
+        Matcher m = Regexes.scripletPattern.matcher(cmd);
 
         while (m.find())
         {
             GroovyBase.getCubeNamesFromText(cubeNames, m.group(1));
         }
 
-        m = Regexes.velocityPattern.matcher(getCmd());
+        m = Regexes.velocityPattern.matcher(cmd);
 
         while (m.find())
         {

@@ -35,8 +35,8 @@ interface NCubePersister extends NCubeReadOnlyPersister
 
     void restoreCube(ApplicationID appId, String cubeName, String username);
 
-    boolean mergeOverwriteHeadCube(ApplicationID appId, String cubeName, String headSha1, String username);
-    boolean mergeOverwriteBranchCube(ApplicationID appId, String cubeName, String branchSha1, String username);
+    boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username);
+    boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username);
 
     NCubeInfoDto commitMergedCubeToHead(ApplicationID appId, NCube cube, String username)
     NCubeInfoDto commitMergedCubeToBranch(ApplicationID appId, NCube cube, String headSha1, String username)
@@ -51,5 +51,4 @@ interface NCubePersister extends NCubeReadOnlyPersister
     List<NCubeInfoDto> updateBranch(ApplicationID appId, Collection<NCubeInfoDto> updates, String username);
 
     int rollbackBranch(ApplicationID appId, Object[] infoDtos);
-
 }

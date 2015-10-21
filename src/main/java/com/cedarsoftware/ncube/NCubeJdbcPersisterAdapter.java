@@ -258,12 +258,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public boolean mergeOverwriteHeadCube(ApplicationID appId, String cubeName, String headSha1, String username)
+    public boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.mergeOverwriteHeadCube(c, appId, cubeName, headSha1, username);
+            return persister.mergeOverwriteBranchCube(c, appId, cubeName, branchSha1, username);
         }
         finally
         {
@@ -271,12 +271,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public boolean mergeOverwriteBranchCube(ApplicationID appId, String cubeName, String branchSha1, String username)
+    public boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.mergeOverwriteBranchCube(c, appId, cubeName, branchSha1, username);
+            return persister.mergeAcceptBranchCube(c, appId, cubeName, username);
         }
         finally
         {

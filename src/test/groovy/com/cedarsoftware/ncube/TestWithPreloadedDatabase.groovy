@@ -2168,7 +2168,7 @@ abstract class TestWithPreloadedDatabase
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
-            assertTrue(NCubeManager.mergeOverwriteBranchCube(branch1, "TestBranch", e.errors.TestBranch.sha1, USER_ID));
+            assertTrue(NCubeManager.mergeAcceptTheirs(branch1, "TestBranch", e.errors.TestBranch.sha1, USER_ID));
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
@@ -2226,7 +2226,7 @@ abstract class TestWithPreloadedDatabase
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
-            assertTrue(NCubeManager.mergeOverwriteBranchCube(branch1, "TestBranch", e.errors.TestBranch.sha1, USER_ID));
+            assertTrue(NCubeManager.mergeAcceptTheirs(branch1, "TestBranch", e.errors.TestBranch.sha1, USER_ID));
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
@@ -2254,7 +2254,8 @@ abstract class TestWithPreloadedDatabase
 
 
     @Test
-    void testConflictOverwriteHead() {
+    void testConflictAcceptMine()
+    {
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
         NCubeManager.updateCube(branch2, cube, USER_ID)
 
@@ -2282,29 +2283,49 @@ abstract class TestWithPreloadedDatabase
             NCubeManager.commitBranch(branch1, dtos, USER_ID)
             fail()
         }
-        catch (BranchMergeException e) {
+        catch (BranchMergeException e)
+        {
             assert e.message.toLowerCase().contains("conflict(s) committing branch")
             assert e.errors.TestBranch.message.toLowerCase().contains('conflict merging')
             assert e.errors.TestBranch.message.toLowerCase().contains('same name')
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
-            assertTrue(NCubeManager.mergeOverwriteHeadCube(branch1, "TestBranch", e.errors.TestBranch.headSha1, USER_ID));
+            cube = NCubeManager.getCube(branch1, "TestBranch")
+            List<NCubeInfoDto> infos = NCubeManager.search(branch1, 'TestBranch', null, null)
+            NCubeInfoDto infoDto = infos[0]
+            assert infoDto.headSha1 == null
+
+            cube = NCubeManager.getCube(head, "TestBranch")
+            assertEquals(3, cube.getCellMap().size())
+            assertEquals("BAZ", cube.getCell([Code : 10.0]))
+            infos = NCubeManager.search(head, 'TestBranch', null, null)
+            infoDto = infos[0]
+            String saveHeadSha1 = infoDto.sha1
+            assert saveHeadSha1 != null
+
+            assertTrue(NCubeManager.mergeAcceptMine(branch1, "TestBranch", USER_ID));
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
             assertEquals("GHI", cube.getCell([Code : 10.0]))
+            infos = NCubeManager.search(branch1, 'TestBranch', null, null)
+            infoDto = infos[0]
+            assert saveHeadSha1 == infoDto.headSha1
 
             cube = NCubeManager.getCube(head, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
-            assertEquals("GHI", cube.getCell([Code : 10.0]))
-
+            assertEquals("BAZ", cube.getCell([Code : 10.0]))
+            infos = NCubeManager.search(head, 'TestBranch', null, null)
+            infoDto = infos[0]
+            assert saveHeadSha1 == infoDto.sha1
+            assert infoDto.headSha1 == null // head always has a null headSha1
         }
     }
 
     @Test
-    void testConflictOverwriteHeadWithPreexistingCube() {
-
+    void testConflictAcceptMineWithPreexistingCube()
+    {
         preloadCubes(head, "test.branch.3.json");
 
         NCubeManager.createBranch(branch1);
@@ -2338,52 +2359,71 @@ abstract class TestWithPreloadedDatabase
             NCubeManager.commitBranch(branch1, dtos, USER_ID)
             fail()
         }
-        catch (BranchMergeException e) {
+        catch (BranchMergeException e)
+        {
             assert e.message.toLowerCase().contains("conflict(s) committing branch")
             assert e.errors.TestBranch.message.toLowerCase().contains('conflict merging')
             assert e.errors.TestBranch.message.toLowerCase().contains('cube has changed')
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
-            assertTrue(NCubeManager.mergeOverwriteHeadCube(branch1, "TestBranch", e.errors.TestBranch.headSha1, USER_ID));
+            List<NCubeInfoDto> infos = NCubeManager.search(branch1, 'TestBranch', null, null)
+            NCubeInfoDto infoDto = infos[0]
+            assert infoDto.headSha1 != null
+            String saveOldHeadSha1 = infoDto.headSha1
+
+            infos = NCubeManager.search(head, 'TestBranch', null, null)
+            infoDto = infos[0]
+            assert infoDto.headSha1 == null
+            String saveHeadSha1 = infoDto.sha1
+            assert saveHeadSha1 != null
+
+            assertTrue(NCubeManager.mergeAcceptMine(branch1, "TestBranch", USER_ID));
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
             assertEquals("GHI", cube.getCell([Code : 10.0]))
+            infos = NCubeManager.search(branch1, 'TestBranch', null, null)
+            infoDto = infos[0]
+            assert infoDto.headSha1 == saveHeadSha1
+            assert infoDto.headSha1 != saveOldHeadSha1
 
             cube = NCubeManager.getCube(head, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
-            assertEquals("GHI", cube.getCell([Code : 10.0]))
-
+            assertEquals("BAZ", cube.getCell([Code : 10.0]))
+            infos = NCubeManager.search(head, 'TestBranch', null, null)
+            infoDto = infos[0]
+            assert infoDto.headSha1 == null
+            assert infoDto.sha1 == saveHeadSha1
         }
     }
 
     @Test
-    void testOverwriteHeadCubeWhenBranchDoesNotExist()
+    void testMergeAcceptMineWhenBranchDoesNotExist()
     {
-        try {
-            NCubeManager.mergeOverwriteHeadCube(appId, "TestBranch", "foo", USER_ID);
+        try
+        {
+            NCubeManager.mergeAcceptMine(appId, "TestBranch", USER_ID);
             fail();
         }
         catch (IllegalStateException e)
         {
-            assertTrue(e.message.toLowerCase().contains("failed to overwrite"));
-            assertTrue(e.message.toLowerCase().contains("does not exist"));
+            assertTrue(e.message.toLowerCase().contains("failed to update branch cube because head cube does not exist"));
         }
     }
 
     @Test
-    void testOverwriteHeadCubeWhenHEADdoesNotExist()
+    void testMergeAcceptMineWhenHEADdoesNotExist()
     {
-        try {
+        try
+        {
             preloadCubes(branch1, "test.branch.1.json")
-            NCubeManager.mergeOverwriteHeadCube(appId, "TestBranch", "foo", USER_ID);
+            NCubeManager.mergeAcceptMine(appId, "TestBranch", USER_ID);
             fail();
         }
         catch (IllegalStateException e)
         {
-            assertTrue(e.message.toLowerCase().contains("failed to overwrite"));
-            assertTrue(e.message.toLowerCase().contains("does not exist"));
+            assertTrue(e.message.toLowerCase().contains('failed to update branch cube because head cube does not exist'));
         }
     }
 
@@ -2391,7 +2431,7 @@ abstract class TestWithPreloadedDatabase
     void testOverwriteBranchCubeWhenBranchDoesNotExist()
     {
         try {
-            NCubeManager.mergeOverwriteBranchCube(appId, "TestBranch", "foo", USER_ID);
+            NCubeManager.mergeAcceptTheirs(appId, "TestBranch", "foo", USER_ID);
             fail();
         }
         catch (IllegalStateException e)
@@ -2406,7 +2446,7 @@ abstract class TestWithPreloadedDatabase
     {
         try {
             preloadCubes(branch1, "test.branch.1.json")
-            NCubeManager.mergeOverwriteBranchCube(appId, "TestBranch", "foo", USER_ID);
+            NCubeManager.mergeAcceptTheirs(appId, "TestBranch", "foo", USER_ID);
             fail();
         }
         catch (IllegalStateException e)
@@ -2528,11 +2568,11 @@ abstract class TestWithPreloadedDatabase
         assert !cube1.containsCell(coord)
 
         assert cube1.getNumCells() == 4
-
     }
 
     @Test
-    void testOverwriteHeadOnBranchMergeException() {
+    void testMergeAcceptMineException()
+    {
         // load cube with same name, but different structure in TEST branch
         preloadCubes(head, "test.branch.1.json")
 
@@ -2543,22 +2583,20 @@ abstract class TestWithPreloadedDatabase
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.2.json")
         NCubeManager.updateCube(branch2, cube, USER_ID)
 
-        Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
-        assertEquals(1, dtos.length)
-        NCubeManager.commitBranch(branch2, dtos, USER_ID)
-
+        List<NCubeInfoDto> dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
+        assertEquals(1, dtos.size)
+        NCubeManager.commitBranch(branch2, dtos as Object[], USER_ID)
 
         cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
         NCubeManager.updateCube(branch1, cube, USER_ID)
 
         dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
-        assertEquals(1, dtos.length)
+        assertEquals(1, dtos.size)
         String newSha1 = dtos[0].sha1;
-
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos, USER_ID)
+            NCubeManager.commitBranch(branch1, dtos as Object[], USER_ID)
             fail()
         }
         catch (BranchMergeException e)
@@ -2573,13 +2611,14 @@ abstract class TestWithPreloadedDatabase
         String sha1 = dto[0].sha1;
         assertNotEquals(sha1, newSha1);
 
-        NCubeManager.mergeOverwriteHeadCube(branch1, "TestAge", sha1, USER_ID);
+        NCubeManager.mergeAcceptMine(branch1, "TestAge", USER_ID);
 
         dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
-        assertEquals(0, dtos.length)
+        String branchHeadSha1 = dtos[0].headSha1
+        assertEquals(1, dtos.size)
 
         dtos = NCubeManager.getCubeRecordsFromDatabase(head, "TestAge", true);
-        assertEquals(newSha1, dtos[0].sha1);
+        assertEquals(branchHeadSha1, dtos[0].sha1);
     }
 
     @Test
@@ -2659,7 +2698,7 @@ abstract class TestWithPreloadedDatabase
         dtos = NCubeManager.getCubeRecordsFromDatabase(branch1, "TestAge", true);
         String sha1 = dtos[0].sha1;
 
-        NCubeManager.mergeOverwriteBranchCube(branch1, "TestAge", sha1, USER_ID);
+        NCubeManager.mergeAcceptTheirs(branch1, "TestAge", sha1, USER_ID);
 
         assertEquals(0, NCubeManager.getBranchChangesFromDatabase(branch1).size());
 

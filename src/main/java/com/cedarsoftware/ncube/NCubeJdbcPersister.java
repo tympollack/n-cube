@@ -1386,102 +1386,6 @@ public class NCubeJdbcPersister
         }
     }
 
-    public boolean mergeOverwriteHeadCube(Connection c, ApplicationID appId, String cubeName, String headSha1, String username)
-    {
-        try
-        {
-            byte[] branchBytes = null;
-            Long branchRevision = null;
-            byte[] branchTestData = null;
-            String branchSha1 = null;
-            long id = 0;
-
-            Map<String, Object> options = new HashMap<>();
-            options.put(NCubeManager.SEARCH_INCLUDE_CUBE_DATA, true);
-            options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true);
-            options.put(NCubeManager.SEARCH_EXACT_MATCH_NAME, true);
-
-            try (PreparedStatement stmt = createSelectCubesStatement(c, appId, cubeName, options))
-            {
-                try (ResultSet rs = stmt.executeQuery())
-                {
-                    if (rs.next())
-                    {
-                        branchBytes = rs.getBytes("cube_value_bin");
-                        branchRevision = rs.getLong("revision_number");
-                        branchTestData = rs.getBytes("test_data_bin");
-                        branchSha1 = rs.getString("sha1");
-                        id = rs.getLong("n_cube_id");
-                    }
-                }
-            }
-
-            if (branchRevision == null)
-            {
-                throw new IllegalStateException("failed to overwrite because branch cube does not exist: " + cubeName + "', app: " + appId);
-            }
-
-            ApplicationID headId = appId.asHead();
-
-            Long newRevision = null;
-            String oldHeadSha1 = null;
-
-            try (PreparedStatement ps = createSelectCubesStatement(c, headId, cubeName, options))
-            {
-                try (ResultSet rs = ps.executeQuery())
-                {
-                    if (rs.next())
-                    {
-                        newRevision = rs.getLong("revision_number");
-                        oldHeadSha1 = rs.getString("sha1");
-                    }
-                }
-            }
-
-            if (newRevision == null)
-            {
-                throw new IllegalStateException("failed to overwrite because HEAD cube does not exist: " + cubeName + "', app: " + appId);
-            }
-
-
-            if (!StringUtilities.equalsIgnoreCase(oldHeadSha1, headSha1))
-            {
-                throw new IllegalStateException("HEAD has changed: " + cubeName + "', app: " + appId);
-            }
-
-            String notes = "Cube overwritten in head: " + appId + ", name: " + cubeName;
-
-            long rev = Math.abs(newRevision) + 1;
-
-            if (insertCube(c, headId, cubeName, branchRevision < 0 ?  -rev : rev, branchBytes, branchTestData, notes, false, branchSha1, null, System.currentTimeMillis(), username) == null)
-            {
-                throw new IllegalStateException("Unable to overwrite cube: '" + cubeName + "', app: " + appId);
-            }
-
-            long now = System.currentTimeMillis();
-
-            try (PreparedStatement update = updateBranchToHead(c, id, branchSha1, now))
-            {
-                if (update.executeUpdate() != 1)
-                {
-                    throw new IllegalStateException("error updating branch cube during overwrite HEAD: " + cubeName + "', app: " + appId + ", row was not updated");
-                }
-            }
-
-            return true;
-        }
-        catch (RuntimeException e)
-        {
-            throw e;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to overwrite cube: " + cubeName + ", app: " + appId + " due to: " + e.getMessage();
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
-    }
-
     public boolean mergeOverwriteBranchCube(Connection c, ApplicationID appId, String cubeName, String branchSha1, String username)
     {
         try
@@ -1516,7 +1420,6 @@ public class NCubeJdbcPersister
                 throw new IllegalStateException("failed to overwrite because HEAD cube does not exist: " + cubeName + "', app: " + appId);
             }
 
-
             Long newRevision = null;
             String oldBranchSha1 = null;
 
@@ -1547,6 +1450,85 @@ public class NCubeJdbcPersister
             long rev = Math.abs(newRevision) + 1;
 
             if (insertCube(c, appId, cubeName, headRevision < 0 ?  -rev : rev, headBytes, headTestData, notes, false, headSha1, headSha1, System.currentTimeMillis(), username) == null)
+            {
+                throw new IllegalStateException("Unable to overwrite branch cube: '" + cubeName + "', app: " + appId);
+            }
+
+            return true;
+        }
+        catch (RuntimeException e)
+        {
+            throw e;
+        }
+        catch (Exception e)
+        {
+            String s = "Unable to overwrite cube: " + cubeName + ", app: " + appId + " due to: " + e.getMessage();
+            LOG.error(s, e);
+            throw new RuntimeException(s, e);
+        }
+    }
+
+    public boolean mergeAcceptBranchCube(Connection c, ApplicationID appId, String cubeName, String username)
+    {
+        try
+        {
+            ApplicationID headId = appId.asHead();
+            Long headRevision = null;
+            String headSha1 = null;
+
+            Map<String, Object> options = new HashMap<>();
+            options.put(NCubeManager.SEARCH_EXACT_MATCH_NAME, true);
+
+            try (PreparedStatement stmt = createSelectCubesStatement(c, headId, cubeName, options))
+            {
+                try (ResultSet rs = stmt.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        headRevision = rs.getLong("revision_number");
+                        headSha1 = rs.getString("sha1");
+                    }
+                }
+            }
+
+            if (headRevision == null)
+            {
+                throw new IllegalStateException("failed to update branch cube because HEAD cube does not exist: " + cubeName + "', app: " + appId);
+            }
+
+            Long newRevision = null;
+            String tipBranchSha1 = null;
+            byte[] myTestData = null;
+            byte[] myBytes = null;
+            boolean changed = false;
+            options.put(NCubeManager.SEARCH_INCLUDE_CUBE_DATA, true);
+            options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true);
+
+            try (PreparedStatement ps = createSelectCubesStatement(c, appId, cubeName, options))
+            {
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        myBytes = rs.getBytes("cube_value_bin");
+                        myTestData = rs.getBytes("test_data_bin");
+                        newRevision = rs.getLong("revision_number");
+                        tipBranchSha1 = rs.getString("sha1");
+                        changed = rs.getBoolean("changed");
+                    }
+                }
+            }
+
+            if (newRevision == null)
+            {
+                throw new IllegalStateException("failed to update branch cube because branch cube does not exist: " + cubeName + "', app: " + appId);
+            }
+
+            String notes = "Merge: branch cube accepted over head cube: " + appId + ", name: " + cubeName;
+
+            long rev = Math.abs(newRevision) + 1;
+
+            if (insertCube(c, appId, cubeName, newRevision < 0 ?  -rev : rev, myBytes, myTestData, notes, changed, tipBranchSha1, headSha1, System.currentTimeMillis(), username) == null)
             {
                 throw new IllegalStateException("Unable to overwrite branch cube: '" + cubeName + "', app: " + appId);
             }
