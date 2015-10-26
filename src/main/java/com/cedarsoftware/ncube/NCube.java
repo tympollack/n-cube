@@ -2935,7 +2935,7 @@ public class NCube<T>
         }
     }
 
-    private Map<String, T> getCoordinateFromColumnIds(Collection<Long> idCoord)
+    public Map<String, T> getCoordinateFromColumnIds(Collection<Long> idCoord)
     {
         Map<String, T> properCoord = new CaseInsensitiveMap<>();
         for (Long colId : idCoord)
