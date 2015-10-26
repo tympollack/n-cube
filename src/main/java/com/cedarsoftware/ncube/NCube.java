@@ -2568,6 +2568,10 @@ public class NCube<T>
      */
     static boolean areCellChangeSetsCompatible(Map<Set<Long>, Object> delta1, Map<Set<Long>, Object> delta2)
     {
+        if (delta1 == null || delta2 == null)
+        {
+            return false;
+        }
         Map<Set<Long>, Object> smallerChangeSet;
         Map<Set<Long>, Object> biggerChangeSet;
 
