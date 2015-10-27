@@ -243,12 +243,6 @@
             <!--<scope>test</scope>-->
 		<!--</dependency>-->
 
-		<!--<dependency>-->
-			<!--<groupId>oracle</groupId>-->
-			<!--<artifactId>classes12</artifactId>-->
-			<!--<version>${version.oracle}</version>-->
-		<!--</dependency>-->
-
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
@@ -269,7 +263,7 @@
             <version>${version.concurrent.linked.hashmap.lru}</version>
         </dependency>
 
-		<dependency>
+        <dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${version.junit}</version>
