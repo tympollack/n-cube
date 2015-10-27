@@ -2949,17 +2949,11 @@ public class NCube<T>
                 {
                     value = "default column";
                 }
-                if (axis.getType() == AxisType.RULE)
+
+                Object namedCol = column.getMetaProperty("name");
+                if (namedCol != null)
                 {
-                    String ruleName = (String) column.getMetaProperty("name");
-                    if (StringUtilities.hasContent(ruleName))
-                    {
-                        properCoord.put(axis.getName(), (T) ("(" + ruleName + "): " + value));
-                    }
-                    else
-                    {
-                        properCoord.put(axis.getName(), (T) (value));
-                    }
+                    properCoord.put(axis.getName(), (T) ("(" + namedCol.toString() + "): " + value));
                 }
                 else
                 {
