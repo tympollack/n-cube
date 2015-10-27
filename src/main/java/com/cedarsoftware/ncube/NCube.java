@@ -2954,11 +2954,11 @@ public class NCube<T>
                     String ruleName = (String) column.getMetaProperty("name");
                     if (StringUtilities.hasContent(ruleName))
                     {
-                        properCoord.put(axis.getName(), (T) ("rule: '" + ruleName + "' condition: " + value));
+                        properCoord.put(axis.getName(), (T) ("(" + ruleName + "): " + value));
                     }
                     else
                     {
-                        properCoord.put(axis.getName(), (T) ("condition: " + value));
+                        properCoord.put(axis.getName(), (T) (value));
                     }
                 }
                 else
