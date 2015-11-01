@@ -294,18 +294,22 @@ public class ApplicationID
         throw new IllegalArgumentException("Invalid branch: '" + branch + "'. n-cube branch must contain only A-Z, a-z, or 0-9 dash(-), underscore (_), and dot (.) From 1 to 80 characters.");
     }
 
-    boolean isHead() {
+    public boolean isHead() {
         return HEAD.equals(branch);
     }
 
-    void validateBranchIsNotHead() {
-        if (isHead()) {
+    public void validateBranchIsNotHead()
+    {
+        if (isHead())
+        {
             throw new IllegalArgumentException("Branch cannot be 'HEAD'");
         }
     }
 
-    void validateStatusIsNotRelease() {
-        if (isRelease()) {
+    public void validateStatusIsNotRelease()
+    {
+        if (isRelease())
+        {
             throw new IllegalArgumentException("Status cannot be 'RELEASE'");
         }
     }
@@ -317,7 +321,7 @@ public class ApplicationID
         return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? HEAD : branch);
     }
 
-    boolean equalsNotIncludingBranch(ApplicationID that)
+    public boolean equalsNotIncludingBranch(ApplicationID that)
     {
         return StringUtilities.equalsIgnoreCase(tenant, that.tenant) &&
                 StringUtilities.equalsIgnoreCase(app, that.app) &&

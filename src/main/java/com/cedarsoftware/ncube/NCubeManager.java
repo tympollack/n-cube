@@ -5,7 +5,6 @@ import com.cedarsoftware.util.*;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
-import com.sun.javafx.scene.layout.region.Margins;
 import groovy.lang.GroovyClassLoader;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -988,7 +987,18 @@ public class NCubeManager
             throw new BranchMergeException(errors.size() + " merge conflict(s) committing branch.  Update your branch and retry commit.", errors);
         }
 
-        List<NCubeInfoDto> committedCubes = getPersister().commitBranch(appId, dtosToUpdate, username);
+        List<NCubeInfoDto> committedCubes = new ArrayList<>(dtosToUpdate.size());
+
+        for (NCubeInfoDto dto : dtosToUpdate)
+        {
+            NCubeInfoDto committed = getPersister().commitCube(appId, (Long) Converter.convert(dto.id, Long.class), username);
+            if (committed != null)
+            {
+                committed.changeType = dto.changeType;
+                committedCubes.add(committed);
+            }
+        }
+
         committedCubes.addAll(dtosMerged);
         clearCache(appId);
         clearCache(headAppId);
@@ -1056,15 +1066,39 @@ public class NCubeManager
     }
 
     /**
-     * Commit the passed in changed cube records identified by NCubeInfoDtos.
-     * @return Map ['added': 10, 'deleted': 3, 'updated': 7]
+     * Rollback the passed in list of n-cubes.  Each one will be returned to the state is was
+     * when the branch was created.  This is an insert cube (maintaining revision history) for
+     * each cube passed in.
      */
-    public static int rollbackBranch(ApplicationID appId, Object[] infoDtos)
+    public static int rollbackBranch(ApplicationID appId, Object[] infoDtos, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
         appId.validateStatusIsNotRelease();
-        int ret = getPersister().rollbackBranch(appId, infoDtos);
+
+        int count = 0;
+        for (Object dto : infoDtos)
+        {
+            NCubeInfoDto info = (NCubeInfoDto)dto;
+            if (getPersister().rollbackCube(appId, info.name, username))
+            {
+                count++;
+            }
+        }
+        clearCache(appId);
+        return count;
+    }
+
+    /**
+     * Rollback the given cube.  This means that it will be returned to the state it was
+     * when the branch was created.  This is an insert cube (maintaining revision history).
+     */
+    public static boolean rollbackCube(ApplicationID appId, String cubeName, String username)
+    {
+        validateAppId(appId);
+        appId.validateBranchIsNotHead();
+        appId.validateStatusIsNotRelease();
+        boolean ret = getPersister().rollbackCube(appId, cubeName, username);
         clearCache(appId);
         return ret;
     }
@@ -1136,7 +1170,14 @@ public class NCubeManager
             }
         }
 
-        List<NCubeInfoDto> finalUpdates = getPersister().updateBranch(appId, updates, username);
+        List<NCubeInfoDto> finalUpdates = new ArrayList(updates.size());
+
+        for (NCubeInfoDto dto : updates)
+        {
+            NCubeInfoDto info = getPersister().updateCube(appId, (Long) Converter.convert(dto.id, Long.class), username);
+            finalUpdates.add(info);
+        }
+
         clearCache(appId);
 
         Map<String, Object> ret = new LinkedHashMap<>();

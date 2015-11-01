@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.3.11</version>
+  <version>3.3.12</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MJFgxTVFZZ3EkmdPabsQ5UremUg2HHPe7
@@ -95,6 +95,8 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.3.12 
+ * 
 * 3.3.11
  * Bug fix: NPE was occurring when attempting to check two n-cubes for conflicts and the delta was null (non-comparable cubes).
 * 3.3.10

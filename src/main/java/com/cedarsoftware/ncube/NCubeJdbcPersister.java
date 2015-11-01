@@ -180,11 +180,11 @@ public class NCubeJdbcPersister
         }
     }
 
-    NCubeInfoDto commitCube(Connection c, Long cubeId, ApplicationID appId, String username)
+    NCubeInfoDto commitCube(Connection c, ApplicationID appId, Long cubeId, String username)
     {
         if (cubeId == null)
         {
-            throw new IllegalArgumentException("Cube id cannot be null");
+            throw new IllegalArgumentException("Commit cube, cube id cannot be empty, app: " + appId);
         }
 
         String sql = "SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1 from n_cube WHERE n_cube_id = ?";
@@ -273,11 +273,11 @@ public class NCubeJdbcPersister
         return update;
     }
 
-    NCubeInfoDto updateBranchCube(Connection c, Long cubeId, ApplicationID appId, String username)
+    NCubeInfoDto updateCube(Connection c, ApplicationID appId, Long cubeId, String username)
     {
         if (cubeId == null)
         {
-            throw new IllegalArgumentException("Cube id cannot be null");
+            throw new IllegalArgumentException("Update cube, Cube id cannot be empty, app: " + appId);
         }
 
         // select head cube in question
@@ -291,7 +291,6 @@ public class NCubeJdbcPersister
             {
                 if (rs.next())
                 {
-
                     byte[] jsonBytes = rs.getBytes(CUBE_VALUE_BIN);
                     String sha1 = rs.getString("sha1");
                     String cubeName = rs.getString("n_cube_nm");
@@ -323,7 +322,6 @@ public class NCubeJdbcPersister
                         String s = "Unable to update cube: " + cubeName + " to app:  " + appId;
                         throw new IllegalStateException(s);
                     }
-
 
                     return dto;
                 }
@@ -396,20 +394,20 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to insert cube: " + cube.getName() + ", app: " + appId + " into database";
+            String s = "Unable to insert cube: " + cube.getName() + ", app: " + appId;
             LOG.error(s, e);
             throw new IllegalStateException(s, e);
         }
     }
 
-    Long getMaxRevision(Connection c, ApplicationID appId, String name)
+    Long getMaxRevision(Connection c, ApplicationID appId, String cubeName)
     {
         try (PreparedStatement stmt = c.prepareStatement(
                 "SELECT revision_number FROM n_cube " +
                         "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND status_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? " +
                         "ORDER BY abs(revision_number) DESC"))
         {
-            stmt.setString(1, buildName(c, name));
+            stmt.setString(1, buildName(c, cubeName));
             stmt.setString(2, appId.getApp());
             stmt.setString(3, appId.getStatus());
             stmt.setString(4, appId.getVersion());
@@ -423,7 +421,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to get maximum revision number for cube: " + name + ", app: " + appId;
+            String s = "Unable to get maximum revision number for cube: " + cubeName + ", app: " + appId;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -450,7 +448,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to get maximum revision number for cube: " + cubeName + ", app: " + appId;
+            String s = "Unable to get minimum revision number for cube: " + cubeName + ", app: " + appId;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -471,7 +469,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to fetch cubes matching name '" + cubeNamePattern + "' from database with content '" + searchPattern + "' for app: " + appId;
+            String s = "Unable to fetch cubes matching name '" + cubeNamePattern + "' with content '" + searchPattern + "' for app: " + appId;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -749,12 +747,12 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to load cube with id: " + dto.id + " from database";
+            String s = "Unable to load cube with id: " + dto.id + ", app: " + dto.app + ", version: " + dto.version;
             LOG.error(s, e);
             throw new IllegalStateException(s, e);
         }
 
-        throw new IllegalArgumentException("Unable to find cube with id: " + dto.id + " from database");
+        throw new IllegalArgumentException("Unable to find cube with id: " + dto.id + ", app: " + dto.app + ", version: " + dto.version);
     }
 
     public NCube loadCube(Connection c, ApplicationID appId, String cubeName)
@@ -777,7 +775,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to load cube: " + appId + ", " + cubeName + " from database";
+            String s = "Unable to load cube: " + appId + ", " + cubeName;
             LOG.error(s, e);
             throw new IllegalStateException(s, e);
         }
@@ -798,7 +796,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to load cube: " + appId + ", " + cubeName + " from database with sha1: " + sha1;
+            String s = "Unable to load cube: " + appId + ", " + cubeName + " with sha1: " + sha1;
             LOG.error(s, e);
             throw new IllegalStateException(s, e);
         }
@@ -819,7 +817,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to load cube: " + appId + ", " + cubeName + " from database with revision: " + revision;
+            String s = "Unable to load cube: " + appId + ", " + cubeName + " with revision: " + revision;
             LOG.error(s, e);
             throw new IllegalStateException(s, e);
         }
@@ -897,13 +895,20 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to delete branch: " + appId + " from database";
+            String s = "Unable to delete branch: " + appId;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
     }
 
-    public boolean rollbackCube(Connection c, ApplicationID appId, String cubeName)
+    /**
+     * Rollback branch cube to initial state when it was created from the HEAD.  This is different
+     * than what the HEAD cube is currently.  This is also different than deleting the branch cube's
+     * history.  We are essentially copying the initial revision to the end (max revision).  This
+     * approach maintains revision history in the branch (and adheres to the no SQL DELETE rule on
+     * n_cube table).
+     */
+    public boolean rollbackCube(Connection c, ApplicationID appId, String cubeName, String username)
     {
         Long revision = getMinRevision(c, appId, cubeName);
 
@@ -912,22 +917,50 @@ public class NCubeJdbcPersister
             throw new IllegalArgumentException("Could not rollback cube.  Cube was not found.  App:  " + appId + ", cube: " + cubeName);
         }
 
-        String sql = "DELETE FROM n_cube WHERE app_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND status_cd = ? AND branch_id = ? AND " + buildNameCondition(c, "n_cube_nm") + " = ? AND revision_number <> ?";
-
-        try (PreparedStatement s = c.prepareStatement(sql))
+        try
         {
-            s.setString(1, appId.getApp());
-            s.setString(2, appId.getVersion());
-            s.setString(3, appId.getTenant());
-            s.setString(4, appId.getStatus());
-            s.setString(5, appId.getBranch());
-            s.setString(6, buildName(c, cubeName));
-            s.setLong(7, revision);
-            return s.executeUpdate() > 0;
+            byte[] bytes = null;
+            byte[] testData = null;
+            String sha1 = null;
+            String headSha1 = null;
+
+            try (PreparedStatement stmt = createSelectCubeWithMatchingRevisionStatement(c, appId, cubeName, revision))
+            {
+                try (ResultSet rs = stmt.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        bytes = rs.getBytes("cube_value_bin");
+                        testData = rs.getBytes("test_data_bin");
+                        sha1 = rs.getString("sha1");
+                        headSha1 = rs.getString("head_sha1");
+                    }
+                }
+            }
+
+            Long newRevision = getMaxRevision(c, appId, cubeName);
+            if (newRevision == null)
+            {
+                throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + "', app: " + appId);
+            }
+
+            String notes = "Rollback of cube: " + cubeName + ", app: " + appId + ", was successful";
+            long rev = Math.abs(newRevision) + 1;
+
+            if (insertCube(c, appId, cubeName, (revision < 0 || headSha1 == null) ?  -rev : rev, bytes, testData, notes, false, sha1, headSha1, System.currentTimeMillis(), username) == null)
+            {
+                throw new IllegalStateException("Unable to rollback branch cube: '" + cubeName + "', app: " + appId);
+            }
+
+            return true;
+        }
+        catch (RuntimeException e)
+        {
+            throw e;
         }
         catch (Exception e)
         {
-            String s = "Unable to rollback cube: " + cubeName + " for app: " + appId + " from database";
+            String s = "Unable to rollback cube: " + cubeName + ", app: " + appId + " due to: " + e.getMessage();
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -950,7 +983,7 @@ public class NCubeJdbcPersister
             }
             catch (Exception e)
             {
-                String s = "Unable to delete cube: " + cubeName + ", app: " + appId + " from database";
+                String s = "Unable to delete cube: " + cubeName + ", app: " + appId;
                 LOG.error(s, e);
                 throw new RuntimeException(s, e);
             }
@@ -1386,7 +1419,7 @@ public class NCubeJdbcPersister
         }
     }
 
-    public boolean mergeOverwriteBranchCube(Connection c, ApplicationID appId, String cubeName, String branchSha1, String username)
+    public boolean mergeAcceptTheirs(Connection c, ApplicationID appId, String cubeName, String branchSha1, String username)
     {
         try
         {
@@ -1468,7 +1501,7 @@ public class NCubeJdbcPersister
         }
     }
 
-    public boolean mergeAcceptBranchCube(Connection c, ApplicationID appId, String cubeName, String username)
+    public boolean mergeAcceptMine(Connection c, ApplicationID appId, String cubeName, String username)
     {
         try
         {
@@ -1940,7 +1973,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to fetch all app names from database for tenant: " + tenant + ", branch: " + branch;
+            String s = "Unable to fetch all app names for tenant: " + tenant + ", branch: " + branch;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -1969,7 +2002,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to fetch all versions for app: " + app + " from database";
+            String s = "Unable to fetch all versions for app: " + app;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -1995,7 +2028,7 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to fetch all branches for tenant: " + tenant + " from database";
+            String s = "Unable to fetch all branches for tenant: " + tenant;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -2015,55 +2048,10 @@ public class NCubeJdbcPersister
         return pattern;
     }
 
-
-    public List<NCubeInfoDto> commitBranch(Connection c, ApplicationID appId, Collection<NCubeInfoDto> dtos, String username)
-    {
-        List<NCubeInfoDto> changes = new ArrayList<>(dtos.size());
-
-        for (NCubeInfoDto dto : dtos)
-        {
-            NCubeInfoDto committed = commitCube(c, Long.parseLong(dto.id), appId, username);
-            if (committed != null)
-            {
-                committed.changeType = dto.changeType;
-                changes.add(committed);
-            }
-        }
-        return changes;
-    }
-
-    public int rollbackBranch(Connection c, ApplicationID appId, Object[] infoDtos)
-    {
-        int count = 0;
-        for (Object dto : infoDtos)
-        {
-            NCubeInfoDto info = (NCubeInfoDto)dto;
-            if (info.headSha1 == null) {
-                deleteCube(c, appId, info.name, true, null);
-                count++;
-            } else if (rollbackCube(c, appId, info.name)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    public List<NCubeInfoDto> updateBranch(Connection c, ApplicationID appId, Collection<NCubeInfoDto> updates, String username)
-    {
-        List<NCubeInfoDto> changes = new ArrayList(updates.size());
-
-        for (NCubeInfoDto dto : updates)
-        {
-            NCubeInfoDto info = updateBranchCube(c, Long.parseLong(dto.id), appId, username);
-            changes.add(info);
-        }
-
-        return changes;
-    }
-
     public String buildNameCondition(Connection c, String name)
     {
-        if (isOracle(c)) {
+        if (isOracle(c))
+        {
             return ("LOWER(" + name + ")");
         }
 
@@ -2072,7 +2060,8 @@ public class NCubeJdbcPersister
 
     public String buildName(Connection c, String name)
     {
-        if (isOracle(c)) {
+        if (isOracle(c))
+        {
             return name == null ? null : name.toLowerCase();
         }
 

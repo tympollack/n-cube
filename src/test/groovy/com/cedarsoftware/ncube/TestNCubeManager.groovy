@@ -1008,7 +1008,7 @@ class TestNCubeManager
             dtos[0].name = "TestCube";
             dtos[0].headSha1 = "FOOFOO";
 
-            NCubeManager.rollbackBranch(defaultSnapshotApp, dtos)
+            NCubeManager.rollbackBranch(defaultSnapshotApp, dtos, USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)

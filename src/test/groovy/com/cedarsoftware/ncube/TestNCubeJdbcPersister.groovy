@@ -332,7 +332,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().updateBranchCube(c, 0, defaultSnapshotApp, USER_ID)
+            new NCubeJdbcPersister().updateCube(c, defaultSnapshotApp, 0, USER_ID)
             fail()
         }
         catch (RuntimeException e)
@@ -430,7 +430,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            new NCubeJdbcPersister().updateBranchCube(c, 0, defaultSnapshotApp, USER_ID)
+            new NCubeJdbcPersister().updateCube(c, defaultSnapshotApp, 0, USER_ID)
             fail()
         }
         catch (IllegalStateException e)
@@ -452,7 +452,7 @@ class TestNCubeJdbcPersister
         when(rs.getLong(1)).thenReturn(5L)
         when(rs.getDate(anyString())).thenReturn(new java.sql.Date(System.currentTimeMillis()))
 
-        assertNull(new NCubeJdbcPersister().updateBranchCube(c, 0, defaultSnapshotApp, USER_ID))
+        assertNull(new NCubeJdbcPersister().updateCube(c, defaultSnapshotApp, 0, USER_ID))
     }
 
     @Test
@@ -626,7 +626,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException();
         try
         {
-            new NCubeJdbcPersister().mergeOverwriteBranchCube(c, defaultSnapshotApp, "TestName", "Foo", USER_ID);
+            new NCubeJdbcPersister().mergeAcceptTheirs(c, defaultSnapshotApp, "TestName", "Foo", USER_ID);
         } catch (RuntimeException e)
         {
             assertEquals(SQLException.class, e.cause.getClass());
@@ -641,7 +641,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException();
         try
         {
-            new NCubeJdbcPersister().mergeAcceptBranchCube(c, defaultSnapshotApp, "TestName", USER_ID);
+            new NCubeJdbcPersister().mergeAcceptMine(c, defaultSnapshotApp, "TestName", USER_ID);
         }
         catch (RuntimeException e)
         {
@@ -827,7 +827,7 @@ class TestNCubeJdbcPersister
     }
 
     @Test
-    void testRollbackBranchWithSqlException()
+    void testRollbackCubeWithSqlException()
     {
         Connection c = mock(Connection.class)
         PreparedStatement ps = mock(PreparedStatement.class)
@@ -849,7 +849,7 @@ class TestNCubeJdbcPersister
             dtos[0].name = "foo";
             dtos[0].headSha1 = "F0F0F0F0"
 
-            new NCubeJdbcPersister().rollbackBranch(c, defaultSnapshotApp, dtos)
+            new NCubeJdbcPersister().rollbackCube(c, defaultSnapshotApp, 'foo', USER_ID)
             fail()
         }
         catch (RuntimeException e)
@@ -897,12 +897,12 @@ class TestNCubeJdbcPersister
     {
         try
         {
-            new NCubeJdbcPersister().commitCube(null, null, defaultSnapshotApp, USER_ID)
+            new NCubeJdbcPersister().commitCube(null, defaultSnapshotApp, null, USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains("cannot be null"))
+            assertTrue(e.message.contains("cannot be empty"))
         }
     }
 
@@ -912,7 +912,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().commitCube(c, 1L, defaultSnapshotApp, USER_ID)
+            new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID)
             fail()
         }
         catch (IllegalStateException e)
@@ -940,7 +940,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            new NCubeJdbcPersister().commitCube(c, 1L, defaultSnapshotApp, USER_ID)
+            new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID)
             fail()
         }
         catch (IllegalStateException e)
@@ -967,7 +967,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            new NCubeJdbcPersister().commitCube(c, 1L, defaultSnapshotApp, USER_ID)
+            new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID)
             fail()
         }
         catch (IllegalStateException e)
@@ -990,7 +990,7 @@ class TestNCubeJdbcPersister
         when(rs.next()).thenReturn(false)
         when(rs.getBytes("cube_value_bin")).thenReturn("".getBytes("UTF-8"))
 
-        assertNull(new NCubeJdbcPersister().commitCube(c, 1L, defaultSnapshotApp, USER_ID))
+        assertNull(new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID))
     }
 
 
@@ -1433,11 +1433,12 @@ class TestNCubeJdbcPersister
     {
         try
         {
-            new NCubeJdbcPersister().updateBranchCube(null, null, null, null);
+            new NCubeJdbcPersister().updateCube((Connection)null, (ApplicationID) null,(Long) null, null);
+            fail()
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains('cannot be null'));
+            assertTrue(e.message.contains('cannot be empty'));
         }
     }
 

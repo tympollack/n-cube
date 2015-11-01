@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube;
 
 import java.sql.Connection;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -263,7 +262,7 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.mergeOverwriteBranchCube(c, appId, cubeName, branchSha1, username);
+            return persister.mergeAcceptTheirs(c, appId, cubeName, branchSha1, username);
         }
         finally
         {
@@ -276,7 +275,7 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.mergeAcceptBranchCube(c, appId, cubeName, username);
+            return persister.mergeAcceptMine(c, appId, cubeName, username);
         }
         finally
         {
@@ -349,19 +348,6 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public List<NCubeInfoDto> commitBranch(ApplicationID appId, Collection<NCubeInfoDto> dtos, String username)
-    {
-        Connection c = connectionProvider.getConnection();
-        try
-        {
-            return persister.commitBranch(c, appId, dtos, username);
-        }
-        finally
-        {
-            connectionProvider.releaseConnection(c);
-        }
-    }
-
     public NCubeInfoDto commitMergedCubeToHead(ApplicationID appId, NCube cube, String username)
     {
         Connection c = connectionProvider.getConnection();
@@ -388,12 +374,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public int rollbackBranch(ApplicationID appId, Object[] infoDtos)
+    public NCubeInfoDto commitCube(ApplicationID appId, Long cubeId, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.rollbackBranch(c, appId, infoDtos);
+            return persister.commitCube(c, appId, cubeId, username);
         }
         finally
         {
@@ -401,12 +387,25 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public List<NCubeInfoDto> updateBranch(ApplicationID appId, Collection<NCubeInfoDto> updates, String username)
+    public boolean rollbackCube(ApplicationID appId, String cubeName, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.updateBranch(c, appId, updates, username);
+            return persister.rollbackCube(c, appId, cubeName, username);
+        }
+        finally
+        {
+            connectionProvider.releaseConnection(c);
+        }
+    }
+
+    public NCubeInfoDto updateCube(ApplicationID appId, long cubeId, String username)
+    {
+        Connection c = connectionProvider.getConnection();
+        try
+        {
+            return persister.updateCube(c, appId, cubeId, username);
         }
         finally
         {

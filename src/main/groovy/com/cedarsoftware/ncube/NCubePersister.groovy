@@ -26,14 +26,13 @@ import groovy.transform.CompileStatic
 interface NCubePersister extends NCubeReadOnlyPersister
 {
     void updateCube(ApplicationID appId, NCube cube, String username);
-    boolean deleteBranch(ApplicationID appId);
-    boolean deleteCubes(String appName);
     boolean deleteCube(ApplicationID appId, String cubeName, boolean allowDelete, String username);
     boolean renameCube(ApplicationID appId, String oldName, String newName, String username);
     boolean duplicateCube(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
-    int createBranch(ApplicationID appId)
-
     void restoreCube(ApplicationID appId, String cubeName, String username);
+    NCubeInfoDto commitCube(ApplicationID appId, Long cubeId, String username);
+    boolean rollbackCube(ApplicationID appId, String cubeName, String username);
+    NCubeInfoDto updateCube(ApplicationID appId, long cubeId, String username);
 
     boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username);
     boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username);
@@ -47,8 +46,7 @@ interface NCubePersister extends NCubeReadOnlyPersister
     boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     boolean updateTestData(ApplicationID appId, String cubeName, String testData)
 
-    List<NCubeInfoDto> commitBranch(ApplicationID appId, Collection<NCubeInfoDto> commits, String username);
-    List<NCubeInfoDto> updateBranch(ApplicationID appId, Collection<NCubeInfoDto> updates, String username);
-
-    int rollbackBranch(ApplicationID appId, Object[] infoDtos);
+    int createBranch(ApplicationID appId)
+    boolean deleteBranch(ApplicationID appId);
+    boolean deleteCubes(String appName);
 }
