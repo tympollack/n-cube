@@ -400,7 +400,7 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public NCubeInfoDto updateCube(ApplicationID appId, long cubeId, String username)
+    public NCubeInfoDto updateCube(ApplicationID appId, Long cubeId, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
