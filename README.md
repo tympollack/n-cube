@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.3.12</version>
+  <version>3.3.13-SNAPSHOT</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
