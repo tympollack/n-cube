@@ -96,7 +96,10 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ___
 ### Version History
 * 3.3.12 
- * 
+ * Removed looping-style APIs from persister (it should be focused on atomic changes) and moved that logic to the Manager so that all persisters leverage that code. These were the updateBranch (now updateCube), commitBranch (commitCube), rollbackCube (now rollbackCube).
+ * Simplified coordinate names for columns that have a 'name' meta-property as they appear in a 'delta' difference description.
+ * Made NCube.getCoordinateFromColumnIds() public.
+ * Made some read-only getter APIs on ApplicationID public.
 * 3.3.11
  * Bug fix: NPE was occurring when attempting to check two n-cubes for conflicts and the delta was null (non-comparable cubes).
 * 3.3.10
