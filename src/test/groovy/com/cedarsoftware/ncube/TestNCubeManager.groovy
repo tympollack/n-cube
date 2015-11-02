@@ -444,7 +444,6 @@ class TestNCubeManager
         assertTrue(NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID))
     }
 
-
     @Test
     void testGetBranchChangesFromDatabaseWithInvalidAppIdOfHead()
     {
@@ -459,16 +458,12 @@ class TestNCubeManager
         }
     }
 
-
     @Test
     void testUpdateTestDataOnDeletedCube()
     {
         NCube ncube1 = NCubeBuilder.testNCube3D_Boolean
-
         NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID)
-
         assertTrue(ncube1.numDimensions == 3)
-
         NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, USER_ID)
 
         try

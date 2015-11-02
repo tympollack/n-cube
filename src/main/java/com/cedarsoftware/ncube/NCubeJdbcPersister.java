@@ -379,8 +379,6 @@ public class NCubeJdbcPersister
                     {
                         throw new IllegalStateException("error updating n-cube: " + cube.getName() + "', app: " + appId + ", row was not updated");
                     }
-
-                    return;
                 }
                 else if (insertCube(connection, appId, cube, 0L, null, "Cube created", true, null, System.currentTimeMillis(), username) == null)
                 {
@@ -1850,7 +1848,6 @@ public class NCubeJdbcPersister
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, NCube cube, Long revision, byte[] testData, String notes, boolean changed, String headSha1, long time, String username) throws SQLException, IOException
     {
-
         try (PreparedStatement s = createInsertStatement(c))
         {
             final Blob blob = c.createBlob();
