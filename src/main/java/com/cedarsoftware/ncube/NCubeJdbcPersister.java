@@ -17,7 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +57,66 @@ public class NCubeJdbcPersister
     public static final String TEST_DATA_BIN = "test_data_bin";
     public static final String NOTES_BIN = "notes_bin";
     public static final String HEAD_SHA_1 = "head_sha1";
+
+    long fixSha1s(Connection c)
+    {
+        String statement = "SELECT n_cube_id, n_cube_nm, version_no_cd, branch_id, sha1, cube_value_bin FROM n_cube WHERE sha1 IS NULL";
+        long empty = 0;
+        long old = 0;
+        long noSha1 = 0;
+
+        try (PreparedStatement ps = c.prepareStatement(statement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE))
+        {
+            try (ResultSet rs = ps.executeQuery())
+            {
+                while (rs.next())
+                {
+                    String name = rs.getString(2);
+                    String version = rs.getString(3);
+                    String branch = rs.getString(4);
+                    byte[] bytes = IOUtilities.uncompressBytes(rs.getBytes("cube_value_bin"));
+                    String cubeData = StringUtilities.createUtf8String(bytes);
+                    if (StringUtilities.isEmpty(cubeData))
+                    {
+                        LOG.info("Empty cube data: " + name);
+                        empty++;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            NCube ncube = NCube.fromSimpleJson(cubeData);
+//                            LOG.info("ncube.getName() = " + ncube.getName() + ", SHA-1: " + ncube.sha1());
+                            noSha1++;
+                            rs.updateString("sha1", ncube.sha1());
+                            rs.updateRow();
+                            if (noSha1 % 1000 == 0)
+                            {
+                                LOG.info("noSha1: " + noSha1);
+                                c.commit();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            LOG.info("old format cube (skipping): " + name + " " + version + " " + branch);
+                            old++;
+//                            rs.deleteRow();
+                        }
+                    }
+                }
+                LOG.info("Empty cube_value_bin: " + empty);
+                LOG.info("old JSON format: " + old);
+                LOG.info("No SHA-1: " + noSha1);
+                return empty + old + noSha1;
+            }
+        }
+        catch (Exception e)
+        {
+            String s = "Error fixing SHA-1's";
+            LOG.error(s, e);
+            throw new RuntimeException(s, e);
+        }
+    }
 
     boolean deleteCubes(Connection c, String appName)
     {

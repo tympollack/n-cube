@@ -719,16 +719,19 @@ public class NCubeManager
             throw new IllegalArgumentException("Empty array of cube names passed to be restored.");
         }
 
-        for (Object cubeName : cubeNames)
+        for (Object name : cubeNames)
         {
-            if ((cubeName instanceof String))
+            if ((name instanceof String))
             {
-                NCube.validateCubeName((String) cubeName);
-                getPersister().restoreCube(appId, (String) cubeName, username);
+                String cubeName = (String) name;
+                NCube.validateCubeName(cubeName);
+                getPersister().restoreCube(appId, cubeName, username);
+                NCube ncube = getPersister().loadCube(appId, cubeName);
+                NCubeManager.addCube(appId, ncube);
             }
             else
             {
-                throw new IllegalArgumentException("Non string name given for cube to restore: " + cubeName);
+                throw new IllegalArgumentException("Non string name given for cube to restore: " + name);
             }
         }
     }
@@ -1103,6 +1106,11 @@ public class NCubeManager
         return ret;
     }
 
+    public static long fixSha1s()
+    {
+        return getPersister().fixSha1s();
+    }
+
     /**
      * Update a branch from the HEAD.  Changes from the HEAD are merged into the
      * supplied branch.  If the merge cannot be done perfectly, an exception is
@@ -1119,23 +1127,23 @@ public class NCubeManager
         List<NCubeInfoDto> headRecords = getCubeRecordsFromDatabase(headAppId, null, false);
 
         //  build map of head objects for reference.
-        Map<String, NCubeInfoDto> recordMap = new LinkedHashMap<>();
+        Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>();
 
         for (NCubeInfoDto info : records)
         {
-            recordMap.put(info.name, info);
+            branchRecordMap.put(info.name, info);
         }
 
-        List<NCubeInfoDto> updates = new ArrayList<>(records.size());
+        List<NCubeInfoDto> updates = new ArrayList<>();
         List<NCubeInfoDto> dtosMerged = new ArrayList<>();
-        Map<String, Map> conflicts = new LinkedHashMap<>();
+        Map<String, Map> conflicts = new CaseInsensitiveMap<>();
 
         for (NCubeInfoDto head : headRecords)
         {
-            NCubeInfoDto info = recordMap.get(head.name);
+            NCubeInfoDto info = branchRecordMap.get(head.name);
 
             if (info == null)
-            {
+            {   // HEAD has cube that branch does not have
                 updates.add(head);
                 continue;
             }
@@ -1143,22 +1151,23 @@ public class NCubeManager
             long infoRev = Long.parseLong(info.revision);
             long headRev = Long.parseLong(head.revision);
 
+            // if Branch cube did NOT change
             if (!info.isChanged())
-            {
+            {   // Did HEAD change?
                 if (StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {
-                    if (infoRev < 0 != headRev < 0)
+                {   // HEAD SHA1 did not change, but was it deleted or restored (opposite of your branch)?
+                    if ((infoRev < 0) != (headRev < 0))
                     {
                         updates.add(head);
                     }
                 }
                 else
-                {
+                {   // HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
                     updates.add(head);
                 }
             }
             else if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-            {
+            {   // Branch HEAD SHA1 no longer matches HEAD's SHA1
                 String message = "Cube was changed in HEAD";
                 NCube cube = checkForConflicts(appId, conflicts, message, info, head, true);
 
