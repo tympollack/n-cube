@@ -58,6 +58,10 @@ public class NCubeJdbcPersister
     public static final String NOTES_BIN = "notes_bin";
     public static final String HEAD_SHA_1 = "head_sha1";
 
+    /**
+     * Use this API to update NULL sha1 records.  It can also be used (with modification) to delete records
+     * that store n-cube in serialized json format in the cube_value_bin column.
+     */
     long fixSha1s(Connection c)
     {
         String statement = "SELECT n_cube_id, n_cube_nm, version_no_cd, branch_id, sha1, cube_value_bin FROM n_cube WHERE sha1 IS NULL";
@@ -118,6 +122,9 @@ public class NCubeJdbcPersister
         }
     }
 
+    /**
+     * Use this API to delete all cubes in an application.  For development use only.
+     */
     boolean deleteCubes(Connection c, String appName)
     {
         try (PreparedStatement stmt = c.prepareStatement("DELETE FROM n_cube WHERE app_cd = ?"))
