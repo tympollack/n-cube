@@ -1150,13 +1150,14 @@ public class NCubeManager
 
             long infoRev = Long.parseLong(info.revision);
             long headRev = Long.parseLong(head.revision);
+            boolean activeStatusMatches = (infoRev < 0) == (headRev < 0);
 
-            // if Branch cube did NOT change
+            // Did branch change?
             if (!info.isChanged())
-            {   // Did HEAD change?
+            {   // No change on branch
                 if (StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
                 {   // HEAD SHA1 did not change, but was it deleted or restored (opposite of your branch)?
-                    if ((infoRev < 0) != (headRev < 0))
+                    if (!activeStatusMatches)
                     {
                         updates.add(head);
                     }
@@ -1166,9 +1167,18 @@ public class NCubeManager
                     updates.add(head);
                 }
             }
-            else if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-            {   // Branch HEAD SHA1 no longer matches HEAD's SHA1
-                String message = "Cube was changed in HEAD";
+            else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
+            {   // If branch is 'changed' but has same SHA-1 as head, then see if branch needs Fast-Forward
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // Fast-Forward branch
+                    // Update HEAD SHA-1 on branch directly (no need to insert)
+                    getPersister().updateBranchCubeHeadSha1((Long) Converter.convert(info.id, Long.class), head.sha1);
+                }
+            }
+            else
+            {
+                // Cube is different than head...
+                String message = "Cube was changed in both branch and HEAD";
                 NCube cube = checkForConflicts(appId, conflicts, message, info, head, true);
 
                 if (cube != null)

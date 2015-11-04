@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.3.12</version>
+  <version>3.3.13</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,9 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.3.13
+ * Update the 'UpdateBranch' code so that it handles the situation where the branch cube's SHA-1 matches the HEAD cube's SHA-1, yet the branch cube has a HEAD SHA-1 that no longer matches the HEAD.  This case can happen cubes are inserted into a branch directly in the database without going through the NCubeManager, leaving the headSha1 field null on that branch.  UpdateBranch detects this and Fast-Forwards the branch by simply updating the HEAD SHA-1 on the branch to be the same as the HEAD SHA-1.
+ * Restore cube now adds the restored cube to the cache.  This may change in the future, as the n-cube-editor should not really be using the NCubeManager's cache, only a runtime n-cube instance should. 
 * 3.3.12 
  * Removed looping-style APIs from persister (it should be focused on atomic changes) and moved that logic to the Manager so that all persisters leverage that code. These were the updateBranch (now updateCube), commitBranch (commitCube), rollbackCube (now rollbackCube).
  * Simplified coordinate names for columns that have a 'name' meta-property as they appear in a 'delta' difference description.

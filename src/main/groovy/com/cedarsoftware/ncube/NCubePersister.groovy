@@ -39,6 +39,7 @@ interface NCubePersister extends NCubeReadOnlyPersister
     boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
     NCubeInfoDto commitMergedCubeToHead(ApplicationID appId, NCube cube, String username)
     NCubeInfoDto commitMergedCubeToBranch(ApplicationID appId, NCube cube, String headSha1, String username)
+    boolean updateBranchCubeHeadSha1(Long cubeId, String headSha1)
 
     int changeVersionValue(ApplicationID appId, String newVersion)
     int releaseCubes(ApplicationID appId, String newSnapVer)

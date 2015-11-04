@@ -64,12 +64,11 @@ public class NCubeJdbcPersister
      */
     long fixSha1s(Connection c)
     {
-        String statement = "SELECT n_cube_id, n_cube_nm, version_no_cd, branch_id, sha1, cube_value_bin FROM n_cube WHERE sha1 IS NULL";
-        long empty = 0;
-        long old = 0;
-        long noSha1 = 0;
+        String statement = "SELECT n_cube_id, n_cube_nm, version_no_cd, branch_id FROM n_cube WHERE status_cd = 'SNAPSHOT' AND branch_id <> 'HEAD' and (version_no_cd = '1.36.0')";
+        long count = 0;
 
         try (PreparedStatement ps = c.prepareStatement(statement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE))
+//        try (PreparedStatement ps = c.prepareStatement(statement))
         {
             try (ResultSet rs = ps.executeQuery())
             {
@@ -78,40 +77,12 @@ public class NCubeJdbcPersister
                     String name = rs.getString(2);
                     String version = rs.getString(3);
                     String branch = rs.getString(4);
-                    byte[] bytes = IOUtilities.uncompressBytes(rs.getBytes("cube_value_bin"));
-                    String cubeData = StringUtilities.createUtf8String(bytes);
-                    if (StringUtilities.isEmpty(cubeData))
-                    {
-                        LOG.info("Empty cube data: " + name);
-                        empty++;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            NCube ncube = NCube.fromSimpleJson(cubeData);
-//                            LOG.info("ncube.getName() = " + ncube.getName() + ", SHA-1: " + ncube.sha1());
-                            noSha1++;
-                            rs.updateString("sha1", ncube.sha1());
-                            rs.updateRow();
-                            if (noSha1 % 1000 == 0)
-                            {
-                                LOG.info("noSha1: " + noSha1);
-                                c.commit();
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            LOG.info("old format cube (skipping): " + name + " " + version + " " + branch);
-                            old++;
-//                            rs.deleteRow();
-                        }
-                    }
+                    rs.deleteRow();
+                    count++;
+                    LOG.info("removing: " + name + " " + version + " " + branch);
                 }
-                LOG.info("Empty cube_value_bin: " + empty);
-                LOG.info("old JSON format: " + old);
-                LOG.info("No SHA-1: " + noSha1);
-                return empty + old + noSha1;
+                LOG.info("cubes: " + count);
+                return count;
             }
         }
         catch (Exception e)
@@ -339,6 +310,49 @@ public class NCubeJdbcPersister
         return update;
     }
 
+    public boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String headSha1)
+    {
+        if (cubeId == null)
+        {
+            throw new IllegalArgumentException("Update cube's HEAD SHA-1, cube id cannot be empty");
+        }
+
+        if (StringUtilities.isEmpty(headSha1))
+        {
+            throw new IllegalArgumentException("Update cube's HEAD SHA-1, SHA-1 cannot be empty");
+        }
+
+        // select head cube in question
+        String sql = "UPDATE n_cube set head_sha1 = ?, changed = ? WHERE n_cube_id = ?";
+
+        try (PreparedStatement stmt = c.prepareStatement(sql))
+        {
+            stmt.setString(1, headSha1);
+            stmt.setBoolean(2, false);
+            stmt.setLong(3, cubeId);
+            long count = stmt.executeUpdate();
+            if (count == 0)
+            {
+                throw new IllegalStateException("error updating cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", no record found.");
+            }
+            else if (count != 1)
+            {
+                throw new IllegalStateException("error updating cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", more than one record found: " + count);
+            }
+            return true;
+        }
+        catch (RuntimeException e)
+        {
+            throw e;
+        }
+        catch (Exception e)
+        {
+            String s = "Unable to update cube: " + cubeId + " to have HEAD SHA-1: " + headSha1;
+            LOG.error(s, e);
+            throw new IllegalStateException(s, e);
+        }
+    }
+
     NCubeInfoDto updateCube(Connection c, ApplicationID appId, Long cubeId, String username)
     {
         if (cubeId == null)
@@ -366,7 +380,7 @@ public class NCubeJdbcPersister
 
                     Long maxRevision = getMaxRevision(c, appId, cubeName);
 
-                    //  create case because maxrevision was not found.
+                    //  create case because max revision was not found.
                     if (maxRevision == null)
                     {
                         maxRevision = revision < 0 ? new Long(-1) : new Long(0);

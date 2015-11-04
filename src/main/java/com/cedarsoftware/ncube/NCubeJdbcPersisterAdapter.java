@@ -426,6 +426,19 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
+    public boolean updateBranchCubeHeadSha1(Long cubeId, String headSha1)
+    {
+        Connection c = connectionProvider.getConnection();
+        try
+        {
+            return persister.updateBranchCubeHeadSha1(c, cubeId, headSha1);
+        }
+        finally
+        {
+            connectionProvider.releaseConnection(c);
+        }
+    }
+
     public List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String searchValue, Map options)
     {
         Connection c = connectionProvider.getConnection();

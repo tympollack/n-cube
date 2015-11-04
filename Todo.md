@@ -2,7 +2,8 @@ n-cube 'ToDo' list
 ======
 
 ### n-cube engine
-
+TODO: Write test for NCubeManager.rollbackCube() or remove the API
+TODO: Write test for updateBranchesHeadSha1()
 * Datatypes
 * OptionalScope
  * Support additional (and subtractive) optional scope keys (minus sign (-) in front will remove an optional scope key)
