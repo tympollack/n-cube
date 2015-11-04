@@ -5,6 +5,7 @@ import com.cedarsoftware.util.*;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
+import com.sun.javafx.scene.layout.region.Margins;
 import groovy.lang.GroovyClassLoader;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -908,41 +909,40 @@ public class NCubeManager
 
         for (Object dto : infoDtos)
         {
-            NCubeInfoDto info = (NCubeInfoDto)dto;
+            NCubeInfoDto branchCubeInfo = (NCubeInfoDto)dto;
 
-            if (!info.isChanged())
+            if (!branchCubeInfo.isChanged())
             {
                 continue;
             }
-            if (info.sha1 == null)
+            if (branchCubeInfo.sha1 == null)
             {
-                info.sha1 = "";
+                branchCubeInfo.sha1 = "";
             }
 
             // All changes go through here.
-            NCubeInfoDto head = headMap.get(info.name);
-            long infoRev = Long.parseLong(info.revision);
+            NCubeInfoDto headCubeInfo = headMap.get(branchCubeInfo.name);
+            long infoRev = (long) Converter.convert(branchCubeInfo.revision, long.class);
 
-            if (head == null)
-            {
+            if (headCubeInfo == null)
+            {   // No matching head cube, CREATE case
                 if (infoRev >= 0)
                 {
-                    info.changeType = ChangeType.CREATED.getCode();
-                    dtosToUpdate.add(info);
+                    branchCubeInfo.changeType = ChangeType.CREATED.getCode();
+                    dtosToUpdate.add(branchCubeInfo);
                 }
             }
-            else if (info.headSha1 == null)
-            {
-                if (StringUtilities.equals(info.sha1, head.sha1))
-                {
-                    // items changed, but shas match so identical
-                    info.changeType = ChangeType.UPDATED.getCode();
-                    dtosToUpdate.add(info);
+            else if (branchCubeInfo.headSha1 == null)
+            {   // Missing or empty headSha1 field on branch cube.
+                if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, headCubeInfo.sha1))
+                {   // branch cube marked changed, but SHA-1s match so identical
+                    branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
+                    dtosToUpdate.add(branchCubeInfo);
                 }
                 else
                 {
-                    String message = "Conflict merging " + info.name + ". A cube with the same name was added to HEAD since your branch was created.";
-                    NCube mergedCube = checkForConflicts(appId, errors, message, info, head, false);
+                    String message = "Conflict merging " + branchCubeInfo.name + ". A cube with the same name was added to HEAD since your branch was created.";
+                    NCube mergedCube = checkForConflicts(appId, errors, message, branchCubeInfo, headCubeInfo, false);
                     if (mergedCube != null)
                     {
                         NCubeInfoDto mergedDto = getPersister().commitMergedCubeToHead(appId, mergedCube, username);
@@ -950,33 +950,33 @@ public class NCubeManager
                     }
                 }
             }
-            else if (info.headSha1.equals(head.sha1))
+            else if (StringUtilities.equalsIgnoreCase(branchCubeInfo.headSha1, headCubeInfo.sha1))
             {
-                if (StringUtilities.equalsIgnoreCase(info.sha1, info.headSha1))
-                {
-                    long headRev = Long.parseLong(head.revision);
-                    if (infoRev < 0 != headRev < 0)
+                if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, branchCubeInfo.headSha1))
+                {   // Cubes are same, but active status opposite (delete or restore case)
+                    long headRev = (long) Converter.convert(headCubeInfo.revision, long.class);
+                    if ((infoRev < 0) != (headRev < 0))
                     {
-                        info.changeType = infoRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode();
-                        dtosToUpdate.add(info);
+                        branchCubeInfo.changeType = infoRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode();
+                        dtosToUpdate.add(branchCubeInfo);
                     }
                 }
                 else
-                {
-                    info.changeType = ChangeType.UPDATED.getCode();
-                    dtosToUpdate.add(info);
+                {   // Regular update case (branch updated cube that was not touched in HEAD)
+                    branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
+                    dtosToUpdate.add(branchCubeInfo);
                 }
             }
-            else if (info.sha1.equals(head.sha1))
+            else if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, headCubeInfo.sha1))
             {
-                // items changed, but shas match so identical
-                info.changeType = ChangeType.UPDATED.getCode();
-                dtosToUpdate.add(info);
+                // items changed, but SHA-1s match so identical
+                branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
+                dtosToUpdate.add(branchCubeInfo);
             }
             else
             {
-                String message = "Conflict merging " + info.name + ". The cube has changed since your last update.";
-                NCube mergedCube = checkForConflicts(appId, errors, message, info, head, false);
+                String message = "Conflict merging " + branchCubeInfo.name + ". The cube has changed since your last update.";
+                NCube mergedCube = checkForConflicts(appId, errors, message, branchCubeInfo, headCubeInfo, false);
                 if (mergedCube != null)
                 {
                     NCubeInfoDto mergedDto = getPersister().commitMergedCubeToHead(appId, mergedCube, username);
