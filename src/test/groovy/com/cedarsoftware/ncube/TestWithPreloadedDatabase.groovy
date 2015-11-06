@@ -2216,10 +2216,11 @@ abstract class TestWithPreloadedDatabase
             NCubeManager.commitBranch(branch1, dtos, USER_ID)
             fail()
         }
-        catch (BranchMergeException e) {
+        catch (BranchMergeException e)
+        {
             assert e.message.toLowerCase().contains("conflict(s) committing branch")
             assert e.errors.TestBranch.message.toLowerCase().contains('conflict merging')
-            assert e.errors.TestBranch.message.toLowerCase().contains('cube has changed')
+            assert e.errors.TestBranch.message.toLowerCase().contains('cube changed')
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
@@ -2360,7 +2361,7 @@ abstract class TestWithPreloadedDatabase
         {
             assert e.message.toLowerCase().contains("conflict(s) committing branch")
             assert e.errors.TestBranch.message.toLowerCase().contains('conflict merging')
-            assert e.errors.TestBranch.message.toLowerCase().contains('cube has changed')
+            assert e.errors.TestBranch.message.toLowerCase().contains('cube changed')
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
@@ -2778,7 +2779,7 @@ abstract class TestWithPreloadedDatabase
         {
             assert e.message.toLowerCase().contains("conflict(s) committing branch")
             assert e.errors.TestBranch.message.toLowerCase().contains('conflict merging')
-            assert e.errors.TestBranch.message.toLowerCase().contains('cube has changed')
+            assert e.errors.TestBranch.message.toLowerCase().contains('cube changed')
             assertEquals("F66DA871D76AD332F6B5ED8448B076B420560A2A", e.errors.TestBranch.sha1)
             assertEquals("9A00197BDB6438BE92977A0E0DE38496CBCEA3F8", e.errors.TestBranch.headSha1)
         }

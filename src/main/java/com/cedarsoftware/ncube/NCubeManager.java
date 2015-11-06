@@ -902,31 +902,13 @@ public class NCubeManager
             if (headCubeInfo == null)
             {   // No matching head cube, CREATE case
                 if (infoRev >= 0)
-                {
+                {   // Only create if the cube in the branch is active (revision number not negative)
                     branchCubeInfo.changeType = ChangeType.CREATED.getCode();
                     dtosToUpdate.add(branchCubeInfo);
                 }
             }
-            else if (branchCubeInfo.headSha1 == null)
-            {   // Missing or empty headSha1 field on branch cube.
-                if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, headCubeInfo.sha1))
-                {   // branch cube marked changed, but SHA-1s match so identical
-                    branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
-                    dtosToUpdate.add(branchCubeInfo);
-                }
-                else
-                {
-                    String message = "Conflict merging " + branchCubeInfo.name + ". A cube with the same name was added to HEAD since your branch was created.";
-                    NCube mergedCube = checkForConflicts(appId, errors, message, branchCubeInfo, headCubeInfo, false);
-                    if (mergedCube != null)
-                    {
-                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToHead(appId, mergedCube, username);
-                        dtosMerged.add(mergedDto);
-                    }
-                }
-            }
             else if (StringUtilities.equalsIgnoreCase(branchCubeInfo.headSha1, headCubeInfo.sha1))
-            {
+            {   // HEAD cube has not changed (at least in terms of SHA-1 it could have it's revision sign changed)
                 if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, branchCubeInfo.headSha1))
                 {   // Cubes are same, but active status opposite (delete or restore case)
                     long headRev = (long) Converter.convert(headCubeInfo.revision, long.class);
@@ -943,14 +925,24 @@ public class NCubeManager
                 }
             }
             else if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, headCubeInfo.sha1))
-            {
-                // items changed, but SHA-1s match so identical
+            {   // Branch headSha1 does not match HEAD sha1, but it's SHA-1 matches the HEAD SHA-1.
+                // This means that the branch cube and HEAD cube are identical, but the HEAD was
+                // different when the branch was created.
                 branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
                 dtosToUpdate.add(branchCubeInfo);
             }
             else
             {
-                String message = "Conflict merging " + branchCubeInfo.name + ". The cube has changed since your last update.";
+                String msg;
+                if (branchCubeInfo.headSha1 == null)
+                {
+                    msg = ". A cube with the same name was added to HEAD since your branch was created.";
+                }
+                else
+                {
+                    msg = ". The cube changed since your last update branch.";
+                }
+                String message = "Conflict merging " + branchCubeInfo.name + msg;
                 NCube mergedCube = checkForConflicts(appId, errors, message, branchCubeInfo, headCubeInfo, false);
                 if (mergedCube != null)
                 {
@@ -1130,15 +1122,10 @@ public class NCubeManager
             // Did branch change?
             if (!info.isChanged())
             {   // No change on branch
-                if (StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // HEAD SHA1 did not change, but was it deleted or restored (opposite of your branch)?
-                    if (!activeStatusMatches)
-                    {
-                        updates.add(head);
-                    }
-                }
-                else
-                {   // HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
+                if (!activeStatusMatches || !StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // 1. The active/deleted statuses don't match, or
+                    // 2. HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
+                    // In both cases, the cube was marked NOT changed in the branch, so safe to update.
                     updates.add(head);
                 }
             }
