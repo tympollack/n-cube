@@ -193,15 +193,13 @@ public class NCubeManager
     }
 
     /**
-     * Fetch a specific revision n-cube by name from the given ApplicationID.
-     * The answer is not cached.
+     * Fetch a specific cube by the ID within the infoDto
      */
-    public static NCube getCubeRevision(ApplicationID appId, String name, long revision)
+    public static NCube getCubeById(NCubeInfoDto infoDto)
     {
-        validateAppId(appId);
-        NCube.validateCubeName(name);
-
-        NCube ncube = getPersister().loadCubeByRevision(appId, name, revision);
+        validateAppId(infoDto.getApplicationID());
+        NCube.validateCubeName(infoDto.name);
+        NCube ncube = getPersister().loadCube(infoDto);
         return ncube;
     }
 
@@ -1125,8 +1123,8 @@ public class NCubeManager
                 continue;
             }
 
-            long infoRev = Long.parseLong(info.revision);
-            long headRev = Long.parseLong(head.revision);
+            long infoRev = (long) Converter.convert(info.revision, long.class);
+            long headRev = (long) Converter.convert(head.revision, long.class);
             boolean activeStatusMatches = (infoRev < 0) == (headRev < 0);
 
             // Did branch change?

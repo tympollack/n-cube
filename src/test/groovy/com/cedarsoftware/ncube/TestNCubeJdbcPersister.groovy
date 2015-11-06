@@ -383,7 +383,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().loadCubeByRevision(c, defaultSnapshotApp, "foo", 1)
+            new NCubeJdbcPersister().loadCube(c, new NCubeInfoDto())
             fail()
         }
         catch (RuntimeException e)
@@ -408,7 +408,14 @@ class TestNCubeJdbcPersister
         when(c.metaData).thenReturn(metaData);
         when(metaData.getDriverName()).thenReturn("Oracle");
 
-        assertNull(new NCubeJdbcPersister().loadCubeByRevision(c, defaultSnapshotApp, "foo", 1))
+        try
+        {
+            new NCubeJdbcPersister().loadCube(c, new NCubeInfoDto())
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('unable to load cube')
+        }
     }
 
     @Test

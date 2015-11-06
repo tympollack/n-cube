@@ -1199,8 +1199,8 @@ class TestNCubeManager
         assert history[1].createHid == 'jdirt'
         assert history[1].notes == 'notes follow'
 
-        NCube rev0 = NCubeManager.getCubeRevision(defaultSnapshotApp, cube.name, 0)
-        NCube rev1 = NCubeManager.getCubeRevision(defaultSnapshotApp, cube.name, 1)
+        NCube rev0 = NCubeManager.getCubeById(history[1])
+        NCube rev1 = NCubeManager.getCubeById(history[0])
 
         assert rev0.getNumDimensions() == 2
         assert rev1.getNumDimensions() == 3
