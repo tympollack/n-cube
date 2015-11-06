@@ -6,49 +6,19 @@ import com.cedarsoftware.ncube.exception.RuleStop;
 import com.cedarsoftware.ncube.formatters.HtmlFormatter;
 import com.cedarsoftware.ncube.formatters.JsonFormatter;
 import com.cedarsoftware.ncube.util.LongHashSet;
-import com.cedarsoftware.util.ArrayUtilities;
-import com.cedarsoftware.util.ByteUtilities;
-import com.cedarsoftware.util.CaseInsensitiveMap;
-import com.cedarsoftware.util.CaseInsensitiveSet;
-import com.cedarsoftware.util.DeepEquals;
-import com.cedarsoftware.util.EncryptionUtilities;
-import com.cedarsoftware.util.IOUtilities;
-import com.cedarsoftware.util.MapUtilities;
-import com.cedarsoftware.util.ReflectionUtils;
-import com.cedarsoftware.util.StringUtilities;
+import com.cedarsoftware.util.*;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
 import groovy.util.MapEntry;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -735,7 +705,7 @@ public class NCube<T>
                 return cellValue;
             }
         }
-        catch (RuleStop | RuleJump e)
+        catch (RuleStop | RuleJump | ThreadDeath e)
         {
             throw e;
         }
@@ -743,12 +713,11 @@ public class NCube<T>
         {
             throw new CoordinateNotFoundException("Coordinate not found in cube: " + name + "\n" + stackToString(), e);
         }
-        catch (Exception e)
+        catch (Throwable e)
         {
             throw new RuntimeException("Error occurred executing CommandCell in NCube '" + name + "'\n" + stackToString(), e);
         }
     }
-
 
     /**
      * Prepare the execution context by providing it with references to

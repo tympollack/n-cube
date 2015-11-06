@@ -5,31 +5,20 @@ import com.cedarsoftware.util.*;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
-import com.sun.javafx.scene.layout.region.Margins;
 import groovy.lang.GroovyClassLoader;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import ncube.grv.method.NCubeGroovyController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.io.*;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import ncube.grv.method.NCubeGroovyController;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * This class manages a list of NCubes.  This class is referenced
@@ -156,8 +145,11 @@ public class NCubeManager
             // can only be in there as ncubes, not ncubeDtoInfo
             for (Object value : getCacheForApp(appId).values())
             {
-                NCube cube = (NCube) value;
-                names.add(cube.getName());
+                if (value instanceof NCube)
+                {
+                    NCube cube = (NCube) value;
+                    names.add(cube.getName());
+                }
             }
         }
         return new CaseInsensitiveSet<>(names);
@@ -189,7 +181,7 @@ public class NCubeManager
         NCube ncube = getPersister().loadCube(appId, name);
         if (ncube == null)
         {
-            getCacheForApp(appId).put(lowerCubeName, Boolean.FALSE);
+            cubes.put(lowerCubeName, Boolean.FALSE);
             return null;
         }
         return prepareCube(ncube);
@@ -250,7 +242,8 @@ public class NCubeManager
         validateAppId(appId);
         NCube.validateCubeName(cubeName);
         Map<String, Object> ncubes = getCacheForApp(appId);
-        return ncubes.containsKey(cubeName.toLowerCase());
+        Object cachedItem = ncubes.get(cubeName.toLowerCase());
+        return cachedItem instanceof NCube || cachedItem instanceof NCubeInfoDto;
     }
 
     /**
@@ -467,26 +460,31 @@ public class NCubeManager
             {   // apply advice to hydrated cubes
                 NCube ncube = (NCube) value;
                 Axis axis = ncube.getAxis("method");
-                if (axis != null)
-                {   // Controller methods
-                    for (Column column : axis.getColumnsWithoutDefault())
-                    {
-                        String method = column.getValue().toString();
-                        String classMethod = ncube.getName() + '.' + method + "()";
-                        if (classMethod.matches(regex))
-                        {
-                            ncube.addAdvice(advice, method);
-                        }
-                    }
+                addAdviceToMatchedCube(advice, regex, ncube, axis);
+            }
+        }
+    }
+
+    private static void addAdviceToMatchedCube(Advice advice, String regex, NCube ncube, Axis axis)
+    {
+        if (axis != null)
+        {   // Controller methods
+            for (Column column : axis.getColumnsWithoutDefault())
+            {
+                String method = column.getValue().toString();
+                String classMethod = ncube.getName() + '.' + method + "()";
+                if (classMethod.matches(regex))
+                {
+                    ncube.addAdvice(advice, method);
                 }
-                else
-                {   // Expressions
-                    String classMethod = ncube.getName() + ".run()";
-                    if (classMethod.matches(regex))
-                    {
-                        ncube.addAdvice(advice, "run");
-                    }
-                }
+            }
+        }
+        else
+        {   // Expressions
+            String classMethod = ncube.getName() + ".run()";
+            if (classMethod.matches(regex))
+            {
+                ncube.addAdvice(advice, "run");
             }
         }
     }
@@ -512,27 +510,7 @@ public class NCubeManager
             final String wildcard = entry.getKey().replace(advice.getName() + '/', "");
             final String regex = StringUtilities.wildcardToRegexString(wildcard);
             final Axis axis = ncube.getAxis("method");
-
-            if (axis != null)
-            {   // Controller methods
-                for (Column column : axis.getColumnsWithoutDefault())
-                {
-                    final String method = column.getValue().toString();
-                    final String classMethod = ncube.getName() + '.' + method + "()";
-                    if (classMethod.matches(regex))
-                    {
-                        ncube.addAdvice(advice, method);
-                    }
-                }
-            }
-            else
-            {   // Expressions
-                final String classMethod = ncube.getName() + ".run()";
-                if (classMethod.matches(regex))
-                {
-                    ncube.addAdvice(advice, "run");
-                }
-            }
+            addAdviceToMatchedCube(advice, regex, ncube, axis);
         }
     }
 
@@ -803,7 +781,6 @@ public class NCubeManager
             Map<String, Object> appCache = getCacheForApp(newAppId);
             appCache.remove(newName.toLowerCase());
         }
-
 
         broadcast(newAppId);
     }

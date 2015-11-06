@@ -1,12 +1,13 @@
 package com.cedarsoftware.ncube;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * This class is used to hold Groovy Expressions.  This means that
@@ -54,12 +55,8 @@ public class GroovyExpression extends GroovyBase
         super(cmd, url, cache);
     }
 
-    public String buildGroovy(String theirGroovy)
+    public String buildGroovy(Map<String, Object> ctx, String theirGroovy)
     {
-        return wrapGroovyIfNeeded(theirGroovy, cmdHash);
-    }
-
-    public static String wrapGroovyIfNeeded(String theirGroovy, String cmdHash) {
         Matcher m = Regexes.hasClassDefPattern.matcher(theirGroovy);
         if (m.find())
         {   // If they include a class ... { in their source, then we do not add the 'apartment' around the content.
@@ -83,6 +80,19 @@ public class GroovyExpression extends GroovyBase
             groovy.append('\n');
         }
 
+//        NCube ncube = UrlCommandCell.getNCube(ctx);
+//        NCube prototype = NCubeManager.getCube(ncube.getApplicationID(), "sys.prototype." + ncube.getName());
+//        if (prototype == null)
+//        {
+//            prototype = NCubeManager.getCube(ncube.getApplicationID(), "sys.prototype");
+//        }
+//
+//        if (prototype != null)
+//        {
+//            // Load Import Statements and Super class
+//        }
+
+
         String className = "N_" + cmdHash;
         groovy.append("class ");
         groovy.append(className);
@@ -92,7 +102,7 @@ public class GroovyExpression extends GroovyBase
         return groovy.toString();
     }
 
-    protected String getMethodToExecute(Map args)
+    protected String getMethodToExecute(Map<String, Object> ctx)
     {
         return "run";
     }
@@ -102,12 +112,12 @@ public class GroovyExpression extends GroovyBase
         return getRunnableCode().getMethod("run");
     }
 
-    protected Object invokeRunMethod(Method runMethod, Object instance, Map args) throws Throwable
+    protected Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Throwable
     {
         // If 'around' Advice has been added to n-cube, invoke it before calling Groovy expression's run() method
-        NCube ncube = getNCube(args);
-        Map input = getInput(args);
-        Map output = getOutput(args);
+        NCube ncube = getNCube(ctx);
+        Map input = getInput(ctx);
+        Map output = getOutput(ctx);
         List<Advice> advices = ncube.getAdvices("run");
         for (Advice advice : advices)
         {

@@ -10,19 +10,9 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.sql.*;
+import java.util.*;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -77,11 +67,15 @@ public class NCubeJdbcPersister
                     String name = rs.getString(2);
                     String version = rs.getString(3);
                     String branch = rs.getString(4);
-                    rs.deleteRow();
+//                    rs.deleteRow();
                     count++;
+                    if (count % 100 == 0)
+                    {
+                        c.commit();
+                    }
                     LOG.info("removing: " + name + " " + version + " " + branch);
                 }
-                LOG.info("cubes: " + count);
+                c.commit();
                 return count;
             }
         }
@@ -90,6 +84,10 @@ public class NCubeJdbcPersister
             String s = "Error fixing SHA-1's";
             LOG.error(s, e);
             throw new RuntimeException(s, e);
+        }
+        finally
+        {
+            LOG.info("cubes: " + count);
         }
     }
 
@@ -1175,7 +1173,6 @@ public class NCubeJdbcPersister
             throw new RuntimeException(s, e);
         }
     }
-
 
     public int createBranch(Connection c, ApplicationID appId)
     {

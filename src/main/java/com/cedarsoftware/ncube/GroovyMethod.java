@@ -62,14 +62,14 @@ public class GroovyMethod extends GroovyBase
         super(cmd, url, cacheable);
     }
 
-    public String buildGroovy(String theirGroovy)
+    public String buildGroovy(Map<String, Object> ctx, String theirGroovy)
     {
         return theirGroovy;
     }
 
-    protected String getMethodToExecute(Map args)
+    protected String getMethodToExecute(Map<String, Object> ctx)
     {
-        Map input = (Map) args.get("input");
+        Map input = UrlCommandCell.getInput(ctx);
         return (String)input.get("method");
     }
 
@@ -78,7 +78,7 @@ public class GroovyMethod extends GroovyBase
         return getRunnableCode().getMethod("run", String.class);
     }
 
-    protected Object invokeRunMethod(Method runMethod, Object instance, Map args) throws Exception
+    protected Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Exception
     {
         return runMethod.invoke(instance, cmdHash);
     }

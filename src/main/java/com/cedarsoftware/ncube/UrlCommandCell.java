@@ -98,7 +98,7 @@ public abstract class UrlCommandCell implements CommandCell
 
     }
 
-    public void expandUrl(Map ctx)
+    public void expandUrl(Map<String, Object> ctx)
     {
         if (isUrlExpanded.get())
         {
@@ -141,7 +141,7 @@ public abstract class UrlCommandCell implements CommandCell
         }
     }
 
-    protected URL getActualUrl(Map ctx)
+    protected URL getActualUrl(Map<String, Object> ctx)
     {
         URL actualUrl;
         NCube ncube = getNCube(ctx);
@@ -178,19 +178,19 @@ public abstract class UrlCommandCell implements CommandCell
         return actualUrl;
     }
 
-    public static NCube getNCube(Map ctx)
+    public static NCube getNCube(Map<String, Object> ctx)
     {
         NCube ncube = (NCube) ctx.get("ncube");
         return ncube;
     }
 
-    public static Map getInput(Map ctx)
+    public static Map getInput(Map<String, Object> ctx)
     {
         Map input = (Map) ctx.get("input");
         return input;
     }
 
-    public static Map getOutput(Map ctx)
+    public static Map getOutput(Map<String, Object> ctx)
     {
         Map output = (Map) ctx.get("output");
         return output;

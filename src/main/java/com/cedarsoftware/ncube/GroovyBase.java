@@ -107,9 +107,9 @@ public abstract class GroovyBase extends UrlCommandCell
         return result;
     }
 
-    protected abstract String buildGroovy(String theirGroovy);
+    protected abstract String buildGroovy(Map<String, Object> ctx, String theirGroovy);
 
-    protected abstract String getMethodToExecute(Map args);
+    protected abstract String getMethodToExecute(Map<String, Object> ctx);
 
     static void clearCache(ApplicationID appId)
     {
@@ -151,7 +151,7 @@ public abstract class GroovyBase extends UrlCommandCell
         return map;
     }
 
-    protected Object executeInternal(Map ctx)
+    protected Object executeInternal(Map<String, Object> ctx)
     {
         try
         {
@@ -176,7 +176,7 @@ public abstract class GroovyBase extends UrlCommandCell
     /**
      * Fetch constructor (from cache, if cached) and instantiate GroovyExpression
      */
-    protected Object executeGroovy(final Map ctx) throws Throwable
+    protected Object executeGroovy(final Map<String, Object> ctx) throws Throwable
     {
         NCube cube = getNCube(ctx);
         Map<String, Constructor> constructorMap = getConstructorCache(cube.getApplicationID());
@@ -223,13 +223,13 @@ public abstract class GroovyBase extends UrlCommandCell
 
     protected abstract Method getRunMethod() throws NoSuchMethodException;
 
-    protected abstract Object invokeRunMethod(Method runMethod, Object instance, Map args) throws Throwable;
+    protected abstract Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Throwable;
 
     /**
      * Conditionally compile the passed in command.  If it is already compiled, this method
      * immediately returns.  Insta-check because it is just a ref == null check.
      */
-    public void prepare(Object data, Map ctx)
+    public void prepare(Object data, Map<String, Object> ctx)
     {
         if (getRunnableCode() != null)
         {   // If the code for the cell has already been compiled, return the compiled class.
@@ -268,7 +268,7 @@ public abstract class GroovyBase extends UrlCommandCell
      * defined inline or via a URL.  If defined inline, then the command hash is SHA1(command text).  If
      * defined through a URL, then the command hash is SHA1(command URL + GroovyClassLoader URLs.toString).
 s    */
-    private void computeCmdHash(Object data, Map ctx)
+    private void computeCmdHash(Object data, Map<String, Object> ctx)
     {
         String content;
         if (getUrl() == null)
@@ -292,7 +292,7 @@ s    */
         cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getBytes(content, "UTF-8"));
     }
 
-    protected Class compile(Map ctx)
+    protected Class compile(Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx);
         String url = getUrl();
@@ -327,7 +327,7 @@ s    */
             gcLoader = (GroovyClassLoader)NCubeManager.getLocalClassloader(cube.getApplicationID());
             grvSrcCode = getCmd();
         }
-        String groovySource = expandNCubeShortCuts(buildGroovy(grvSrcCode));
+        String groovySource = expandNCubeShortCuts(buildGroovy(ctx, grvSrcCode));
         return gcLoader.parseClass(groovySource);
     }
 
