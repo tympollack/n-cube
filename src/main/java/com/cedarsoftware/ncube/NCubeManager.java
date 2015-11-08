@@ -156,6 +156,23 @@ public class NCubeManager
     }
 
     /**
+     * Load n-cube, bypassing any caching.  This is necessary for n-cube-editor (IDE time
+     * usage).  If the IDE environment is clustered, cannot be getting stale copies from
+     * cache.  Any advices in the manager will be applied to the n-cube.
+     * @return NCube of the specified name from the specified AppID, or null if not found.
+     */
+    public static NCube loadCube(ApplicationID appId, String cubeName)
+    {
+        NCube ncube = getPersister().loadCube(appId, cubeName);
+        if (ncube == null)
+        {
+            return null;
+        }
+        applyAdvices(ncube.getApplicationID(), ncube);
+        return ncube;
+    }
+
+    /**
      * Fetch an n-cube by name from the given ApplicationID.  If no n-cubes
      * are loaded, then a loadCubes() call is performed and then the
      * internal cache is checked again.  If the cube is not found, null is
@@ -195,7 +212,7 @@ public class NCubeManager
     /**
      * Fetch a specific cube by the ID within the infoDto
      */
-    public static NCube getCubeById(NCubeInfoDto infoDto)
+    public static NCube loadCubeById(NCubeInfoDto infoDto)
     {
         validateAppId(infoDto.getApplicationID());
         NCube.validateCubeName(infoDto.name);

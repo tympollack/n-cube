@@ -25,8 +25,13 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeReadOnlyPersister
 {
+    // Load n-cube by ID inside NCubeInfoDto (specific revision)
     NCube loadCube(NCubeInfoDto dto)
+
+    // Load n-cube by name (latest revision)
     NCube loadCube(ApplicationID appId, String name)
+
+    // Load n-cube by SHA-1 (latest revision with that SHA-1)
     NCube loadCubeBySha1(ApplicationID appId, String name, String sha1)
 
     List<String> getAppNames(String tenant, String status, String branch)
