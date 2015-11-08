@@ -1139,14 +1139,16 @@ public class NCubeManager
             }
             else
             {
-                // Cube is different than head...
-                String message = "Cube was changed in both branch and HEAD";
-                NCube cube = checkForConflicts(appId, conflicts, message, info, head, true);
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
+                    String message = "Cube was changed in both branch and HEAD";
+                    NCube cube = checkForConflicts(appId, conflicts, message, info, head, true);
 
-                if (cube != null)
-                {
-                    NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, head.sha1, username);
-                    dtosMerged.add(mergedDto);
+                    if (cube != null)
+                    {
+                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, head.sha1, username);
+                        dtosMerged.add(mergedDto);
+                    }
                 }
             }
         }
