@@ -169,6 +169,8 @@ public class NCubeManager
             return null;
         }
         applyAdvices(ncube.getApplicationID(), ncube);
+        Map<String, Object> cubes = getCacheForApp(appId);
+        cubes.put(cubeName.toLowerCase(), ncube);     // Update cache
         return ncube;
     }
 
