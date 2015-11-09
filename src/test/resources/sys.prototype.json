@@ -1,0 +1,42 @@
+{
+  "ncube": "sys.prototype",
+  "axes": [
+    {
+      "name": "sys.property",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000002,
+          "type": "string",
+          "value": "exp.imports"
+        },
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "exp.class"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "FancyGroovyExpression"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "exp",
+      "cache": true,
+      "value": "['java.awt.*', 'javax.swing.SwingConstants','com.cedarsoftware.ncube.FancyGroovyExpression']"
+    }
+  ]
+}

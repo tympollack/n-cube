@@ -49,6 +49,4 @@ interface NCubePersister extends NCubeReadOnlyPersister
 
     int createBranch(ApplicationID appId)
     boolean deleteBranch(ApplicationID appId)
-    boolean deleteCubes(String appName)
-    long fixSha1s()
 }

@@ -1,7 +1,9 @@
 package com.cedarsoftware.ncube
 
 import ncube.grv.exp.NCubeGroovyExpression
+import org.junit.After
 import org.junit.Assert
+import org.junit.Before
 import org.junit.Test
 
 import java.lang.reflect.Constructor
@@ -28,6 +30,18 @@ import static org.junit.Assert.fail
  */
 class TestGroovyExpression
 {
+    @Before
+    public void setUp()
+    {
+        TestingDatabaseHelper.setupDatabase()
+    }
+
+    @After
+    public void tearDown()
+    {
+        TestingDatabaseHelper.tearDownDatabase()
+    }
+
     @Test
     void testDefaultConstructorIsPrivateForSerialization()
     {

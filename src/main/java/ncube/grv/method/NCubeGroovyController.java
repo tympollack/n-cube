@@ -124,9 +124,13 @@ public class NCubeGroovyController extends NCubeGroovyExpression
             {
                 advice.after(method, ncube, input, output, ret, t);  // pass exception (t) to advice (or null)
             }
-            catch (Exception e)
+            catch (ThreadDeath e)
             {
-                LOG.error("An exception occurred calling advice: " + advice.getName() + " on method: " + method.getName(), e);
+                throw e;
+            }
+            catch (Throwable e)
+            {
+                LOG.error("An exception occurred calling 'after' advice: " + advice.getName() + " on method: " + method.getName(), e);
             }
         }
         if (t == null)

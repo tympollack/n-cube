@@ -107,21 +107,21 @@ abstract class TestWithPreloadedDatabase
         Map input = [:]
         URLClassLoader loader = NCubeManager.getUrlClassLoader(appId, input)
         assertEquals(1, loader.URLs.length)
-        assertEquals(1, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
         assertEquals(new URL("http://www.cedarsoftware.com/tests/ncube/cp1/"), loader.URLs[0])
 
         Map<String, Object> cache = NCubeManager.getCacheForApp(appId)
-        assertEquals(1, cache.size())
+        assertEquals(2, cache.size())
 
         assertNotNull(NCubeManager.getUrlClassLoader(appId, input))
-        assertEquals(1, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
 
         NCubeManager.clearCache()
         assertEquals(0, NCubeManager.getCacheForApp(appId).size())
 
         cache = NCubeManager.getCacheForApp(appId)
         assertEquals(1, NCubeManager.getUrlClassLoader(appId, input).URLs.length)
-        assertEquals(1, cache.size())
+        assertEquals(2, cache.size())
     }
 
     @Test
@@ -3147,7 +3147,7 @@ abstract class TestWithPreloadedDatabase
         Object x = cube.getCell(input)
         assertEquals("foo", x)
 
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         input.put("method", "foo2")
         x = cube.getCell(input)
@@ -3161,7 +3161,7 @@ abstract class TestWithPreloadedDatabase
         // change classpath in database only
         NCube[] cp2 = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.cp2.json")
         manager.updateCube(appId, USER_ID, cp2[0])
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         // reload hasn't happened in cache so we get same answers as above
         input = new HashMap()
@@ -3191,7 +3191,7 @@ abstract class TestWithPreloadedDatabase
         x = cube.getCell(input)
         assertEquals("boo", x)
 
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         input.put("method", "foo2")
         x = cube.getCell(input)
@@ -3219,7 +3219,7 @@ abstract class TestWithPreloadedDatabase
         Object x = cube.getCell(input)
         assertEquals("foo", x)
 
-        assertEquals(4, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(5, NCubeManager.getCacheForApp(appId).size())
 
         // cache hasn't been cleared yet.
         input.put("method", "foo2")
@@ -3241,7 +3241,7 @@ abstract class TestWithPreloadedDatabase
 
         assertEquals("boo", x)
 
-        assertEquals(4, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(5, NCubeManager.getCacheForApp(appId).size())
 
         input.put("method", "foo2")
         x = cube.getCell(input)
@@ -3315,23 +3315,23 @@ abstract class TestWithPreloadedDatabase
 
         assertEquals(1, NCubeManager.getCacheForApp(appId).size())
         assertEquals(25, cube.getCell(input))
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         input.method = 'factorial'
         assertEquals(120, cube.getCell(input))
 
         // same number of cubes, different cells
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         // test that shows you can add an axis to a controller to selectively choose a new classpath
         input.env = "b"
         input.method = 'square'
         assertEquals(5, cube.getCell(input))
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         input.method = 'factorial'
         assertEquals(5, cube.getCell(input))
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
     }
 
     @Test

@@ -138,7 +138,8 @@ abstract class ContentCmdCell extends UrlCommandCell
 
             setupRequestHeaders(conn, request)
             conn.connect()
-//            transferToServer(conn, request)
+            // Note, could transfer content from requestor on (info besides header)
+            // Note, could transfer POST requests
 
             int resCode = conn.responseCode
 
@@ -174,24 +175,6 @@ abstract class ContentCmdCell extends UrlCommandCell
             catch (IOException ignored) { }
         }
         return null
-    }
-
-    private static void transferToServer(URLConnection conn, HttpServletRequest request) throws IOException
-    {
-        OutputStream out = null
-        InputStream input = null
-
-        try
-        {
-            input = request.inputStream
-            out = new BufferedOutputStream(conn.outputStream, 32768)
-            IOUtilities.transfer(input, out)
-        }
-        finally
-        {
-            IOUtilities.close(input)
-            IOUtilities.close(out)
-        }
     }
 
     private Object transferFromServer(URLConnection conn, HttpServletResponse response) throws IOException

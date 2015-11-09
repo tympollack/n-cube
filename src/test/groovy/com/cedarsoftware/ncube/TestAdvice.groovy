@@ -107,6 +107,123 @@ class TestAdvice
     }
 
     @Test
+    void testExpressionStopExpressionWithBeforeAdvice()
+    {
+        final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+
+        assert 6 == ncube.getCell([code:'simpleExp'], [:])
+
+        // These methods are called more than you think.  Internally, these cube call
+        // themselves, and those calls too go through the Advice.
+        Advice advice1 = new Advice() {
+            String getName()
+            {
+                return 'bad advice1'
+            }
+
+            boolean before(Method method, NCube cube, Map input, Map output)
+            {
+                return false
+            }
+
+            void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)  { }
+        }
+
+        NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+
+        assertNull ncube.getCell([code:'simpleExp'], [:])
+    }
+
+    @Test
+    void testExpressionAfterAdviceThrows()
+    {
+        final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+
+        assert 6 == ncube.getCell([code:'simpleExp'], [:])
+
+        // These methods are called more than you think.  Internally, these cube call
+        // themselves, and those calls too go through the Advice.
+        Advice advice1 = new Advice() {
+            String getName()
+            {
+                return 'bad advice2'
+            }
+
+            boolean before(Method method, NCube cube, Map input, Map output)
+            {
+                output.before = 'yes'
+                return true
+            }
+
+            void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)
+            {
+                output.after = 'yes'
+                throw new Error('Have fun with this')
+            }
+        }
+
+        NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+
+        // Proves that after exception does not kill n-cube execution, and output is logged.
+
+        Map output = [:]
+        assert 6 == ncube.getCell([code:'simpleExp'], output)
+        assert output.before == 'yes'
+        assert output.after == 'yes'
+    }
+
+    @Test
+    void testExpressionThatThrows()
+    {
+        final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+
+        // These methods are called more than you think.  Internally, these cube call
+        // themselves, and those calls too go through the Advice.
+        Advice advice1 = new Advice() {
+            String getName()
+            {
+                return 'good advice'
+            }
+
+            boolean before(Method method, NCube cube, Map input, Map output)
+            {
+                output.before = 'yes'
+                return true
+            }
+
+            void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)
+            {
+                output.after = 'yes'
+                assert t != null
+            }
+        }
+
+        NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+
+        // Proves that after exception does not kill n-cube execution, and output is logged.
+
+        Map output = [:]
+        try
+        {
+            ncube.getCell([code:'ExceptionExp'], output)
+            fail()
+        }
+        catch (Throwable t)
+        {
+            while (t.getCause() != null)
+            {
+                t = t.getCause()
+            }
+            assert output.before == 'yes'
+            assert output.after == 'yes'
+            assert t.message == 'have fun with this'
+        }
+    }
+
+    @Test
     void testAdvice()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
@@ -655,7 +772,6 @@ class TestAdvice
         def output = [:]
         try
         {
-            // TODO: "exp'instead of 'method' - not getting advice put on it
             // TODO: "method" specified as 'value' instead of 'url' should still work (as exp)
             ncube.getCell([method:'foo', state:'GA'], output)
         }

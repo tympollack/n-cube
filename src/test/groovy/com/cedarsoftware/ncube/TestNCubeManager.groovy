@@ -654,7 +654,7 @@ class TestNCubeManager
         NCube testCube = NCubeManager.getNCubeFromResource(customId, 'sys.classpath.tests.json')
 
         assertEquals(1, NCubeManager.getUrlClassLoader(customId, [:]).URLs.length)
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
 
         testCube = NCubeManager.getNCubeFromResource(customId, 'sys.classpath.tests.json')   // reload to clear classLoader inside the cell
         NCubeManager.updateCube(customId, testCube, USER_ID)
@@ -665,11 +665,11 @@ class TestNCubeManager
 
         assertTrue(NCubeManager.updateCube(customId, testCube, USER_ID))
         assertNotNull(NCubeManager.getUrlClassLoader(customId, [:]))
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
 
         testCube = NCubeManager.getCube(customId, 'sys.classpath')
         cache = NCubeManager.getCacheForApp(customId)
-        assertEquals(1, cache.size())
+        assertEquals(2, cache.size())
         assertEquals(1, NCubeManager.getUrlClassLoader(customId, [:]).URLs.length)
 
         //  validate item got added to cache.
@@ -690,7 +690,7 @@ class TestNCubeManager
 
         final URLClassLoader urlClassLoader = NCubeManager.getUrlClassLoader(customId, [:])
         assertEquals(1, urlClassLoader.URLs.length)
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
 
         NCubeManager.clearCache()
         testCube = NCubeManager.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
@@ -706,10 +706,10 @@ class TestNCubeManager
 
         assertTrue(NCubeManager.renameCube(customId, 'sys.mistake', 'sys.classpath', USER_ID))
         assertNotNull(NCubeManager.getUrlClassLoader(customId, [:]))
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
 
         testCube = NCubeManager.getCube(customId, 'sys.classpath')
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
         assertEquals(1, NCubeManager.getUrlClassLoader(customId, [:]).URLs.length)
 
         //  validate item got added to cache.
@@ -730,7 +730,7 @@ class TestNCubeManager
 
         final URLClassLoader urlClassLoader = NCubeManager.getUrlClassLoader(customId, [:])
         assertEquals(1, urlClassLoader.URLs.length)
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
 
         NCubeManager.clearCache()
         testCube = NCubeManager.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
@@ -746,10 +746,10 @@ class TestNCubeManager
 
         NCubeManager.duplicate(customId, customId, 'sys.mistake', 'sys.classpath', USER_ID)
         assertNotNull(NCubeManager.getUrlClassLoader(customId, [:]))
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
 
         testCube = NCubeManager.getCube(customId, 'sys.classpath')
-        assertEquals(1, NCubeManager.getCacheForApp(customId).size())
+        assertEquals(2, NCubeManager.getCacheForApp(customId).size())
         assertEquals(1, NCubeManager.getUrlClassLoader(customId, [:]).URLs.length)
 
         //  validate item got added to cache.
@@ -1096,7 +1096,18 @@ class TestNCubeManager
         records = NCubeManager.getCubeRecordsFromDatabase(defaultSnapshotApp, 'test%', true)
         assertEquals(1, records.length)
 
+        NCube ncube = NCubeManager.loadCube(defaultSnapshotApp, cube.name);
+        assertNotNull ncube
+        assert ncube.name == cube.name
+
         NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
+    }
+
+    @Test
+    void testLoadCubeWithNonExistingName()
+    {
+        NCube ncube = NCubeManager.loadCube(defaultSnapshotApp, 'sdflsdlfk');
+        assertNull ncube
     }
 
     @Test
@@ -1322,10 +1333,10 @@ class TestNCubeManager
         assertNull o
     }
 
-    @Test
-    void testGetApplicationId()
-    {
-        // TODO: Cannot get the Mock to work
+//    @Test
+//    void testGetApplicationId()
+//    {
+//        // TODO: Cannot get the Mock to work
 //        loadTestClassPathCubes()
 //        loadTestBootstrapCubes()
 //
@@ -1348,7 +1359,7 @@ class TestNCubeManager
 //        assertEquals(defaultSnapshotApp.app, bootAppId.app)
 //        assertEquals(defaultSnapshotApp.version, '1.0.0')
 //        assertEquals(defaultSnapshotApp.status, bootAppId.status)
-    }
+//    }
 
     @Test
     void testEnsureLoadedException()
@@ -1563,6 +1574,4 @@ class TestNCubeManager
 
         return NCubeManager.search(appId, pattern, null, options);
     }
-
-
 }

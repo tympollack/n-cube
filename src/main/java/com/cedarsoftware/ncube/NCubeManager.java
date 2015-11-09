@@ -59,8 +59,9 @@ public class NCubeManager
     public static final String BRANCH_MERGES = "merges";
     public static final String BRANCH_CONFLICTS = "conflicts";
 
-    private static final String SYS_BOOTSTRAP = "sys.bootstrap";
-    private static final String CLASSPATH_CUBE = "sys.classpath";
+    public static final String SYS_BOOTSTRAP = "sys.bootstrap";
+    public static final String SYS_PROTOTYPE = "sys.prototype";
+    public static final String CLASSPATH_CUBE = "sys.classpath";
 
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>();
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>();
@@ -204,11 +205,6 @@ public class NCubeManager
             return null;
         }
         return prepareCube(ncube);
-    }
-
-    static void deleteCubes(String appName)
-    {
-        getPersister().deleteCubes(appName);
     }
 
     /**
@@ -1090,11 +1086,6 @@ public class NCubeManager
         boolean ret = getPersister().rollbackCube(appId, cubeName, username);
         clearCache(appId);
         return ret;
-    }
-
-    public static long fixSha1s()
-    {
-        return getPersister().fixSha1s();
     }
 
     /**

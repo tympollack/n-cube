@@ -1,0 +1,49 @@
+{
+  "ncube": "prototype.test",
+  "axes": [
+    {
+      "name": "State",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "hasDefault": true,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "OH"
+        },
+        {
+          "id": 1000000000002,
+          "type": "string",
+          "value": "TX"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "exp",
+      "cache": true,
+      "value": "println SwingConstants.RIGHT\nreturn SwingConstants.LEFT"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "exp",
+      "cache": true,
+      "value": "return plusOne(69)"
+    },
+    {
+      "id": [],
+      "type": "exp",
+      "cache": true,
+      "value": "Point p = new Point()\np.x = 10\np.y = 20\nreturn p"
+    }
+  ]
+}

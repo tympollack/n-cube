@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.3.13</version>
+  <version>3.4.0</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,11 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.4.0
+ * Added ability for n-cube Applications to define import list to make available to expression 'exp' cells / columns.  Add desired import classes to sys.prototype cube.  The cube has at least one axis (sys.property) and the column sys.imports.  The cell at this location returns a List of import classes or pacakges (do not include the 'import' keyword) and these packages will be added to the source of the compiled cell.
+ * Added ability for n-cube Applications to define the class that expression cells inherit from (currently must be subclass of NCubeGroovyExpression).  Methods added to this class can be called in your source, allowing reduced source code size.  Add desired class name to sys.prototype cube.  On the sys.property axis, add a column sys.class and in the associated cell, place the String name of the class.  You can fully qualify the name, or use the shorter class name and add the package name to the import list (above bullet point).  NOTE: The class must be defined in the sys.classpath.
+ * Added NCubeManager.loadCube(appId, cubeName) API which loads the cube from the persister (bypassing the cache).  It will cache the cube, but all calls to loadCube() will always use the persister to load.
+ * Fixed issue where NCubeManager.updateBranch() was not skipped classes that you updated, but where not updated in the HEAD branch.  Nuisance issue, as it created additional revision of your modified cubes each time you ran update branch.
 * 3.3.13
  * Update the 'UpdateBranch' code so that it handles the situation where the branch cube's SHA-1 matches the HEAD cube's SHA-1, yet the branch cube has a HEAD SHA-1 that no longer matches the HEAD.  This case can happen cubes are inserted into a branch directly in the database without going through the NCubeManager, leaving the headSha1 field null on that branch.  UpdateBranch detects this and Fast-Forwards the branch by simply updating the HEAD SHA-1 on the branch to be the same as the HEAD SHA-1.
  * Restore cube now adds the restored cube to the cache.  This may change in the future, as the n-cube-editor should not really be using the NCubeManager's cache, only a runtime n-cube instance should. 

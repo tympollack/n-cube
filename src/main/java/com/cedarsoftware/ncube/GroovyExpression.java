@@ -1,9 +1,11 @@
 package com.cedarsoftware.ncube;
 
+import com.cedarsoftware.util.StringUtilities;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +48,9 @@ import java.util.regex.Matcher;
  */
 public class GroovyExpression extends GroovyBase
 {
+    public static final String EXP_IMPORTS = "exp.imports";
+    public static final String EXP_CLASS = "exp.class";
+    public static final String SYS_PROPERTY = "sys.property";
     private static final Logger LOG = LogManager.getLogger(GroovyExpression.class);
 
     //  Private constructor only for serialization.
@@ -74,32 +79,113 @@ public class GroovyExpression extends GroovyBase
         groovy.append("import com.cedarsoftware.util.*\n");
         groovy.append("import com.cedarsoftware.util.io.*\n");
 
+        // Add in import statements extracted from the expression cell
+        // Note: we may drop this support in the future.  Thinking on it.
         for (String importLine : imports)
         {
             groovy.append(importLine);
             groovy.append('\n');
         }
 
-//        NCube ncube = UrlCommandCell.getNCube(ctx);
-//        NCube prototype = NCubeManager.getCube(ncube.getApplicationID(), "sys.prototype." + ncube.getName());
-//        if (prototype == null)
-//        {
-//            prototype = NCubeManager.getCube(ncube.getApplicationID(), "sys.prototype");
-//        }
-//
-//        if (prototype != null)
-//        {
-//            // Load Import Statements and Super class
-//        }
+        // Attempt to load sys.prototype cube
+        // If loaded, add the import statement list from this cube to the list of imports for generated cells
+        String expClassName = null;
+        NCube ncube = UrlCommandCell.getNCube(ctx);
+        if (!NCubeManager.SYS_PROTOTYPE.equalsIgnoreCase(ncube.getName()))
+        {
+            NCube prototype = getSysPrototype(ncube.getApplicationID());
 
+            if (prototype != null)
+            {
+                addPrototypeExpImports(ctx, groovy, prototype);
+
+                // Attempt to find class to inherit from
+                expClassName = getPrototypeExpClass(ctx, prototype);
+            }
+        }
+
+        if (StringUtilities.isEmpty(expClassName))
+        {
+            expClassName = "ncube.grv.exp.NCubeGroovyExpression";
+        }
 
         String className = "N_" + cmdHash;
         groovy.append("class ");
         groovy.append(className);
-        groovy.append(" extends ncube.grv.exp.NCubeGroovyExpression\n{\n\tdef run()\n\t{\n\t");
+        groovy.append(" extends ");
+        groovy.append(expClassName);
+        groovy.append("\n{\n\tdef run()\n\t{\n\t");
         groovy.append(groovyCodeWithoutImportStatements);
-        groovy.append("\n}\n}");
+        groovy.append("\n\t}\n}");
         return groovy.toString();
+    }
+
+    NCube getSysPrototype(ApplicationID appId)
+    {
+        try
+        {
+            return NCubeManager.getCube(appId, NCubeManager.SYS_PROTOTYPE);
+        }
+        catch (Exception e)
+        {
+            handleException(e, "Exception occurred fetching " + NCubeManager.SYS_PROTOTYPE);
+            return null;
+        }
+    }
+
+    private void handleException(Exception e, String msg)
+    {
+        if (LOG.isDebugEnabled())
+        {
+            LOG.debug(msg, e);
+        }
+        else
+        {
+            LOG.info(msg + ", " + e.getMessage());
+        }
+    }
+
+    private void addPrototypeExpImports(Map<String, Object> ctx, StringBuilder groovy, NCube prototype)
+    {
+        try
+        {
+            Map<String, Object> input = UrlCommandCell.getInput(ctx);
+            input.put(SYS_PROPERTY, EXP_IMPORTS);
+            Object importList = prototype.getCell(input);
+            if (importList instanceof Collection)
+            {
+                Collection<String> impList = (Collection) importList;
+                for (String importLine : impList)
+                {
+                    groovy.append("import ");
+                    groovy.append(importLine);
+                    groovy.append('\n');
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            handleException(e, "Exception occurred fetching imports from " + NCubeManager.SYS_PROTOTYPE);
+        }
+    }
+
+    private String getPrototypeExpClass(Map<String, Object> ctx, NCube prototype)
+    {
+        try
+        {
+            Map<String, Object> input = UrlCommandCell.getInput(ctx);
+            input.put(SYS_PROPERTY, EXP_CLASS);
+            Object className = prototype.getCell(input);
+            if (className instanceof String && StringUtilities.hasContent((String)className))
+            {
+                return (String) className;
+            }
+        }
+        catch (Exception e)
+        {
+            handleException(e, "Exception occurred fetching base class for Groovy Expression cells from " + NCubeManager.SYS_PROTOTYPE);
+        }
+        return null;
     }
 
     protected String getMethodToExecute(Map<String, Object> ctx)
@@ -144,7 +230,7 @@ public class GroovyExpression extends GroovyBase
         }
 
         // If 'around' Advice has been added to n-cube, invoke it after calling Groovy expression's run() method
-        int len = advices.size();
+        final int len = advices.size();
         for (int i = len - 1; i >= 0; i--)
         {
             Advice advice = advices.get(i);
@@ -152,9 +238,13 @@ public class GroovyExpression extends GroovyBase
             {
                 advice.after(runMethod, ncube, input, output, ret, t);  // pass exception (t) to advice (or null)
             }
-            catch (Exception e)
+            catch (ThreadDeath e)
             {
-                LOG.error("An exception occurred calling advice: " + advice.getName() + " on method: " + runMethod.getName(), e);
+                throw e;
+            }
+            catch (Throwable e)
+            {
+                LOG.error("An exception occurred calling 'after' advice: " + advice.getName() + " on method: " + runMethod.getName(), e);
             }
         }
         if (t == null)

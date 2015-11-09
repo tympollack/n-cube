@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -21,6 +23,18 @@ import org.junit.Test
  */
 class TestCubeLevelDefault
 {
+    @Before
+    public void setUp()
+    {
+        TestingDatabaseHelper.setupDatabase()
+    }
+
+    @After
+    public void tearDown()
+    {
+        TestingDatabaseHelper.tearDownDatabase()
+    }
+
     @Test
     void testDefaultExpression()
     {

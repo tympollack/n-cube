@@ -30,7 +30,9 @@
                 { "id":"FixedExp"},
                 { "id":"FixedExtExp"},
                 { "id":"RelativeExp"},
-                { "id":"RelativeExtExp"}
+                { "id":"RelativeExtExp"},
+                { "id":"simpleExp"},
+                { "id":"ExceptionExp"}
             ]}],
     "cells":[
         { "id":["exp"], "type":"exp", "value": "input.code = 'intVal'; def x=$(input); input.code = 'doubleVal'; def y = $(input); x * y" },
@@ -52,6 +54,8 @@
         { "id":["FixedExp"], "type":"exp", "value":"$[code:'doubleVal']* 2"},
         { "id":["FixedExtExp"], "type":"exp", "value":"$idTest[Age:15,state:'OH']"},
         { "id":["RelativeExp"], "type":"exp", "value":"@[code:'integerVal']*2"},
-        { "id":["RelativeExtExp"], "type":"exp", "value":"@idTest[Age:48,state:'TX']"}
+        { "id":["RelativeExtExp"], "type":"exp", "value":"@idTest[Age:48,state:'TX']"},
+        { "id":["simpleExp"], "type":"exp", "value":"2 * 3"},
+        { "id":["ExceptionExp"], "type":"exp", "value":"throw new Error('have fun with this')"}
     ]
 }
