@@ -88,7 +88,7 @@ public abstract class GroovyBase extends UrlCommandCell
             GroovySystem.getMetaClassRegistry().removeMetaClass(getRunnableCode())
             try
             {
-                Method remove = gcl.getClass().getDeclaredMethod("removeClassCacheEntry", String.class)
+                Method remove = GroovyClassLoader.class.getDeclaredMethod("removeClassCacheEntry", String.class)
                 remove.setAccessible(true)
                 remove.invoke(gcl, getRunnableCode().getName())
             }

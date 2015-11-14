@@ -188,7 +188,7 @@ public class NCube<T>
         {
             StringBuilder s = new StringBuilder();
             s.append(cubeName);
-            s.append(":{");
+            s.append(":[");
 
             Iterator<Map.Entry<String, Object>> i = coord.entrySet().iterator();
             while (i.hasNext())
@@ -202,7 +202,7 @@ public class NCube<T>
                     s.append(',');
                 }
             }
-            s.append('}');
+            s.append(']');
             return s.toString();
         }
     }
