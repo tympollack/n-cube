@@ -1,27 +1,18 @@
 package com.cedarsoftware.ncube.formatters;
 
-import com.cedarsoftware.ncube.Axis;
-import com.cedarsoftware.ncube.CellTypes;
-import com.cedarsoftware.ncube.Column;
-import com.cedarsoftware.ncube.CommandCell;
-import com.cedarsoftware.ncube.NCube;
-import com.cedarsoftware.ncube.Range;
-import com.cedarsoftware.ncube.RangeSet;
+import com.cedarsoftware.ncube.*;
 import com.cedarsoftware.ncube.proximity.LatLon;
 import com.cedarsoftware.ncube.proximity.Point2D;
 import com.cedarsoftware.ncube.proximity.Point3D;
 import com.cedarsoftware.util.StringUtilities;
 import com.cedarsoftware.util.io.JsonWriter;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Format an NCube into an JSON document

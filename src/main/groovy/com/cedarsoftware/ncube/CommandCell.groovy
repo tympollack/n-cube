@@ -1,7 +1,6 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import java.util.Map;
-import java.util.Set;
+import groovy.transform.CompileStatic
 
 /**
  * A 'CommandCell' represents an executable cell. NCube ships
@@ -34,14 +33,15 @@ import java.util.Set;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public interface CommandCell extends Comparable<CommandCell>
 {
-    String getCmd();
-    String getUrl();
+    String getCmd()
+    String getUrl()
 
-    Object execute(Map<String, Object> ctx);
-    boolean isCacheable();
+    Object execute(Map<String, Object> ctx)
+    boolean isCacheable()
 
-    void getCubeNamesFromCommandText(Set<String> cubeNames);
-    void getScopeKeys(Set<String> scopeKeys);
+    void getCubeNamesFromCommandText(Set<String> cubeNames)
+    void getScopeKeys(Set<String> scopeKeys)
 }

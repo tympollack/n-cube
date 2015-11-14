@@ -1,6 +1,6 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import java.util.Map;
+import groovy.transform.CompileStatic;
 
 /**
  * Process a String that is specified at a URL.
@@ -21,6 +21,7 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class StringUrlCmd extends ContentCmdCell
 {
     //  Private constructor only for serialization.
@@ -28,12 +29,12 @@ public class StringUrlCmd extends ContentCmdCell
 
     public StringUrlCmd(String url, boolean cache)
     {
-        super(null, url, cache);
+         super(null, url, cache)
     }
 
     protected Object proxyFetch(Map args)
     {
-        byte[] bytes = (byte[])super.proxyFetch(args);
-        return bytes == null ? null : new String(bytes);
+        byte[] bytes = (byte[])super.proxyFetch(args)
+        return bytes == null ? null : new String(bytes)
     }
 }

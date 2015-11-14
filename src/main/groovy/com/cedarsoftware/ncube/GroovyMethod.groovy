@@ -1,7 +1,8 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import java.lang.reflect.Method;
-import java.util.Map;
+import groovy.transform.CompileStatic
+
+import java.lang.reflect.Method
 
 /**
  * This class is used to hold Groovy Programs.  The code must start
@@ -52,6 +53,7 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class GroovyMethod extends GroovyBase
 {
     //  Private constructor only for serialization.
@@ -59,27 +61,31 @@ public class GroovyMethod extends GroovyBase
 
     public GroovyMethod(String cmd, String url, boolean cacheable)
     {
-        super(cmd, url, cacheable);
+        super(cmd, url, cacheable)
     }
 
     public String buildGroovy(Map<String, Object> ctx, String theirGroovy)
     {
-        return theirGroovy;
+        return theirGroovy
     }
 
     protected String getMethodToExecute(Map<String, Object> ctx)
     {
-        Map input = UrlCommandCell.getInput(ctx);
-        return (String)input.get("method");
+        Map input = getInput(ctx)
+        if (!input.containsKey('method'))
+        {
+            throw new IllegalArgumentException("There must be a 'method' axis (String, DISCRETE) in order to define cells of type 'method'.")
+        }
+        return (String)input.method
     }
 
     protected Method getRunMethod() throws NoSuchMethodException
     {
-        return getRunnableCode().getMethod("run", String.class);
+        return getRunnableCode().getMethod('run', String.class)
     }
 
     protected Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Exception
     {
-        return runMethod.invoke(instance, cmdHash);
+        return runMethod.invoke(instance, cmdHash)
     }
 }

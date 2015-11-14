@@ -1,9 +1,7 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.UrlUtilities;
-
-import java.net.URL;
-import java.util.Map;
+import com.cedarsoftware.util.UrlUtilities
+import groovy.transform.CompileStatic
 
 /**
  * Process a binary type (byte[]) that is specified at a URL.
@@ -24,6 +22,7 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class BinaryUrlCmd extends ContentCmdCell
 {
     //  Private constructor only for serialization.
@@ -31,21 +30,21 @@ public class BinaryUrlCmd extends ContentCmdCell
 
     public BinaryUrlCmd(String url, boolean cache)
     {
-        super(null, url, cache);
+        super(null, url, cache)
     }
 
     protected Object simpleFetch(Map ctx)
     {
         try
         {
-            URL u = getActualUrl(ctx);
-            return UrlUtilities.getContentFromUrl(u, true);
+            URL u = getActualUrl(ctx)
+            return UrlUtilities.getContentFromUrl(u, true)
         }
         catch (Exception e)
         {
-            NCube cube = getNCube(ctx);
-            setErrorMessage("Failed to load binary content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion());
-            throw new IllegalStateException(getErrorMessage(), e);
+            NCube cube = getNCube(ctx)
+            setErrorMessage("Failed to load binary content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion())
+            throw new IllegalStateException(getErrorMessage(), e)
         }
     }
 }
