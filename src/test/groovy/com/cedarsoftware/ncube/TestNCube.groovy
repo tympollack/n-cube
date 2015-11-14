@@ -2149,7 +2149,7 @@ class TestNCube
             assertTrue(e.message.contains('xis'))
             assertTrue(e.message.contains('not'))
             assertTrue(e.message.contains('on'))
-            assertTrue(e.message.contains('NCube'))
+            assertTrue(e.message.contains('cube'))
         }
     }
 
@@ -3363,21 +3363,6 @@ class TestNCube
     void testNullCube()
     {
         NCubeManager.getNCubeFromResource("null-error.json")
-    }
-
-    @Test
-    void testCoordinateNotFoundException()
-    {
-        RuntimeException r = new RuntimeException()
-        try
-        {
-            throw new CoordinateNotFoundException("foo", r)
-        }
-        catch (Exception e)
-        {
-            assertEquals("foo", e.message)
-            assert r.is(e.cause)
-        }
     }
 
     @Test

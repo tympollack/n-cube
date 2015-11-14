@@ -273,7 +273,7 @@ s    */
         String content;
         if (getUrl() == null)
         {
-            content = data != null ? data.toString() : "null";
+            content = data != null ? data.toString() : "";
         }
         else
         {   // specified via URL, add classLoader URL strings to URL for SHA1 source.
@@ -316,7 +316,12 @@ s    */
         String grvSrcCode;
         GroovyClassLoader gcLoader;
 
-        if (isUrlUsed)
+        if (cube.getName().toLowerCase().startsWith("sys."))
+        {   // No URLs allowed, nor code from sys.classpath when executing these cubes
+            gcLoader = (GroovyClassLoader)NCubeManager.getLocalClassloader(cube.getApplicationID());
+            grvSrcCode = getCmd();
+        }
+        else if (isUrlUsed)
         {
             gcLoader = (GroovyClassLoader)NCubeManager.getUrlClassLoader(cube.getApplicationID(), getInput(ctx));
             URL groovySourceUrl = getActualUrl(ctx);
@@ -324,10 +329,11 @@ s    */
         }
         else
         {
-            gcLoader = (GroovyClassLoader)NCubeManager.getLocalClassloader(cube.getApplicationID());
+            gcLoader = (GroovyClassLoader)NCubeManager.getUrlClassLoader(cube.getApplicationID(), getInput(ctx));
             grvSrcCode = getCmd();
         }
         String groovySource = expandNCubeShortCuts(buildGroovy(ctx, grvSrcCode));
+//        Thread.currentThread().setContextClassLoader(gcLoader);
         return gcLoader.parseClass(groovySource);
     }
 

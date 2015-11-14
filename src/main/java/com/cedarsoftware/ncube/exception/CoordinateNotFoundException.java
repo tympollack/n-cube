@@ -22,5 +22,4 @@ package com.cedarsoftware.ncube.exception;
 public class CoordinateNotFoundException extends RuntimeException
 {
 	public CoordinateNotFoundException(String msg) { super(msg); }
-    public CoordinateNotFoundException(String msg, Throwable cause) { super(msg, cause); }
 }

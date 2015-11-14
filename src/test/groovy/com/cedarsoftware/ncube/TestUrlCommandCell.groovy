@@ -3,7 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.CdnRouter
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.servlet.http.HttpServletRequest
@@ -165,7 +164,8 @@ class TestUrlCommandCell
         }
         catch (Exception e)
         {
-            assert e.message.toLowerCase().contains('error occurred executing')
+            e = e.getCause()
+            assert e.message.toLowerCase().contains('failed to load cell contents from url')
         }
 
         coord['content.name'] = 'badRelative'

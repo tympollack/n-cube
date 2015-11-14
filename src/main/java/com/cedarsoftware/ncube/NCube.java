@@ -117,7 +117,7 @@ public class NCube<T>
         if (value instanceof CommandCell)
         {
             CommandCell cmd = (CommandCell) value;
-            value = cmd.execute(prepareExecutionContext(new HashMap(), new HashMap()));
+            value = executeExpression(prepareExecutionContext(new HashMap(), new HashMap()), cmd);
         }
         return value;
     }
@@ -494,7 +494,7 @@ public class NCube<T>
                                 // If the cmd == null, then we are looking at a default column on a rule axis.
                                 // the conditionValue becomes 'true' for Default column when ruleAxisBindCount = 0
                                 final Integer count = conditionsFiredCountPerAxis.get(axisName);
-                                conditionValue = cmd == null ? isZero(count) : cmd.execute(ctx);
+                                conditionValue = cmd == null ? isZero(count) : executeExpression(ctx, cmd);
                                 final boolean conditionAnswer = isTrue(conditionValue);
                                 cachedConditionValues.put(boundColumn.id, conditionAnswer);
 
@@ -564,6 +564,34 @@ public class NCube<T>
         return lastStatementValue;
     }
 
+    private Object executeExpression(Map<String, Object> ctx, CommandCell cmd)
+    {
+        try
+        {
+            return cmd.execute(ctx);
+        }
+        catch (ThreadDeath | RuleStop | RuleJump e)
+        {
+            throw e;
+        }
+        catch (CoordinateNotFoundException e)
+        {
+            String msg = e.getMessage();
+            if (!msg.contains("-> cell:"))
+            {
+                throw new CoordinateNotFoundException(e.getMessage() + "\nerror occurred in cube: " + name + "\n" + stackToString());
+            }
+            else
+            {
+                throw e;
+            }
+        }
+        catch (Throwable t)
+        {
+            throw new RuntimeException("Error occurred in cube: " + name + "\n" + stackToString(), t);
+        }
+    }
+
     private T executeAssociatedStatement(Map<String, Object> input, Map<String, Object> output, RuleInfo ruleInfo, Binding binding)
     {
         try
@@ -587,10 +615,15 @@ public class NCube<T>
         }
         catch (Exception e)
         {
-            String msg = e.getMessage();
+            Throwable t = e;
+            while (t.getCause() != null)
+            {
+                t = t.getCause();
+            }
+            String msg = t.getMessage();
             if (StringUtilities.isEmpty(msg))
             {
-                msg = e.getClass().getName();
+                msg = t.getClass().getName();
             }
             binding.setValue("[" + msg + "]");
             throw e;
@@ -627,7 +660,7 @@ public class NCube<T>
                 Integer count = conditionsFiredCountPerAxis.get(axis.getName());
                 if (count == null || count < 1)
                 {
-                    throw new CoordinateNotFoundException("No conditions on the rule axis '" + axis.getName() + "' fired, and there is no default column on this axis, cube: " + name + ", input: " + coordinate);
+                    throw new CoordinateNotFoundException("No conditions on the rule axis: " + axis.getName() + " fired, and there is no default column on this axis, cube: " + name + ", input: " + coordinate);
                 }
             }
         }
@@ -658,8 +691,14 @@ public class NCube<T>
             final StackEntry entry = new StackEntry(name, coordinate);
             stackFrame.push(entry);
             pushed = true;
-            final T retVal = executeCellById(idCoord, coordinate, output);
-            return retVal;  // split into 2 statements for debugging
+            T cellValue = cells.containsKey(idCoord) ? cells.get(idCoord) : defaultCellValue;
+
+            if (cellValue instanceof CommandCell)
+            {
+                Map<String, Object> ctx = prepareExecutionContext(coordinate, output);
+                return (T) executeExpression(ctx, (CommandCell) cellValue);
+            }
+            return cellValue;
         }
         finally
         {	// Unwind stack: always remove if stacked pushed, even if Exception has been thrown
@@ -670,54 +709,6 @@ public class NCube<T>
         }
     }
 
-
-    /**
-     * Execute the referenced cell. If the cell is a value, it will be returned.
-     * If the cell is a CommandCell, then it will be executed.  That allows the
-     * cell to further access 'this' ncube or other NCubes within the NCubeManager,
-     * providing significant power and capability, as it each execution is effectively
-     * a new 'Decision' within a decision tree.  Further more, because ncube supports
-     * Groovy code within cells, a cell, when executing may perform calculations,
-     * programmatic execution within the cell (looping, conditions, modifications),
-     * as well as referencing back into 'this' or other ncubes.  The output map passed
-     * into this method allows the executing cell to write out information that can be
-     * accessed after the execution completes, or even during execution, as a parameter
-     * passing.
-     * @return T ultimate value reached by executing the contents of this cell.
-     * If the passed in coordinate refers to a non-command cell, then the value
-     * of that cell is returned, otherwise the command in the cell is executed,
-     * resulting in recursion that will ultimately end when a non-command cell
-     * is reached.
-     */
-    private T executeCellById(final Set<Long> idCoord, final Map<String, Object> coord, final Map output)
-    {
-        T cellValue = cells.containsKey(idCoord) ? cells.get(idCoord) : defaultCellValue;
-
-        try
-        {
-            if (cellValue instanceof CommandCell)
-            {
-                Map<String, Object> ctx = prepareExecutionContext(coord, output);
-                return (T) ((CommandCell) cellValue).execute(ctx);
-            }
-            else
-            {
-                return cellValue;
-            }
-        }
-        catch (RuleStop | RuleJump | ThreadDeath e)
-        {
-            throw e;
-        }
-        catch (CoordinateNotFoundException e)
-        {
-            throw new CoordinateNotFoundException("Coordinate not found in cube: " + name + "\n" + stackToString(), e);
-        }
-        catch (Throwable e)
-        {
-            throw new RuntimeException("Error occurred executing CommandCell in NCube '" + name + "'\n" + stackToString(), e);
-        }
-    }
 
     /**
      * Prepare the execution context by providing it with references to
@@ -866,7 +857,7 @@ public class NCube<T>
                 final Column column = axis.findColumn(value);
                 if (column == null)
                 {
-                    throw new CoordinateNotFoundException("Value '" + value + "' not found on axis '" + axis.getName() + "', NCube '" + name + "'");
+                    throw new CoordinateNotFoundException("Value '" + value + "' not found on axis: " + axis.getName() + ", cube: " + name);
                 }
                 List<Column> cols = new ArrayList<>();
                 cols.add(column);
@@ -1062,12 +1053,12 @@ public class NCube<T>
 
         if (count == 0)
         {
-            throw new IllegalArgumentException("No 'Set' value found within input coordinate, NCube '" + name + "'");
+            throw new IllegalArgumentException("No 'Set' value found within input coordinate, cube: " + name);
         }
 
         if (count > 1)
         {
-            throw new IllegalArgumentException("More than one 'Set' found as value within input coordinate, NCube '" + name + "'");
+            throw new IllegalArgumentException("More than one 'Set' found as value within input coordinate, cube: " + name);
         }
 
         return wildcardAxis;
@@ -1097,7 +1088,7 @@ public class NCube<T>
             final Column column = axis.findColumn((Comparable) value);
             if (column == null)
             {
-                throw new CoordinateNotFoundException("Value '" + value + "' not found on axis '" + axis.getName() + "', NCube '" + name + "'");
+                throw new CoordinateNotFoundException("Value '" + value + "' not found on axis: " + axis.getName() + ", cube: " + name);
             }
             key.add(column.id);
         }
@@ -1115,7 +1106,7 @@ public class NCube<T>
     {
         if (coordinate == null)
         {
-            throw new IllegalArgumentException("'null' passed in for coordinate Map, NCube '" + name + "'");
+            throw new IllegalArgumentException("'null' passed in for coordinate Map, n-cube: " + name);
         }
 
         // Duplicate input coordinate
@@ -1135,7 +1126,7 @@ public class NCube<T>
             {
                 throw new IllegalArgumentException("Input coordinate with keys: " + coordinate.keySet() +
                         ", does not contain all of the required scope keys: " + requiredScope +
-                        ", required for NCube '" + name + "'");
+                        ", required for cube: " + name);
             }
         }
 
@@ -1171,7 +1162,7 @@ public class NCube<T>
                 final Column column = wildcardAxis.findColumn(value);
                 if (column == null)
                 {
-                    throw new CoordinateNotFoundException("Value '" + value + "' not found using Set on axis '" + wildcardAxis.getName() + "', NCube '" + name + "'");
+                    throw new CoordinateNotFoundException("Value '" + value + "' not found using Set on axis: " + wildcardAxis.getName() + ", cube: " + name);
                 }
 
                 columns.add(column);
@@ -1238,7 +1229,7 @@ public class NCube<T>
         final Axis axis = getAxis(axisName);
         if (axis == null)
         {
-            throw new IllegalArgumentException("Could not add column. Axis name '" + axisName + "' was not found on NCube '" + name + "'");
+            throw new IllegalArgumentException("Could not add column. Axis name '" + axisName + "' was not found on cube: " + name);
         }
         Column newCol = axis.addColumn(value, colName);
         clearScopeKeyCaches();
@@ -1258,7 +1249,7 @@ public class NCube<T>
         final Axis axis = getAxis(axisName);
         if (axis == null)
         {
-            throw new IllegalArgumentException("Could not delete column. Axis name '" + axisName + "' was not found on NCube '" + name + "'");
+            throw new IllegalArgumentException("Could not delete column. Axis name '" + axisName + "' was not found on cube: " + name);
         }
         clearScopeKeyCaches();
         clearSha1();
@@ -1294,7 +1285,7 @@ public class NCube<T>
         Axis axis = getAxisFromColumnId(id);
         if (axis == null)
         {
-            throw new IllegalArgumentException("No column exists with the id " + id + " within NCube '" + name + "'");
+            throw new IllegalArgumentException("No column exists with the id " + id + " within cube: " + name);
         }
         clearScopeKeyCaches();
         clearSha1();
@@ -1312,11 +1303,11 @@ public class NCube<T>
     {
         if (newCols == null)
         {
-            throw new IllegalArgumentException("Cannot pass in null Axis for updating columns, NCube '" + name + "'");
+            throw new IllegalArgumentException("Cannot pass in null Axis for updating columns, cube: " + name);
         }
         if (!axisList.containsKey(newCols.getName()))
         {
-            throw new IllegalArgumentException("No axis exists with the name: " + newCols.getName() + ", NCube '" + name + "'");
+            throw new IllegalArgumentException("No axis exists with the name: " + newCols.getName() + ", cube: " + name);
         }
 
         final Axis axisToUpdate = axisList.get(newCols.getName());
@@ -1398,7 +1389,7 @@ public class NCube<T>
         String axisName = axis.getName();
         if (axisList.containsKey(axisName))
         {
-            throw new IllegalArgumentException("An axis with the name '" + axisName + "' already exists on NCube '" + name + "'");
+            throw new IllegalArgumentException("An axis with the name '" + axisName + "' already exists on cube: " + name);
         }
 
         cells.clear();
@@ -1420,12 +1411,12 @@ public class NCube<T>
         }
         if (getAxis(newName) != null)
         {
-            throw new IllegalArgumentException("There is already an axis named '" + oldName + "' on NCube '" + name + "'");
+            throw new IllegalArgumentException("There is already an axis named '" + oldName + "' on cube: " + name);
         }
         final Axis axis = getAxis(oldName);
         if (axis == null)
         {
-            throw new IllegalArgumentException("Axis '" + oldName + "' not on NCube '" + name + "'");
+            throw new IllegalArgumentException("Axis '" + oldName + "' not on cube: " + name);
         }
         axisList.remove(oldName);
         axis.setName(newName);
@@ -1536,7 +1527,7 @@ public class NCube<T>
                     NCube refCube = NCubeManager.getCube(appId, ncube);
                     if (refCube == null)
                     {
-                        throw new IllegalStateException("Attempting to get required scope, but n-cube: " + ncube + " failed to load");
+                        throw new IllegalStateException("Attempting to get required scope, but cube: " + ncube + " failed to load");
                     }
                     stack.addFirst(refCube);
                 }
@@ -1724,13 +1715,13 @@ public class NCube<T>
             Map<String, Object> jsonNCube = JsonReader.jsonToMaps(json);
             return hydrateCube(jsonNCube);
         }
-        catch (RuntimeException re)
+        catch (RuntimeException | ThreadDeath e)
         {
-            throw re;
+            throw e;
         }
-        catch (Exception e)
+        catch (Throwable e)
         {
-            throw new RuntimeException("Error reading cube from passed in JSON", e);
+            throw new IllegalArgumentException("Error reading cube from passed in JSON", e);
         }
     }
 
@@ -1749,13 +1740,13 @@ public class NCube<T>
             Map<String, Object> jsonNCube = JsonReader.jsonToMaps(stream, null);
             return hydrateCube(jsonNCube);
         }
-        catch (RuntimeException e)
+        catch (RuntimeException | ThreadDeath e)
         {
             throw e;
         }
-        catch (Exception e)
+        catch (Throwable e)
         {
-            throw new RuntimeException("Error reading cube from passed in JSON", e);
+            throw new IllegalArgumentException("Error reading cube from passed in JSON", e);
         }
     }
 
@@ -1764,7 +1755,7 @@ public class NCube<T>
         String cubeName = getString(jsonNCube, "ncube");  // new cubes always have ncube as they key in JSON storage
         if (StringUtilities.isEmpty(cubeName))
         {
-            throw new IllegalArgumentException("JSON format must have a root 'ncube' field containing the String name of the NCube.");
+            throw new IllegalArgumentException("JSON format must have a root 'ncube' field containing the String name of the cube.");
         }
         NCube ncube = new NCube(cubeName);
         ncube.metaProps = new CaseInsensitiveMap();
@@ -1841,13 +1832,13 @@ public class NCube<T>
 
             if (!(jsonAxis.get("columns") instanceof JsonObject))
             {
-                throw new IllegalArgumentException("'columns' must be specified, axis '" + name + "', cube: " + cubeName);
+                throw new IllegalArgumentException("'columns' must be specified, axis: " + name + ", cube: " + cubeName);
             }
             JsonObject colMap = (JsonObject) jsonAxis.get("columns");
 
             if (!colMap.isArray())
             {
-                throw new IllegalArgumentException("'columns' must be an array, axis '" + name + "', cube: " + cubeName);
+                throw new IllegalArgumentException("'columns' must be an array, axis: " + name + ", cube: " + cubeName);
             }
 
             // Read columns
@@ -1865,7 +1856,7 @@ public class NCube<T>
                 {
                     if (id == null)
                     {
-                        throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis '" + name + "', cube: " + cubeName);
+                        throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: " + name + ", cube: " + cubeName);
                     }
                     else
                     {   // Allows you to skip setting both id and value to the same value.
@@ -1891,7 +1882,7 @@ public class NCube<T>
                     Object[] rangeItems = ((JsonObject)value).getArray();
                     if (rangeItems.length != 2)
                     {
-                        throw new IllegalArgumentException("Range must have exactly two items, axis '" + name +"', cube: " + cubeName);
+                        throw new IllegalArgumentException("Range must have exactly two items, axis: " + name +", cube: " + cubeName);
                     }
                     Comparable low = (Comparable) CellInfo.parseJsonValue(rangeItems[0], null, colType, false);
                     Comparable high = (Comparable) CellInfo.parseJsonValue(rangeItems[1], null, colType, false);
@@ -1908,7 +1899,7 @@ public class NCube<T>
                             Object[] rangeValues = (Object[]) pt;
                             if (rangeValues.length != 2)
                             {
-                                throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis '" + name + "', cube: " + cubeName);
+                                throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis: " + name + ", cube: " + cubeName);
                             }
                             Comparable low = (Comparable) CellInfo.parseJsonValue(rangeValues[0], null, colType, false);
                             Comparable high = (Comparable) CellInfo.parseJsonValue(rangeValues[1], null, colType, false);
@@ -1933,7 +1924,7 @@ public class NCube<T>
                 }
                 else
                 {
-                    throw new IllegalArgumentException("Unsupported Axis Type '" + type + "' for simple JSON input, axis '" + name + "', cube: " + cubeName);
+                    throw new IllegalArgumentException("Unsupported Axis Type '" + type + "' for simple JSON input, axis: " + name + ", cube: " + cubeName);
                 }
 
                 if (id != null)
@@ -2012,11 +2003,9 @@ public class NCube<T>
                 }
                 else
                 {
-                    // TODO: Drop support for specifying columns this way
-                    // specified as key-values along each axis
                     if (!(cMap.get("key") instanceof JsonObject))
                     {
-                        throw new IllegalArgumentException("'key' must be a JSON object {}, NCube '" + cubeName + "'");
+                        throw new IllegalArgumentException("'key' must be a JSON object {}, cube: " + cubeName);
                     }
 
                     JsonObject<String, Object> keys = (JsonObject<String, Object>) cMap.get("key");
@@ -2658,7 +2647,7 @@ public class NCube<T>
                 changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s));
             }
 
-            metaChanges = compareMetaProperties(oldAxis.getMetaProperties(), newAxis.getMetaProperties(), Delta.Location.AXIS_META, "axis '" + newAxis.getName() + "'");
+            metaChanges = compareMetaProperties(oldAxis.getMetaProperties(), newAxis.getMetaProperties(), Delta.Location.AXIS_META, "axis: " + newAxis.getName());
             changes.addAll(metaChanges);
 
             for (Column newCol : newAxis.getColumns())
@@ -2844,7 +2833,7 @@ public class NCube<T>
                 {
                     if (axisRef.contains(axis))
                     {
-                        throw new IllegalArgumentException("Cannot have more than one column ID per axis, axis '" + axis.getName() + "', cube: " + name);
+                        throw new IllegalArgumentException("Cannot have more than one column ID per axis, axis: " + axis.getName() + ", cube: " + name);
                     }
 
                     axisRef.add(axis);
@@ -2988,7 +2977,7 @@ public class NCube<T>
     {
         if (stream == null)
         {
-            throw new NullPointerException("Stream cannot be null to create cube.");
+            throw new IllegalArgumentException("Stream cannot be null to create cube.");
         }
 
         InputStream newStream = null;
@@ -3002,14 +2991,14 @@ public class NCube<T>
             int count = newStream.read(header);
             if (count < 2)
             {
-                throw new IllegalStateException("Invalid Cube existing of 0 or 1 bytes");
+                throw new IllegalStateException("Invalid cube existing of 0 or 1 bytes");
             }
 
             newStream.reset();
             newStream = ByteUtilities.isGzipped(header) ? new GZIPInputStream(newStream) : newStream;
             return fromSimpleJson(newStream);
         }
-        catch (IOException e)
+        catch (Exception e)
         {
             throw new IllegalStateException("Error reading cube from stream.", e);
         }
@@ -3043,6 +3032,10 @@ public class NCube<T>
         return byteOut.toByteArray();
     }
 
+    /**
+     * Set the name of this n-cube
+     * @param name String name
+     */
     public void setName(String name)
     {
         this.name = name;

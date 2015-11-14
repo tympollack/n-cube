@@ -568,7 +568,7 @@ th.ncube-dead:hover { background: #76A7FF; }
                     s.append(escapeHTML(getCellValueAsString(defVal)))
                 }
             }
-            else if (defVal)
+            else if (defVal != null)
             {   // not null
                 s.append('cell cell-def">')
                 s.append(escapeHTML(getCellValueAsString(defVal)))

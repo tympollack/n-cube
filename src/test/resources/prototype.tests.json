@@ -29,7 +29,7 @@
       ],
       "type": "exp",
       "cache": true,
-      "value": "println SwingConstants.RIGHT\nreturn SwingConstants.LEFT"
+      "value": "return SwingConstants.LEFT"
     },
     {
       "id": [

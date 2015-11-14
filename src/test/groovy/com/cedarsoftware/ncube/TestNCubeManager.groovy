@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
@@ -256,7 +255,7 @@ class TestNCubeManager
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains('error occurred executing')
+            assert e.message.toLowerCase().contains('error occurred')
         }
 
         NCubeManager.updateCube(defaultSnapshotApp, continentCounty, USER_ID)
@@ -352,9 +351,9 @@ class TestNCubeManager
             n1.getCell(input)
             fail()
         }
-        catch (CoordinateNotFoundException e)
+        catch (Exception e)
         {
-            assertTrue(e.message.contains('oordinate not found'))
+            assertTrue(e.message.contains("Value 'KY' not found"))
         }
     }
 
