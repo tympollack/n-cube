@@ -1,8 +1,9 @@
 package com.cedarsoftware.ncube.exception
 
+import groovy.transform.CompileStatic
+
 /**
- * This exception indicates that an Exception occurred while attempting
- * to execute a GroovyTemplate.
+ * Sub-class of RuntimeException for extra clarification if needed.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -20,10 +21,8 @@ package com.cedarsoftware.ncube.exception
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TemplateException extends IllegalStateException
+@CompileStatic
+public class AxisOverlapException extends RuntimeException
 {
-    TemplateException(String message, Throwable cause)
-    {
-        super(message, cause)
-    }
+	public AxisOverlapException(String msg) { super(msg) }
 }

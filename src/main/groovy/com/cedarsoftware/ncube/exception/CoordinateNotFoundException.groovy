@@ -1,4 +1,6 @@
-package com.cedarsoftware.ncube.exception;
+package com.cedarsoftware.ncube.exception
+
+import groovy.transform.CompileStatic
 
 /**
  * Sub-class of RuntimeException for extra clarification if needed.
@@ -19,7 +21,8 @@ package com.cedarsoftware.ncube.exception;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class AxisOverlapException extends RuntimeException
+@CompileStatic
+public class CoordinateNotFoundException extends RuntimeException
 {
-	public AxisOverlapException(String msg) { super(msg); }
+	public CoordinateNotFoundException(String msg) { super(msg) }
 }

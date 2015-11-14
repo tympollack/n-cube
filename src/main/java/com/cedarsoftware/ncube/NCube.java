@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube;
 
+import com.cedarsoftware.ncube.exception.CommandCellException;
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException;
 import com.cedarsoftware.ncube.exception.RuleJump;
 import com.cedarsoftware.ncube.exception.RuleStop;
@@ -588,7 +589,7 @@ public class NCube<T>
         }
         catch (Throwable t)
         {
-            throw new RuntimeException("Error occurred in cube: " + name + "\n" + stackToString(), t);
+            throw new CommandCellException("Error occurred in cube: " + name + "\n" + stackToString(), t);
         }
     }
 

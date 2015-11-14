@@ -1,4 +1,6 @@
-package com.cedarsoftware.ncube.exception;
+package com.cedarsoftware.ncube.exception
+
+import groovy.transform.CompileStatic
 
 /**
  * Execution thrown to stop any further rule execution along a rule axis. When
@@ -28,6 +30,7 @@ package com.cedarsoftware.ncube.exception;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class RuleStop extends RuntimeException
 {
 }

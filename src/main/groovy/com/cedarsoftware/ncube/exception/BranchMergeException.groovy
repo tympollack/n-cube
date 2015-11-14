@@ -1,6 +1,6 @@
-package com.cedarsoftware.ncube.exception;
+package com.cedarsoftware.ncube.exception
 
-import java.util.Map;
+import groovy.transform.CompileStatic
 
 /**
  * Sub-class of RuntimeException for extra clarification if needed.
@@ -21,17 +21,20 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class BranchMergeException extends RuntimeException
 {
-    private final Map<String, Map> errors;
+    private final Map<String, Map> errors
+
     // placeholder later for change log or something like that.
     public BranchMergeException(String message, Map<String, Map> errors)
     {
-        super(message);
-        this.errors = errors;
+        super(message)
+        this.errors = errors
     }
 
-    public Map<String, Map> getErrors() {
-        return errors;
+    public Map<String, Map> getErrors()
+    {
+        return errors
     }
 }

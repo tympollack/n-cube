@@ -1,15 +1,10 @@
-package com.cedarsoftware.ncube.exception;
+package com.cedarsoftware.ncube.exception
 
-import java.util.Map;
+import groovy.transform.CompileStatic
 
 /**
- * This exception supports the Rule Engine jump() feature which allows
- * restarting rules on the 1st rule or named rule.
- *
- * This exception only kills off one 'stack frame'.  So if an n-cube calls another
- * n-cube, and the called n-cube throws a rule stop, only the inner n-cubes
- * execution is ended.  The execution is returned to the outer (calling) n-cube
- * and picks up as it normally does on a call to another n-cube.
+ * This exception indicates that an Exception occurred while attempting
+ * to execute a CommandCell.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -27,17 +22,11 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class RuleJump extends RuntimeException
+@CompileStatic
+class CommandCellException extends RuntimeException
 {
-    private final Map coord;
-
-    public RuleJump(Map coordinate)
+    CommandCellException(String message, Throwable cause)
     {
-        coord = coordinate;
-    }
-
-    public Map getCoord()
-    {
-        return coord;
+        super(message, cause)
     }
 }
