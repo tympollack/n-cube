@@ -140,7 +140,7 @@ public class GroovyTemplate extends ContentCmdCell
         catch (Exception e)
         {
             NCube ncube = getNCube(ctx);
-            String errorMsg = "Error setting up Groovy template, NCube '" + ncube.getName() + "'";
+            String errorMsg = "Error setting up Groovy template, cube: " + ncube.getName() + ", version: " + ncube.getVersion();
             setErrorMessage(errorMsg + ", " + e.getMessage());
             throw new TemplateException(errorMsg, e);
         }

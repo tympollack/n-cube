@@ -67,7 +67,7 @@ class TestGroovyExpression
         }
         catch (RuntimeException e)
         {
-            String msg = e.getCause().getCause().message
+            String msg = e.getCause().message
             assert msg.toLowerCase().contains('no such property')
             assert msg.toLowerCase().contains('hi8')
         }

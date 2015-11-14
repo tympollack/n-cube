@@ -95,7 +95,6 @@ abstract class ContentCmdCell extends UrlCommandCell
 
     protected Object simpleFetch(Map ctx)
     {
-
         try
         {
             URL u = getActualUrl(ctx)
@@ -103,9 +102,9 @@ abstract class ContentCmdCell extends UrlCommandCell
         }
         catch (Exception e)
         {
-            NCube cube = getNCube(ctx);
-            errorMessage = "Failed to load cell contents from URL: " + url + ", n-cube: " + cube.name + "', version: " + cube.version;
-            throw new IllegalStateException(errorMessage, e)
+            NCube cube = getNCube(ctx)
+            setErrorMessage("Failed to load cell contents from URL: " + url + ", cube: " + cube.name + ", version: " + cube.version)
+            throw new IllegalStateException(getErrorMessage(), e)
         }
     }
 
@@ -233,7 +232,7 @@ abstract class ContentCmdCell extends UrlCommandCell
 
     private static String getExtension(String urlPath)
     {
-        int index = urlPath == null ? -1 : urlPath.lastIndexOf(UrlCommandCell.EXTENSION_SEPARATOR as int)   // Must fully qualify with CompileStatic
+        int index = urlPath == null ? -1 : urlPath.lastIndexOf(UrlCommandCell.EXTENSION_SEPARATOR as int)   // Must fully qualify with @CompileStatic
         return index == -1 ? null : urlPath.substring(index).intern()
     }
 
