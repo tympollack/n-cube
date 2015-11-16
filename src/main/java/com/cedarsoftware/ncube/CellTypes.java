@@ -3,7 +3,7 @@ package com.cedarsoftware.ncube;
 import com.cedarsoftware.ncube.proximity.LatLon;
 import com.cedarsoftware.ncube.proximity.Point2D;
 import com.cedarsoftware.ncube.proximity.Point3D;
-import com.cedarsoftware.util.DateUtilities;
+import com.cedarsoftware.util.Converter;
 import com.cedarsoftware.util.StringUtilities;
 
 import java.text.MessageFormat;
@@ -35,34 +35,34 @@ public enum CellTypes
         new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return isUrl ? new StringUrlCmd(value, isCached) : value; }}
     ),
     Date("date",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return DateUtilities.parseDate(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, java.util.Date.class); }}
     ),
     Boolean("boolean",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Boolean.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Boolean.class); }}
     ),
     Byte("byte",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Byte.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Byte.class); }}
     ),
     Short("short",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Short.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Short.class); }}
     ),
     Integer("int",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Integer.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Integer.class); }}
     ),
     Long("long",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Long.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Long.class); }}
     ),
     Float("float",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Float.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Float.class); }}
     ),
     Double("double",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return java.lang.Double.valueOf(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, Double.class); }}
     ),
     BigDecimal("bigdec",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return new java.math.BigDecimal(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, java.math.BigDecimal.class); }}
     ),
     BigInteger("bigint",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return new java.math.BigInteger(value); }}
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return Converter.convert(value, java.math.BigInteger.class); }}
     ),
     Binary("binary",
         new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return isUrl ? new BinaryUrlCmd(value, isCached) : StringUtilities.decode(value); }}
@@ -77,13 +77,14 @@ public enum CellTypes
         new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) { return new GroovyTemplate(isUrl ? null : value, isUrl ? value : null, isCached); }}
     ),
     LatLon("latlon",
-        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached) {
+        new CellRecreator() { public Object recreate(String value, boolean isUrl, boolean isCached)
+        {
             Matcher m = Regexes.valid2Doubles.matcher(value);
             if (!m.matches())
             {
                 throw new IllegalArgumentException(java.lang.String.format("Invalid Lat/Long value (%s)", value));
             }
-            return new LatLon(java.lang.Double.parseDouble(m.group(1)), java.lang.Double.parseDouble(m.group(2)));
+            return new LatLon((double)Converter.convert(m.group(1), double.class), (double)Converter.convert(m.group(2), double.class));
         }}
     ),
     Point2D("point2d",
@@ -93,7 +94,7 @@ public enum CellTypes
             {
                 throw new IllegalArgumentException(java.lang.String.format("Invalid Point2D value (%s)", value));
             }
-            return new Point2D(java.lang.Double.parseDouble(m.group(1)), java.lang.Double.parseDouble(m.group(2)));
+            return new Point2D((double)Converter.convert(m.group(1), double.class), (double)Converter.convert(m.group(2), double.class));
         }}
     ),
     Point3D("point3d",
@@ -103,7 +104,9 @@ public enum CellTypes
             {
                 throw new IllegalArgumentException(java.lang.String.format("Invalid Point3D value (%s)", value));
             }
-            return new Point3D(java.lang.Double.parseDouble(m.group(1)), java.lang.Double.parseDouble(m.group(2)), java.lang.Double.parseDouble(m.group(3)));
+            return new Point3D((double)Converter.convert(m.group(1), double.class),
+                    (double) Converter.convert(m.group(2), double.class),
+                    (double) Converter.convert(m.group(3), double.class));
         }}
     ),
     Null("null",
