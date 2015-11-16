@@ -7,6 +7,7 @@ import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
+import groovy.transform.CompileStatic
 
 import java.text.DecimalFormat
 import java.text.MessageFormat
@@ -33,12 +34,13 @@ import java.util.regex.Pattern
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class CellInfo
 {
-    public String value;
-    public String dataType;
-    public boolean isUrl;
-    public boolean isCached;
+    public String value
+    public String dataType
+    public boolean isUrl
+    public boolean isCached
     static final SafeSimpleDateFormat dateFormat = new SafeSimpleDateFormat("yyyy-MM-dd")
     static final SafeSimpleDateFormat dateTimeFormat = new SafeSimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     private static final UNSUPPORTED_TYPE = 'bogusType'
@@ -49,20 +51,20 @@ public class CellInfo
         {
             return new DecimalFormat("#,##0")
         }
-    };
+    }
 
     private static final ThreadLocal<DecimalFormat> decimalFormat = new ThreadLocal<DecimalFormat>() {
         public DecimalFormat initialValue()
         {
             return new DecimalFormat("#,##0.0##############")
         }
-    };
+    }
 
 
     public CellInfo(String type, String value, Object isUrl, Object isCached)
     {
-        this.dataType = type;
-        this.value = value;
+        this.dataType = type
+        this.value = value
         this.isUrl = booleanValue(isUrl)
         this.isCached = booleanValue(isCached)
     }
@@ -71,36 +73,36 @@ public class CellInfo
     {
         if (o instanceof Boolean)
         {
-            return (Boolean) o;
+            return (Boolean) o
         }
         else if (o instanceof String)
         {
-            String s = (String) o;
+            String s = (String) o
 
             if ("true".equalsIgnoreCase(s))
             {
-                return true;
+                return true
             }
         }
 
-        return false;
+        return false
     }
 
     public CellInfo(Object cell)
     {
-        isUrl = false;
-        isCached = false;
-        value = null;
-        dataType = null;
+        isUrl = false
+        isCached = false
+        value = null
+        dataType = null
 
         if (cell == null)
         {
-            return;
+            return
         }
 
         if (cell instanceof String)
         {
-            value = (String) cell;
+            value = (String) cell
             dataType = 'string'
         }
         else if (cell instanceof Long)
@@ -187,14 +189,14 @@ public class CellInfo
             isUrl = StringUtilities.hasContent(method.getUrl())
             value = isUrl ? method.getUrl() : method.getCmd()
             dataType = 'method'
-            isCached = true;
+            isCached = true
         }
         else if (cell instanceof StringUrlCmd)
         {
             StringUrlCmd strCmd = cell as StringUrlCmd
             value = strCmd.getUrl()
             dataType = 'string'
-            isUrl = true;
+            isUrl = true
             isCached = strCmd.isCacheable()
         }
         else if (cell instanceof BinaryUrlCmd)
@@ -202,7 +204,7 @@ public class CellInfo
             BinaryUrlCmd binCmd = cell as BinaryUrlCmd
             value = binCmd.getUrl()
             dataType = 'binary'
-            isUrl = true;
+            isUrl = true
             isCached = binCmd.isCacheable()
         }
         else if (cell instanceof GroovyTemplate)
@@ -216,15 +218,15 @@ public class CellInfo
         else if (cell instanceof Range)
         {
             Range range = cell as Range
-            isUrl = false;
+            isUrl = false
             value = formatForEditing(range)
-            dataType = 'range';
-            isCached = false;
+            dataType = 'range'
+            isCached = false
         }
         else if (cell instanceof RangeSet)
         {
             RangeSet set = cell as RangeSet
-            isUrl = false;
+            isUrl = false
             StringBuilder builder = new StringBuilder()
             for (int i=0; i < set.size(); i++)
             {
@@ -235,7 +237,7 @@ public class CellInfo
                 Object val = set.get(i)
                 if (val instanceof Range)
                 {
-                    Range range = (Range) val;
+                    Range range = (Range) val
                     builder.append('[')
                     builder.append(formatForEditing(range.low))
                     builder.append(", ")
@@ -248,8 +250,8 @@ public class CellInfo
                 }
             }
             value = builder.toString()
-            dataType = 'rangeset';
-            isCached = false;
+            dataType = 'rangeset'
+            isCached = false
         }
         else
         {
@@ -515,7 +517,7 @@ public class CellInfo
     {
         if ('null'.equals(val) || val == null)
         {
-            return null;
+            return null
         }
         else if (val instanceof Double)
         {
@@ -527,7 +529,7 @@ public class CellInfo
             {
                 return ((Double)val).floatValue()
             }
-            return val;
+            return val
         }
         else if (val instanceof Long)
         {
@@ -551,22 +553,22 @@ public class CellInfo
             {
                 return new BigDecimal((Long)val)
             }
-            return val;
+            return val
         }
         else if (val instanceof Boolean)
         {
-            return val;
+            return val
         }
         else if (val instanceof String)
         {
             val = (val as String).trim()
             if (StringUtilities.isEmpty(type))
             {
-                return val;
+                return val
             }
             else if ('boolean'.equals(type))
             {
-                String bool = (String)val;
+                String bool = (String)val
                 if ('true'.equalsIgnoreCase(bool) || 'false'.equalsIgnoreCase(bool))
                 {
                     return 'true'.equalsIgnoreCase((String) val)
@@ -610,7 +612,7 @@ public class CellInfo
                 try
                 {
                     Date date = Converter.convert(val, Date.class) as Date
-                    return (date == null) ? val : date;
+                    return (date == null) ? val : date
                 }
                 catch (Exception ignored)
                 {
@@ -623,11 +625,11 @@ public class CellInfo
             }
             else if ('string'.equals(type))
             {
-                return val;
+                return val
             }
             else if ('binary'.equals(type))
             {   // convert hex string "10AF3F" as byte[]
-                String hex = (String)val;
+                String hex = (String)val
                 if (hex.length() % 2 != 0)
                 {
                     throw new IllegalArgumentException("Binary (hex) values must have an even number of digits.")
@@ -686,10 +688,10 @@ public class CellInfo
             StringBuilder exp = new StringBuilder()
             exp.append("[")
             Object[] values = (val as JsonObject).getArray()
-            int i=0;
+            int i=0
             for (Object value : values)
             {
-                i++;
+                i++
                 Object o = parseJsonValue(value, null, type, cache)
                 exp.append(javaToGroovySource(o))
                 if (i < values.length)
@@ -791,7 +793,7 @@ public class CellInfo
             if (s.contains("."))
             {
                 String[] pieces = DECIMAL_REGEX.split(s)
-                return decimalIntFormat.get().format(new BigInteger(pieces[0])) + "." + pieces[1];
+                return decimalIntFormat.get().format(new BigInteger(pieces[0])) + "." + pieces[1]
             }
             else
             {
@@ -808,7 +810,7 @@ public class CellInfo
         }
         else if (val == null)
         {
-            return "Default";
+            return "Default"
         }
         else
         {
@@ -820,7 +822,7 @@ public class CellInfo
     {
         if (val instanceof Date)
         {
-            return '"' + getDateAsString((Date)val) + '"';
+            return '"' + getDateAsString((Date)val) + '"'
         }
         else if (val instanceof Double || val instanceof Float)
         {
@@ -829,11 +831,11 @@ public class CellInfo
         }
         else if (val instanceof BigDecimal)
         {
-            return ((BigDecimal)val).stripTrailingZeros().toPlainString()
+            return (val as BigDecimal).stripTrailingZeros().toPlainString()
         }
         else if (val instanceof Range)
         {
-            Range range = (Range) val;
+            Range range = val as Range
             return formatForEditing(range.low) + ", " + formatForEditing(range.high)
         }
         return val.toString()
@@ -862,7 +864,7 @@ public class CellInfo
             return false
         }
 
-        CellInfo cellInfo = (CellInfo) o;
+        CellInfo cellInfo = (CellInfo) o
 
         if (isUrl != cellInfo.isUrl)
         {
@@ -881,7 +883,7 @@ public class CellInfo
 
     public int hashCode()
     {
-        int result = value != null ? value.hashCode() : 0;
+        int result = value != null ? value.hashCode() : 0
         result = 31 * result + (dataType != null ? dataType.hashCode() : 0)
         result = 31 * result + (isUrl ? 1 : 0)
         result = 31 * result + (isCached ? 1 : 0)
