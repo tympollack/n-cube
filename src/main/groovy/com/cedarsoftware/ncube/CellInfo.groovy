@@ -523,11 +523,11 @@ public class CellInfo
         {
             if ('bigdec'.equals(type))
             {
-                return new BigDecimal((Double)val)
+                return new BigDecimal(val as double)
             }
             else if ('float'.equals(type))
             {
-                return ((Double)val).floatValue()
+                return (val as Double).floatValue()
             }
             return val
         }
@@ -543,15 +543,15 @@ public class CellInfo
             }
             else if ('byte'.equals(type))
             {
-                return ((Long)val).byteValue()
+                return (val as Long).byteValue()
             }
             else if ('short'.equals(type))
             {
-                return (((Long) val).shortValue())
+                return ((val as Long).shortValue())
             }
             else if ('bigdec'.equals(type))
             {
-                return new BigDecimal((Long)val)
+                return new BigDecimal(val as long)
             }
             return val
         }
