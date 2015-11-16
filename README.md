@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.0</version>
+  <version>3.4.1</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,10 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.4.1
+ * Improved exception handling of n-cube. When an exception is known (e.g. CoordinateNotFound) it is thrown as is. All unknown exceptions are caught, the n-cube call stack is added, and then it is rethrown in CommandCellException.  Call .getCause() on this exception to determine underlying exception.
+ * All CommandCell related code and CellInfo converted from Java to Groovy.
+ * Moved recreate() and getType() methods from CellTypes to CellInfo, and remove the CellTypes enumeration.
 * 3.4.0
  * Added ability for n-cube Applications to define import list to make available to expression 'exp' cells / columns.  Add desired import classes to sys.prototype cube.  The cube has at least one axis (sys.property) and the column sys.imports.  The cell at this location returns a List of import classes or pacakges (do not include the 'import' keyword) and these packages will be added to the source of the compiled cell.
  * Added ability for n-cube Applications to define the class that expression cells inherit from (currently must be subclass of NCubeGroovyExpression).  Methods added to this class can be called in your source, allowing reduced source code size.  Add desired class name to sys.prototype cube.  On the sys.property axis, add a column sys.class and in the associated cell, place the String name of the class.  You can fully qualify the name, or use the shorter class name and add the package name to the import list (above bullet point).  NOTE: The class must be defined in the sys.classpath.
