@@ -2549,7 +2549,6 @@ abstract class TestWithPreloadedDatabase
         changes = NCubeManager.getBranchChangesFromDatabase(branch2)
         NCubeManager.commitBranch(branch2, changes, USER_ID)
 
-
         cube1 = NCubeManager.getCube(head, "merge1")
 
         coord = [row:1, column:'A']

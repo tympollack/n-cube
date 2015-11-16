@@ -3,7 +3,11 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
+import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.StringUtilities
 import org.junit.Test
+
+import java.util.regex.Matcher
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNull
@@ -34,7 +38,7 @@ class TestCellTypes
     {
         try
         {
-            CellTypes.getType new StringBuilder(), 'cells'
+            CellInfo.getType(new StringBuilder(), 'cells')
             fail()
         }
         catch (IllegalArgumentException e)
@@ -47,7 +51,7 @@ class TestCellTypes
     void testGetTypeOnClassLoader()
     {
         try {
-            assertEquals("exp", CellTypes.getType(TestCellTypes.getClassLoader(), 'cells'))
+            assertEquals("exp", CellInfo.getType(TestCellTypes.getClassLoader(), 'cells'))
             fail();
         } catch (IllegalArgumentException e) {
             assertTrue(e.message.toLowerCase().contains("unsupported type"));
@@ -57,42 +61,12 @@ class TestCellTypes
     @Test
     void testGetType()
     {
-        assertEquals 'boolean', CellTypes.getType(Boolean.TRUE, 'cells')
-        assertEquals 'int', CellTypes.getType(Integer.MAX_VALUE, 'cells')
-        assertEquals 'long', CellTypes.getType(Long.MAX_VALUE, 'cells')
-        assertEquals 'double', CellTypes.getType(Double.MAX_VALUE, 'cells')
-        assertEquals 'float', CellTypes.getType(Float.MAX_VALUE, 'cells')
-        assertNull 'float', CellTypes.getType(null, 'cells')
-    }
-
-    @Test
-    void testGetTypeFromString()
-    {
-        assertEquals CellTypes.String, CellTypes.getTypeFromString(null)
-        assertEquals CellTypes.String, CellTypes.getTypeFromString('string')
-        assertEquals CellTypes.Date, CellTypes.getTypeFromString('date')
-        assertEquals CellTypes.Boolean, CellTypes.getTypeFromString('boolean')
-        assertEquals CellTypes.Byte, CellTypes.getTypeFromString('byte')
-        assertEquals CellTypes.Short, CellTypes.getTypeFromString('short')
-        assertEquals CellTypes.Integer, CellTypes.getTypeFromString('int')
-        assertEquals CellTypes.Long, CellTypes.getTypeFromString('long')
-        assertEquals CellTypes.Float, CellTypes.getTypeFromString('float')
-        assertEquals CellTypes.Double, CellTypes.getTypeFromString('double')
-        assertEquals CellTypes.BigDecimal, CellTypes.getTypeFromString('bigdec')
-        assertEquals CellTypes.BigInteger, CellTypes.getTypeFromString('bigint')
-        assertEquals CellTypes.Binary, CellTypes.getTypeFromString('binary')
-        assertEquals CellTypes.Exp, CellTypes.getTypeFromString('exp')
-        assertEquals CellTypes.Method, CellTypes.getTypeFromString('method')
-        assertEquals CellTypes.Template, CellTypes.getTypeFromString('template')
-        assertEquals CellTypes.LatLon, CellTypes.getTypeFromString('latlon')
-        assertEquals CellTypes.Point2D, CellTypes.getTypeFromString('point2d')
-        assertEquals CellTypes.Point3D, CellTypes.getTypeFromString('point3d')
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    void testInvalidType()
-    {
-        CellTypes.getTypeFromString('foo')
+        assertEquals 'boolean', CellInfo.getType(Boolean.TRUE, 'cells')
+        assertEquals 'int', CellInfo.getType(Integer.MAX_VALUE, 'cells')
+        assertEquals 'long', CellInfo.getType(Long.MAX_VALUE, 'cells')
+        assertEquals 'double', CellInfo.getType(Double.MAX_VALUE, 'cells')
+        assertEquals 'float', CellInfo.getType(Float.MAX_VALUE, 'cells')
+        assertNull 'float', CellInfo.getType(null, 'cells')
     }
 
     @Test
@@ -131,7 +105,89 @@ class TestCellTypes
     {
         try
         {
-            CellTypes.recreate('latlon', 'foo', false, false)
+            def result
+            switch ('latlon')
+            {
+                case 'string':
+                    result = false ? new StringUrlCmd('foo', false) : 'foo'
+
+                case 'date':
+                    result = Converter.convert('foo', java.util.Date.class)
+
+                case 'boolean':
+                    result = Converter.convert('foo', boolean.class)
+
+                case 'byte':
+                    result = Converter.convert('foo', byte.class)
+
+                case 'short':
+                    result = Converter.convert('foo', short.class)
+
+                case 'int':
+                    result = Converter.convert('foo', int.class)
+
+                case 'long':
+                    result = Converter.convert('foo', long.class)
+
+                case 'float':
+                    result = Converter.convert('foo', float.class)
+
+                case 'double':
+                    result = Converter.convert('foo', double.class)
+
+                case 'bigdec':
+                    result = Converter.convert('foo', java.math.BigDecimal.class)
+
+                case 'bigint':
+                    result = Converter.convert('foo', java.math.BigInteger.class)
+
+                case 'binary':
+                    result = false ? new BinaryUrlCmd('foo', false) : StringUtilities.decode('foo')
+
+                case 'exp':
+                    result = new GroovyExpression(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'method':
+                    result = new GroovyMethod(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'template':
+                    result = new GroovyTemplate(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'latlon':
+                    Matcher m = Regexes.valid2Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Lat/Long value (%s)", 'foo'))
+                    }
+                    result = new LatLon((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+
+                case 'point2d':
+                    Matcher m = Regexes.valid2Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Point2D value (%s)", 'foo'))
+                    }
+                    result = new Point2D((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+
+                case 'point3d':
+                    Matcher m = Regexes.valid3Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Point3D value (%s)", 'foo'))
+                    }
+                    result = new Point3D((double) Converter.convert(m.group(1), double.class),
+                            (double) Converter.convert(m.group(2), double.class),
+                            (double) Converter.convert(m.group(3), double.class))
+
+                case 'null':
+                    result = null
+
+                case null:
+                    result = null
+
+                default:
+                    throw new IllegalArgumentException("Invalid Type:  " + 'latlon')
+            }
             fail()
         }
         catch (Exception e)
@@ -141,7 +197,89 @@ class TestCellTypes
 
         try
         {
-            CellTypes.recreate('point2d', 'foo', false, false)
+            def result
+            switch ('point2d')
+            {
+                case 'string':
+                    result = false ? new StringUrlCmd('foo', false) : 'foo'
+
+                case 'date':
+                    result = Converter.convert('foo', java.util.Date.class)
+
+                case 'boolean':
+                    result = Converter.convert('foo', boolean.class)
+
+                case 'byte':
+                    result = Converter.convert('foo', byte.class)
+
+                case 'short':
+                    result = Converter.convert('foo', short.class)
+
+                case 'int':
+                    result = Converter.convert('foo', int.class)
+
+                case 'long':
+                    result = Converter.convert('foo', long.class)
+
+                case 'float':
+                    result = Converter.convert('foo', float.class)
+
+                case 'double':
+                    result = Converter.convert('foo', double.class)
+
+                case 'bigdec':
+                    result = Converter.convert('foo', BigDecimal.class)
+
+                case 'bigint':
+                    result = Converter.convert('foo', BigInteger.class)
+
+                case 'binary':
+                    result = false ? new BinaryUrlCmd('foo', false) : StringUtilities.decode('foo')
+
+                case 'exp':
+                    result = new GroovyExpression(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'method':
+                    result = new GroovyMethod(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'template':
+                    result = new GroovyTemplate(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'latlon':
+                    Matcher m = Regexes.valid2Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Lat/Long value (%s)", 'foo'))
+                    }
+                    result = new LatLon((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+
+                case 'point2d':
+                    Matcher m = Regexes.valid2Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Point2D value (%s)", 'foo'))
+                    }
+                    result = new Point2D((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+
+                case 'point3d':
+                    Matcher m = Regexes.valid3Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Point3D value (%s)", 'foo'))
+                    }
+                    result = new Point3D((double) Converter.convert(m.group(1), double.class),
+                            (double) Converter.convert(m.group(2), double.class),
+                            (double) Converter.convert(m.group(3), double.class))
+
+                case 'null':
+                    result = null
+
+                case null:
+                    result = null
+
+                default:
+                    throw new IllegalArgumentException("Invalid Type:  " + 'point2d')
+            }
             fail()
         }
         catch (Exception e)
@@ -151,7 +289,89 @@ class TestCellTypes
 
         try
         {
-            CellTypes.recreate('point3d', 'foo', false, false)
+            def result
+            switch ('point3d')
+            {
+                case 'string':
+                    result = false ? new StringUrlCmd('foo', false) : 'foo'
+
+                case 'date':
+                    result = Converter.convert('foo', Date.class)
+
+                case 'boolean':
+                    result = Converter.convert('foo', boolean.class)
+
+                case 'byte':
+                    result = Converter.convert('foo', byte.class)
+
+                case 'short':
+                    result = Converter.convert('foo', short.class)
+
+                case 'int':
+                    result = Converter.convert('foo', int.class)
+
+                case 'long':
+                    result = Converter.convert('foo', long.class)
+
+                case 'float':
+                    result = Converter.convert('foo', float.class)
+
+                case 'double':
+                    result = Converter.convert('foo', double.class)
+
+                case 'bigdec':
+                    result = Converter.convert('foo', BigDecimal.class)
+
+                case 'bigint':
+                    result = Converter.convert('foo', BigInteger.class)
+
+                case 'binary':
+                    result = false ? new BinaryUrlCmd('foo', false) : StringUtilities.decode('foo')
+
+                case 'exp':
+                    result = new GroovyExpression(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'method':
+                    result = new GroovyMethod(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'template':
+                    result = new GroovyTemplate(false ? null : 'foo', false ? 'foo' : null, false)
+
+                case 'latlon':
+                    Matcher m = Regexes.valid2Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Lat/Long value (%s)", 'foo'))
+                    }
+                    result = new LatLon((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+
+                case 'point2d':
+                    Matcher m = Regexes.valid2Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Point2D value (%s)", 'foo'))
+                    }
+                    result = new Point2D((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+
+                case 'point3d':
+                    Matcher m = Regexes.valid3Doubles.matcher('foo')
+                    if (!m.matches())
+                    {
+                        throw new IllegalArgumentException(String.format("Invalid Point3D value (%s)", 'foo'))
+                    }
+                    result = new Point3D((double) Converter.convert(m.group(1), double.class),
+                            (double) Converter.convert(m.group(2), double.class),
+                            (double) Converter.convert(m.group(3), double.class))
+
+                case 'null':
+                    result = null
+
+                case null:
+                    result = null
+
+                default:
+                    throw new IllegalArgumentException("Invalid Type:  " + 'point3d')
+            }
             fail()
         }
         catch (Exception e)

@@ -69,7 +69,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 
             if (defCellValue != null)
             {
-                String valType = CellTypes.getType(defCellValue, "defaultCell");
+                String valType = CellInfo.getType(defCellValue, "defaultCell");
                 if (valType != null)
                 {
                     writeObjectKeyValue(NCube.DEFAULT_CELL_VALUE_TYPE, valType, true);
@@ -128,7 +128,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             {
                 writeObjectKey(key);
                 startObject();
-                writeType(CellTypes.getType(value, "meta property"));
+                writeType(CellInfo.getType(value, "meta property"));
 
                 if ((value instanceof CommandCell))
                 {
@@ -285,7 +285,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     {
         startObject();
         writeIds(cell.getKey());
-        writeType(CellTypes.getType(cell.getValue(), "cell"));
+        writeType(CellInfo.getType(cell.getValue(), "cell"));
 
         if ((cell.getValue() instanceof CommandCell))
         {
@@ -341,7 +341,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             return null;
         }
 
-        return CellTypes.getType(o, "column");
+        return CellInfo.getType(o, "column");
     }
 
     protected void writeObjectValue(Object o) throws IOException

@@ -52,29 +52,29 @@ class TestCellInfo
     void testCollapseToUISupportedTypes()
     {
         CellInfo info = new CellInfo(5)
-        assertEquals CellTypes.Integer.desc(), info.dataType
+        assert 'int' == info.dataType
         info.collapseToUiSupportedTypes()
-        assertEquals CellTypes.Long.desc(), info.dataType
+        assert 'long' == info.dataType
 
         info = new CellInfo(new Short((short) 5))
-        assertEquals CellTypes.Short.desc(), info.dataType
+        assert 'short' == info.dataType
         info.collapseToUiSupportedTypes()
-        assertEquals CellTypes.Long.desc(), info.dataType
+        assert 'long' == info.dataType
 
         info = new CellInfo(new Byte((byte) 5))
-        assertEquals CellTypes.Byte.desc(), info.dataType
+        assert 'byte' == info.dataType
         info.collapseToUiSupportedTypes()
-        assertEquals CellTypes.Long.desc(), info.dataType
+        assert 'long' == info.dataType
 
         info = new CellInfo(new Float(5))
-        assertEquals CellTypes.Float.desc(), info.dataType
+        assert 'float' == info.dataType
         info.collapseToUiSupportedTypes()
-        assertEquals CellTypes.Double.desc(), info.dataType
+        assert 'double' == info.dataType
 
         info = new CellInfo(new BigInteger('100', 10))
-        assertEquals CellTypes.BigInteger.desc(), info.dataType
+        assert 'bigint' == info.dataType
         info.collapseToUiSupportedTypes()
-        assertEquals CellTypes.BigDecimal.desc(), info.dataType
+        assert 'bigdec' == info.dataType
     }
 
     @Test
@@ -131,16 +131,16 @@ class TestCellInfo
     void testConstructor()
     {
         CellInfo info = new CellInfo(new Point2D(5.0, 6.0))
-        assertEquals CellTypes.Point2D.desc(), info.dataType
+        assert 'point2d' == info.dataType
 
         info = new CellInfo(new Point3D(5.0, 6.0, 7.0))
-        assertEquals CellTypes.Point3D.desc(), info.dataType
+        assert 'point3d' == info.dataType
 
         info = new CellInfo(new LatLon(5.5, 5.9))
-        assertEquals CellTypes.LatLon.desc(), info.dataType
+        assert 'latlon' == info.dataType
 
         info = new CellInfo(new Range(5.5, 5.9))
-        assertNull info.dataType
+        assert 'range' == info.dataType
         assertFalse info.isCached
         assertFalse info.isUrl
 
@@ -149,7 +149,7 @@ class TestCellInfo
         set.add new Range(10, 20)
         set.add 50
         info = new CellInfo(set)
-        assertNull info.dataType
+        assert 'rangeset' == info.dataType
         assertFalse info.isUrl
     }
 
