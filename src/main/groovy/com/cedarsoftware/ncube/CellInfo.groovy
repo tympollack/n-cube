@@ -96,8 +96,7 @@ public class CellInfo
         {
             return
         }
-
-        if (cell instanceof String)
+        else if (cell instanceof String)
         {
             value = (String) cell
             dataType = 'string'
@@ -257,6 +256,16 @@ public class CellInfo
         }
     }
 
+    /**
+     * Fetch the datatype of the passed in cell.  This is a cell from n-cube, not CellInfo.  It could have been
+     * obtained from ncube.getCellNoExecute() in which case the answer will be perfectly accurate.  If the
+     * passed in 'cell' was obtained from ncube.getCell() then it will reflect the more primitive cell type.  For
+     * example, if the cell was a GroovyExpression, then ncube.getCell() would have returned the result of the
+     * expression, and if primitive or one of the types supported by CellInfo, the string name of the primitive
+     * will be returned.  If the execution of the cell returned a complex type, and that value is passed into this
+     * method, an exception is thrown indicating an unsupported type, and the 'section' String name will be used
+     * in the exception message.
+     */
     public static String getType(Object cell, String section)
     {
         String type = getType(cell)
@@ -268,7 +277,13 @@ public class CellInfo
     }
 
     /**
-     * Fetch the datatype of the cell.
+     * Fetch the datatype of the passed in cell.  This is a cell from n-cube, not CellInfo.  It could have been
+     * obtained from ncube.getCellNoExecute() in which case the answer will be perfectly accurate.  If the
+     * passed in 'cell' was obtained from ncube.getCell() then it will reflect the more primitive cell type.  For
+     * example, if the cell was a GroovyExpression, then ncube.getCell() would have returned the result of the
+     * expression, and if primitive or one of the types supported by CellInfo, the string name of the primitive
+     * will be returned.  If the execution of the cell returned a complex type, and that value is passed into this
+     * method, a constant CellInfo.UNSUPPORTED_TYPE will be returned.
      */
     public static String getType(Object cell)
     {
@@ -657,7 +672,7 @@ public class CellInfo
      * @return Groovy source code equivalent of passed in value.  For example, if a BigInteger is passed in,
      * the value will be return as a String with a "G" at the end.
      */
-    static String javaToGroovySource(Object o)
+    protected static String javaToGroovySource(Object o)
     {
         StringBuilder builder = new StringBuilder()
         if (o instanceof String)
