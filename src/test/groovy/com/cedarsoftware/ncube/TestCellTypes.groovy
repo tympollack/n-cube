@@ -5,7 +5,10 @@ import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
 import org.junit.Test
 
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNull
+import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -128,29 +131,32 @@ class TestCellTypes
     {
         try
         {
-            CellTypes.LatLon.recreate 'foo', false, false
+            CellTypes.recreate('latlon', 'foo', false, false)
+            fail()
         }
         catch (Exception e)
         {
-            assertTrue e.message.contains('Invalid Lat/Long')
+            assert e.message.contains('Invalid Lat/Long')
         }
 
         try
         {
-            CellTypes.Point2D.recreate 'foo', false, false
+            CellTypes.recreate('point2d', 'foo', false, false)
+            fail()
         }
         catch (Exception e)
         {
-            assertTrue e.message.contains('Invalid Point2D')
+            assert e.message.contains('Invalid Point2D')
         }
 
         try
         {
-            CellTypes.Point3D.recreate 'foo', false, false
+            CellTypes.recreate('point3d', 'foo', false, false)
+            fail()
         }
         catch (Exception e)
         {
-            assertTrue e.message.contains('Invalid Point3D')
+            assert e.message.contains('Invalid Point3D')
         }
     }
 
@@ -158,11 +164,11 @@ class TestCellTypes
     {
         if (o instanceof Float || o instanceof Double)
         {
-            assertEquals o, new CellInfo(o).recreate(), 0.00001d
+            assertEquals(o, new CellInfo(o).recreate(), 0.00001d)
         }
         else
         {
-            assertEquals o, new CellInfo(o).recreate()
+            assertEquals(o, new CellInfo(o).recreate())
         }
     }
 }

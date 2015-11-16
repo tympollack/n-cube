@@ -2,11 +2,8 @@ package com.cedarsoftware.ncube.formatters;
 
 import com.cedarsoftware.util.SafeSimpleDateFormat;
 import com.cedarsoftware.util.io.JsonWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+
+import java.io.*;
 
 /**
  * Created by kpartlow on 9/25/2014.
@@ -14,7 +11,6 @@ import java.io.Writer;
 public class BaseJsonFormatter
 {
     public static final SafeSimpleDateFormat dateFormat = new SafeSimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-    //protected final StringBuilder builder = new StringBuilder();
     protected final Writer builder;
 
     BaseJsonFormatter() {

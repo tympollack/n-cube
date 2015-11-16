@@ -263,7 +263,7 @@ public class CellInfo
 
     public Object recreate()
     {
-        return CellTypes.getTypeFromString(dataType).recreate(value, isUrl, isCached);
+        return CellTypes.recreate(dataType, value, isUrl, isCached);
     }
 
     /**
