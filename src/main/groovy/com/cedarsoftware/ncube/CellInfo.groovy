@@ -16,7 +16,11 @@ import java.util.regex.Pattern
 
 /**
  * Get information about a cell (makes it a uniform query-able object).  Optional method
- * exists to collapse types for UI.
+ * exists to collapse types for UI.<br><br>
+ *
+ * <b>Valid cell types:</b>
+ * string, double, long, boolean , bigdec, int, bigint, date, binary, exp, method,
+ * template, string, byte, short, float, point2d, point3d, latlon, range, rangeset
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -60,7 +64,13 @@ public class CellInfo
         }
     }
 
-
+    /**
+     * @param type String datatype name (see comment at top of class)
+     * @param value String value (if boolean, 'true', if numeric, then number quoted, if expression,
+     * then expression content, etc.
+     * @param isUrl boolean indicating whether or not this cell represents a URL (relative or full) to it's content
+     * @param isCached boolean indicate whether or not this cell is supposed to be cached after retrieval.
+     */
     public CellInfo(String type, String value, Object isUrl, Object isCached)
     {
         this.dataType = type
@@ -69,25 +79,12 @@ public class CellInfo
         this.isCached = booleanValue(isCached)
     }
 
-    public static boolean booleanValue(Object o)
-    {
-        if (o instanceof Boolean)
-        {
-            return (Boolean) o
-        }
-        else if (o instanceof String)
-        {
-            String s = (String) o
-
-            if ("true".equalsIgnoreCase(s))
-            {
-                return true
-            }
-        }
-
-        return false
-    }
-
+    /**
+     * Construct a cell info from the contents of a cell.  If the cell value was obtained from
+     * getCellNoExecute(), then perfect reconstruction is possible.  If the value 'cell' was
+     * obtained from ncube.getCell(), then it will not be able to reconstruct a CommandCell,
+     * a URL cell, as the value would be the result of executing the CommandCell.
+     */
     public CellInfo(Object cell)
     {
         isUrl = false
@@ -228,11 +225,12 @@ public class CellInfo
             RangeSet set = cell as RangeSet
             isUrl = false
             StringBuilder builder = new StringBuilder()
-            for (int i=0; i < set.size(); i++)
+            int len = set.size()
+            for (int i=0; i < len; i++)
             {
                 if (i != 0)
                 {
-                    builder.append(", ")
+                    builder.append(', ')
                 }
                 Object val = set.get(i)
                 if (val instanceof Range)
@@ -255,7 +253,7 @@ public class CellInfo
         }
         else
         {
-            throw new IllegalArgumentException("Unknown cell value type, value: " + cell.toString() + ", class: " + cell.getClass().getName())
+            throw new IllegalArgumentException('Unknown cell value type, value: ' + cell.toString() + ', class: ' + cell.getClass().getName())
         }
     }
 
@@ -264,11 +262,14 @@ public class CellInfo
         String type = getType(cell)
         if (UNSUPPORTED_TYPE.equals(type))
         {
-            throw new IllegalArgumentException(MessageFormat.format("Unsupported type {0} found in {1}", cell.getClass().getName(), section))
+            throw new IllegalArgumentException(MessageFormat.format('Unsupported type {0} found in {1}', cell.getClass().getName(), section))
         }
         return type
     }
 
+    /**
+     * Fetch the datatype of the cell.
+     */
     public static String getType(Object cell)
     {
         if (cell == null) {
@@ -367,96 +368,15 @@ public class CellInfo
         return UNSUPPORTED_TYPE
     }
 
+    /**
+      * @return the content that would be placed into the cell as opposed to a CellInfo.  For example, if
+     * the CellInfo was a simple boolean (value='true', isUrl=false, isCached=false, datatype='boolean'), then
+     * Boolean.TRUE or Boolean.FALSE would be returned.  This method always returns a value that if placed
+     * back into the CellInfo(cell) constructor, would return the equivalent CellInfo.
+     */
     public Object recreate()
     {
-        switch (dataType)
-        {
-            case "string":
-                return isUrl ? new StringUrlCmd(value, isCached) : value
-
-            case "date":
-                return Converter.convert(value, Date.class)
-
-            case "boolean":
-                return Converter.convert(value, boolean.class)
-
-            case "byte":
-                return Converter.convert(value, byte.class)
-
-            case "short":
-                return Converter.convert(value, short.class)
-
-            case "int":
-                return Converter.convert(value, int.class)
-
-            case "long":
-                return Converter.convert(value, long.class)
-
-            case "float":
-                return Converter.convert(value, float.class)
-
-            case "double":
-                return Converter.convert(value, double.class)
-
-            case 'bigdec':
-                return Converter.convert(value, BigDecimal.class)
-
-            case "bigint":
-                return Converter.convert(value, BigInteger.class)
-
-            case "binary":
-                return isUrl ? new BinaryUrlCmd(value, isCached) : StringUtilities.decode(value)
-
-            case "exp":
-                return new GroovyExpression(isUrl ? null : value, isUrl ? value : null, isCached)
-
-            case "method":
-                return new GroovyMethod(isUrl ? null : value, isUrl ? value : null, isCached)
-
-            case "template":
-                return new GroovyTemplate(isUrl ? null : value, isUrl ? value : null, isCached)
-
-            case "latlon":
-                Matcher m = Regexes.valid2Doubles.matcher(value)
-                if (!m.matches())
-                {
-                    throw new IllegalArgumentException(String.format("Invalid Lat/Long value (%s)", value))
-                }
-                return new LatLon((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
-
-            case "point2d":
-                Matcher m = Regexes.valid2Doubles.matcher(value)
-                if (!m.matches())
-                {
-                    throw new IllegalArgumentException(String.format("Invalid Point2D value (%s)", value))
-                }
-                return new Point2D((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
-
-            case "point3d":
-                Matcher m = Regexes.valid3Doubles.matcher(value)
-                if (!m.matches())
-                {
-                    throw new IllegalArgumentException(String.format("Invalid Point3D value (%s)", value))
-                }
-                return new Point3D((double) Converter.convert(m.group(1), double.class),
-                        (double) Converter.convert(m.group(2), double.class),
-                        (double) Converter.convert(m.group(3), double.class))
-
-            case 'range':
-                throw new UnsupportedOperationException("'range' does not yet support recreate()")
-
-            case 'rangeset':
-                throw new UnsupportedOperationException("'rangeset' does not support recreate()")
-
-            case "null":
-                return null
-
-            case null:
-                return null
-
-            default:
-                throw new IllegalArgumentException("Invalid Type:  " + dataType)
-        }
+        return parseJsonValue(isUrl ? null : value, isUrl ? value : null, dataType, isCached)
     }
 
     /**
@@ -480,6 +400,29 @@ public class CellInfo
         }
     }
 
+    /**
+     * Convert a set of the following parameters into a value (smaller in size than CellInfo), that can be
+     * placed into an n-cube cell.  This value can be return to the original constituent pieces by using
+     * the CellInfo(cell) constructor.  This method would convert the parameters (val='true', url=null,
+     * type=null (or boolean), cache=true|false) into Boolean.TRUE or Boolean.FALSE, which is a much
+     * smaller value.  Yet, if the boolean was passed to CellInfo(true), it would be reanimated with these
+     * constituent parts set.  All cell datatypes support their version of this process. More complicated
+     * cells like a CommandCell, convert from these constituent parts to an appropriate CommandCell instance
+     * like GroovyExpression, for example.
+     * @param val Object Could be a simple primitive, or a String value of a primitive, expression, etc.
+     * This value can be null in which case 'url' should not be, unless the actual value of the cell is
+     * intended to be null.
+     * @param url Object If this is null, then value holds the value for the cell, otherwise this is the
+     * URL to the cell contents.  It can be relative, in which case a cube with the name 'sys.classpath'
+     * in the same Application will be used to supply the root for the relative URL.
+     * @param type String name of the data type of the cell, 'int', 'long', 'boolean', 'exp', etc.  See
+     * comments at top of this Class for all available cell types.
+     * @param cache boolean indicating whether the retrieved value should be cached on subsequent accesses
+     * by n-cube.
+     * @return Object which will be a smaller representation (and one that n-cube expects) from the generic
+     * specifiers.  This return value from this method can be reconstituted into the original pieces by
+     * using the CellInfo(cell) constructor with the return value of this method.
+     */
     public static Object parseJsonValue(final Object val, final String url, final String type, boolean cache)
     {
         if (url != null)
@@ -513,7 +456,7 @@ public class CellInfo
         return parseJsonValue(type, val, cache)
     }
 
-    static Object parseJsonValue(String type, Object val, boolean cache)
+    protected static Object parseJsonValue(String type, Object val, boolean cache)
     {
         if ('null'.equals(val) || val == null)
         {
@@ -851,6 +794,25 @@ public class CellInfo
             return dateFormat.format(date)
         }
         return dateTimeFormat.format(date)
+    }
+
+    public static boolean booleanValue(Object o)
+    {
+        if (o instanceof Boolean)
+        {
+            return (Boolean) o
+        }
+        else if (o instanceof String)
+        {
+            String s = (String) o
+
+            if ("true".equalsIgnoreCase(s))
+            {
+                return true
+            }
+        }
+
+        return false
     }
 
     public boolean equals(Object o)

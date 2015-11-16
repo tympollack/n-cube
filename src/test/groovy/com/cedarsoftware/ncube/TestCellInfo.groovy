@@ -179,22 +179,46 @@ class TestCellInfo
         assertEquals(9.65f, (float)CellInfo.parseJsonValue('float', '9.65', false), 0.000001f)
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     void testParseJsonValueBinaryWithOddNumberString()
     {
-        CellInfo.parseJsonValue 'binary', '0', false
+        try
+        {
+            CellInfo.parseJsonValue('binary', '0', false)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('(hex) values must have an even number of digits')
+        }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     void testParseJsonValueInvalidHexString()
     {
-        CellInfo.parseJsonValue 'binary', 'GF', true
+        try
+        {
+            CellInfo.parseJsonValue('binary', 'GF', true)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('(hex) values must contain only the numbers 0 thru 9 and letters a thru f')
+        }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     void testParseJsonValueWithInvalidBoolean()
     {
-        CellInfo.parseJsonValue 'boolean', 'yes', true
+        try
+        {
+            CellInfo.parseJsonValue('boolean', 'yes', true)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains("must be 'true' or 'false'")
+        }
     }
 
     @Test
