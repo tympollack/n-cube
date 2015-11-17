@@ -115,7 +115,7 @@ import com.cedarsoftware.util.io.*
         groovy.append(" extends ")
         groovy.append(expClassName)
         groovy.append("\n{\n\tdef run()\n\t{\n\t")
-        groovy.append(groovyCodeWithoutImportStatements)
+        groovy.append(groovyCodeWithoutImportStatements.toString())
         groovy.append("\n\t}\n}")
         return groovy.toString()
     }
