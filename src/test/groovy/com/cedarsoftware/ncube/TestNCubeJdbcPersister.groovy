@@ -383,7 +383,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().loadCube(c, new NCubeInfoDto())
+            new NCubeJdbcPersister().loadCubeById(c, 0L)
             fail()
         }
         catch (RuntimeException e)
@@ -410,11 +410,11 @@ class TestNCubeJdbcPersister
 
         try
         {
-            new NCubeJdbcPersister().loadCube(c, new NCubeInfoDto())
+            new NCubeJdbcPersister().loadCubeById(c, 0L)
         }
-        catch (IllegalStateException e)
+        catch (IllegalArgumentException e)
         {
-            assert e.message.toLowerCase().contains('unable to load cube')
+            assert e.message.toLowerCase().contains('unable to find cube')
         }
     }
 
@@ -659,22 +659,6 @@ class TestNCubeJdbcPersister
     }
 
     @Test
-    public void testLoadCubesWithNullValueForDto()
-    {
-        try
-        {
-            Connection c = mock(Connection.class);
-            new NCubeJdbcPersister().loadCube(c, null)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assert e.message.toLowerCase().contains("cannot be null")
-        }
-
-    }
-
-    @Test
     void testLoadCubesWithSQLException()
     {
         Connection c = getConnectionThatThrowsSQLException()
@@ -689,7 +673,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            new NCubeJdbcPersister().loadCube(c, dto)
+            new NCubeJdbcPersister().loadCubeById(c, 0L)
             fail()
         }
         catch (RuntimeException e)

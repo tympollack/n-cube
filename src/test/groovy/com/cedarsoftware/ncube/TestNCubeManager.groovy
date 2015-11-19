@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
+import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.io.JsonWriter
 import org.junit.After
@@ -1209,8 +1210,10 @@ class TestNCubeManager
         assert history[1].createHid == 'jdirt'
         assert history[1].notes == 'notes follow'
 
-        NCube rev0 = NCubeManager.loadCubeById(history[1])
-        NCube rev1 = NCubeManager.loadCubeById(history[0])
+        long rev0Id = Converter.convert(history[1].id, long.class)
+        long rev1Id = Converter.convert(history[0].id, long.class)
+        NCube rev0 = NCubeManager.loadCubeById(rev0Id)
+        NCube rev1 = NCubeManager.loadCubeById(rev1Id)
 
         assert rev0.getNumDimensions() == 2
         assert rev1.getNumDimensions() == 3

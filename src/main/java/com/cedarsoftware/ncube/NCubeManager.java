@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentMap;
  *         <br><br>
  *         Unless required by applicable law or agreed to in writing, software
  *         distributed under the License is distributed on an "AS IS" BASIS,
- *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either eƒfetxpress or implied.
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
@@ -209,14 +209,9 @@ public class NCubeManager
         return prepareCube(ncube);
     }
 
-    /**
-     * Fetch a specific cube by the ID within the infoDto
-     */
-    public static NCube loadCubeById(NCubeInfoDto infoDto)
+    public static NCube loadCubeById(long id)
     {
-        validateAppId(infoDto.getApplicationID());
-        NCube.validateCubeName(infoDto.name);
-        NCube ncube = getPersister().loadCube(infoDto);
+        NCube ncube = getPersister().loadCubeById(id);
         return ncube;
     }
 
@@ -230,7 +225,8 @@ public class NCubeManager
         if (value instanceof NCubeInfoDto)
         {   // Lazy load cube (make sure to apply any advices to it)
             NCubeInfoDto dto = (NCubeInfoDto) value;
-            return prepareCube(getPersister().loadCube(dto));
+            long id = (long) Converter.convert(dto.id, long.class);
+            return prepareCube(getPersister().loadCubeById(id));
         }
 
         throw new IllegalStateException("Failed to retrieve cube from cache, value: " + value);
@@ -246,8 +242,6 @@ public class NCubeManager
         }
         return cube;
     }
-
-
 
     /**
      * Testing API (Cache validation)
@@ -992,8 +986,10 @@ public class NCubeManager
         {
             if (head != null)
             {
-                NCube branchCube = getPersister().loadCube(info);
-                NCube headCube = getPersister().loadCube(head);
+                long branchCubeId = (long) Converter.convert(info.id, long.class);
+                long headCubeId = (long) Converter.convert(head.id, long.class);
+                NCube branchCube = getPersister().loadCubeById(branchCubeId);
+                NCube headCube = getPersister().loadCubeById(headCubeId);
 
                 if (info.headSha1 != null)
                 {

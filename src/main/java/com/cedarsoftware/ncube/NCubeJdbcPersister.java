@@ -411,37 +411,20 @@ public class NCubeJdbcPersister
 
     Long getMaxRevision(Connection c, ApplicationID appId, String cubeName)
     {
-        try (PreparedStatement stmt = c.prepareStatement(
-                "SELECT revision_number FROM n_cube " +
-                        "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND status_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? " +
-                        "ORDER BY abs(revision_number) DESC"))
-        {
-            stmt.setString(1, buildName(c, cubeName));
-            stmt.setString(2, appId.getApp());
-            stmt.setString(3, appId.getStatus());
-            stmt.setString(4, appId.getVersion());
-            stmt.setString(5, appId.getTenant());
-            stmt.setString(6, appId.getBranch());
-
-            try (ResultSet rs = stmt.executeQuery())
-            {
-                return rs.next() ? rs.getLong(1) : null;
-            }
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to get maximum revision number for cube: " + cubeName + ", app: " + appId;
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
+        return getMinMaxRevision(c, appId, cubeName, "DESC");
     }
 
     Long getMinRevision(Connection c, ApplicationID appId, String cubeName)
     {
+        return getMinMaxRevision(c, appId, cubeName, "ASC");
+    }
+
+    Long getMinMaxRevision(Connection c, ApplicationID appId, String cubeName, String order)
+    {
         try (PreparedStatement stmt = c.prepareStatement(
                 "SELECT revision_number FROM n_cube " +
                         "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND status_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? " +
-                        "ORDER BY abs(revision_number) ASC"))
+                        "ORDER BY abs(revision_number) " + order))
         {
             stmt.setString(1, buildName(c, cubeName));
             stmt.setString(2, appId.getApp());
@@ -457,7 +440,8 @@ public class NCubeJdbcPersister
         }
         catch (Exception e)
         {
-            String s = "Unable to get minimum revision number for cube: " + cubeName + ", app: " + appId;
+            String revType = "ASC".equalsIgnoreCase(order) ? "minimum" : "maximum";
+            String s = "Unable to get " + revType + " revision number for cube: " + cubeName + ", app: " + appId;
             LOG.error(s, e);
             throw new RuntimeException(s, e);
         }
@@ -484,13 +468,11 @@ public class NCubeJdbcPersister
         }
     }
 
-    PreparedStatement createSelectSingleCubeStatement(Connection c, String id) throws SQLException
+    PreparedStatement createSelectSingleCubeStatement(Connection c, long id) throws SQLException
     {
         String sql = "SELECT n_cube_nm, tenant_cd, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, changed, sha1, head_sha1 FROM n_cube where n_cube_id = ?";
-
         PreparedStatement s = c.prepareStatement(sql);
-        long intId = Long.parseLong(id);
-        s.setLong(1, intId);
+        s.setLong(1, id);
         return s;
     }
 
@@ -730,14 +712,9 @@ public class NCubeJdbcPersister
         return list;
     }
 
-    public NCube loadCube(Connection c, NCubeInfoDto dto)
+    public NCube loadCubeById(Connection c, long cubeId)
     {
-        if (dto == null)
-        {
-            throw new IllegalArgumentException("dto value cannot be null");
-        }
-
-        try (PreparedStatement stmt = createSelectSingleCubeStatement(c, dto.id))
+        try (PreparedStatement stmt = createSelectSingleCubeStatement(c, cubeId))
         {
             try (ResultSet rs = stmt.executeQuery())
             {
@@ -748,21 +725,19 @@ public class NCubeJdbcPersister
                     String app = rs.getString("app_cd");
                     String version = rs.getString("version_no_cd");
                     String branch = rs.getString("branch_id");
-
                     ApplicationID appId = new ApplicationID(tenant.trim(), app, version, status, branch);
-
                     return buildCube(appId, rs);
                 }
             }
         }
         catch (Exception e)
         {
-            String s = "Unable to load cube with id: " + dto.id + ", app: " + dto.app + ", version: " + dto.version;
+            String s = "Unable to load cube with id: " + cubeId;
             LOG.error(s, e);
             throw new IllegalStateException(s, e);
         }
 
-        throw new IllegalArgumentException("Unable to find cube with id: " + dto.id + ", app: " + dto.app + ", version: " + dto.version);
+        throw new IllegalArgumentException("Unable to find cube with id: " + cubeId);
     }
 
     public NCube loadCube(Connection c, ApplicationID appId, String cubeName)
@@ -2057,6 +2032,10 @@ public class NCubeJdbcPersister
 
     public boolean isOracle(Connection c)
     {
+        if (c == null)
+        {
+            return false;
+        }
         try
         {
             return Regexes.isOraclePattern.matcher(c.getMetaData().getDriverName()).matches();

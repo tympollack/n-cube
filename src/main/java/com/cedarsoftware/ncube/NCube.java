@@ -1584,7 +1584,7 @@ public class NCube<T>
                 return declaredScopeKeys;
             }
             List declaredRequiredScope = (List) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"));
-            declaredScopeKeys = declaredRequiredScope == null ? new CaseInsensitiveSet<>() : new CaseInsensitiveSet<>(declaredRequiredScope);
+            declaredScopeKeys = declaredRequiredScope == null ? new CaseInsensitiveSet() : new CaseInsensitiveSet(declaredRequiredScope);
         }
         return declaredScopeKeys;
     }

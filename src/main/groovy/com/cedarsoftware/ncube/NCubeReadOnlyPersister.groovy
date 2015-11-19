@@ -25,8 +25,8 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeReadOnlyPersister
 {
-    // Load n-cube by ID inside NCubeInfoDto (specific revision)
-    NCube loadCube(NCubeInfoDto dto)
+    // Load n-cube by ID (specific revision)
+    NCube loadCubeById(long id)
 
     // Load n-cube by name (latest revision)
     NCube loadCube(ApplicationID appId, String name)
