@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.2</version>
+  <version>3.4.3</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? Donate some **Bitcoin**: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,9 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.4.3
+ * The NCubeJdbcPersister now allows for a ConnectionProvider that returns a null connection.  This can happen in a simple file-based persister, for example.
+ * NCubeManager.loadCube(NCubeInfoDto) loaded the cube by id (parameter overkill).  The API is now NCubeManager.loadCubeById(long id).  Useful for getting a specific revision of a cube.  User picks from revision list, code then loads the revision cube by ID.
 * 3.4.2
  * Removed use of JDK 1.8 specific API to maintain 1.7 compatibility.  
  * Removed redundant API from NCubeManager (getCubeRecordsFromDatabase - use search() instead).
