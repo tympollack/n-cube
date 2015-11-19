@@ -1584,7 +1584,7 @@ public class NCube<T>
                 return declaredScopeKeys;
             }
             List declaredRequiredScope = (List) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"));
-            declaredScopeKeys = declaredRequiredScope == null ? new CaseInsensitiveSet<>() : new CaseInsensitiveSet(declaredRequiredScope);
+            declaredScopeKeys = declaredRequiredScope == null ? new CaseInsensitiveSet<>() : new CaseInsensitiveSet<>(declaredRequiredScope);
         }
         return declaredScopeKeys;
     }
@@ -2203,7 +2203,7 @@ public class NCube<T>
         sha1Digest.update(sep);
 
         deepSha1(sha1Digest, defaultCellValue, sep);
-        deepSha1(sha1Digest, new TreeMap(getMetaProperties()), sep);
+        deepSha1(sha1Digest, new TreeMap<>(getMetaProperties()), sep);
 
         // Need deterministic ordering (sorted by Axis name will do that)
         Map<String, Axis> sortedAxes = new TreeMap<>(axisList);
@@ -2230,7 +2230,7 @@ public class NCube<T>
             }
             if (!MapUtilities.isEmpty(axis.metaProps))
             {
-                deepSha1(sha1Digest, new TreeMap(axis.metaProps), sep);
+                deepSha1(sha1Digest, new TreeMap<>(axis.metaProps), sep);
             }
             sha1Digest.update(sep);
 
@@ -2305,9 +2305,9 @@ public class NCube<T>
 
     private static void deepSha1(MessageDigest md, Object value, byte sep)
     {
-        Deque stack = new LinkedList();
+        Deque<Object> stack = new LinkedList<>();
         stack.addFirst(value);
-        Set visited = new HashSet();
+        Set<Object> visited = new HashSet<>();
 
         while (!stack.isEmpty())
         {
@@ -2469,8 +2469,8 @@ public class NCube<T>
             return false;
         }
 
-        CaseInsensitiveSet a1 = new CaseInsensitiveSet(axisList.keySet());
-        CaseInsensitiveSet a2 = new CaseInsensitiveSet(other.axisList.keySet());
+        CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
+        CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
         a1.removeAll(a2);
 
         if (!a1.isEmpty())
@@ -2614,8 +2614,8 @@ public class NCube<T>
         List<Delta> metaChanges = compareMetaProperties(other.getMetaProperties(), getMetaProperties(), Delta.Location.NCUBE_META, "n-cube '" + name + "'");
         changes.addAll(metaChanges);
 
-        CaseInsensitiveSet a1 = new CaseInsensitiveSet(axisList.keySet());
-        CaseInsensitiveSet a2 = new CaseInsensitiveSet(other.axisList.keySet());
+        CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
+        CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
         a1.removeAll(a2);
 
         boolean axesChanged = false;
@@ -2626,7 +2626,7 @@ public class NCube<T>
             axesChanged = true;
         }
 
-        a1 = new CaseInsensitiveSet(axisList.keySet());
+        a1 = new CaseInsensitiveSet<>(axisList.keySet());
         a2.removeAll(a1);
         if (!a2.isEmpty())
         {
@@ -2776,7 +2776,7 @@ public class NCube<T>
         {
             if (!DeepEquals.deepEquals(oldMeta.get(key), newMeta.get(key)))
             {
-                s.append(key + "->" + oldMeta.get(key) + " ==> " + key + "->" + newMeta.get(key) + ", ");
+                s.append(key).append("->").append(oldMeta.get(key)).append(" ==> ").append(key).append("->").append(newMeta.get(key)).append(", ");
                 i++;
             }
         }

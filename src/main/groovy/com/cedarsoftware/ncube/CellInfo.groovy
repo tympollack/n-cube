@@ -384,7 +384,7 @@ public class CellInfo
     }
 
     /**
-      * @return the content that would be placed into the cell as opposed to a CellInfo.  For example, if
+     * @return the content that would be placed into the cell as opposed to a CellInfo.  For example, if
      * the CellInfo was a simple boolean (value='true', isUrl=false, isCached=false, datatype='boolean'), then
      * Boolean.TRUE or Boolean.FALSE would be returned.  This method always returns a value that if placed
      * back into the CellInfo(cell) constructor, would return the equivalent CellInfo.

@@ -101,16 +101,16 @@ public class NCubeManager
 
         synchronized(NCubeManager.class)
         {
-            if(systemParams == null)
+            if (systemParams == null)
             {
                 String jsonParams = SystemUtilities.getExternalVariable(NCUBE_PARAMS);
-                systemParams = new ConcurrentHashMap();
+                systemParams = new ConcurrentHashMap<>();
 
                 if (StringUtilities.hasContent(jsonParams))
                 {
                     try
                     {
-                        systemParams = new ConcurrentHashMap(JsonReader.jsonToMaps(jsonParams));
+                        systemParams = new ConcurrentHashMap<>(JsonReader.jsonToMaps(jsonParams));
                     }
                     catch (Exception e)
                     {
@@ -134,7 +134,7 @@ public class NCubeManager
     public static Set<String> getCubeNames(ApplicationID appId)
     {
         Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true);
+        options.put(SEARCH_ACTIVE_RECORDS_ONLY, true);
         List<NCubeInfoDto> cubeInfos = search(appId, null, null, options);
         Set<String> names = new TreeSet<>();
 
@@ -577,12 +577,12 @@ public class NCubeManager
         ApplicationID headAppId = appId.asHead();
         Map<String, NCubeInfoDto> headMap = new TreeMap<>();
 
-        Map searchChangedRecordOptions = new HashMap();
-        searchChangedRecordOptions.put(NCubeManager.SEARCH_CHANGED_RECORDS_ONLY, true);
+        Map<String, Object> searchChangedRecordOptions = new HashMap<>();
+        searchChangedRecordOptions.put(SEARCH_CHANGED_RECORDS_ONLY, true);
         List<NCubeInfoDto> branchList = search(appId, null, null, searchChangedRecordOptions);
 
         Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false);
+        options.put(SEARCH_ACTIVE_RECORDS_ONLY, false);
         List<NCubeInfoDto> headList = search(headAppId, null, null, options);
 
         List<NCubeInfoDto> list = new ArrayList<>();
@@ -707,7 +707,7 @@ public class NCubeManager
                 NCube.validateCubeName(cubeName);
                 getPersister().restoreCube(appId, cubeName, username);
                 NCube ncube = getPersister().loadCube(appId, cubeName);
-                NCubeManager.addCube(appId, ncube);
+                addCube(appId, ncube);
             }
             else
             {
@@ -873,7 +873,7 @@ public class NCubeManager
         ApplicationID headAppId = appId.asHead();
         Map<String, NCubeInfoDto> headMap = new TreeMap<>();
         Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false);
+        options.put(SEARCH_ACTIVE_RECORDS_ONLY, false);
         List<NCubeInfoDto> headInfo = search(headAppId, null, null, options);
 
         //  build map of head objects for reference.
@@ -1092,7 +1092,7 @@ public class NCubeManager
         ApplicationID headAppId = appId.asHead();
 
         Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false);
+        options.put(SEARCH_ACTIVE_RECORDS_ONLY, false);
         List<NCubeInfoDto> records = search(appId, null, null, options);
         List<NCubeInfoDto> headRecords = search(headAppId, null, null, options);
 
@@ -1156,7 +1156,7 @@ public class NCubeManager
             }
         }
 
-        List<NCubeInfoDto> finalUpdates = new ArrayList(updates.size());
+        List<NCubeInfoDto> finalUpdates = new ArrayList<>(updates.size());
 
         for (NCubeInfoDto dto : updates)
         {
@@ -1318,7 +1318,7 @@ public class NCubeManager
 
         if (coord == null)
         {
-            coord = new HashMap();
+            coord = new HashMap<>();
         }
 
         NCube bootCube = getCube(ApplicationID.getBootVersion(tenant, app), SYS_BOOTSTRAP);
