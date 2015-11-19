@@ -84,17 +84,21 @@ public abstract class GroovyBase extends UrlCommandCell
             // hold a reference to the compiled class.  Also remove our reference
             // (runnableCode = null). Internally, the class, constructor, and run() method
             // are not cached when the cell is marked cache:true.
-            GroovyClassLoader gcl = (GroovyClassLoader) getRunnableCode().getClassLoader().getParent()
-            GroovySystem.getMetaClassRegistry().removeMetaClass(getRunnableCode())
-            try
+            ClassLoader cl = getRunnableCode().getClassLoader().getParent()
+            if (cl instanceof GroovyClassLoader)
             {
-                Method remove = GroovyClassLoader.class.getDeclaredMethod("removeClassCacheEntry", String.class)
-                remove.setAccessible(true)
-                remove.invoke(gcl, getRunnableCode().getName())
-            }
-            catch (Exception e)
-            {
-                LOG.warn("Unable to remove cached GroovyExpression from GroovyClassLoader", e)
+                GroovyClassLoader gcl = (GroovyClassLoader) cl
+                GroovySystem.getMetaClassRegistry().removeMetaClass(getRunnableCode())
+                try
+                {
+                    Method remove = GroovyClassLoader.class.getDeclaredMethod("removeClassCacheEntry", String.class)
+                    remove.setAccessible(true)
+                    remove.invoke(gcl, getRunnableCode().getName())
+                }
+                catch (Exception e)
+                {
+                    LOG.warn("Unable to remove cached GroovyExpression from GroovyClassLoader", e)
+                }
             }
             setRunnableCode(null)
         }

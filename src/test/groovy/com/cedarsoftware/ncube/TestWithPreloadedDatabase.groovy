@@ -210,7 +210,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(0, dtos.length)
 
         ApplicationID headId = branch1.asHead()
-        assertEquals(1, NCubeManager.getCubeRecordsFromDatabase(headId, null, true).size())
+        assertEquals(1, NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
 
     }
 
@@ -275,8 +275,8 @@ abstract class TestWithPreloadedDatabase
 
         NCubeManager.createBranch(branch1)
 
-        assertEquals(1, NCubeManager.getCubeRecordsFromDatabase(head, null, true).size())
-        assertEquals(1, NCubeManager.getCubeRecordsFromDatabase(branch1, null, true).size())
+        assertEquals(1, NCubeManager.search(head, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        assertEquals(1, NCubeManager.search(branch1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
 
         NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
 
@@ -305,7 +305,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(0, NCubeManager.commitBranch(branch1, dtos, USER_ID).size())
 
         ApplicationID headId = branch1.asHead()
-        assertEquals(0, NCubeManager.getCubeRecordsFromDatabase(headId, null, false).size())
+        assertEquals(0, NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false]).size())
     }
 
     @Test
@@ -325,7 +325,7 @@ abstract class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 
         ApplicationID headId = branch1.asHead()
-        assertEquals(0, NCubeManager.getCubeRecordsFromDatabase(headId, null, false).size())
+        assertEquals(0, NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false]).size())
     }
 
     @Test
@@ -387,7 +387,7 @@ abstract class TestWithPreloadedDatabase
         def cube1Sha1 = NCubeManager.getCube(head, "TestBranch").sha1()
         def cube2Sha1 = NCubeManager.getCube(head, "TestAge").sha1()
 
-        Object[] objects = NCubeManager.getCubeRecordsFromDatabase(head, "*", true)
+        Object[] objects = NCubeManager.search(head, "*", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         for (NCubeInfoDto dto : objects)
         {
             assertNull(dto.headSha1)
@@ -398,7 +398,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(cube1Sha1, NCubeManager.getCube(branch1, "TestBranch").sha1())
         assertEquals(cube2Sha1, NCubeManager.getCube(branch1, "TestAge").sha1())
 
-        objects = NCubeManager.getCubeRecordsFromDatabase(branch1, "*", true)
+        objects = NCubeManager.search(branch1, "*", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         for (NCubeInfoDto dto : objects)
         {
             assertNotNull(dto.headSha1)
@@ -2606,7 +2606,7 @@ abstract class TestWithPreloadedDatabase
             assertEquals("1B45FBA9BD25EDE58049F0BD0CFAF1FBE7C8C0BD", e.errors.TestAge.sha1)
             assertEquals("E38F308922AFF48EEA589C321144F2004BD9BFAC", e.errors.TestAge.headSha1)
         }
-        NCubeInfoDto[] dto = (NCubeInfoDto[])NCubeManager.getCubeRecordsFromDatabase(head, "TestAge", true)
+        NCubeInfoDto[] dto = (NCubeInfoDto[])NCubeManager.search(head, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         String sha1 = dto[0].sha1;
         assertNotEquals(sha1, newSha1)
 
@@ -2616,7 +2616,7 @@ abstract class TestWithPreloadedDatabase
         String branchHeadSha1 = dtos[0].headSha1
         assertEquals(1, dtos.size)
 
-        dtos = NCubeManager.getCubeRecordsFromDatabase(head, "TestAge", true)
+        dtos = NCubeManager.search(head, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertEquals(branchHeadSha1, dtos[0].sha1)
     }
 
@@ -2694,7 +2694,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals("1B45FBA9BD25EDE58049F0BD0CFAF1FBE7C8C0BD", testAge.sha1)
         assertEquals("E38F308922AFF48EEA589C321144F2004BD9BFAC", testAge.headSha1)
 
-        dtos = NCubeManager.getCubeRecordsFromDatabase(branch1, "TestAge", true)
+        dtos = NCubeManager.search(branch1, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         String sha1 = dtos[0].sha1;
 
         NCubeManager.mergeAcceptTheirs(branch1, "TestAge", sha1, USER_ID)

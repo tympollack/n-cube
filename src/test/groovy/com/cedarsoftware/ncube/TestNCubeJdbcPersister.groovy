@@ -104,7 +104,7 @@ class TestNCubeJdbcPersister
         int numRelease = persister.releaseCubes(defaultSnapshotApp, "0.2.0")
         assertEquals(0, numRelease)
 
-        cubeList = NCubeManager.getCubeRecordsFromDatabase(next, 'test.%', true)
+        cubeList = NCubeManager.search(next, 'test.*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         // Two cubes at the new 1.2.3 SNAPSHOT version.
         assert cubeList.length == 2
 

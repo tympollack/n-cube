@@ -133,7 +133,9 @@ public class NCubeManager
      */
     public static Set<String> getCubeNames(ApplicationID appId)
     {
-        List<NCubeInfoDto> cubeInfos = getCubeRecordsFromDatabase(appId, "", true);
+        Map<String, Object> options = new HashMap<>();
+        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true);
+        List<NCubeInfoDto> cubeInfos = search(appId, null, null, options);
         Set<String> names = new TreeSet<>();
 
         for (NCubeInfoDto info : cubeInfos)
@@ -558,23 +560,6 @@ public class NCubeManager
     }
 
     /**
-     * Get List<NCubeInfoDto> for the given ApplicationID, filtered by the pattern.  If using
-     * JDBC, it will be used with a LIKE clause.  For Mongo...TBD.
-     * For any cube record loaded, for which there is no entry in the app's cube cache, an entry
-     * is added mapping the cube name to the cube record (NCubeInfoDto).  This will be replaced
-     * by an NCube if more than the name is required.
-     * @param pattern A cube name pattern, using '*' for matches 0 or more characters and '?' for matches any
-     * one (1) character.  This is universal whether using a SQL perister or Mongo persister.
-     *
-     */
-    static List<NCubeInfoDto> getCubeRecordsFromDatabase(ApplicationID appId, String pattern, boolean activeOnly)
-    {
-        Map options = new HashMap();
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, activeOnly);
-        return search(appId, pattern, null, options);
-    }
-
-    /**
      * Get List<NCubeInfoDto> of n-cube record DTOs for the given ApplicationID (branch only).  If using
      * For any cube record loaded, for which there is no entry in the app's cube cache, an entry
      * is added mapping the cube name to the cube record (NCubeInfoDto).  This will be replaced
@@ -594,9 +579,12 @@ public class NCubeManager
 
         Map searchChangedRecordOptions = new HashMap();
         searchChangedRecordOptions.put(NCubeManager.SEARCH_CHANGED_RECORDS_ONLY, true);
-
         List<NCubeInfoDto> branchList = search(appId, null, null, searchChangedRecordOptions);
-        List<NCubeInfoDto> headList = getCubeRecordsFromDatabase(headAppId, null, false);
+
+        Map<String, Object> options = new HashMap<>();
+        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false);
+        List<NCubeInfoDto> headList = search(headAppId, null, null, options);
+
         List<NCubeInfoDto> list = new ArrayList<>();
 
         //  build map of head objects for reference.
@@ -884,7 +872,9 @@ public class NCubeManager
 
         ApplicationID headAppId = appId.asHead();
         Map<String, NCubeInfoDto> headMap = new TreeMap<>();
-        List<NCubeInfoDto> headInfo = getCubeRecordsFromDatabase(headAppId, null, false);
+        Map<String, Object> options = new HashMap<>();
+        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false);
+        List<NCubeInfoDto> headInfo = search(headAppId, null, null, options);
 
         //  build map of head objects for reference.
         for (NCubeInfoDto info : headInfo)
@@ -1100,8 +1090,11 @@ public class NCubeManager
         appId.validateStatusIsNotRelease();
 
         ApplicationID headAppId = appId.asHead();
-        List<NCubeInfoDto> records = getCubeRecordsFromDatabase(appId, null, false);
-        List<NCubeInfoDto> headRecords = getCubeRecordsFromDatabase(headAppId, null, false);
+
+        Map<String, Object> options = new HashMap<>();
+        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false);
+        List<NCubeInfoDto> records = search(appId, null, null, options);
+        List<NCubeInfoDto> headRecords = search(headAppId, null, null, options);
 
         //  build map of head objects for reference.
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>();
