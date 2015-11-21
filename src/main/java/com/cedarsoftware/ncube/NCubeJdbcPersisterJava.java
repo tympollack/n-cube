@@ -227,34 +227,6 @@ public abstract class NCubeJdbcPersisterJava
 
     abstract Long getMinRevision(Connection c, ApplicationID appId, String cubeName);
 
-    Long getMinMaxRevision(Connection c, ApplicationID appId, String cubeName, String order)
-    {
-        try (PreparedStatement stmt = c.prepareStatement(
-                "SELECT revision_number FROM n_cube " +
-                        "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND status_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? " +
-                        "ORDER BY abs(revision_number) " + order))
-        {
-            stmt.setString(1, buildName(c, cubeName));
-            stmt.setString(2, appId.getApp());
-            stmt.setString(3, appId.getStatus());
-            stmt.setString(4, appId.getVersion());
-            stmt.setString(5, appId.getTenant());
-            stmt.setString(6, appId.getBranch());
-
-            try (ResultSet rs = stmt.executeQuery())
-            {
-                return rs.next() ? rs.getLong(1) : null;
-            }
-        }
-        catch (Exception e)
-        {
-            String revType = "ASC".equalsIgnoreCase(order) ? "minimum" : "maximum";
-            String s = "Unable to get " + revType + " revision number for cube: " + cubeName + ", app: " + appId;
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
-    }
-
     List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchPattern, Map<String, Object> options)
     {
         boolean hasSearchPattern = StringUtilities.hasContent(searchPattern);

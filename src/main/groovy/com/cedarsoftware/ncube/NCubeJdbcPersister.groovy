@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger
 
 import java.sql.Connection
 import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.sql.SQLException
 /**
  * SQL Persister for n-cubes.  Manages all reads and writes of n-cubes to an SQL database.
@@ -114,10 +115,10 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
     {
         if (cubeId == null)
         {
-            throw new IllegalArgumentException("Commit cube, cube id cannot be empty, app: " + appId);
+            throw new IllegalArgumentException("Commit cube, cube id cannot be empty, app: " + appId)
         }
 
-        ApplicationID headAppId = appId.asHead();
+        ApplicationID headAppId = appId.asHead()
         def map = [id:cubeId]
         Sql sql = new Sql(c)
         NCubeInfoDto result = null
@@ -128,46 +129,46 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             {
                 throw new IllegalStateException('Should only match one record, (commit), app: ' + appId + ', cube id: ' + cubeId)
             }
-            byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN);
-            String sha1 = row.getString("sha1");
-            String cubeName = row.getString("n_cube_nm");
-            Long revision = row.getLong("revision_number");
-            Long maxRevision = getMaxRevision(c, headAppId, cubeName);
+            byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+            String sha1 = row.getString("sha1")
+            String cubeName = row.getString("n_cube_nm")
+            Long revision = row.getLong("revision_number")
+            Long maxRevision = getMaxRevision(c, headAppId, cubeName)
 
             //  create case because maxrevision was not found.
             if (maxRevision == null)
             {
-                maxRevision = revision < 0 ? new Long(-1) : new Long(0);
+                maxRevision = revision < 0 ? new Long(-1) : new Long(0)
             }
             else if (revision < 0)
             {
                 // cube deleted in branch
-                maxRevision = -(Math.abs(maxRevision as long) + 1);
+                maxRevision = -(Math.abs(maxRevision as long) + 1)
             }
             else
             {
                 maxRevision = Math.abs(maxRevision as long) + 1;
             }
 
-            byte[] testData = row.getBytes(TEST_DATA_BIN);
+            byte[] testData = row.getBytes(TEST_DATA_BIN)
 
-            long now = System.currentTimeMillis();
+            long now = System.currentTimeMillis()
 
-            NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, "Cube committed", false, sha1, null, now, username);
+            NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, "Cube committed", false, sha1, null, now, username)
 
             if (dto == null)
             {
                 String s = "Unable to commit cube: " + cubeName + " to app:  " + headAppId;
-                throw new IllegalStateException(s);
+                throw new IllegalStateException(s)
             }
 
             PreparedStatement update = null
             try
             {
-                update = updateBranchToHead(c, cubeId, sha1, now);
+                update = updateBranchToHead(c, cubeId, sha1, now)
                 if (update.executeUpdate() != 1)
                 {
-                    throw new IllegalStateException("error updating n-cube: " + cubeName + "', app: " + headAppId + ", row was not updated");
+                    throw new IllegalStateException("error updating n-cube: " + cubeName + "', app: " + headAppId + ", row was not updated")
                 }
             }
             finally
@@ -179,7 +180,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             }
 
             dto.changed = false;
-            dto.id = Long.toString(cubeId);
+            dto.id = Long.toString(cubeId)
             dto.sha1 = sha1;
             dto.headSha1 = sha1;
             result = dto;
@@ -353,12 +354,48 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
     Long getMaxRevision(Connection c, ApplicationID appId, String cubeName)
     {
-        return getMinMaxRevision(c, appId, cubeName, "DESC");
+        return getMinMaxRevision(c, appId, cubeName, "DESC")
     }
 
     Long getMinRevision(Connection c, ApplicationID appId, String cubeName)
     {
-        return getMinMaxRevision(c, appId, cubeName, "ASC");
+        return getMinMaxRevision(c, appId, cubeName, "ASC")
+    }
+
+    Long getMinMaxRevision(Connection c, ApplicationID appId, String cubeName, String order)
+    {
+        PreparedStatement stmt = null
+        try 
+        {
+            stmt = c.prepareStatement(
+                    "SELECT revision_number FROM n_cube " +
+                            "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND status_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? " +
+                            "ORDER BY abs(revision_number) " + order)
+
+            stmt.setString(1, buildName(c, cubeName))
+            stmt.setString(2, appId.getApp())
+            stmt.setString(3, appId.getStatus())
+            stmt.setString(4, appId.getVersion())
+            stmt.setString(5, appId.getTenant())
+            stmt.setString(6, appId.getBranch())
+
+            ResultSet rs = stmt.executeQuery()
+            return rs.next() ? rs.getLong(1) : null;
+        }
+        catch (Exception e)
+        {
+            String revType = "ASC".equalsIgnoreCase(order) ? "minimum" : "maximum";
+            String s = "Unable to get " + revType + " revision number for cube: " + cubeName + ", app: " + appId;
+            LOG.error(s, e)
+            throw new RuntimeException(s, e)
+        }
+        finally
+        {
+            if (stmt != null)
+            {
+                stmt.close()
+            }
+        }
     }
 
     protected boolean toBoolean(Object value, boolean defVal)
