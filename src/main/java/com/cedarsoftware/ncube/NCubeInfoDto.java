@@ -54,4 +54,8 @@ public class NCubeInfoDto
     public boolean isChanged() {
         return changed;
     }
+    public void setChanged(boolean state)
+    {
+        changed = state;
+    }
 }

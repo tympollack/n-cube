@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.util.IOUtilities
 import org.junit.After
 import org.junit.Before
@@ -11,6 +10,7 @@ import java.sql.DatabaseMetaData
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
+import java.sql.Statement
 import java.sql.Timestamp
 
 import static org.junit.Assert.assertEquals
@@ -24,7 +24,6 @@ import static org.mockito.Matchers.anyLong
 import static org.mockito.Matchers.anyString
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -227,10 +226,10 @@ class TestNCubeJdbcPersister
     void testCommitMergedCubeToBranchThatReturnsEmpty()
     {
         Connection c = mock(Connection.class)
-        PreparedStatement ps = mock(PreparedStatement.class)
+        Statement stmt = mock(Statement.class)
         ResultSet rs = mock(ResultSet.class)
-        when(c.prepareStatement(anyString())).thenReturn(ps)
-        when(ps.executeQuery()).thenReturn(rs)
+        when(c.createStatement(anyInt(), anyInt())).thenReturn(stmt)
+        when(stmt.executeQuery(anyString())).thenReturn(rs)
         when(rs.next()).thenReturn(false);
 
         DatabaseMetaData metaData = mock(DatabaseMetaData.class);
@@ -267,10 +266,8 @@ class TestNCubeJdbcPersister
             new NCubeJdbcPersister().commitMergedCubeToBranch(c, defaultSnapshotApp, cube, cube.sha1(), "name")
             fail()
         }
-        catch (IllegalStateException e)
+        catch (SQLException e)
         {
-            assertEquals(SQLException.class, e.cause.class)
-            assertTrue(e.message.toLowerCase().contains("unable to commit"))
         }
     }
 
@@ -300,10 +297,8 @@ class TestNCubeJdbcPersister
             new NCubeJdbcPersister().commitMergedCubeToHead(c, defaultSnapshotApp, cube, "name")
             fail()
         }
-        catch (IllegalStateException e)
+        catch (SQLException e)
         {
-            assertEquals(SQLException.class, e.cause.class)
-            assertTrue(e.message.toLowerCase().contains("unable to commit"))
         }
     }
 
@@ -901,16 +896,18 @@ class TestNCubeJdbcPersister
     void testCommitCubeThatThrowsSQLException()
     {
         Connection c = getConnectionThatThrowsSQLException()
+        PreparedStatement ps = mock(PreparedStatement.class)
+        ResultSet rs = mock(ResultSet.class)
+        when(rs.next()).thenReturn(true)
+        when(c.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(ps)
+        when(ps.executeQuery()).thenReturn(rs)
         try
         {
             new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID)
             fail()
         }
-        catch (IllegalStateException e)
+        catch (Exception e)
         {
-            assertEquals(SQLException.class, e.cause.class)
-            assertTrue(e.message.contains("Unable"))
-            assertTrue(e.message.contains("commit"))
         }
     }
 
@@ -921,6 +918,7 @@ class TestNCubeJdbcPersister
         PreparedStatement ps = mock(PreparedStatement.class)
         ResultSet rs = mock(ResultSet.class)
         when(c.prepareStatement(anyString())).thenReturn(ps)
+        when(c.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(ps)
         when(ps.executeQuery()).thenReturn(rs)
         when(ps.executeUpdate()).thenReturn(0)
         when(rs.next()).thenReturn(true)
@@ -945,10 +943,15 @@ class TestNCubeJdbcPersister
     {
         Connection c = mock(Connection.class)
         PreparedStatement ps = mock(PreparedStatement.class)
+        Statement statement = mock(Statement.class)
         ResultSet rs = mock(ResultSet.class)
+        when(c.createStatement()).thenReturn(statement)
         when(c.prepareStatement(anyString())).thenReturn(ps)
+        when(c.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(ps)
         when(ps.executeQuery()).thenReturn(rs)
         when(ps.executeUpdate()).thenReturn(1).thenReturn(0);
+        when(statement.executeQuery(anyString())).thenReturn(rs)
+        when(statement.executeUpdate(anyString())).thenReturn(1).thenReturn(0);
         when(rs.next()).thenReturn(true)
         when(rs.getBytes("cube_value_bin")).thenReturn("".getBytes("UTF-8"))
 
@@ -976,6 +979,7 @@ class TestNCubeJdbcPersister
         PreparedStatement ps = mock(PreparedStatement.class)
         ResultSet rs = mock(ResultSet.class)
         when(c.prepareStatement(anyString())).thenReturn(ps)
+        when(c.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(ps)
         when(ps.executeQuery()).thenReturn(rs)
         when(ps.executeUpdate()).thenReturn(1).thenReturn(0);
         when(rs.next()).thenReturn(false)
@@ -983,8 +987,6 @@ class TestNCubeJdbcPersister
 
         assertNull(new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID))
     }
-
-
 
     @Test
     void testGetNCubesWithSQLException()
@@ -1106,6 +1108,9 @@ class TestNCubeJdbcPersister
     private static getConnectionThatThrowsSQLException = { ->
         Connection c = mock(Connection.class)
         when(c.prepareStatement(anyString())).thenThrow(SQLException.class)
+        when(c.createStatement()).thenThrow(SQLException.class)
+        when(c.createStatement(anyInt(), anyInt())).thenThrow(SQLException.class)
+        when(c.createStatement(anyInt(), anyInt(), anyInt())).thenThrow(SQLException.class)
         DatabaseMetaData metaData = mock(DatabaseMetaData.class);
         when(c.metaData).thenReturn(metaData);
         when(metaData.getDriverName()).thenReturn("Oracle");

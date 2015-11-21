@@ -20,8 +20,7 @@ import java.util.zip.GZIPOutputStream;
 import static java.lang.StrictMath.abs;
 
 /**
- * Class used to carry the NCube meta-information
- * to the client.
+ * SQL Persister for n-cubes.  Manages all reads and writes of n-cubes to an SQL database.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -39,195 +38,16 @@ import static java.lang.StrictMath.abs;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class NCubeJdbcPersister
+public abstract class NCubeJdbcPersisterJava
 {
-    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersister.class);
+    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterJava.class);
     private static final long EXECUTE_BATCH_CONSTANT = 35;
     public static final String CUBE_VALUE_BIN = "cube_value_bin";
     public static final String TEST_DATA_BIN = "test_data_bin";
     public static final String NOTES_BIN = "notes_bin";
     public static final String HEAD_SHA_1 = "head_sha1";
 
-    NCubeInfoDto commitMergedCubeToBranch(Connection c, ApplicationID appId, NCube cube, String headSha1, String username)
-    {
-        Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true);
-        options.put(NCubeManager.SEARCH_EXACT_MATCH_NAME, true);
-
-        try (PreparedStatement stmt = createSelectCubesStatement(c, appId, cube.getName(), options);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                Long revision = rs.getLong("revision_number");
-                byte[] testData = rs.getBytes(TEST_DATA_BIN);
-                long now = System.currentTimeMillis();
-
-                revision = revision < 0 ? revision-1 : revision+1;
-                return insertCube(c, appId, cube, revision, testData, "Cube committed", true, headSha1, now, username);
-            }
-
-            return null;
-        }
-        catch (RuntimeException e)
-        {
-            throw e;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to commit merged cube: " + cube.getName() + " to app:  " + appId;
-            LOG.error(s, e);
-            throw new IllegalStateException(s, e);
-        }
-    }
-
-    NCubeInfoDto commitMergedCubeToHead(Connection c, ApplicationID appId, NCube cube, String username)
-    {
-        Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true);
-        options.put(NCubeManager.SEARCH_EXACT_MATCH_NAME, true);
-
-        ApplicationID headAppId = appId.asHead();
-
-        try (PreparedStatement stmt = createSelectCubesStatement(c, appId, cube.getName(), options);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                Long revision = rs.getLong("revision_number");
-
-                // get current max HEAD revision
-                Long maxRevision = getMaxRevision(c, headAppId, cube.getName());
-
-                if (maxRevision == null)
-                {
-                    maxRevision = revision < 0 ? new Long(-1) : new Long(0);
-                }
-                else if (revision < 0)
-                {
-                    // cube deleted in branch
-                    maxRevision = -(Math.abs(maxRevision)+1);
-                }
-                else
-                {
-                    maxRevision = Math.abs(maxRevision)+1;
-                }
-
-                byte[] testData = rs.getBytes(TEST_DATA_BIN);
-                long now = System.currentTimeMillis();
-                // ok to use this here, because we're writing out these bytes twice (once to head and once to branch)
-                byte[] cubeData = cube.getCubeAsGzipJsonBytes();
-                String sha1 = cube.sha1();
-
-                NCubeInfoDto head = insertCube(c, headAppId, cube.getName(), maxRevision, cubeData, testData, "Cube committed", false, sha1, null, now, username);
-
-                if (head == null)
-                {
-                    String s = "Unable to commit cube: " + cube.getName() + " to app:  " + appId;
-                    throw new IllegalStateException(s);
-                }
-
-                return insertCube(c, appId, cube.getName(), revision > 0 ? ++revision : --revision, cubeData, testData, "Cube committed", false, sha1, sha1, now, username);
-            }
-
-            return null;
-        }
-        catch (RuntimeException e)
-        {
-            throw e;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to commit merged cube: " + cube.getName() + " to app:  " + appId;
-            LOG.error(s, e);
-            throw new IllegalStateException(s, e);
-        }
-    }
-
-    NCubeInfoDto commitCube(Connection c, ApplicationID appId, Long cubeId, String username)
-    {
-        if (cubeId == null)
-        {
-            throw new IllegalArgumentException("Commit cube, cube id cannot be empty, app: " + appId);
-        }
-
-        String sql = "SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1 from n_cube WHERE n_cube_id = ?";
-
-        ApplicationID headAppId = appId.asHead();
-
-        try (PreparedStatement stmt = c.prepareStatement(sql))
-        {
-            stmt.setLong(1, cubeId);
-
-            try (ResultSet rs = stmt.executeQuery())
-            {
-                if (rs.next())
-                {
-                    byte[] jsonBytes = rs.getBytes(CUBE_VALUE_BIN);
-                    String sha1 = rs.getString("sha1");
-                    String cubeName = rs.getString("n_cube_nm");
-                    Long revision = rs.getLong("revision_number");
-
-                    Long maxRevision = getMaxRevision(c, headAppId, cubeName);
-
-                    //  create case because maxrevision was not found.
-                    if (maxRevision == null)
-                    {
-                        maxRevision = revision < 0 ? new Long(-1) : new Long(0);
-                    }
-                    else if (revision < 0)
-                    {
-                        // cube deleted in branch
-                        maxRevision = -(Math.abs(maxRevision)+1);
-                    }
-                    else
-                    {
-                        maxRevision = Math.abs(maxRevision)+1;
-                    }
-
-                    byte[] testData = rs.getBytes(TEST_DATA_BIN);
-
-                    long now = System.currentTimeMillis();
-
-                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, "Cube committed", false, sha1, null, now, username);
-
-                    if (dto == null)
-                    {
-                        String s = "Unable to commit cube: " + cubeName + " to app:  " + headAppId;
-                        throw new IllegalStateException(s);
-                    }
-
-                    try (PreparedStatement update = updateBranchToHead(c, cubeId, sha1, now))
-                    {
-                        if (update.executeUpdate() != 1)
-                        {
-                            throw new IllegalStateException("error updating n-cube: " + cubeName + "', app: " + headAppId + ", row was not updated");
-                        }
-                    }
-
-                    dto.changed = false;
-                    dto.id = Long.toString(cubeId);
-                    dto.sha1 = sha1;
-                    dto.headSha1 = sha1;
-                    return dto;
-                }
-
-                return null;
-            }
-        }
-        catch (RuntimeException e)
-        {
-            throw e;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to commit cube: " + cubeId + ", app:  " + appId;
-            LOG.error(s, e);
-            throw new IllegalStateException(s, e);
-        }
-    }
-
-    private PreparedStatement updateBranchToHead(Connection c, Long cubeId, String sha1, long now) throws SQLException
+    protected PreparedStatement updateBranchToHead(Connection c, Long cubeId, String sha1, long now) throws SQLException
     {
         PreparedStatement update = c.prepareStatement("UPDATE n_cube set head_sha1 = ?, changed = ?, create_dt = ? WHERE n_cube_id = ?");
         update.setString(1, sha1);
@@ -403,15 +223,9 @@ public class NCubeJdbcPersister
         }
     }
 
-    Long getMaxRevision(Connection c, ApplicationID appId, String cubeName)
-    {
-        return getMinMaxRevision(c, appId, cubeName, "DESC");
-    }
+    abstract Long getMaxRevision(Connection c, ApplicationID appId, String cubeName);
 
-    Long getMinRevision(Connection c, ApplicationID appId, String cubeName)
-    {
-        return getMinMaxRevision(c, appId, cubeName, "ASC");
-    }
+    abstract Long getMinRevision(Connection c, ApplicationID appId, String cubeName);
 
     Long getMinMaxRevision(Connection c, ApplicationID appId, String cubeName, String order)
     {
@@ -507,9 +321,7 @@ public class NCubeJdbcPersister
         return s;
     }
 
-    boolean toBoolean(Object value, boolean def) {
-        return value == null ? def : ((Boolean)value).booleanValue();
-    }
+    abstract boolean toBoolean(Object value, boolean def);
 
     /**
      *
@@ -526,87 +338,7 @@ public class NCubeJdbcPersister
      * @return
      * @throws SQLException
      */
-    PreparedStatement createSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map<String, Object> options) throws SQLException
-    {
-        boolean changedRecordsOnly = toBoolean(options.get(NCubeManager.SEARCH_CHANGED_RECORDS_ONLY), false);
-        boolean activeRecordsOnly = toBoolean(options.get(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY), false);
-        boolean deletedRecordsOnly = toBoolean(options.get(NCubeManager.SEARCH_DELETED_RECORDS_ONLY), false);
-        boolean includeCubeData = toBoolean(options.get(NCubeManager.SEARCH_INCLUDE_CUBE_DATA), false);
-        boolean includeTestData = toBoolean(options.get(NCubeManager.SEARCH_INCLUDE_TEST_DATA), false);
-        boolean exactMatchName = toBoolean(options.get(NCubeManager.SEARCH_EXACT_MATCH_NAME), false);
-
-        if (activeRecordsOnly && deletedRecordsOnly)
-        {
-            throw new IllegalArgumentException("activeRecordsOnly and deletedRecordsOnly are mutually exclusive options and cannot both be 'true'.");
-        }
-
-        //  convert pattern will return null even if full pattern = '*', saying we don't need to do the like statement.
-        //  That is why it is before the hasContentCheck.
-
-        namePattern = convertPattern(buildName(c, namePattern));
-        boolean hasNamePattern = StringUtilities.hasContent(namePattern);
-
-        String nameCondition1 = "";
-        String nameCondition2 = "";
-
-        if (hasNamePattern)
-        {
-            nameCondition1 = " AND " + buildNameCondition(c, "n_cube_nm") + (exactMatchName ? " = ?" : " LIKE ?");
-            nameCondition2 = " AND " + buildNameCondition(c, "m.n_cube_nm") + (exactMatchName ? " = ?" : " LIKE ?");
-        }
-
-        String revisionCondition = activeRecordsOnly ? " AND n.revision_number >= 0" : deletedRecordsOnly ? " AND n.revision_number < 0" : "";
-        String changedCondition = changedRecordsOnly ? " AND n.changed = ?" : "";
-        String testCondition = includeTestData ? ", n.test_data_bin" : "";
-        String cubeCondition = includeCubeData ? ", n.cube_value_bin" : "";
-
-        String sql = "SELECT n_cube_id, n.n_cube_nm, app_cd, n.notes_bin, version_no_cd, status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1" +
-                testCondition +
-                cubeCondition +
-                " FROM n_cube n, " +
-                "( " +
-                "  SELECT n_cube_nm, max(abs(revision_number)) AS max_rev " +
-                "  FROM n_cube " +
-                "  WHERE app_cd = ? AND version_no_cd = ? AND status_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ?" +
-                nameCondition1 +
-                " GROUP BY n_cube_nm " +
-                ") m " +
-                "WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = ? AND n.version_no_cd = ? AND n.status_cd = ? AND n.tenant_cd = RPAD(?, 10, ' ') AND n.branch_id = ?" +
-                revisionCondition +
-                changedCondition +
-                nameCondition2;
-
-        PreparedStatement stmt = c.prepareStatement(sql);
-        stmt.setString(1, appId.getApp());
-        stmt.setString(2, appId.getVersion());
-        stmt.setString(3, appId.getStatus());
-        stmt.setString(4, appId.getTenant());
-        stmt.setString(5, appId.getBranch());
-
-        int i=6;
-        if (hasNamePattern)
-        {
-            stmt.setString(i++, namePattern);
-        }
-
-        stmt.setString(i++, appId.getApp());
-        stmt.setString(i++, appId.getVersion());
-        stmt.setString(i++, appId.getStatus());
-        stmt.setString(i++, appId.getTenant());
-        stmt.setString(i++, appId.getBranch());
-
-        if (changedRecordsOnly)
-        {
-            stmt.setBoolean(i++, changedRecordsOnly);
-        }
-
-        if (hasNamePattern)
-        {
-            stmt.setString(i++, namePattern);
-        }
-
-        return stmt;
-    }
+    abstract PreparedStatement createSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map<String, Object> options) throws SQLException;
 
     public List<NCubeInfoDto> getChangedRecords(Connection c, ApplicationID appId)
     {
