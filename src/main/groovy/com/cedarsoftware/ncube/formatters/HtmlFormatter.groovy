@@ -596,7 +596,15 @@ th.ncube-dead:hover { background: #76A7FF; }
         }
         else if (cellValue instanceof CommandCell)
         {
-            return (cellValue as CommandCell).cmd
+            CommandCell cmd = cellValue as CommandCell
+            if (cmd.getUrl() == null)
+            {
+                return (cellValue as CommandCell).cmd
+            }
+            else
+            {
+                return cmd.getUrl()
+            }
         }
         else if (cellValue instanceof Boolean || cellValue instanceof Character)
         {

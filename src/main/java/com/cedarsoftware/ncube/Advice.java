@@ -4,7 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 /**
- * Implement this interface and passed a reference of this implementation to n-cube's
+ * Implement this interface and pass a reference of this implementation to n-cube's
  * adviceHandler() API, and n-cube will call the handler before and after each
  * expression or method.
  *

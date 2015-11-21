@@ -2378,6 +2378,8 @@ public class NCube<T>
                         md.update(cmdCell.getCmd().getBytes());
                         md.update(sep);
                     }
+                    md.update(cmdCell.getUrl() != null ? (byte) 't' : (byte) 'f');  // t (url) or f (no url)
+                    md.update(sep);
                     md.update(cmdCell.isCacheable() ? (byte) 't' : (byte) 'f');
                     md.update(sep);
                 }
