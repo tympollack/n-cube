@@ -149,14 +149,7 @@ public abstract class UrlCommandCell implements CommandCell
 
         if (localUrl.startsWith('http:') || localUrl.startsWith('https:') || localUrl.startsWith('file:'))
         {   // Absolute URL
-            try
-            {
-                actualUrl = new URL(url)
-            }
-            catch (MalformedURLException e)
-            {
-                throw new IllegalArgumentException('Malformed URL: ' + url, e)
-            }
+            actualUrl = new URL(url)
         }
         else
         {   // Relative URL
@@ -168,8 +161,10 @@ public abstract class UrlCommandCell implements CommandCell
 
         if (actualUrl == null)
         {
-            throw new IllegalStateException("Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
-                    url + ", cube: " + ncube.name + ", app: " + ncube.applicationID)
+            String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
+                    url + ", cube: " + ncube.name + ", app: " + ncube.applicationID
+            setErrorMessage(err)
+            throw new IllegalStateException(err)
         }
         return actualUrl
     }

@@ -1,4 +1,5 @@
 package com.cedarsoftware.ncube
+import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
 import groovy.sql.GroovyResultSet
 import groovy.sql.Sql
@@ -8,8 +9,8 @@ import org.apache.logging.log4j.Logger
 
 import java.sql.Connection
 import java.sql.PreparedStatement
-import java.sql.ResultSet
 import java.sql.SQLException
+import java.sql.Timestamp
 /**
  * SQL Persister for n-cubes.  Manages all reads and writes of n-cubes to an SQL database.
  *
@@ -32,12 +33,13 @@ import java.sql.SQLException
 @CompileStatic
 class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 {
-    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterJava.class)
-    private static final long EXECUTE_BATCH_CONSTANT = 35
+    static final SafeSimpleDateFormat dateTimeFormat = new SafeSimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     static final String CUBE_VALUE_BIN = "cube_value_bin"
     static final String TEST_DATA_BIN = "test_data_bin"
     static final String NOTES_BIN = "notes_bin"
     static final String HEAD_SHA_1 = "head_sha1"
+    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterJava.class)
+    private static final long EXECUTE_BATCH_CONSTANT = 35
 
     NCubeInfoDto commitMergedCubeToBranch(Connection c, ApplicationID appId, NCube cube, String headSha1, String username)
     {
@@ -135,7 +137,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             Long revision = row.getLong("revision_number")
             Long maxRevision = getMaxRevision(c, headAppId, cubeName)
 
-            //  create case because maxrevision was not found.
+            //  create case because max revision was not found.
             if (maxRevision == null)
             {
                 maxRevision = revision < 0 ? new Long(-1) : new Long(0)
@@ -162,22 +164,9 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 throw new IllegalStateException(s)
             }
 
-            PreparedStatement update = null
-            try
-            {
-                update = updateBranchToHead(c, cubeId, sha1, now)
-                if (update.executeUpdate() != 1)
-                {
-                    throw new IllegalStateException("error updating n-cube: " + cubeName + "', app: " + headAppId + ", row was not updated")
-                }
-            }
-            finally
-            {
-                if (update)
-                {
-                    update.close()
-                }
-            }
+            def map1 = [head_sha1:sha1, create_dt:new Timestamp(now), id:cubeId]
+            Sql sql1 = new Sql(c)
+            sql1.executeUpdate("UPDATE n_cube set head_sha1 = $map1.head_sha1, changed = 0, create_dt = $map1.create_dt WHERE n_cube_id = $map1.id")
 
             dto.changed = false;
             dto.id = Long.toString(cubeId)
@@ -187,6 +176,32 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         })
 
         return result
+    }
+
+    public boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String headSha1)
+    {
+        if (cubeId == null)
+        {
+            throw new IllegalArgumentException("Update branch cube's HEAD SHA-1, cube id cannot be empty")
+        }
+
+        if (StringUtilities.isEmpty(headSha1))
+        {
+            throw new IllegalArgumentException("Update branch cube's HEAD SHA-1, SHA-1 cannot be empty")
+        }
+
+        Map map = [sha1:headSha1, id: cubeId, changeState:false]
+        Sql sql = new Sql(c)
+        int count = sql.executeUpdate("UPDATE n_cube set head_sha1 = $map.sha1, changed = $map.changeState WHERE n_cube_id = $map.id")
+        if (count == 0)
+        {
+            throw new IllegalStateException("error updating branch cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", no record found.")
+        }
+        else if (count != 1)
+        {
+            throw new IllegalStateException("error updating branch cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", more than one record found: " + count)
+        }
+        return true
     }
 
     /**
@@ -253,7 +268,6 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 revisionCondition +
                 changedCondition +
                 nameCondition2, closure)
-        sql.close()
     }
 
     /**
@@ -318,7 +332,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 "WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = ? AND n.version_no_cd = ? AND n.status_cd = ? AND n.tenant_cd = RPAD(?, 10, ' ') AND n.branch_id = ?" +
                 revisionCondition +
                 changedCondition +
-                nameCondition2;
+                nameCondition2
 
         PreparedStatement stmt = c.prepareStatement(sql)
         stmt.setString(1, appId.getApp())
@@ -327,7 +341,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         stmt.setString(4, appId.getTenant())
         stmt.setString(5, appId.getBranch())
 
-        int i=6;
+        int i=6
         if (hasNamePattern)
         {
             stmt.setString(i++, namePattern)
@@ -349,53 +363,142 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             stmt.setString(i++, namePattern)
         }
 
-        return stmt;
+        return stmt
+    }
+
+    public List<String> getAppNames(Connection c, String tenant, String status, String branch)
+    {
+        if (StringUtilities.isEmpty(tenant) ||
+            StringUtilities.isEmpty(status) ||
+            StringUtilities.isEmpty(branch))
+        {
+            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), status (' + status + '), or branch (' + branch + '), cannot be null or empty')
+        }
+
+        Sql sql = new Sql(c)
+        Map map = [tenant:tenant, status:status, branch:branch]
+        List<String> apps = []
+
+        sql.eachRow("SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD($map.tenant, 10, ' ') and status_cd = $map.status and branch_id = $map.branch", { GroovyResultSet row ->
+            apps.add(row['app_cd'] as String)
+        })
+        return apps
+    }
+
+    public List<String> getAppVersions(Connection c, String tenant, String app, String status, String branch)
+    {
+        if (StringUtilities.isEmpty(tenant) ||
+            StringUtilities.isEmpty(app) ||
+            StringUtilities.isEmpty(status) ||
+            StringUtilities.isEmpty(branch))
+        {
+            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), app (' + app +'), status (' + status + '), or branch (' + branch + '), cannot be null or empty')
+        }
+        Sql sql = new Sql(c)
+        Map map = [tenant:tenant, app:app, status:status, branch:branch]
+        List<String> versions = []
+
+        sql.eachRow("SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = $map.app AND status_cd = $map.status AND tenant_cd = RPAD($map.tenant, 10, ' ') and branch_id = $map.branch", { GroovyResultSet row ->
+            versions.add(row['version_no_cd'] as String)
+        })
+        return versions
+    }
+
+    public Set<String> getBranches(Connection c, String tenant)
+    {
+        if (StringUtilities.isEmpty(tenant))
+        {
+            throw new IllegalArgumentException('error calling getBranches(), tenant must not be null or empty')
+        }
+        Sql sql = new Sql(c)
+        Map map = [tenant:tenant]
+        Set<String> branches = new HashSet<>()
+
+        sql.eachRow("SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD($map.tenant, 10, ' ')", { GroovyResultSet row ->
+            branches.add(row['branch_id'] as String)
+        })
+        return branches
+    }
+
+    /**
+     * Check for existence of a cube with this appId.  You can ignoreStatus if you want to check for existence of
+     * a SNAPSHOT or RELEASE cube.
+     * @param ignoreStatus - If you want to ignore status (check for both SNAPSHOT and RELEASE cubes in existence) pass
+     *                     in true.
+     * @return true if any cubes exist for the given AppId, false otherwise.
+     */
+    public boolean doCubesExist(Connection c, ApplicationID appId, boolean ignoreStatus)
+    {
+        Sql sql = new Sql(c)
+        Map map = [tenant: appId.tenant, app:appId.app, ver: appId.version, status:appId.status, branch: appId.branch]
+
+        GString statement = "SELECT DISTINCT n_cube_id FROM n_cube WHERE app_cd = $map.app AND version_no_cd = $map.ver AND tenant_cd = RPAD($map.tenant, 10, ' ') AND branch_id = $map.branch"
+
+        if (!ignoreStatus)
+        {
+            statement += " AND status_cd = $map.status"
+        }
+
+        boolean result = false
+        sql.eachRow(statement, { GroovyResultSet row ->
+            result = true
+        })
+        return result
     }
 
     Long getMaxRevision(Connection c, ApplicationID appId, String cubeName)
     {
-        return getMinMaxRevision(c, appId, cubeName, "DESC")
+        Sql sql = new Sql(c)
+        def map = [app:appId.app, ver:appId.version, status:appId.status, tenant:appId.tenant, branch:appId.branch, name:cubeName]
+        Long rev = null
+
+        String str = """
+SELECT a.revision_number
+FROM n_cube a
+LEFT OUTER JOIN n_cube b
+    ON abs(a.revision_number) < abs(b.revision_number) AND a.n_cube_nm = b.n_cube_nm AND a.app_cd = b.app_cd AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
+WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = '$map.name' AND a.app_cd = '$map.app' AND a.status_cd = '$map.status' AND a.version_no_cd = '$map.ver' AND a.tenant_cd = RPAD('$map.tenant', 10, ' ') AND a.branch_id = '$map.branch' AND
+ b.n_cube_nm is NULL
+"""
+        sql.eachRow(str, { GroovyResultSet row ->
+            if (rev != null)
+            {
+                throw new IllegalStateException('Found two max records, cube: ' + cubeName + ', app: ' + appId)
+            }
+            rev = row['revision_number'] as Long
+        })
+        return rev
     }
 
     Long getMinRevision(Connection c, ApplicationID appId, String cubeName)
     {
-        return getMinMaxRevision(c, appId, cubeName, "ASC")
+        Sql sql = new Sql(c)
+        def map = [app:appId.app, ver:appId.version, status:appId.status, tenant:appId.tenant, branch:appId.branch, name:cubeName]
+        Long rev = null
+
+        String str = """
+SELECT a.revision_number
+FROM n_cube a
+LEFT OUTER JOIN n_cube b
+    ON abs(a.revision_number) > abs(b.revision_number) AND a.n_cube_nm = b.n_cube_nm AND a.app_cd = b.app_cd AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
+WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = '$map.name' AND a.app_cd = '$map.app' AND a.status_cd = '$map.status' AND a.version_no_cd = '$map.ver' AND a.tenant_cd = RPAD('$map.tenant', 10, ' ') AND a.branch_id = '$map.branch' AND
+ b.n_cube_nm is NULL
+"""
+        sql.eachRow(str, { GroovyResultSet row ->
+            if (rev != null)
+            {
+                throw new IllegalStateException('Found two max records, cube: ' + cubeName + ', app: ' + appId)
+            }
+            rev = row['revision_number'] as Long
+        })
+        return rev
     }
 
-    Long getMinMaxRevision(Connection c, ApplicationID appId, String cubeName, String order)
+    // ------------------------------------------ local non-JDBC helper methods ----------------------------------------
+
+    protected String createNote(String user, Date date, String notes)
     {
-        PreparedStatement stmt = null
-        try 
-        {
-            stmt = c.prepareStatement(
-                    "SELECT revision_number FROM n_cube " +
-                            "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND status_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? " +
-                            "ORDER BY abs(revision_number) " + order)
-
-            stmt.setString(1, buildName(c, cubeName))
-            stmt.setString(2, appId.getApp())
-            stmt.setString(3, appId.getStatus())
-            stmt.setString(4, appId.getVersion())
-            stmt.setString(5, appId.getTenant())
-            stmt.setString(6, appId.getBranch())
-
-            ResultSet rs = stmt.executeQuery()
-            return rs.next() ? rs.getLong(1) : null;
-        }
-        catch (Exception e)
-        {
-            String revType = "ASC".equalsIgnoreCase(order) ? "minimum" : "maximum";
-            String s = "Unable to get " + revType + " revision number for cube: " + cubeName + ", app: " + appId;
-            LOG.error(s, e)
-            throw new RuntimeException(s, e)
-        }
-        finally
-        {
-            if (stmt != null)
-            {
-                stmt.close()
-            }
-        }
+        return dateTimeFormat.format(date) + ' [' + user + '] ' + notes
     }
 
     protected boolean toBoolean(Object value, boolean defVal)
@@ -411,14 +514,13 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
     {
         if (StringUtilities.isEmpty(pattern) || '*'.equals(pattern))
         {
-            return null;
+            return null
         }
         else
         {
             pattern = pattern.replace('*', '%')
             pattern = pattern.replace('?', '_')
         }
-        return pattern;
+        return pattern
     }
-
 }

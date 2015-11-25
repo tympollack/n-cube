@@ -46,21 +46,20 @@
     <properties>
         <version.json-io>4.1.9</version.json-io>
         <version.java-util>1.19.3</version.java-util>
-        <version.log4j>2.1</version.log4j>
+        <version.log4j>2.4.1</version.log4j>
         <version.junit>4.12</version.junit>
-        <version.groovy>2.4.4</version.groovy>
+        <version.groovy>2.4.5</version.groovy>
         <version.jgit>3.6.1.201501031845-r</version.jgit>
         <version.commons.math>3.5</version.commons.math>
         <version.encog.core>3.3.0</version.encog.core>
         <version.concurrent.linked.hashmap.lru>1.4.2</version.concurrent.linked.hashmap.lru>
         <version.mockito>1.10.19</version.mockito>
-        <version.powermock>1.6.2</version.powermock>
         <!--<version.jgit>3.6.1.201501031845-r</version.jgit>-->
         <version.mongo>2.12.3</version.mongo>
-        <version.mysql.connector.java>5.1.28</version.mysql.connector.java>
+        <version.mysql.connector.java>5.1.37</version.mysql.connector.java>
         <version.nosqlunit>0.7.9</version.nosqlunit>
-        <version.tomcat.jdbc>8.0.12</version.tomcat.jdbc>
-        <version.hsqldb>2.3.1</version.hsqldb>
+        <version.tomcat.jdbc>8.0.29</version.tomcat.jdbc>
+        <version.hsqldb>2.3.3</version.hsqldb>
         <version.oracle>11.2.0.3</version.oracle>
         <version.plugin.compiler>3.2</version.plugin.compiler>
         <version.plugin.groovy.eclipse.compiler>2.9.2-01</version.plugin.groovy.eclipse.compiler>

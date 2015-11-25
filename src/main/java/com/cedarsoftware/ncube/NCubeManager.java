@@ -856,7 +856,7 @@ public class NCubeManager
 
     /**
      * Commit the passed in changed cube records identified by NCubeInfoDtos.
-     * @return array of NCubeInfoDtos that were committed.
+     * @return array of NCubeInfoDtos that are to be committed.
      */
     public static List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos, String username)
     {

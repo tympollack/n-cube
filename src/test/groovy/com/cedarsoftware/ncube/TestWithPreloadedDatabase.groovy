@@ -864,7 +864,7 @@ abstract class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json", "test.branch.age.1.json", "TestCubeLevelDefault.json", "basicJumpStart.json")
         testValuesOnBranch(head)
 
-        //  delete and readd these cubes.
+        //  delete and re-add these cubes.
         assertEquals(4, NCubeManager.createBranch(branch1))
         NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
         NCubeManager.deleteCube(branch1, "TestAge", USER_ID)

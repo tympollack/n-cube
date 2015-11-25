@@ -47,59 +47,6 @@ public abstract class NCubeJdbcPersisterJava
     public static final String NOTES_BIN = "notes_bin";
     public static final String HEAD_SHA_1 = "head_sha1";
 
-    protected PreparedStatement updateBranchToHead(Connection c, Long cubeId, String sha1, long now) throws SQLException
-    {
-        PreparedStatement update = c.prepareStatement("UPDATE n_cube set head_sha1 = ?, changed = ?, create_dt = ? WHERE n_cube_id = ?");
-        update.setString(1, sha1);
-        update.setInt(2, 0);
-        update.setTimestamp(3, new Timestamp(now));
-        update.setLong(4, cubeId);
-        return update;
-    }
-
-    public boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String headSha1)
-    {
-        if (cubeId == null)
-        {
-            throw new IllegalArgumentException("Update cube's HEAD SHA-1, cube id cannot be empty");
-        }
-
-        if (StringUtilities.isEmpty(headSha1))
-        {
-            throw new IllegalArgumentException("Update cube's HEAD SHA-1, SHA-1 cannot be empty");
-        }
-
-        // select head cube in question
-        String sql = "UPDATE n_cube set head_sha1 = ?, changed = ? WHERE n_cube_id = ?";
-
-        try (PreparedStatement stmt = c.prepareStatement(sql))
-        {
-            stmt.setString(1, headSha1);
-            stmt.setBoolean(2, false);
-            stmt.setLong(3, cubeId);
-            long count = stmt.executeUpdate();
-            if (count == 0)
-            {
-                throw new IllegalStateException("error updating cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", no record found.");
-            }
-            else if (count != 1)
-            {
-                throw new IllegalStateException("error updating cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", more than one record found: " + count);
-            }
-            return true;
-        }
-        catch (RuntimeException e)
-        {
-            throw e;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to update cube: " + cubeId + " to have HEAD SHA-1: " + headSha1;
-            LOG.error(s, e);
-            throw new IllegalStateException(s, e);
-        }
-    }
-
     NCubeInfoDto updateCube(Connection c, ApplicationID appId, Long cubeId, String username)
     {
         if (cubeId == null)
@@ -311,20 +258,6 @@ public abstract class NCubeJdbcPersisterJava
      * @throws SQLException
      */
     abstract PreparedStatement createSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map<String, Object> options) throws SQLException;
-
-    public List<NCubeInfoDto> getChangedRecords(Connection c, ApplicationID appId)
-    {
-        Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_CHANGED_RECORDS_ONLY, true);
-        return search(c, appId, null, null, options);
-    }
-
-    public List<NCubeInfoDto> getDeletedCubeRecords(Connection c, ApplicationID appId, String pattern)
-    {
-        Map<String, Object> options = new HashMap<>();
-        options.put(NCubeManager.SEARCH_DELETED_RECORDS_ONLY, true);
-        return search(c, appId, pattern, null, options);
-    }
 
     public List<NCubeInfoDto> getRevisions(Connection c, ApplicationID appId, String cubeName)
     {
@@ -869,6 +802,7 @@ public abstract class NCubeJdbcPersisterJava
         }
 
         // Step 2: Release cubes where branch == HEAD (change their status from SNAPSHOT to RELEASE)
+        int releaseCount = 0;
         try
         {
             try (PreparedStatement statement = c.prepareStatement(
@@ -881,7 +815,7 @@ public abstract class NCubeJdbcPersisterJava
                 statement.setString(4, appId.getVersion());
                 statement.setString(5, ReleaseStatus.SNAPSHOT.name());
                 statement.setString(6, appId.getTenant());
-                statement.executeUpdate();
+                releaseCount = statement.executeUpdate();
             }
         }
         catch (Exception e)
@@ -937,7 +871,7 @@ public abstract class NCubeJdbcPersisterJava
                         insert.executeBatch();
                     }
                 }
-                return count;
+                return releaseCount;
             }
         }
         catch (RuntimeException e)
@@ -1420,10 +1354,7 @@ public abstract class NCubeJdbcPersisterJava
         }
     }
 
-    private String createNote(String user, Date date, String notes)
-    {
-        return date + " [" + user + "] " + notes;
-    }
+    protected abstract String createNote(String user, Date date, String notes);
 
     public PreparedStatement createInsertStatement(Connection c) throws SQLException
     {
@@ -1526,138 +1457,11 @@ public abstract class NCubeJdbcPersisterJava
         }
     }
 
-    /**
-     * Check for existence of a cube with this appId.  You can ignoreStatus if you want to check for existence of
-     * a SNAPSHOT or RELEASE cube.
-     * @param ignoreStatus - If you want to ignore status (check for both SNAPSHOT and RELEASE cubes in existence) pass
-     *                     in true.
-     * @return true if any cubes exist for the given AppId, false otherwise.
-     */
-    public boolean doCubesExist(Connection c, ApplicationID appId, boolean ignoreStatus)
-    {
-        String statement = "SELECT n_cube_id FROM n_cube WHERE app_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ?";
-
-        if (!ignoreStatus)
-        {
-            statement += " AND status_cd = ?";
-        }
-
-        try (PreparedStatement ps = c.prepareStatement(statement))
-        {
-            ps.setString(1, appId.getApp());
-            ps.setString(2, appId.getVersion());
-            ps.setString(3, appId.getTenant());
-            ps.setString(4, appId.getBranch());
-
-            if (!ignoreStatus)
-            {
-                ps.setString(5, appId.getStatus());
-            }
-
-            ps.setMaxRows(1);
-
-            try (ResultSet rs = ps.executeQuery())
-            {
-                return rs.next();
-            }
-        }
-        catch (Exception e)
-        {
-            String s = "Error checking for existing cubes:  " + appId;
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
-    }
+    public abstract boolean doCubesExist(Connection c, ApplicationID appId, boolean ignoreStatus);
 
     public boolean doReleaseCubesExist(Connection c, ApplicationID appId)
     {
         return doCubesExist(c, appId.asRelease(), false);
-    }
-
-    /**
-     * Return an array [] of Strings containing all unique App names.
-     */
-    public List<String> getAppNames(Connection connection, String tenant, String status, String branch)
-    {
-        String sql = "SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD(?, 10, ' ') and status_cd = ? and branch_id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql))
-        {
-            List<String> records = new ArrayList<>();
-
-            stmt.setString(1, tenant);
-            stmt.setString(2, status);
-            stmt.setString(3, branch);
-
-            try (ResultSet rs = stmt.executeQuery())
-            {
-                while (rs.next())
-                {
-                    records.add(rs.getString(1));
-                }
-            }
-            return records;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to fetch all app names for tenant: " + tenant + ", branch: " + branch;
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
-    }
-
-    public List<String> getAppVersions(Connection connection, String tenant, String app, String status, String branch)
-    {
-        final String sql = "SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = ? AND status_cd = ? AND tenant_cd = RPAD(?, 10, ' ') and branch_id = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql))
-        {
-            stmt.setString(1, app);
-            stmt.setString(2, status);
-            stmt.setString(3, tenant);
-            stmt.setString(4, branch);
-
-            List<String> records = new ArrayList<>();
-            try (ResultSet rs = stmt.executeQuery())
-            {
-                while (rs.next())
-                {
-                    records.add(rs.getString(1));
-                }
-            }
-
-            return records;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to fetch all versions for app: " + app;
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
-    }
-
-    public Set<String> getBranches(Connection connection, String tenant)
-    {
-        final String sql = "SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(?, 10, ' ')";
-        try (PreparedStatement stmt = connection.prepareStatement(sql))
-        {
-            stmt.setString(1, tenant);
-
-            Set<String> branches = new HashSet<>();
-            try (ResultSet rs = stmt.executeQuery())
-            {
-                while (rs.next())
-                {
-                    branches.add(rs.getString(1));
-                }
-            }
-
-            return branches;
-        }
-        catch (Exception e)
-        {
-            String s = "Unable to fetch all branches for tenant: " + tenant;
-            LOG.error(s, e);
-            throw new RuntimeException(s, e);
-        }
     }
 
     private static String convertPattern(String pattern)

@@ -39,7 +39,7 @@ import java.util.regex.Pattern
  *         limitations under the License.
  */
 @CompileStatic
-public class CellInfo
+class CellInfo
 {
     public String value
     public String dataType
@@ -71,7 +71,7 @@ public class CellInfo
      * @param isUrl boolean indicating whether or not this cell represents a URL (relative or full) to it's content
      * @param isCached boolean indicate whether or not this cell is supposed to be cached after retrieval.
      */
-    public CellInfo(String type, String value, Object isUrl, Object isCached)
+    CellInfo(String type, String value, Object isUrl, Object isCached)
     {
         this.dataType = type
         this.value = value
@@ -85,7 +85,7 @@ public class CellInfo
      * obtained from ncube.getCell(), then it will not be able to reconstruct a CommandCell,
      * a URL cell, as the value would be the result of executing the CommandCell.
      */
-    public CellInfo(Object cell)
+    CellInfo(Object cell)
     {
         isUrl = false
         isCached = false
@@ -266,7 +266,7 @@ public class CellInfo
      * method, an exception is thrown indicating an unsupported type, and the 'section' String name will be used
      * in the exception message.
      */
-    public static String getType(Object cell, String section)
+    static String getType(Object cell, String section)
     {
         String type = getType(cell)
         if (UNSUPPORTED_TYPE.equals(type))
@@ -285,7 +285,7 @@ public class CellInfo
      * will be returned.  If the execution of the cell returned a complex type, and that value is passed into this
      * method, a constant CellInfo.UNSUPPORTED_TYPE will be returned.
      */
-    public static String getType(Object cell)
+    static String getType(Object cell)
     {
         if (cell == null) {
             return null
@@ -389,7 +389,7 @@ public class CellInfo
      * Boolean.TRUE or Boolean.FALSE would be returned.  This method always returns a value that if placed
      * back into the CellInfo(cell) constructor, would return the equivalent CellInfo.
      */
-    public Object recreate()
+    Object recreate()
     {
         return parseJsonValue(isUrl ? null : value, isUrl ? value : null, dataType, isCached)
     }
@@ -399,7 +399,7 @@ public class CellInfo
      * Collapse: float ==> double
      * Collapse: BigInteger ==> BigDecimal
      */
-    public void collapseToUiSupportedTypes()
+    void collapseToUiSupportedTypes()
     {
         if ('byte'.equals(dataType) || 'short'.equals(dataType) || 'int'.equals(dataType))
         {
@@ -438,7 +438,7 @@ public class CellInfo
      * specifiers.  This return value from this method can be reconstituted into the original pieces by
      * using the CellInfo(cell) constructor with the return value of this method.
      */
-    public static Object parseJsonValue(final Object val, final String url, final String type, boolean cache)
+    static Object parseJsonValue(final Object val, final String url, final String type, boolean cache)
     {
         if (url != null)
         {
@@ -738,7 +738,7 @@ public class CellInfo
         return builder.toString()
     }
 
-    public static String formatForDisplay(Comparable val)
+    static String formatForDisplay(Comparable val)
     {
         if (val instanceof Double || val instanceof Float)
         {
@@ -776,7 +776,7 @@ public class CellInfo
         }
     }
 
-    public static String formatForEditing(Object val)
+    static String formatForEditing(Object val)
     {
         if (val instanceof Date)
         {
@@ -811,7 +811,7 @@ public class CellInfo
         return dateTimeFormat.format(date)
     }
 
-    public static boolean booleanValue(Object o)
+    static boolean booleanValue(Object o)
     {
         if (o instanceof Boolean)
         {
@@ -830,7 +830,7 @@ public class CellInfo
         return false
     }
 
-    public boolean equals(Object o)
+    boolean equals(Object o)
     {
         if (this.is(o))
         {
@@ -858,7 +858,7 @@ public class CellInfo
         return !(dataType != null ? !dataType.equals(cellInfo.dataType) : cellInfo.dataType != null)
     }
 
-    public int hashCode()
+    int hashCode()
     {
         int result = value != null ? value.hashCode() : 0
         result = 31 * result + (dataType != null ? dataType.hashCode() : 0)

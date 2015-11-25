@@ -27,6 +27,145 @@ import static org.junit.Assert.assertFalse
 class TestRegexes
 {
     @Test
+    void testImport1()
+    {
+        String code = """package foo
+import java.lang.*;
+import java.util.*
+  import x;
+   import z
+ import a.b.* // comment after
+ import a.b.*; /* comment after */
+class x { }"""
+        Matcher m = Regexes.importPattern.matcher(code)
+        assert m.find()
+        assert 'import java.lang.*;' == m.group(1)
+        assert m.find()
+        assert 'import java.util.*' == m.group(1)
+        assert m.find()
+        assert '  import x;' == m.group(1)
+        assert m.find()
+        assert '   import z' == m.group(1)
+        assert m.find()
+        assert ' import a.b.* // comment after' == m.group(1)
+        assert m.find()
+        assert ' import a.b.*; /* comment after */' == m.group(1)
+        assert !m.find()
+
+        m.reset()
+        String left = m.replaceAll('')
+        assert left.startsWith('package foo')
+        assert left.endsWith('class x { }')
+    }
+
+    @Test
+    void testImport2()
+    {
+        String code = """println 'yes'
+import java.lang.*
+println 'code'"""
+        Matcher m = Regexes.importPattern.matcher(code)
+        assert m.find()
+        assert 'import java.lang.*' == m.group(1)
+        assert !m.find()
+
+        m.reset()
+        code = m.replaceAll("")
+        assert code.startsWith("println 'yes'")
+        assert code.endsWith("println 'code'")
+    }
+
+    @Test
+    void testImport3()
+    {
+        String code = """package foo
+import java.lang.*
+import this.is.ok  // are you sure?
+class x { println " import i.fooled.it;" }"""
+        Matcher m = Regexes.importPattern.matcher(code)
+        assert m.find()
+        assert 'import java.lang.*' == m.group(1)
+        assert m.find()
+        assert 'import this.is.ok  // are you sure?' == m.group(1)
+        assert !m.find()
+
+        m.reset()
+        code = m.replaceAll('')
+        assert code.startsWith('package foo')
+        assert code.endsWith('class x { println " import i.fooled.it;" }')
+    }
+
+    @Test
+    void testInputVarHunting()
+    {
+        String code = """input.startDate > input.endDate"""
+        Matcher m = Regexes.inputVar.matcher(code)
+        assert m.find()
+        assert 'startDate' == m.group(2)
+        assert m.find()
+        assert 'endDate' == m.group(2)
+        assert !m.find()
+    }
+
+    @Test
+    void testInputVarHunting2()
+    {
+        String code = """
+println 'is it going to count input.what have we got here'
+"""
+        Matcher m = Regexes.inputVar.matcher(code)
+        assert m.find()
+        // Not that I like it, but let's verify how it is currently working.
+        assert 'what' == m.group(2)
+    }
+
+    @Test
+    void testScriptletPattern()
+    {
+        String code = """<%=input.state%>"""
+        Matcher m = Regexes.scripletPattern.matcher(code)
+        assert m.find()
+        // Not that I like it, but let's verify how it is currently working.
+        code = m.group(1)
+        assert !code.contains('<%')
+        assert !code.contains('%>')
+        assert code.contains("input.state")
+
+        code = """Other stuff
+<% println 'This is a string: ' + input.state %>around
+"""
+        m = Regexes.scripletPattern.matcher(code)
+        assert m.find()
+        // Not that I like it, but let's verify how it is currently working.
+        code = m.group(1)
+        assert !code.contains('<%')
+        assert !code.contains('%>')
+        assert code.contains("println 'This is a string: ' + input.state")
+    }
+
+    @Test
+    void testVelocityPattern()
+    {
+        String code = '${input.state}'
+        Matcher m = Regexes.velocityPattern.matcher(code)
+        assert m.find()
+        // Not that I like it, but let's verify how it is currently working.
+        code = m.group(1)
+        assert !code.contains('${')
+        assert !code.contains('}')
+        assert code.contains("input.state")
+
+        code = 'Other stuff\n${ println \'This is a string: \' + input.state }around'
+        m = Regexes.velocityPattern.matcher(code)
+        assert m.find()
+        // Not that I like it, but let's verify how it is currently working.
+        code = m.group(1)
+        assert !code.contains('${')
+        assert !code.contains('}')
+        assert code.contains("println 'This is a string: ' + input.state")
+    }
+
+    @Test
     void testLatLongRegex()
     {
         Matcher m = Regexes.valid2Doubles.matcher '25.8977899,56.899988'
@@ -54,6 +193,58 @@ class TestRegexes
         assert !m.matches()
 
         m = Regexes.valid2Doubles.matcher '25.891919, 56. '
+        assert !m.matches()
+    }
+
+    @Test
+    void testPoint3d()
+    {
+        Matcher m = Regexes.valid3Doubles.matcher '25.8977899,56.899988,3.1415'
+        assert m.matches()
+        assert '25.8977899' == m.group(1)
+        assert '56.899988' == m.group(2)
+        assert '3.1415' == m.group(3)
+
+        m = Regexes.valid3Doubles.matcher '25,56,3'
+        assert m.matches()
+        assert '25' == m.group(1)
+        assert '56' == m.group(2)
+        assert '3' == m.group(3)
+
+        m = Regexes.valid3Doubles.matcher ' 25.8977899, 56.899988, 3.14 '
+        assert m.matches()
+        assert '25.8977899' == m.group(1)
+        assert '56.899988' == m.group(2)
+        assert '3.14' == m.group(3)
+
+        m = Regexes.valid3Doubles.matcher ' 25, 56, 3 '
+        assert m.matches()
+        assert '25' == m.group(1)
+        assert '56' == m.group(2)
+        assert '3' == m.group(3)
+
+        m = Regexes.valid3Doubles.matcher '-25.8977899,-56.899988,-3.14'
+        assert m.matches()
+        assert '-25.8977899' == m.group(1)
+        assert '-56.899988' == m.group(2)
+        assert '-3.14' == m.group(3)
+
+        m = Regexes.valid3Doubles.matcher '-25,-56,-3'
+        assert m.matches()
+        assert '-25' == m.group(1)
+        assert '-56' == m.group(2)
+        assert '-3' == m.group(3)
+
+        m = Regexes.valid3Doubles.matcher 'N25.8977899, 56.899988, 3.14 '
+        assert !m.matches()
+
+        m = Regexes.valid3Doubles.matcher '25.8977899, E56.899988, 3.14 '
+        assert !m.matches()
+
+        m = Regexes.valid3Doubles.matcher '25., 56.899988, 3.14 '
+        assert !m.matches()
+
+        m = Regexes.valid3Doubles.matcher '25.891919, 56., 3.14 '
         assert !m.matches()
     }
 

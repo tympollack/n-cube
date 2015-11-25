@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
@@ -16,7 +17,6 @@ import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-
 /**
  * NCubeManager Tests
  *
@@ -521,6 +521,49 @@ class TestNCubeManager
     }
 
     @Test
+    void testReleaseCubesWhenNoCubesExist()
+    {
+        try
+        {
+            NCubeManager.releaseCubes(new ApplicationID('foo', 'bar', '1.0.0', 'SNAPSHOT', 'john'), "1.0.1")
+            // No exception should be thrown, just nothing to promote.
+        }
+        catch (Exception e)
+        {
+            fail()
+        }
+    }
+
+    @Test
+    void testChangeVersionWhenNoCubesExist()
+    {
+        try
+        {
+            NCubeManager.changeVersionValue(new ApplicationID('foo', 'bar', '1.0.0', 'SNAPSHOT', 'john'), "1.0.1")
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('no snapshot n-cubes found with version 1.0.0')
+        }
+    }
+
+    @Test
+    void testUpdateNotesNonExistingCube()
+    {
+        try
+        {
+            NCubeManager.updateNotes(new ApplicationID('foo', 'bar', '1.0.0', 'SNAPSHOT', 'john'), 'a', "notes")
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('cannot update notes')
+            assert e.message.toLowerCase().contains('cube: a does not exist')
+        }
+    }
+
+    @Test
     void testGetNCubes()
     {
         NCube ncube1 = NCubeBuilder.testNCube3D_Boolean
@@ -578,9 +621,25 @@ class TestNCubeManager
     }
 
     @Test
-    void testNotAllowedToDeleteReleaseCubes()
+    void testNotAllowedToDeleteReleaseCubesOrRerelease()
     {
-        // TODO: Test that it fails when attempting to delete RELEASE cubes
+        NCube cube = NCubeManager.getNCubeFromResource(defaultSnapshotApp, 'latlon.json')
+        NCubeManager.updateCube(defaultSnapshotApp, cube, USER_ID)
+        Object[] cubeInfos = NCubeManager.search(defaultSnapshotApp, '*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        assertNotNull(cubeInfos)
+        assertEquals(2, cubeInfos.length)
+        NCubeManager.commitBranch(defaultSnapshotApp, cubeInfos, USER_ID)
+        assert 2 == NCubeManager.releaseCubes(defaultSnapshotApp, "1.2.3")
+        assertFalse(NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID))
+
+        try
+        {
+            NCubeManager.releaseCubes(defaultSnapshotApp, "1.2.3")
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('1.0.0 already exists')
+        }
     }
 
     @Test
@@ -1333,6 +1392,97 @@ class TestNCubeManager
     {
         Object o = NCubeManager.resolveRelativeUrl(new ApplicationID('foo', 'bar', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH), 'tests/ncube/hello.groovy')
         assertNull o
+    }
+
+    @Test
+    void testMalformedUrl()
+    {
+        NCube cube = NCubeManager.getNCubeFromResource("urlContent.json")
+        try
+        {
+            cube.getCell([Sites:'BadUrl'])
+        }
+        catch (CommandCellException e)
+        {
+            assert e.cause instanceof IllegalStateException
+        }
+
+        // Called 2nd time intentionally, to ensure that failOnErrors() is called.
+        try
+        {
+            cube.getCell([Sites:'BadUrl'])
+        }
+        catch (CommandCellException e)
+        {
+            assert e.cause instanceof IllegalStateException
+        }
+    }
+
+    @Test
+    void testFastForward()
+    {
+        // Test the case where two users make the exact same change.  In this case, we can fast-forward the
+        // head sha1 in the branch (re-base it) because the cube in the branch is the same as the cube in head,
+        // even though the cube in the branch has an out-of-date HEAD SHA-1 (the head changed since the
+        // branch was changed).  But, because the branch owner made the same change as someone else, when they
+        // go to update, it is recognized, and then their branch cube just has it's HEAD SHA1 updated.
+        ApplicationID johnAppId = new ApplicationID('ibm', 'deep.blue', '1.0.0', 'SNAPSHOT', 'jdereg')
+        NCube cube = NCubeManager.getNCubeFromResource(johnAppId, 'testCube6.json')
+        NCubeManager.updateCube(johnAppId, cube, USER_ID)
+        List<NCubeInfoDto> cubes = NCubeManager.getBranchChangesFromDatabase(johnAppId)
+        NCubeManager.commitBranch(johnAppId, cubes.toArray(), USER_ID)
+        ApplicationID kenAppId  = new ApplicationID('ibm', 'deep.blue', '1.0.0', 'SNAPSHOT', 'ken')
+        NCubeManager.createBranch(kenAppId)
+
+        // At this point, there are three branches, john, ken, HEAD.  1 cube in all, same state
+        cubes = NCubeManager.search(johnAppId, null, null, null)
+        assert cubes.size() == 1
+        assert cubes[0].revision == '0'
+        cubes = NCubeManager.search(kenAppId, null, null, null)
+        assert cubes.size() == 1
+        assert cubes[0].revision == '0'
+        cubes = NCubeManager.search(johnAppId.asHead(), null, null, null)
+        assert cubes.size() == 1
+        assert cubes[0].revision == '0'
+
+        // Ken's branch is going to modify cube and commit it to HEAD
+        cube = NCubeManager.loadCube(kenAppId, 'TestCube')
+        cube.setCell('foo', [gender:'male'])
+        String kenSha1 = cube.sha1()
+        NCubeManager.updateCube(kenAppId, cube, USER_ID)
+        cubes = NCubeManager.getBranchChangesFromDatabase(kenAppId)
+        assert cubes.size() == 1
+        NCubeManager.commitBranch(kenAppId, cubes.toArray(), USER_ID)
+        NCube cubeHead = NCubeManager.loadCube(kenAppId.asHead(), 'TestCube')
+        assert cubeHead.sha1() == cube.sha1()
+
+        // At this point, HEAD and Ken are same, John's branch is behind.
+        NCube johnCube = NCubeManager.loadCube(johnAppId, 'TestCube')
+        assert johnCube.sha1() != kenSha1
+        johnCube.setCell('foo', [gender:'male'])
+        assert kenSha1 == cube.sha1()
+
+        // I made the same changes on my branch to my cube.
+        NCubeManager.updateCube(johnAppId, johnCube, USER_ID)
+        johnCube = NCubeManager.loadCube(johnAppId, 'TestCube')
+        assert kenSha1 == johnCube.sha1()
+
+        // Verify that before the Update Branch, we show one (1) branch change
+        cubes = NCubeManager.getBranchChangesFromDatabase(johnAppId)
+        assert cubes.size() == 1
+
+        // Update john branch (no changes are shown - it auto-merged)
+        Map map = NCubeManager.updateBranch(johnAppId, USER_ID)
+        assert map.updates.size() == 0
+        assert map.merges.size() == 0
+        assert map.conflicts.size() == 0
+
+        cubes = NCubeManager.getBranchChangesFromDatabase(johnAppId)
+        assert cubes.size() == 0    // No changes being returned
+
+        cubes = NCubeManager.search(johnAppId, null, null, null)
+        assert cubes.size() == 1
+        assert cubes[0].revision == '1'
     }
 
 //    @Test
