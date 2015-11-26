@@ -215,7 +215,8 @@ abstract class TestWithPreloadedDatabase
     }
 
     @Test
-    void testGetBranchChangesOnceBranchIsDeleted() {
+    void testGetBranchChangesOnceBranchIsDeleted()
+    {
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
 
         NCubeManager.updateCube(branch1, cube, 'kenny')
@@ -1944,7 +1945,6 @@ abstract class TestWithPreloadedDatabase
         assertEquals(0, getDeletedCubesFromDatabase(branch2, null).size())
     }
 
-
     @Test
     void testDuplicateCubeWithNonExistentSource()
     {
@@ -1952,9 +1952,10 @@ abstract class TestWithPreloadedDatabase
         {
             NCubeManager.duplicate(head, branch1, "foo", "bar", USER_ID)
             fail()
-        } catch (IllegalArgumentException e)
+        }
+        catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains("Unable to duplicate"))
+            assertTrue(e.message.contains("not duplicate cube because"))
             assertTrue(e.message.contains("does not exist"))
         }
     }

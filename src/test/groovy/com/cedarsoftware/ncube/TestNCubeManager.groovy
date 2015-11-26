@@ -407,7 +407,6 @@ class TestNCubeManager
         assertTrue(foundVer)
     }
 
-
     @Test
     void testChangeVersionValue()
     {
@@ -542,7 +541,7 @@ class TestNCubeManager
             NCubeManager.changeVersionValue(new ApplicationID('foo', 'bar', '1.0.0', 'SNAPSHOT', 'john'), "1.0.1")
             fail()
         }
-        catch (IllegalStateException e)
+        catch (IllegalArgumentException e)
         {
             assert e.message.toLowerCase().contains('no snapshot n-cubes found with version 1.0.0')
         }
@@ -1103,22 +1102,6 @@ class TestNCubeManager
     }
 
     @Test
-    void testRestoreNonExistingCube()
-    {
-        try
-        {
-            NCubeManager.restoreCube(defaultSnapshotApp, ['fingers'] as Object[], USER_ID)
-            fail('should not make it here')
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains('not'))
-            assertTrue(e.message.contains('restore'))
-            assertTrue(e.message.contains('exist'))
-        }
-    }
-
-    @Test
     void testRestoreExistingCube()
     {
         NCube cube = createCube()
@@ -1129,8 +1112,8 @@ class TestNCubeManager
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains('already'))
-            assertTrue(e.message.contains('restored'))
+            assertTrue(e.message.toLowerCase().contains('cannot restore'))
+            assertTrue(e.message.contains('not deleted in app'))
         }
         NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
     }
@@ -1179,8 +1162,8 @@ class TestNCubeManager
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains('not restore cube'))
-            assertTrue(e.message.contains('does not exist'))
+            assertTrue(e.message.toLowerCase().contains('cannot restore'))
+            assertTrue(e.message.contains('not deleted in app'))
         }
     }
 
