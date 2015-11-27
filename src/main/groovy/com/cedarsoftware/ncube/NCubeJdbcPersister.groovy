@@ -4,7 +4,6 @@ import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
-import groovy.sql.GroovyResultSet
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
@@ -15,7 +14,6 @@ import java.sql.Blob
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.sql.SQLException
 import java.sql.Timestamp
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -40,122 +38,124 @@ import java.util.zip.GZIPOutputStream
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeJdbcPersister extends NCubeJdbcPersisterJava
+class NCubeJdbcPersister
 {
     static final SafeSimpleDateFormat dateTimeFormat = new SafeSimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     static final String CUBE_VALUE_BIN = "cube_value_bin"
     static final String TEST_DATA_BIN = "test_data_bin"
     static final String NOTES_BIN = "notes_bin"
     static final String HEAD_SHA_1 = "head_sha1"
-    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterJava.class)
+    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersister.class)
     private static final long EXECUTE_BATCH_CONSTANT = 35
 
-    List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchPattern, Map<String, Object> options)
+    List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchContent, Map<String, Object> options)
     {
-        boolean hasSearchPattern = StringUtilities.hasContent(searchPattern)
+        List<NCubeInfoDto> list = new ArrayList<>()
+        Pattern searchPattern = null
 
-        if (hasSearchPattern)
+        if (StringUtilities.hasContent(searchContent))
         {
             options.put(NCubeManager.SEARCH_INCLUDE_CUBE_DATA, true)
+            searchPattern = Pattern.compile(convertPattern(searchContent), Pattern.CASE_INSENSITIVE)
         }
 
-        PreparedStatement statement = createSelectCubesStatement(c, appId, cubeNamePattern, options)
-        return getCubeInfoRecords(appId, statement, searchPattern)
+        runSelectCubesStatement(c, appId, cubeNamePattern, options, { ResultSet row -> getCubeInfoRecords(appId, searchPattern, list, row) })
+        return list
     }
 
     NCube loadCube(Connection c, ApplicationID appId, String cubeName)
     {
-        Map<String, Object> options = new HashMap<>()
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true)
-        options.put(NCubeManager.SEARCH_INCLUDE_CUBE_DATA, true)
-        options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true)
-        options.put(NCubeManager.SEARCH_EXACT_MATCH_NAME, true)
+        Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
+                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
 
-        PreparedStatement stmt = createSelectCubesStatement(c, appId, cubeName, options)
-        ResultSet rs = stmt.executeQuery()
-        if (rs.next())
-        {
-            return buildCube(appId, rs)
-        }
-        return null
+        NCube cube = null
+        runSelectCubesStatement(c, appId, cubeName, options, { ResultSet row ->
+            if (cube != null)
+            {
+                throw new IllegalStateException("More than one cube found with name: " + cubeName + ", app: " + appId)
+            }
+            cube = buildCube(appId, row)
+        })
+        return cube
     }
 
     NCube loadCubeById(Connection c, long cubeId)
     {
-        PreparedStatement stmt = createSelectSingleCubeStatement(c, cubeId)
-        ResultSet rs = stmt.executeQuery()
-        if (rs.next())
-        {
-            String tenant = rs.getString("tenant_cd")
-            String status = rs.getString("status_cd")
-            String app = rs.getString("app_cd")
-            String version = rs.getString("version_no_cd")
-            String branch = rs.getString("branch_id")
+        Map map = [id: cubeId]
+        Sql sql = new Sql(c)
+        NCube cube = null
+        sql.eachRow(map, "SELECT n_cube_nm, tenant_cd, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, changed, sha1, head_sha1 FROM n_cube where n_cube_id = :id", 0, 1, { ResultSet row ->
+            String tenant = row['tenant_cd']
+            String status = row['status_cd']
+            String app = row['app_cd']
+            String version = row['version_no_cd']
+            String branch = row['branch_id']
             ApplicationID appId = new ApplicationID(tenant.trim(), app, version, status, branch)
-            return buildCube(appId, rs)
+            cube = buildCube(appId, row)
+        })
+        if (cube)
+        {
+            return cube
         }
         throw new IllegalArgumentException("Unable to find cube with id: " + cubeId)
     }
 
     NCube loadCubeBySha1(Connection c, ApplicationID appId, String cubeName, String sha1)
     {
-        PreparedStatement stmt = createSelectCubeWithMatchingSha1Statement(c, appId, cubeName, sha1)
-        ResultSet rs = stmt.executeQuery()
-        if (rs.next())
-        {
-            return buildCube(appId, rs)
-        }
-        return null
+        Map map = appId as Map
+        map.cube = cubeName
+        map.sha1 = sha1
+
+        Sql sql = new Sql(c)
+        NCube cube = null
+        sql.eachRow(map, "SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt " +
+                "FROM n_cube " +
+                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND sha1 = :sha1 " +
+                "ORDER BY abs(revision_number) DESC", 0, 1, { ResultSet row ->
+                cube = buildCube(appId, row)
+        })
+        return cube
     }
 
     List<NCubeInfoDto> getRevisions(Connection c, ApplicationID appId, String cubeName)
     {
-        PreparedStatement stmt = c.prepareStatement(
-            "SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed " +
-                    "FROM n_cube " +
-                    "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND status_cd = ? AND branch_id = ?" +
-                    "ORDER BY abs(revision_number) DESC")
-        stmt.setString(1, buildName(c, cubeName))
-        stmt.setString(2, appId.getApp())
-        stmt.setString(3, appId.getVersion())
-        stmt.setString(4, appId.getTenant())
-        stmt.setString(5, appId.getStatus())
-        stmt.setString(6, appId.getBranch())
+        List<NCubeInfoDto> records = new ArrayList<>()
+        Map map = appId as Map
+        map.cube = cubeName
+        Sql sql = new Sql(c)
+        sql.eachRow(map, "SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed " +
+                "FROM n_cube " +
+                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch " +
+                "ORDER BY abs(revision_number) DESC", {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
-        List<NCubeInfoDto> records = getCubeInfoRecords(appId, stmt, null)
         if (records.isEmpty())
         {
-            throw new IllegalArgumentException("Cannot fetch revision history for cube:  " + cubeName + " as it does not exist in app:  " + appId)
+            throw new IllegalArgumentException("Cannot fetch revision history for cube: " + cubeName + " as it does not exist in app: " + appId)
         }
-        return records;
+        return records
     }
 
-    NCubeInfoDto insertCube(Connection c, ApplicationID appId, String name, Long revision, byte[] cubeData, byte[] testData, String notes, boolean changed, String sha1, String headSha1, long time, String username)
+    NCubeInfoDto insertCube(Connection c, ApplicationID appId, String cubeName, Long revision, byte[] cubeData, byte[] testData, String notes, boolean changed, String sha1, String headSha1, long time, String username)
     {
-        PreparedStatement s = createInsertStatement(c)
         long uniqueId = UniqueIdGenerator.getUniqueId()
-        s.setLong(1, uniqueId)
-        s.setString(2, appId.getTenant())
-        s.setString(3, appId.getApp())
-        s.setString(4, appId.getVersion())
-        s.setString(5, appId.getStatus())
-        s.setString(6, appId.getBranch())
-        s.setString(7, name)
-        s.setLong(8, revision)
-        s.setString(9, sha1)
-        s.setString(10, headSha1)
         Timestamp now = new Timestamp(time)
-        s.setTimestamp(11, now)
-        s.setString(12, username)
-        s.setBytes(13, cubeData)
-        s.setBytes(14, testData)
         String note = createNote(username, now, notes)
-        s.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
-        s.setInt(16, changed ? 1 : 0)
+        Map map = appId as Map
+        map.putAll([id: uniqueId, cube: cubeName, rev: revision, sha1: sha1, headSha1: headSha1, create_dt: now,
+                    user: username, cubeBin: cubeData, testBin: testData, note: StringUtilities.getBytes(note, "UTF-8"),
+                    changed: changed ? 1 : 0])
+
+        Sql sql = new Sql(c)
+        sql.execute(map, """\
+INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+                    sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+VALUES (:id, :tenant, :app, :version, :status, :branch, :cube, :rev, :sha1,
+        :headSha1, :create_dt, :user, :cubeBin, :testBin, :note, :changed)""")
 
         NCubeInfoDto dto = new NCubeInfoDto()
         dto.id = Long.toString(uniqueId)
-        dto.name = name;
+        dto.name = cubeName;
         dto.sha1 = sha1;
         dto.headSha1 = sha1;
         dto.changed = changed;
@@ -168,19 +168,20 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         dto.createHid = username;
         dto.notes = note;
         dto.revision = Long.toString(revision)
-
-        return s.executeUpdate() == 1 ? dto : null;
+        return dto;
     }
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, NCube cube, Long revision, byte[] testData, String notes, boolean changed, String headSha1, long time, String username)
     {
-        PreparedStatement s = createInsertStatement(c)
+        long uniqueId = UniqueIdGenerator.getUniqueId()
+        Timestamp now = new Timestamp(time)
         final Blob blob = c.createBlob()
         OutputStream out = blob.setBinaryStream(1L)
         OutputStream stream = new GZIPOutputStream(out, 8192)
         new JsonFormatter(stream).formatCube(cube)
 
-        long uniqueId = UniqueIdGenerator.getUniqueId()
+        String sql = "INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number, sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        PreparedStatement s = c.prepareStatement(sql)
         s.setLong(1, uniqueId)
         s.setString(2, appId.getTenant())
         s.setString(3, appId.getApp())
@@ -191,7 +192,6 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         s.setLong(8, revision)
         s.setString(9, cube.sha1())
         s.setString(10, headSha1)
-        Timestamp now = new Timestamp(time)
         s.setTimestamp(11, now)
         s.setString(12, username)
         s.setBlob(13, blob)
@@ -216,7 +216,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         dto.notes = note;
         dto.revision = Long.toString(revision)
 
-        return s.executeUpdate() == 1 ? dto : null;
+        return s.executeUpdate() == 1 ? dto : null
     }
 
     boolean deleteCube(Connection c, ApplicationID appId, String cubeName, boolean allowDelete, String username)
@@ -231,7 +231,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             ps.setString(3, appId.getVersion())
             ps.setString(4, appId.getTenant())
             ps.setString(5, appId.getBranch())
-            return ps.executeUpdate() > 0;
+            return ps.executeUpdate() > 0
         }
         else
         {
@@ -241,7 +241,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                                            (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
 
             boolean result = false
-            runSelectCubesStatement(c, appId, cubeName, options, { GroovyResultSet row ->
+            runSelectCubesStatement(c, appId, cubeName, options, { ResultSet row ->
                 if (result)
                 {
                     throw new IllegalStateException('Error deleting single cube, more than one matched, cube: ' + cubeName + ', app: ' + appId)
@@ -254,7 +254,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
                 if (insertCube(c, appId, cubeName, -(revision + 1), jsonBytes, testData, "Cube deleted", true, sha1, headSha1, System.currentTimeMillis(), username) == null)
                 {
-                    throw new IllegalStateException("Cannot delete n-cube: " + cubeName + "', app: " + appId + ", row was not deleted")
+                    throw new IllegalStateException("Cannot delete n-cube: " + cubeName + ", app: " + appId + ", row was not deleted")
                 }
                 result = true
             })
@@ -270,7 +270,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                                        (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
 
         Long revision = null
-        runSelectCubesStatement(c, appId, cubeName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, cubeName, options, { ResultSet row ->
             if (revision != null)
             {
                 throw new IllegalStateException('Only 1 cube should have matched')
@@ -284,7 +284,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
             if (insertCube(c, appId, cubeName, Math.abs(revision as long) + 1, jsonBytes, testData, notes, true, sha1, headSha1, System.currentTimeMillis(), username) == null)
             {
-                throw new IllegalStateException("Could not add restored cube: " + cubeName + "', app: " + appId)
+                throw new IllegalStateException("Could not add restored cube: " + cubeName + ", app: " + appId)
             }
         })
 
@@ -305,16 +305,16 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         String sql = "SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1, create_dt from n_cube WHERE n_cube_id = ?"
         PreparedStatement stmt = c.prepareStatement(sql)
         stmt.setLong(1, cubeId)
-        ResultSet rs = stmt.executeQuery()
+        ResultSet row = stmt.executeQuery()
 
-        if (rs.next())
+        if (row.next())
         {
-            byte[] jsonBytes = rs.getBytes(CUBE_VALUE_BIN)
-            String sha1 = rs.getString("sha1")
-            String cubeName = rs.getString("n_cube_nm")
-            Long revision = rs.getLong("revision_number")
-            long time = rs.getTimestamp("create_dt").getTime()
-            byte[] testData = rs.getBytes(TEST_DATA_BIN)
+            byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+            String sha1 = row.getString("sha1")
+            String cubeName = row.getString("n_cube_nm")
+            Long revision = row.getLong("revision_number")
+            long time = row.getTimestamp("create_dt").getTime()
+            byte[] testData = row.getBytes(TEST_DATA_BIN)
 
             Long maxRevision = getMaxRevision(c, appId, cubeName)
 
@@ -347,28 +347,29 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         return null
     }
 
-    void updateCube(Connection connection, ApplicationID appId, NCube cube, String username)
+    void updateCube(Connection c, ApplicationID appId, NCube cube, String username)
     {
-        Map<String, Object> options = new HashMap<>()
-        options.put(NCubeManager.SEARCH_INCLUDE_CUBE_DATA, true)
-        options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true)
-        options.put(NCubeManager.SEARCH_EXACT_MATCH_NAME, true)
+        Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
+                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
 
-        PreparedStatement stmt = createSelectCubesStatement(connection, appId, cube.getName(), options)
-        ResultSet rs = stmt.executeQuery()
-        if (rs.next())
-        {
-            Long revision = rs.getLong("revision_number")
-
-            byte[] testData = rs.getBytes(TEST_DATA_BIN)
+        boolean rowFound = false
+        runSelectCubesStatement(c, appId, cube.getName(), options, { ResultSet row ->
+            if (rowFound)
+            {
+                throw new IllegalStateException('2nd row found attempting to update cube: ' + cube.getName() + ', app: ' + appId)
+            }
+            rowFound = true
+            Long revision = row.getLong("revision_number")
+            byte[] testData = row.getBytes(TEST_DATA_BIN)
 
             if (revision < 0)
             {
                 testData = null
             }
 
-            String headSha1 = rs.getString("head_sha1")
-            String oldSha1 = rs.getString("sha1")
+            String headSha1 = row.getString("head_sha1")
+            String oldSha1 = row.getString("sha1")
 
             if (StringUtilities.equals(oldSha1, cube.sha1()) && revision >= 0)
             {
@@ -376,16 +377,21 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 return
             }
 
-            NCubeInfoDto dto = insertCube(connection, appId, cube, Math.abs(revision as long) + 1, testData, "Cube updated", true, headSha1, System.currentTimeMillis(), username)
+            NCubeInfoDto dto = insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "Cube updated", true, headSha1, System.currentTimeMillis(), username)
 
             if (dto == null)
             {
-                throw new IllegalStateException("error updating n-cube: " + cube.getName() + "', app: " + appId + ", row was not updated")
+                throw new IllegalStateException("error updating n-cube: " + cube.getName() + ", app: " + appId + ", row was not updated")
             }
-        }
-        else if (insertCube(connection, appId, cube, 0L, null, "Cube created", true, null, System.currentTimeMillis(), username) == null)
+        })
+
+        // No existing row found, then create a new cube (updateCube can be used for update or create)
+        if (!rowFound)
         {
-            throw new IllegalStateException("error inserting new n-cube: " + cube.getName() + "', app: " + appId)
+            if (insertCube(c, appId, cube, 0L, null, "Cube created", true, null, System.currentTimeMillis(), username) == null)
+            {
+                throw new IllegalStateException("error inserting new n-cube: " + cube.getName() + ", app: " + appId)
+            }
         }
     }
 
@@ -401,7 +407,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 (NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
                 (NCubeManager.SEARCH_EXACT_MATCH_NAME):true] as Map
 
-        runSelectCubesStatement(c, oldAppId, oldName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, oldAppId, oldName, options, { ResultSet row ->
             if (oldRevision != null)
             {
                 throw new IllegalStateException('Error, duplicating cube, only 1 source record should be found, name: ' + oldName + ', app: ' + oldAppId)
@@ -425,7 +431,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         Long newRevision = null
         String headSha1 = null
 
-        runSelectCubesStatement(c, newAppId, newName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, newAppId, newName, options, { ResultSet row ->
             newRevision = row['revision_number'] as Long
             headSha1 = row['head_sha1'] as String
         })
@@ -471,7 +477,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 (NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
                 (NCubeManager.SEARCH_EXACT_MATCH_NAME):true] as Map
 
-        runSelectCubesStatement(c, appId, oldName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, oldName, options, { ResultSet row ->
             if (oldRevision != null)
             {
                 throw new IllegalStateException('Error, rename cube, more than 1 record found, cube: ' + oldName + ', app: ' + appId)
@@ -496,7 +502,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         Long newRevision = null;
         String newHeadSha1 = null;
 
-        runSelectCubesStatement(c, appId, newName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, newName, options, { ResultSet row ->
             newRevision = row['revision_number'] as Long
             newHeadSha1 = row[HEAD_SHA_1] as String
         })
@@ -530,7 +536,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
         NCubeInfoDto result = null
 
-        runSelectCubesStatement(c, appId, cube.name, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, cube.name, options, { ResultSet row ->
             if (result != null)
             {
                 throw new IllegalStateException('Should only match one record, (commit merged cube to branch), app: ' + appId + ", cube: " + cube.name)
@@ -552,7 +558,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         ApplicationID headAppId = appId.asHead()
         NCubeInfoDto result = null
 
-        runSelectCubesStatement(c, appId, cube.name, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, cube.name, options, { ResultSet row ->
             if (result != null)
             {
                 throw new IllegalStateException('Should only match one record, (commit merged cube to HEAD), app: ' + appId + ", cube: " + cube.name)
@@ -608,7 +614,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         NCubeInfoDto result = null
 
         sql.eachRow("SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1 from n_cube WHERE n_cube_id = :id",
-                map, { GroovyResultSet row ->
+                map, { ResultSet row ->
             if (result != null)
             {
                 throw new IllegalStateException('Should only match one record, (commit), app: ' + appId + ', cube id: ' + cubeId)
@@ -676,13 +682,13 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             throw new IllegalArgumentException("Could not rollback cube.  Cube was not found.  App:  " + appId + ", cube: " + cubeName)
         }
 
-        Map map = [cube: cubeName, tenant: appId.getTenant(), app: appId.getApp(), ver: appId.getVersion(),
-                   status: appId.getStatus(), branch: appId.getBranch(), rev: revision]
+        Map map = appId as Map
+        map.putAll([cube: cubeName, rev: revision])
         Sql sql = new Sql(c)
 
         GroovyRowResult row = sql.firstRow(map, "SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt " +
                 "FROM n_cube " +
-                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :ver AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev")
+                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev")
 
         byte[] bytes = row['cube_value_bin'] as byte[]
         byte[] testData = row['test_data_bin'] as byte[]
@@ -692,7 +698,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         Long newRevision = getMaxRevision(c, appId, cubeName)
         if (newRevision == null)
         {
-            throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + "', app: " + appId)
+            throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + ", app: " + appId)
         }
 
         String notes = "Rollback of cube: " + cubeName + ", app: " + appId + ", was successful";
@@ -700,7 +706,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
         if (insertCube(c, appId, cubeName, (revision < 0 || headSha1 == null) ?  -rev : rev, bytes, testData, notes, false, sha1, headSha1, System.currentTimeMillis(), username) == null)
         {
-            throw new IllegalStateException("Unable to rollback branch cube: '" + cubeName + "', app: " + appId)
+            throw new IllegalStateException("Unable to rollback branch cube: '" + cubeName + ", app: " + appId)
         }
         return true
     }
@@ -739,7 +745,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
         Map<String, Object> options = [(NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
 
-        runSelectCubesStatement(c, headId, cubeName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, headId, cubeName, options, { ResultSet row ->
             if (headRevision != null)
             {
                 throw new IllegalStateException("Error, on 'merge accept mine': only 1 HEAD record should be returned: " + cubeName + ", app: " + appId)
@@ -761,7 +767,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         options.put(NCubeManager.SEARCH_INCLUDE_CUBE_DATA, true)
         options.put(NCubeManager.SEARCH_INCLUDE_TEST_DATA, true)
 
-        runSelectCubesStatement(c, appId, cubeName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, cubeName, options, { ResultSet row ->
             if (newRevision != null)
             {
                 throw new IllegalStateException("Error, on 'merge accept mine': only 1 branch record should be returned: " + cubeName + ", app: " + appId)
@@ -802,7 +808,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 (NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
                 (NCubeManager.SEARCH_EXACT_MATCH_NAME):true] as Map
 
-        runSelectCubesStatement(c, headId, cubeName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, headId, cubeName, options, { ResultSet row ->
             if (headRevision != null)
             {
                 throw new IllegalStateException("Error, more than 1 record came back from 'their' branch, cube: " + cubeName + ", app: " + appId)
@@ -821,7 +827,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         Long newRevision = null;
         String oldBranchSha1 = null;
 
-        runSelectCubesStatement(c, appId, cubeName, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, appId, cubeName, options, { ResultSet row ->
             newRevision = row['revision_number'] as Long
             oldBranchSha1 = row['sha1'] as String
         })
@@ -863,12 +869,12 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
      */
     protected void runSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map options, Closure closure)
     {
-        boolean changedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_CHANGED_RECORDS_ONLY], false)
-        boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY], false)
-        boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY], false)
-        boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA], false)
-        boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA], false)
-        boolean exactMatchName = toBoolean(options[NCubeManager.SEARCH_EXACT_MATCH_NAME], false)
+        boolean changedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_CHANGED_RECORDS_ONLY])
+        boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY])
+        boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY])
+        boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA])
+        boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA])
+        boolean exactMatchName = toBoolean(options[NCubeManager.SEARCH_EXACT_MATCH_NAME])
 
         if (activeRecordsOnly && deletedRecordsOnly)
         {
@@ -884,8 +890,9 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         String nameCondition1 = ''
         String nameCondition2 = ''
 
-        def map = [app:appId.app, ver:appId.version, status:appId.status, tenant:appId.tenant, branch:appId.branch,
-                   name:namePattern, changed:changedRecordsOnly]
+        def map = appId as Map
+        map.putAll([name:namePattern, changed:changedRecordsOnly])
+
         if (hasNamePattern)
         {
             nameCondition1 = ' AND ' + buildNameCondition(c, 'n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
@@ -898,115 +905,19 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
         String cubeCondition = includeCubeData ? ', n.cube_value_bin' : ''
 
         Sql sql = new Sql(c)
-        sql.eachRow("SELECT n_cube_id, n.n_cube_nm, app_cd, n.notes_bin, version_no_cd, status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1" +
+        sql.eachRow(map, "SELECT n_cube_id, n.n_cube_nm, app_cd, n.notes_bin, version_no_cd, status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1" +
                 testCondition +
                 cubeCondition +
                 " FROM n_cube n, " +
                 "( SELECT n_cube_nm, max(abs(revision_number)) AS max_rev " +
                 "  FROM n_cube " +
-                "  WHERE app_cd = :app AND version_no_cd = :ver AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch" +
+                "  WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
                 nameCondition1 +
-                " GROUP BY n_cube_nm ) m " +
-                "WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :ver AND n.status_cd = :status AND n.tenant_cd = RPAD(:tenant, 10, ' ') AND n.branch_id = :branch" +
+                " GROUP BY n_cube_nm) m" +
+                " WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND n.tenant_cd = RPAD(:tenant, 10, ' ') AND n.branch_id = :branch" +
                 revisionCondition +
                 changedCondition +
-                nameCondition2, map, closure)
-    }
-
-    /**
-     * @param c
-     * @param appId
-     * @param namePattern
-     * @param options map with possible keys:
-     *                changedRecordsOnly - default false
-     *                activeRecordsOnly - default false
-     *                deletedRecordsOnly - default false
-     *                includeCubeData - default false
-     *                includeTestData - default false
-     *                exactMatchName - default false
-     * @return
-     * @throws java.sql.SQLException
-     */
-    PreparedStatement createSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map<String, Object> options) throws SQLException
-    {
-        boolean changedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_CHANGED_RECORDS_ONLY], false)
-        boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY], false)
-        boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY], false)
-        boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA], false)
-        boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA], false)
-        boolean exactMatchName = toBoolean(options[NCubeManager.SEARCH_EXACT_MATCH_NAME], false)
-
-        if (activeRecordsOnly && deletedRecordsOnly)
-        {
-            throw new IllegalArgumentException("activeRecordsOnly and deletedRecordsOnly are mutually exclusive options and cannot both be 'true'.")
-        }
-
-        //  convert pattern will return null even if full pattern = '*', saying we don't need to do the like statement.
-        //  That is why it is before the hasContentCheck.
-
-        namePattern = convertPattern(buildName(c, namePattern))
-        boolean hasNamePattern = StringUtilities.hasContent(namePattern)
-
-        String nameCondition1 = ''
-        String nameCondition2 = ''
-
-        if (hasNamePattern)
-        {
-            nameCondition1 = " AND " + buildNameCondition(c, "n_cube_nm") + (exactMatchName ? " = ?" : " LIKE ?")
-            nameCondition2 = " AND " + buildNameCondition(c, "m.n_cube_nm") + (exactMatchName ? " = ?" : " LIKE ?")
-        }
-
-        String revisionCondition = activeRecordsOnly ? " AND n.revision_number >= 0" : deletedRecordsOnly ? " AND n.revision_number < 0" : ""
-        String changedCondition = changedRecordsOnly ? " AND n.changed = ?" : ""
-        String testCondition = includeTestData ? ", n.test_data_bin" : ""
-        String cubeCondition = includeCubeData ? ", n.cube_value_bin" : ""
-
-        String sql = "SELECT n_cube_id, n.n_cube_nm, app_cd, n.notes_bin, version_no_cd, status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1" +
-                testCondition +
-                cubeCondition +
-                " FROM n_cube n, " +
-                "( " +
-                "  SELECT n_cube_nm, max(abs(revision_number)) AS max_rev " +
-                "  FROM n_cube " +
-                "  WHERE app_cd = ? AND version_no_cd = ? AND status_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ?" +
-                nameCondition1 +
-                " GROUP BY n_cube_nm " +
-                ") m " +
-                "WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = ? AND n.version_no_cd = ? AND n.status_cd = ? AND n.tenant_cd = RPAD(?, 10, ' ') AND n.branch_id = ?" +
-                revisionCondition +
-                changedCondition +
-                nameCondition2
-
-        PreparedStatement stmt = c.prepareStatement(sql)
-        stmt.setString(1, appId.getApp())
-        stmt.setString(2, appId.getVersion())
-        stmt.setString(3, appId.getStatus())
-        stmt.setString(4, appId.getTenant())
-        stmt.setString(5, appId.getBranch())
-
-        int i=6
-        if (hasNamePattern)
-        {
-            stmt.setString(i++, namePattern)
-        }
-
-        stmt.setString(i++, appId.getApp())
-        stmt.setString(i++, appId.getVersion())
-        stmt.setString(i++, appId.getStatus())
-        stmt.setString(i++, appId.getTenant())
-        stmt.setString(i++, appId.getBranch())
-
-        if (changedRecordsOnly)
-        {
-            stmt.setBoolean(i++, changedRecordsOnly)
-        }
-
-        if (hasNamePattern)
-        {
-            stmt.setString(i++, namePattern)
-        }
-
-        return stmt
+                nameCondition2, closure)
     }
 
     int createBranch(Connection c, ApplicationID appId)
@@ -1025,7 +936,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 "INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
-        runSelectCubesStatement(c, headId, null, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, headId, null, options, { ResultSet row ->
             String sha1 = row['sha1'] as String
 
             insert.setLong(1, UniqueIdGenerator.getUniqueId())
@@ -1061,9 +972,8 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
     boolean deleteBranch(Connection c, ApplicationID appId)
     {
-        Map map = [tenant: appId.getTenant(), app: appId.getApp(), ver: appId.getVersion(), branch: appId.getBranch()]
-        Sql sql = new Sql(c)
-        sql.execute(map, "DELETE FROM n_cube WHERE app_cd = :app AND version_no_cd = :ver AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch")
+        Map map = appId as Map
+        new Sql(c).execute(map, "DELETE FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch")
         return true
     }
 
@@ -1076,13 +986,14 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
 
         // Step 1: Move everyone's SNAPSHOT version cubes to new version.
         // (Update version number to new version where branch != HEAD (and rest of appId matches) ignore revision)
-        Map map = [newVer: newSnapVer, tenant: appId.getTenant(), app: appId.getApp(), ver: appId.getVersion()]
+        Map map = appId as Map
+        map.putAll([newVer: newSnapVer])
         Sql sql = new Sql(c)
-        sql.executeUpdate(map, "UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :ver AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id != 'HEAD'")
+        sql.executeUpdate(map, "UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id != 'HEAD'")
 
         // Step 2: Release cubes where branch == HEAD (change their status from SNAPSHOT to RELEASE)
         map.create_dt = new Timestamp(System.currentTimeMillis())
-        int releaseCount = sql.executeUpdate(map, "UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :ver AND status_cd = 'SNAPSHOT' AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = 'HEAD'")
+        int releaseCount = sql.executeUpdate(map, "UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = 'HEAD'")
 
         // Step 3: Create new SNAPSHOT cubes from the HEAD RELEASE cubes (next version higher, started for development)
         ApplicationID releaseId = appId.asRelease()
@@ -1098,7 +1009,7 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                 "INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
-        runSelectCubesStatement(c, releaseId, null, options, { GroovyResultSet row ->
+        runSelectCubesStatement(c, releaseId, null, options, { ResultSet row ->
             insert.setLong(1, UniqueIdGenerator.getUniqueId())
             insert.setString(2, row['n_cube_nm'] as String)
             insert.setBytes(3, row['cube_value_bin'] as byte[])
@@ -1137,10 +1048,10 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
             throw new IllegalStateException("Cannot change version value to " + newVersion + " because cubes with this version already exists.  Choose a different version number, app: " + appId)
         }
 
-        Map map = [tenant: appId.getTenant(), app: appId.getApp(), ver: appId.getVersion(), newVer: newVersion,
-                   status: 'SNAPSHOT', branch: appId.getBranch()]
+        Map map = appId as Map
+        map.putAll([newVer: newVersion, status: 'SNAPSHOT'])
         Sql sql = new Sql(c)
-        int count = sql.executeUpdate(map, "UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :ver AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch")
+        int count = sql.executeUpdate(map, "UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch")
         if (count < 1)
         {
             throw new IllegalArgumentException("No SNAPSHOT n-cubes found with version " + appId.getVersion() + ", therefore no versions updated, app: " + appId)
@@ -1166,22 +1077,21 @@ class NCubeJdbcPersister extends NCubeJdbcPersisterJava
                    branch: appId.getBranch(), rev: maxRev, cube: buildName(c, cubeName)]
         Sql sql = new Sql(c)
 
-        int rows = sql.executeUpdate(map, """
+        int rows = sql.executeUpdate(map, """\
 UPDATE n_cube SET test_data_bin=:testData
 WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND version_no_cd = :ver
- AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev
-""")
+ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""")
         return rows == 1
     }
 
     String getTestData(Connection c, ApplicationID appId, String cubeName)
     {
-        Map map = [cube:cubeName, tenant: appId.getTenant(), app: appId.getApp(), ver: appId.getVersion(),
-                   status: appId.getStatus(), branch: appId.getBranch()]
+        Map map = appId as Map
+        map.putAll([cube:cubeName])
         Sql sql = new Sql(c)
 
         GroovyRowResult row = sql.firstRow(map, "SELECT test_data_bin FROM n_cube " +
-                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :ver AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
+                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
                 "ORDER BY abs(revision_number) DESC")
 
         if (row == null)
@@ -1205,27 +1115,26 @@ WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube A
             throw new IllegalArgumentException("Cannot update notes, cube: " + cubeName + " is deleted in app: " + appId)
         }
 
-        Map map = [notes: notes == null ? null : notes.getBytes("UTF-8"), tenant: appId.getTenant(),
-                   app: appId.getApp(), ver: appId.getVersion(), status: ReleaseStatus.SNAPSHOT.name(),
-                   branch: appId.getBranch(), rev: maxRev, cube: buildName(c, cubeName)]
+        Map map = appId as Map
+        map.putAll([notes: notes == null ? null : notes.getBytes("UTF-8"), status: ReleaseStatus.SNAPSHOT.name(),
+                    rev: maxRev, cube: buildName(c, cubeName)])
         Sql sql = new Sql(c)
 
-        int rows = sql.executeUpdate(map, """
+        int rows = sql.executeUpdate(map, """\
 UPDATE n_cube SET notes_bin = :notes
-WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND version_no_cd = :ver
-AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev
-""")
+WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND version_no_cd = :version
+AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""")
         return rows == 1
     }
 
     String getNotes(Connection c, ApplicationID appId, String cubeName)
     {
-        Map map = [cube: cubeName, tenant: appId.getTenant(), app: appId.getApp(), ver: appId.getVersion(),
-                   status: appId.getStatus(), branch: appId.getBranch()]
+        Map map = appId as Map
+        map.putAll([cube: cubeName])
         Sql sql = new Sql(c)
 
         GroovyRowResult row = sql.firstRow(map, "SELECT notes_bin FROM n_cube " +
-                "WHERE app_cd = :app AND " + buildNameCondition(c, "n_cube_nm") + " = :cube AND version_no_cd = :ver AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
+                "WHERE app_cd = :app AND " + buildNameCondition(c, "n_cube_nm") + " = :cube AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
                 "ORDER BY abs(revision_number) DESC")
 
         if (row == null)
@@ -1245,11 +1154,11 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
             throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), status (' + status + '), or branch (' + branch + '), cannot be null or empty')
         }
 
-        Sql sql = new Sql(c)
         Map map = [tenant:tenant, status:status, branch:branch]
+        Sql sql = new Sql(c)
         List<String> apps = []
 
-        sql.eachRow("SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ') and status_cd = :status and branch_id = :branch", map, { GroovyResultSet row ->
+        sql.eachRow("SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ') and status_cd = :status and branch_id = :branch", map, { ResultSet row ->
             apps.add(row['app_cd'] as String)
         })
         return apps
@@ -1268,7 +1177,7 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         Map map = [tenant:tenant, app:app, status:status, branch:branch]
         List<String> versions = []
 
-        sql.eachRow("SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = :app AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') and branch_id = :branch", map, { GroovyResultSet row ->
+        sql.eachRow("SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = :app AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') and branch_id = :branch", map, { ResultSet row ->
             versions.add(row['version_no_cd'] as String)
         })
         return versions
@@ -1283,7 +1192,7 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         Sql sql = new Sql(c)
         Set<String> branches = new HashSet<>()
 
-        sql.eachRow("SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", [tenant:tenant], { GroovyResultSet row ->
+        sql.eachRow("SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", [tenant:tenant], { ResultSet row ->
             branches.add(row['branch_id'] as String)
         })
         return branches
@@ -1298,10 +1207,9 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
      */
     boolean doCubesExist(Connection c, ApplicationID appId, boolean ignoreStatus)
     {
+        Map map = appId as Map
         Sql sql = new Sql(c)
-        Map map = [tenant: appId.tenant, app:appId.app, ver: appId.version, status:appId.status, branch: appId.branch]
-
-        String statement = "SELECT DISTINCT n_cube_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :ver AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch"
+        String statement = "SELECT DISTINCT n_cube_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch"
 
         if (!ignoreStatus)
         {
@@ -1309,24 +1217,24 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         }
 
         boolean result = false
-        sql.eachRow(statement, map, { GroovyResultSet row -> result = true })
+        sql.eachRow(statement, map, { ResultSet row -> result = true })
         return result
     }
 
     Long getMaxRevision(Connection c, ApplicationID appId, String cubeName)
     {
+        Map map = appId as Map
+        map.name = cubeName
         Sql sql = new Sql(c)
-        def map = [app:appId.app, ver:appId.version, status:appId.status, tenant:appId.tenant, branch:appId.branch, name:cubeName]
         Long rev = null
 
-        String str = """
+        String str = """\
 SELECT a.revision_number
 FROM n_cube a
 LEFT OUTER JOIN n_cube b
     ON abs(a.revision_number) < abs(b.revision_number) AND a.n_cube_nm = b.n_cube_nm AND a.app_cd = b.app_cd AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
-WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :app AND a.status_cd = :status AND a.version_no_cd = :ver AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL
-"""
-        sql.eachRow(str, map, 0, 1, { GroovyResultSet row ->
+WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :app AND a.status_cd = :status AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL"""
+        sql.eachRow(str, map, 0, 1, { ResultSet row ->
             rev = row['revision_number'] as Long
         })
         return rev
@@ -1334,109 +1242,64 @@ WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :a
 
     Long getMinRevision(Connection c, ApplicationID appId, String cubeName)
     {
+        Map map = appId as Map
+        map.name = cubeName
         Sql sql = new Sql(c)
-        def map = [app:appId.app, ver:appId.version, status:appId.status, tenant:appId.tenant, branch:appId.branch, name:cubeName]
         Long rev = null
 
-        String str = """
+        String str = """\
 SELECT a.revision_number
 FROM n_cube a
 LEFT OUTER JOIN n_cube b
     ON abs(a.revision_number) > abs(b.revision_number) AND a.n_cube_nm = b.n_cube_nm AND a.app_cd = b.app_cd AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
-WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :app AND a.status_cd = :status AND a.version_no_cd = :ver AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL
-"""
-        sql.eachRow(str, map, 0, 1, { GroovyResultSet row ->
+WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :app AND a.status_cd = :status AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL"""
+        sql.eachRow(str, map, 0, 1, { ResultSet row ->
             rev = row['revision_number'] as Long
         })
         return rev
     }
 
-    protected List<NCubeInfoDto> getCubeInfoRecords(ApplicationID appId, PreparedStatement stmt, String subSearchPattern)
+    protected static void getCubeInfoRecords(ApplicationID appId, Pattern searchPattern, List<NCubeInfoDto> list, ResultSet row)
     {
-        List<NCubeInfoDto> list = new ArrayList<>()
-        Pattern searchPattern = null
-        if (StringUtilities.hasContent(subSearchPattern))
+        boolean contentMatched = false
+
+        if (searchPattern != null)
         {
-            searchPattern = Pattern.compile(convertPattern(subSearchPattern), Pattern.CASE_INSENSITIVE)
+            byte[] bytes = IOUtilities.uncompressBytes(row.getBytes("cube_value_bin"))
+            String cubeData = StringUtilities.createUtf8String(bytes)
+            Matcher matcher = searchPattern.matcher(cubeData)
+            contentMatched = matcher.find()
         }
 
-        ResultSet rs = stmt.executeQuery()
-        while (rs.next())
+        if (searchPattern == null || contentMatched)
         {
-            boolean contentMatched = false
+            NCubeInfoDto dto = new NCubeInfoDto()
+            dto.id = Long.toString(row.getLong("n_cube_id"))
+            dto.name = row.getString("n_cube_nm")
+            dto.branch = appId.getBranch()
+            dto.tenant = appId.getTenant()
+            byte[] notes = row.getBytes(NOTES_BIN)
+            dto.notes = new String(notes == null ? "".getBytes() : notes, "UTF-8")
+            dto.version = appId.getVersion()
+            dto.status = row.getString("status_cd")
+            dto.app = appId.getApp()
+            dto.createDate = new Date(row.getTimestamp("create_dt").getTime())
+            dto.createHid = row.getString("create_hid")
+            dto.revision = Long.toString(row.getLong("revision_number"))
+            dto.changed = row.getBoolean("changed")
+            dto.sha1 = row.getString("sha1")
+            dto.headSha1 = row.getString("head_sha1")
 
-            if (searchPattern != null)
-            {
-                byte[] bytes = IOUtilities.uncompressBytes(rs.getBytes("cube_value_bin"))
-                String cubeData = StringUtilities.createUtf8String(bytes)
-                Matcher matcher = searchPattern.matcher(cubeData)
-                contentMatched = matcher.find()
-            }
-
-            if (searchPattern == null || contentMatched)
-            {
-                NCubeInfoDto dto = new NCubeInfoDto()
-                dto.id = Long.toString(rs.getLong("n_cube_id"))
-                dto.name = rs.getString("n_cube_nm")
-                dto.branch = appId.getBranch()
-                dto.tenant = appId.getTenant()
-                byte[] notes = rs.getBytes(NOTES_BIN)
-                dto.notes = new String(notes == null ? "".getBytes() : notes, "UTF-8")
-                dto.version = appId.getVersion()
-                dto.status = rs.getString("status_cd")
-                dto.app = appId.getApp()
-                dto.createDate = new Date(rs.getTimestamp("create_dt").getTime())
-                dto.createHid = rs.getString("create_hid")
-                dto.revision = Long.toString(rs.getLong("revision_number"))
-                dto.changed = rs.getBoolean("changed")
-                dto.sha1 = rs.getString("sha1")
-                dto.headSha1 = rs.getString("head_sha1")
-
-                list.add(dto)
-            }
+            list.add(dto)
         }
-        return list
     }
 
-    PreparedStatement createSelectSingleCubeStatement(Connection c, long id)
+    protected static NCube buildCube(ApplicationID appId, ResultSet row)
     {
-        String sql = "SELECT n_cube_nm, tenant_cd, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, changed, sha1, head_sha1 FROM n_cube where n_cube_id = ?";
-        PreparedStatement s = c.prepareStatement(sql)
-        s.setLong(1, id)
-        return s
-    }
-
-    PreparedStatement createSelectCubeWithMatchingSha1Statement(Connection c, ApplicationID appId, String cubeName, String sha1)
-    {
-        String sql = "SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt " +
-                "FROM n_cube " +
-                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = ? AND app_cd = ? AND version_no_cd = ? AND status_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ? AND sha1 = ? " +
-                "ORDER BY abs(revision_number) desc";
-
-        PreparedStatement s = c.prepareStatement(sql)
-        s.setString(1, buildName(c, cubeName))
-        s.setString(2, appId.getApp())
-        s.setString(3, appId.getVersion())
-        s.setString(4, appId.getStatus())
-        s.setString(5, appId.getTenant())
-        s.setString(6, appId.getBranch())
-        s.setString(7, sha1)
-        s.setMaxRows(1)
-        return s
-    }
-
-    protected NCube buildCube(ApplicationID appId, ResultSet rs) throws SQLException, UnsupportedEncodingException
-    {
-        NCube ncube = NCube.createCubeFromStream(rs.getBinaryStream(CUBE_VALUE_BIN))
-        ncube.setSha1(rs.getString("sha1"))
+        NCube ncube = NCube.createCubeFromStream(row.getBinaryStream(CUBE_VALUE_BIN))
+        ncube.setSha1(row.getString("sha1"))
         ncube.setApplicationID(appId)
         return ncube;
-    }
-
-    PreparedStatement createInsertStatement(Connection c) throws SQLException
-    {
-        String sql = "INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number, sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        return c.prepareStatement(sql)
     }
 
     protected boolean doReleaseCubesExist(Connection c, ApplicationID appId)
@@ -1451,7 +1314,7 @@ WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :a
         return dateTimeFormat.format(date) + ' [' + user + '] ' + notes
     }
 
-    protected static boolean toBoolean(Object value, boolean defVal)
+    protected static boolean toBoolean(Object value)
     {
         if (value == null)
         {
@@ -1474,23 +1337,22 @@ WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :a
         return pattern
     }
 
-    String buildNameCondition(Connection c, String name)
+    static String buildNameCondition(Connection c, String name)
     {
         if (isOracle(c))
         {
             return ("LOWER(" + name + ")")
         }
-
-        return name;
+        return name
     }
 
-    String buildName(Connection c, String name)
+    static String buildName(Connection c, String name)
     {
         if (isOracle(c))
         {
             return name == null ? null : name.toLowerCase()
         }
-        return name;
+        return name
     }
 
     static boolean isOracle(Connection c)
@@ -1499,14 +1361,6 @@ WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :name AND a.app_cd = :a
         {
             return false;
         }
-        try
-        {
-            return Regexes.isOraclePattern.matcher(c.getMetaData().getDriverName()).matches()
-        }
-        catch (SQLException e)
-        {
-            LOG.warn("Unable to fetch JDBC connection metadata", e)
-            return false;
-        }
+        return Regexes.isOraclePattern.matcher(c.getMetaData().getDriverName()).matches()
     }
 }

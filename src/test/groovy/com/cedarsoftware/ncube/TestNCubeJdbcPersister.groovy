@@ -1,25 +1,20 @@
 package com.cedarsoftware.ncube
-
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-import java.sql.Blob
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
-import java.sql.Timestamp
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
 import static org.mockito.Matchers.anyInt
-import static org.mockito.Matchers.anyLong
 import static org.mockito.Matchers.anyString
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
@@ -57,24 +52,6 @@ class TestNCubeJdbcPersister
     void tearDown()
     {
         TestingDatabaseHelper.tearDownDatabase()
-    }
-
-    @Test
-    void testSelectCubesStatementWithActiveOnlyAndDeletedOnlyBothSetToTrue()
-    {
-        try
-        {
-            HashMap options = new HashMap();
-            options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true);
-            options.put(NCubeManager.SEARCH_DELETED_RECORDS_ONLY, true);
-
-            new NCubeJdbcPersister().createSelectCubesStatement(null, null, null, options);
-            fail();
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains("cannot both be 'true'"));
-        }
     }
 
     @Test
@@ -170,47 +147,6 @@ class TestNCubeJdbcPersister
     }
 
     @Test
-    void testLoadCubeBySha1ThatReturnsNoCube()
-    {
-        Connection c = mock(Connection.class)
-        PreparedStatement ps = mock(PreparedStatement.class)
-        ResultSet rs = mock(ResultSet.class)
-        when(c.prepareStatement(anyString())).thenReturn(ps)
-        when(ps.executeQuery()).thenReturn(rs)
-        when(rs.next()).thenReturn(false);
-
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        when(c.metaData).thenReturn(metaData);
-        when(metaData.getDriverName()).thenReturn("Oracle");
-
-        assertNull(new NCubeJdbcPersister().loadCubeBySha1(c, defaultSnapshotApp, "foo", "sha"));
-    }
-
-    @Test
-    void testLoadCubeByRevisionThatReturnsNoCube()
-    {
-        Connection c = mock(Connection.class)
-        PreparedStatement ps = mock(PreparedStatement.class)
-        ResultSet rs = mock(ResultSet.class)
-        when(c.prepareStatement(anyString())).thenReturn(ps)
-        when(ps.executeQuery()).thenReturn(rs)
-        when(rs.next()).thenReturn(false);
-
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        when(c.metaData).thenReturn(metaData);
-        when(metaData.getDriverName()).thenReturn("Oracle");
-
-        try
-        {
-            new NCubeJdbcPersister().loadCubeById(c, 0L)
-        }
-        catch (IllegalArgumentException e)
-        {
-            assert e.message.toLowerCase().contains('unable to find cube')
-        }
-    }
-
-    @Test
     void testUpdateBranchThatIsNotFound()
     {
         Connection c = mock(Connection.class)
@@ -242,29 +178,8 @@ class TestNCubeJdbcPersister
         }
         catch (NullPointerException e)
         {
-            assertEquals(e.message, null)
+            assert e.message == null
         }
-    }
-
-    @Test
-    void testLoadCubesWithInvalidCube()
-    {
-        Connection c = mock(Connection.class)
-        ResultSet rs = mock(ResultSet.class)
-        PreparedStatement ps = mock(PreparedStatement.class)
-        when(c.prepareStatement(anyString())).thenReturn(ps)
-        when(ps.executeQuery()).thenReturn(rs)
-        when(rs.next()).thenReturn(true).thenReturn(false)
-        when(rs.getString("n_cube_nm")).thenReturn("foo")
-        when(rs.getString("branch_id")).thenReturn("HEAD")
-        when(rs.getTimestamp("create_dt")).thenReturn(new Timestamp(System.currentTimeMillis()));
-        when(rs.getBytes("cube_value_bin")).thenReturn("[                                                     ".getBytes("UTF-8"))
-        mockDatabaseMetaData(c);
-
-        Map options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true]
-        Object[] nCubes = new NCubeJdbcPersister().search(c, defaultSnapshotApp, "", null, options)
-        assertNotNull(nCubes)
-        assertEquals(1, nCubes.length)     // Won't know it fails until getCube() is called.
     }
 
     @Test
@@ -354,45 +269,6 @@ class TestNCubeJdbcPersister
     }
 
     @Test
-    void testCreateCubeThatDoesntCreateCube()
-    {
-        NCube<Double> ncube = NCubeBuilder.getTestNCube2D(true)
-
-        OutputStream stream = mock(OutputStream.class);
-        Blob b = mock(Blob.class);
-        when(b.setBinaryStream(anyLong())).thenReturn(stream);
-        Connection c = mock(Connection.class)
-        when(c.createBlob()).thenReturn(b);
-        PreparedStatement ps = mock(PreparedStatement.class)
-        ResultSet rs = mock(ResultSet.class)
-        when(c.prepareStatement(anyString())).thenReturn(ps)
-        when(ps.executeQuery()).thenReturn(rs)
-        when(rs.next()).thenReturn(false)
-        when(ps.executeUpdate()).thenReturn(0)
-
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        when(c.metaData).thenReturn(metaData);
-        when(metaData.getDriverName()).thenReturn("Oracle");
-
-        try
-        {
-            new NCubeJdbcPersister().updateCube(c, defaultSnapshotApp, ncube, USER_ID)
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertTrue(e.message.contains("error inserting"))
-        }
-    }
-
-    private void mockDatabaseMetaData(Connection c)
-    {
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        when(c.metaData).thenReturn(metaData);
-        when(metaData.getDriverName()).thenReturn("Oracle");
-    }
-
-    @Test
     void testUpdateBranchCubeWithNull()
     {
         try
@@ -403,36 +279,6 @@ class TestNCubeJdbcPersister
         catch (IllegalArgumentException e)
         {
             assertTrue(e.message.contains('cannot be empty'));
-        }
-    }
-
-    @Test
-    void testUpdateCubeWithWrongUpdateCount()
-    {
-        NCube<Double> ncube = NCubeBuilder.getTestNCube2D(true)
-        OutputStream stream = mock(OutputStream.class);
-        Blob b = mock(Blob.class);
-        when(b.setBinaryStream(anyLong())).thenReturn(stream);
-        Connection c = mock(Connection.class)
-        when(c.createBlob()).thenReturn(b);
-        mockDatabaseMetaData(c);
-        ResultSet rs = mock(ResultSet.class)
-        PreparedStatement ps = mock(PreparedStatement.class)
-        when(rs.next()).thenReturn(true)
-        when(rs.getTimestamp(anyString())).thenReturn(new Timestamp(System.currentTimeMillis()));
-        when(c.prepareStatement(anyString())).thenReturn(ps)
-        when(ps.executeUpdate()).thenReturn(0)
-        when(ps.executeQuery()).thenReturn(rs)
-
-        try
-        {
-            new NCubeJdbcPersister().updateCube(c, defaultSnapshotApp, ncube, USER_ID)
-            fail()
-        }
-        catch (Exception e)
-        {
-            assertTrue(e.message.contains("error updating"))
-            assertTrue(e.message.contains("not updated"))
         }
     }
 
