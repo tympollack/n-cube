@@ -47,11 +47,12 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class NCubeManager
 {
-    public static final String SEARCH_DELETED_RECORDS_ONLY = "deletedRecordsOnly";
+    public static final String SEARCH_INCLUDE_CUBE_DATA = "includeCubeData";
     public static final String SEARCH_INCLUDE_TEST_DATA = "includeTestData";
+    public static final String SEARCH_INCLUDE_NOTES = "includeNotes";
+    public static final String SEARCH_DELETED_RECORDS_ONLY = "deletedRecordsOnly";
     public static final String SEARCH_ACTIVE_RECORDS_ONLY = "activeRecordsOnly";
     public static final String SEARCH_CHANGED_RECORDS_ONLY = "changedRecordsOnly";
-    public static final String SEARCH_INCLUDE_CUBE_DATA = "includeCubeData";
     public static final String SEARCH_EXACT_MATCH_NAME = "exactMatchName";
     public static final String SEARCH_CACHE_RESULT = "cacheResult";
 

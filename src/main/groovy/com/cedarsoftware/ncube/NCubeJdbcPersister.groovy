@@ -44,6 +44,7 @@ class NCubeJdbcPersister
     static final String NOTES_BIN = 'notes_bin'
     static final String HEAD_SHA_1 = 'head_sha1'
     private static final long EXECUTE_BATCH_CONSTANT = 35
+    private static final int FETCH_SIZE = 1000
 
     List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchContent, Map<String, Object> options)
     {
@@ -441,7 +442,9 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         Long newRevision = null
         String headSha1 = null
 
-        runSelectCubesStatement(c, newAppId, newName, options, { ResultSet row ->
+        // Do not include test, n-cube, or notes blob columns in search - much faster
+        Map<String, Object> options1 = [(NCubeManager.SEARCH_EXACT_MATCH_NAME):true] as Map
+        runSelectCubesStatement(c, newAppId, newName, options1, { ResultSet row ->
             newRevision = row.getLong('revision_number')
             headSha1 = row.getString('head_sha1')
         })
@@ -512,7 +515,9 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         Long newRevision = null
         String newHeadSha1 = null
 
-        runSelectCubesStatement(c, appId, newName, options, { ResultSet row ->
+        // Do not include n-cube, tests, or notes in search
+        Map<String, Object> options1 = [(NCubeManager.SEARCH_EXACT_MATCH_NAME):true] as Map
+        runSelectCubesStatement(c, appId, newName, options1, { ResultSet row ->
             newRevision = row.getLong('revision_number')
             newHeadSha1 = row.getString(HEAD_SHA_1)
         })
@@ -840,7 +845,9 @@ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, 
         Long newRevision = null
         String oldBranchSha1 = null
 
-        runSelectCubesStatement(c, appId, cubeName, options, { ResultSet row ->
+        // Do not use cube_value_bin, test data, or notes to speed up search
+        Map<String, Object> options1 = [(NCubeManager.SEARCH_EXACT_MATCH_NAME):true] as Map
+        runSelectCubesStatement(c, appId, cubeName, options1, { ResultSet row ->
             newRevision = row.getLong('revision_number')
             oldBranchSha1 = row.getString('sha1')
         })
@@ -880,11 +887,12 @@ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, 
      */
     protected void runSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map options, Closure closure)
     {
+        boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA])
+        boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA])
+        boolean includeNotes = toBoolean(options[NCubeManager.SEARCH_INCLUDE_NOTES])
         boolean changedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_CHANGED_RECORDS_ONLY])
         boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY])
         boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY])
-        boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA])
-        boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA])
         boolean exactMatchName = toBoolean(options[NCubeManager.SEARCH_EXACT_MATCH_NAME])
 
         if (activeRecordsOnly && deletedRecordsOnly)
@@ -912,12 +920,12 @@ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, 
         String changedCondition = changedRecordsOnly ? ' AND a.changed = :changed' : ''
         String testCondition = includeTestData ? ', a.test_data_bin' : ''
         String cubeCondition = includeCubeData ? ', a.cube_value_bin' : ''
+        String notesCondition = includeNotes ? ', a.notes_bin' : ''
 
         Sql sql = new Sql(c)
-
-        sql.eachRow(map, """\
-SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.status_cd, a.create_dt, a.create_hid,
-       a.revision_number, a.branch_id, a.changed, a.sha1, a.head_sha1""" + testCondition + cubeCondition + """
+        String select = """\
+SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.create_dt, a.create_hid,
+       a.revision_number, a.branch_id, a.changed, a.sha1, a.head_sha1""" + testCondition + cubeCondition + notesCondition + """\
  FROM n_cube a
  LEFT OUTER JOIN n_cube b
  ON abs(a.revision_number) < abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
@@ -926,7 +934,9 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.statu
  AND a.branch_id = :branch AND b.n_cube_nm is NULL""" +
                 nameCondition +
                 revisionCondition +
-                changedCondition, closure)
+                changedCondition
+
+        sql.eachRow(map, select, closure)
     }
 
     int createBranch(Connection c, ApplicationID appId)
@@ -939,15 +949,17 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.statu
         ApplicationID headId = appId.asHead()
         Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
                                        (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true] as Map
-
         int count = 0
         PreparedStatement insert = c.prepareStatement(
                 "INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
         runSelectCubesStatement(c, headId, null, options, { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
             String sha1 = row['sha1'] as String
-
             insert.setLong(1, UniqueIdGenerator.getUniqueId())
             insert.setString(2, row.getString('n_cube_nm'))
             insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
@@ -957,7 +969,7 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.statu
             insert.setString(7, ReleaseStatus.SNAPSHOT.name())
             insert.setString(8, appId.app)
             insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-            insert.setBytes(10, row.getBytes(NOTES_BIN))
+            insert.setBytes(10, ('branch ' + appId.version + ' created').getBytes('UTF-8'))
             insert.setString(11, appId.tenant)
             insert.setString(12, appId.branch)
             insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
@@ -1008,8 +1020,8 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.statu
         ApplicationID releaseId = appId.asRelease()
 
         Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                   (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                   (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true] as Map
+                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
+                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true] as Map
 
         boolean autoCommit = c.getAutoCommit()
         c.setAutoCommit(false)
@@ -1019,6 +1031,10 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.statu
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
         runSelectCubesStatement(c, releaseId, null, options, { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
             insert.setLong(1, UniqueIdGenerator.getUniqueId())
             insert.setString(2, row.getString('n_cube_nm'))
             insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
@@ -1028,7 +1044,7 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.notes_bin, a.version_no_cd, a.statu
             insert.setString(7, ReleaseStatus.SNAPSHOT.name())
             insert.setString(8, appId.app)
             insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-            insert.setBytes(10, row.getBytes(NOTES_BIN))
+            insert.setBytes(10, ('SNAPSHOT ' + newSnapVer + ' created').getBytes("UTF-8"))
             insert.setString(11, appId.tenant)
             insert.setString(12, ApplicationID.HEAD)
             insert.setLong(13, 0) // New SNAPSHOT revision numbers start at 0, we don't move forward deleted records.
@@ -1188,6 +1204,10 @@ SELECT a.notes_bin
         List<String> apps = []
 
         sql.eachRow("SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ') and status_cd = :status and branch_id = :branch", map, { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
             apps.add(row.getString('app_cd'))
         })
         return apps
@@ -1207,6 +1227,10 @@ SELECT a.notes_bin
         List<String> versions = []
 
         sql.eachRow("SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = :app AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') and branch_id = :branch", map, { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
             versions.add(row.getString('version_no_cd'))
         })
         return versions
@@ -1222,6 +1246,10 @@ SELECT a.notes_bin
         Set<String> branches = new HashSet<>()
 
         sql.eachRow("SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", [tenant:tenant], { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
             branches.add(row.getString('branch_id'))
         })
         return branches
@@ -1296,6 +1324,10 @@ SELECT a.revision_number
 
     protected static void getCubeInfoRecords(ApplicationID appId, Pattern searchPattern, List<NCubeInfoDto> list, ResultSet row)
     {
+        if (row.getFetchSize() < FETCH_SIZE)
+        {
+            row.setFetchSize(FETCH_SIZE)
+        }
         boolean contentMatched = false
 
         if (searchPattern != null)
@@ -1309,18 +1341,23 @@ SELECT a.revision_number
         if (searchPattern == null || contentMatched)
         {
             NCubeInfoDto dto = new NCubeInfoDto()
-            dto.id = Long.toString(row.getLong('n_cube_id'))
+            dto.id = row.getString('n_cube_id')
             dto.name = row.getString('n_cube_nm')
             dto.branch = appId.branch
             dto.tenant = appId.tenant
-            byte[] notes = row.getBytes(NOTES_BIN)
+            byte[] notes = null
+            try
+            {
+                notes = row.getBytes(NOTES_BIN)
+            }
+            catch (Exception ignored) { }
             dto.notes = new String(notes == null ? "".getBytes() : notes, 'UTF-8')
             dto.version = appId.version
             dto.status = row.getString('status_cd')
             dto.app = appId.app
             dto.createDate = new Date(row.getTimestamp('create_dt').getTime())
             dto.createHid = row.getString('create_hid')
-            dto.revision = Long.toString(row.getLong('revision_number'))
+            dto.revision = row.getString('revision_number')
             dto.changed = row.getBoolean('changed')
             dto.sha1 = row.getString('sha1')
             dto.headSha1 = row.getString('head_sha1')
