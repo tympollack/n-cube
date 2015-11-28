@@ -464,17 +464,9 @@ class TestNCubeManager
         NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID)
         assertTrue(ncube1.numDimensions == 3)
         NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, USER_ID)
-
-        try
-        {
-            NCubeManager.updateTestData(defaultSnapshotApp, ncube1.name, USER_ID)
-            fail 'should not make it here'
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains('Cannot update'))
-            assertTrue(e.message.contains('deleted'))
-        }
+        NCubeManager.updateTestData(defaultSnapshotApp, ncube1.name, 'test data')
+        String testData = NCubeManager.getTestData(defaultSnapshotApp, ncube1.name)
+        assert 'test data' == testData
     }
 
     @Test
@@ -490,17 +482,9 @@ class TestNCubeManager
         NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID)
         assertTrue(ncube1.numDimensions == 3)
         NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, USER_ID)
-
-        try
-        {
-            NCubeManager.updateNotes(defaultSnapshotApp, ncube1.name, USER_ID)
-            fail 'should not make it here'
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains('Cannot update'))
-            assertTrue(e.message.contains('deleted'))
-        }
+        NCubeManager.updateNotes(defaultSnapshotApp, ncube1.name, 'new notes')
+        String notes = NCubeManager.getNotes(defaultSnapshotApp, ncube1.name)
+        assert 'new notes' == notes
     }
 
     @Test
@@ -1123,7 +1107,11 @@ class TestNCubeManager
     {
         NCube cube = createCube()
         Object[] records = NCubeManager.search(defaultSnapshotApp, '', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
-        assertEquals(2, records.length)
+        assertEquals(2, records.length) // 2 (because of sys.classpath)
+
+        records = NCubeManager.search(defaultSnapshotApp, cube.name, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        assertEquals(1, records.length)
+        String sha1 = records[0].sha1
 
         assertEquals(0, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
 
@@ -1140,7 +1128,8 @@ class TestNCubeManager
 
         NCube ncube = NCubeManager.loadCube(defaultSnapshotApp, cube.name);
         assertNotNull ncube
-        assert ncube.name == cube.name
+        assert ncube.sha1() == cube.sha1()
+        assert ncube.sha1() == sha1
 
         NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
     }
@@ -1214,6 +1203,8 @@ class TestNCubeManager
         assertEquals(4, NCubeManager.getRevisionHistory(defaultSnapshotApp, cube.name).size())
 
         NCubeManager.restoreCube(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
+        NCube restored = NCubeManager.loadCube(defaultSnapshotApp, cube.name)
+        assert cube.sha1() == restored.sha1()
 
         assertEquals(2, NCubeManager.search(defaultSnapshotApp, '', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(0, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())

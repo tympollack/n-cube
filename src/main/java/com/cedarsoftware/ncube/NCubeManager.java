@@ -1090,9 +1090,6 @@ public class NCubeManager
         Map<String, Object> options = new HashMap<>();
         options.put(SEARCH_ACTIVE_RECORDS_ONLY, false);
         List<NCubeInfoDto> records = search(appId, null, null, options);
-        List<NCubeInfoDto> headRecords = search(headAppId, null, null, options);
-
-        //  build map of head objects for reference.
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>();
 
         for (NCubeInfoDto info : records)
@@ -1103,6 +1100,7 @@ public class NCubeManager
         List<NCubeInfoDto> updates = new ArrayList<>();
         List<NCubeInfoDto> dtosMerged = new ArrayList<>();
         Map<String, Map> conflicts = new CaseInsensitiveMap<>();
+        List<NCubeInfoDto> headRecords = search(headAppId, null, null, options);
 
         for (NCubeInfoDto head : headRecords)
         {
