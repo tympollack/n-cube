@@ -43,5 +43,4 @@ interface NCubeReadOnlyPersister
     Set<String> getBranches(String tenant)
 
     String getTestData(ApplicationID appId, String cubeName)
-    String getNotes(ApplicationID appId, String cubeName)
 }

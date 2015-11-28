@@ -1297,7 +1297,16 @@ public class NCubeManager
     {
         validateAppId(appId);
         NCube.validateCubeName(cubeName);
-        return getPersister().getNotes(appId, cubeName);
+        Map<String, Object> options = new HashMap<>();
+        options.put(SEARCH_INCLUDE_NOTES, true);
+        options.put(SEARCH_EXACT_MATCH_NAME, true);
+
+        List<NCubeInfoDto> infos = search(appId, cubeName, null, options);
+        if (infos.size() == 0)
+        {
+            throw new IllegalArgumentException("Could not fetch notes, no cube: " + cubeName + " in app: " + appId);
+        }
+        return infos.get(0).notes;
     }
 
     public static Set<String> getBranches(String tenant)

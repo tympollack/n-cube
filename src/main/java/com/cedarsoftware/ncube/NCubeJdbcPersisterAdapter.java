@@ -283,19 +283,6 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public String getNotes(ApplicationID appId, String cubeName)
-    {
-        Connection c = connectionProvider.getConnection();
-        try
-        {
-            return persister.getNotes(c, appId, cubeName);
-        }
-        finally
-        {
-            connectionProvider.releaseConnection(c);
-        }
-    }
-
     public boolean updateTestData(ApplicationID appId, String cubeName, String testData)
     {
         Connection c = connectionProvider.getConnection();
