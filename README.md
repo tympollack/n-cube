@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.3</version>
+  <version>3.4.4</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,9 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
 ___
 ### Version History
+* 3.4.4
+ * NCubeJdbcPersister now supports batching for many APIs, including using batching via prefetch as well as SQL Update batching.  Completely re-written in Groovy to take advantage of Groovy's marvelous SQL support.  No checked exceptions reduces need for all the explicit SQL Exception handlers.  These are caught as runtime exceptions later.
+ * NCubeJdbcPersister now works entirely with Lists of items instead of single items, where it makes sense.  This allowed batching support to be added for Delete, Restore, and Rollback.  Batching support added elsewhere in terms of SQL prefetch.
 * 3.4.3
  * The NCubeJdbcPersister now allows for a ConnectionProvider that returns a null connection.  This can happen in a simple file-based persister, for example.
  * NCubeManager.loadCube(NCubeInfoDto) loaded the cube by id (parameter overkill).  The API is now NCubeManager.loadCubeById(long id).  Useful for getting a specific revision of a cube.  User picks from revision list, code then loads the revision cube by ID.
