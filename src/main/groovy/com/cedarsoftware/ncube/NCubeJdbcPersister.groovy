@@ -172,7 +172,12 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         dto.notes = note
         dto.revision = Long.toString(revision)
 
-        return s.executeUpdate() == 1 ? dto : null
+        int rows = s.executeUpdate()
+        if (rows == 1)
+        {
+            return dto
+        }
+        throw new IllegalStateException('Unable to insert cube: ' + name + ' into database, app: ' + appId + ', attempted action: ' + notes)
     }
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, NCube cube, Long revision, byte[] testData, String notes, boolean changed, String headSha1, long time, String username)
@@ -222,7 +227,12 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         dto.notes = note
         dto.revision = Long.toString(revision)
 
-        return s.executeUpdate() == 1 ? dto : null
+        int rows = s.executeUpdate()
+        if (rows == 1)
+        {
+            return dto
+        }
+        throw new IllegalStateException('Unable to insert cube: ' + cube.name + ' into database, app: ' + appId + ", attempted action: " + notes)
     }
 
     boolean deleteCube(Connection c, ApplicationID appId, String cubeName, boolean allowDelete, String username)
@@ -253,43 +263,82 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 byte[] testData = row.getBytes(TEST_DATA_BIN)
                 String sha1 = row.getString('sha1')
                 String headSha1 = row.getString('head_sha1')
-
-                if (insertCube(c, appId, cubeName, -(revision + 1), jsonBytes, testData, "Cube deleted", true, sha1, headSha1, System.currentTimeMillis(), username) == null)
-                {
-                    throw new IllegalStateException("Cannot delete n-cube: " + cubeName + ", app: " + appId + ", row was not deleted")
-                }
+                insertCube(c, appId, cubeName, -(revision + 1), jsonBytes, testData, "Cube deleted", true, sha1, headSha1, System.currentTimeMillis(), username)
                 result = true
             })
             return result
         }
     }
 
-    void restoreCube(Connection c, ApplicationID appId, String cubeName, String username)
+    void restoreCubes(Connection c, ApplicationID appId, Object[] names, String username)
     {
-        Map<String, Object> options = [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY): true,
-                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
-
-        Long revision = null
-        runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
-            revision = row.getLong('revision_number')
-            byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-            byte[] testData = row.getBytes(TEST_DATA_BIN)
-            String notes = "Cube restored"
-            String sha1 = row.getString('sha1')
-            String headSha1 = row.getString('head_sha1')
-
-            NCubeInfoDto dto = insertCube(c, appId, cubeName, Math.abs(revision as long) + 1, jsonBytes, testData, notes, true, sha1, headSha1, System.currentTimeMillis(), username)
-            if (dto == null)
-            {
-                throw new IllegalStateException("Could not add restored cube: " + cubeName + ", app: " + appId)
-            }
-        })
-
-        if (revision == null)
+        boolean autoCommit = c.getAutoCommit()
+        try
         {
-            throw new IllegalArgumentException("Cannot restore cube: " + cubeName + " as it not deleted in app: " + appId)
+            c.setAutoCommit(false)
+            PreparedStatement ins = c.prepareStatement("""\
+    INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+     sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+
+            Map<String, Object> options = [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY): true,
+                                           (NCubeManager.SEARCH_INCLUDE_CUBE_DATA)   : true,
+                                           (NCubeManager.SEARCH_INCLUDE_TEST_DATA)   : true,
+                                           (NCubeManager.SEARCH_EXACT_MATCH_NAME)    : true] as Map
+            int count = 0
+
+            names.each { Object potential ->
+                if (!(potential instanceof String))
+                {
+                    throw new IllegalArgumentException('Cube names to restore must be strings, instead got: ' + potential + ', app: ' + appId)
+                }
+                String cubeName = (String) potential
+                Long revision = null
+                runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
+                    revision = row.getLong('revision_number')
+                    byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+                    byte[] testData = row.getBytes(TEST_DATA_BIN)
+                    String sha1 = row.getString('sha1')
+                    String headSha1 = row.getString('head_sha1')
+
+                    long uniqueId = UniqueIdGenerator.getUniqueId()
+                    ins.setLong(1, uniqueId)
+                    ins.setString(2, appId.tenant)
+                    ins.setString(3, appId.app)
+                    ins.setString(4, appId.version)
+                    ins.setString(5, appId.status)
+                    ins.setString(6, appId.branch)
+                    ins.setString(7, cubeName)
+                    ins.setLong(8, Math.abs(revision as long) + 1)
+                    ins.setString(9, sha1)
+                    ins.setString(10, headSha1)
+                    ins.setTimestamp(11, new Timestamp(System.currentTimeMillis()))
+                    ins.setString(12, username)
+                    ins.setBytes(13, jsonBytes)
+                    ins.setBytes(14, testData)
+                    ins.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "Cube restored"), "UTF-8"))
+                    ins.setInt(16, 1)
+                    ins.addBatch()
+                    count++
+                    if (count % EXECUTE_BATCH_CONSTANT == 0)
+                    {
+                        ins.executeBatch()
+                    }
+                })
+
+                if (revision == null)
+                {
+                    throw new IllegalArgumentException("Cannot restore cube: " + cubeName + " as it not deleted in app: " + appId)
+                }
+            }
+            if (count % EXECUTE_BATCH_CONSTANT != 0)
+            {
+                ins.executeBatch()
+            }
+        }
+        finally
+        {
+            c.setAutoCommit(autoCommit)
         }
     }
 
@@ -333,12 +382,6 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             }
 
             NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "Cube updated from HEAD", false, sha1, sha1, time, username)
-
-            if (dto == null)
-            {
-                String s = "Unable to update cube: " + cubeName + " to app:  " + appId
-                throw new IllegalStateException(s)
-            }
             return dto
         }
         return null
@@ -349,7 +392,6 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
                                        (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
                                        (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
-
         boolean rowFound = false
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
             rowFound = true
@@ -370,21 +412,13 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 return
             }
 
-            NCubeInfoDto dto = insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "Cube updated", true, headSha1, System.currentTimeMillis(), username)
-
-            if (dto == null)
-            {
-                throw new IllegalStateException("error updating n-cube: " + cube.name + ", app: " + appId + ", row was not updated")
-            }
+            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "Cube updated", true, headSha1, System.currentTimeMillis(), username)
         })
 
         // No existing row found, then create a new cube (updateCube can be used for update or create)
         if (!rowFound)
         {
-            if (insertCube(c, appId, cube, 0L, null, "Cube created", true, null, System.currentTimeMillis(), username) == null)
-            {
-                throw new IllegalStateException("error inserting new n-cube: " + cube.name + ", app: " + appId)
-            }
+            insertCube(c, appId, cube, 0L, null, "Cube created", true, null, System.currentTimeMillis(), username)
         }
     }
 
@@ -447,11 +481,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
 
         String notes = 'Cube duplicated from app: ' + oldAppId + ', name: ' + oldName
         Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
-
-        if (insertCube(c, newAppId, newName, rev, jsonBytes, oldTestData, notes, changed, sha1, sameExceptBranch ? headSha1 : null, System.currentTimeMillis(), username) == null)
-        {
-            throw new IllegalStateException("Unable to duplicate cube: " + oldName + ", app: " + oldAppId + " to cube: " + newName + ", app: " + newAppId)
-        }
+        insertCube(c, newAppId, newName, rev, jsonBytes, oldTestData, notes, changed, sha1, sameExceptBranch ? headSha1 : null, System.currentTimeMillis(), username)
         return true
     }
 
@@ -506,15 +536,8 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         String notes = "Cube renamed: " + oldName + " -> " + newName
 
         Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
-        if (insertCube(c, appId, ncube, rev, oldTestData, notes, true, newHeadSha1, System.currentTimeMillis(), username) == null)
-        {
-            throw new IllegalStateException("Unable to rename cube: " + oldName + " -> " + newName + ", app: " + appId)
-        }
-
-        if (insertCube(c, appId, oldName, -(oldRevision + 1), oldBytes, oldTestData, notes, true, oldSha1, oldHeadSha1, System.currentTimeMillis(), username) == null)
-        {
-            throw new IllegalStateException("Unable to rename cube: " + oldName + " -> " + newName + ", app: " + appId)
-        }
+        insertCube(c, appId, ncube, rev, oldTestData, notes, true, newHeadSha1, System.currentTimeMillis(), username)
+        insertCube(c, appId, oldName, -(oldRevision + 1), oldBytes, oldTestData, notes, true, oldSha1, oldHeadSha1, System.currentTimeMillis(), username)
         return true
     }
 
@@ -569,14 +592,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             byte[] cubeData = cube.getCubeAsGzipJsonBytes()
             String sha1 = cube.sha1()
 
-            NCubeInfoDto head = insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "Cube committed", false, sha1, null, now, username)
-
-            if (head == null)
-            {
-                String s = "Unable to commit cube: " + cube.name + " to app:  " + appId
-                throw new IllegalStateException(s)
-            }
-
+            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "Cube committed", false, sha1, null, now, username)
             result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, "Cube committed", false, sha1, sha1, now, username)
         })
         return result
@@ -618,21 +634,13 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             }
 
             byte[] testData = row.getBytes(TEST_DATA_BIN)
-
             long now = System.currentTimeMillis()
 
             NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, "Cube committed", false, sha1, null, now, username)
-
-            if (dto == null)
-            {
-                String s = "Unable to commit cube: " + cubeName + " to app:  " + headAppId
-                throw new IllegalStateException(s)
-            }
-
             def map1 = [head_sha1: sha1, create_dt: new Timestamp(now), id: cubeId]
             Sql sql1 = new Sql(c)
-            sql1.executeUpdate(map1, 'UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id')
 
+            sql1.executeUpdate(map1, 'UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id')
             dto.changed = false
             dto.id = Long.toString(cubeId)
             dto.sha1 = sha1
@@ -650,45 +658,85 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
      * approach maintains revision history in the branch (and adheres to the no SQL DELETE rule on
      * n_cube table).
      */
-    boolean rollbackCube(Connection c, ApplicationID appId, String cubeName, String username)
+    int rollbackCubes(Connection c, ApplicationID appId, Object[] names, String username)
     {
-        Long revision = getMinRevision(c, appId, cubeName)
-
-        if (revision == null)
+        int count = 0
+        boolean autoCommit = c.getAutoCommit()
+        try
         {
-            throw new IllegalArgumentException("Could not rollback cube.  Cube was not found.  App:  " + appId + ", cube: " + cubeName)
+            c.setAutoCommit(false)
+            PreparedStatement ins = c.prepareStatement("""\
+    INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+     sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+
+            names.each { String cubeName ->
+                Long revision = getMinRevision(c, appId, cubeName)
+
+                if (revision == null)
+                {
+                    throw new IllegalArgumentException("Could not rollback cube.  Cube was not found.  App:  " + appId + ", cube: " + cubeName)
+                }
+
+                Map map = appId as Map
+                map.putAll([cube: buildName(c, cubeName), rev: revision])
+                Sql sql = new Sql(c)
+
+                sql.eachRow(map, """\
+    SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
+     FROM n_cube
+     WHERE """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
+     AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""", 0, 1, { ResultSet row ->
+                    byte[] bytes = row.getBytes(CUBE_VALUE_BIN)
+                    byte[] testData = row.getBytes(TEST_DATA_BIN)
+                    String sha1 = row.getString('sha1')
+                    String headSha1 = row.getString('head_sha1')
+
+                    Long newRevision = getMaxRevision(c, appId, cubeName)
+                    if (newRevision == null)
+                    {
+                        throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + ", app: " + appId)
+                    }
+                    String notes = "Rollback of cube: " + cubeName + ", app: " + appId + ", was successful"
+                    Long rev = Math.abs(newRevision as long) + 1L
+
+                    long uniqueId = UniqueIdGenerator.getUniqueId()
+                    ins.setLong(1, uniqueId)
+                    ins.setString(2, appId.tenant)
+                    ins.setString(3, appId.app)
+                    ins.setString(4, appId.version)
+                    ins.setString(5, appId.status)
+                    ins.setString(6, appId.branch)
+                    ins.setString(7, cubeName)
+                    ins.setLong(8, (revision < 0 || headSha1 == null) ?  -rev : rev)
+                    ins.setString(9, sha1)
+                    ins.setString(10, headSha1)
+                    Timestamp now = new Timestamp(System.currentTimeMillis())
+                    ins.setTimestamp(11, now)
+                    ins.setString(12, username)
+                    ins.setBytes(13, bytes)
+                    ins.setBytes(14, testData)
+                    String note = createNote(username, now, notes)
+                    ins.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
+                    ins.setInt(16, 0)
+                    ins.addBatch()
+                    count++
+                    if (count % EXECUTE_BATCH_CONSTANT == 0)
+                    {
+                        ins.executeBatch()
+                    }
+                })
+            }
+            if (count % EXECUTE_BATCH_CONSTANT != 0)
+            {
+                ins.executeBatch()
+            }
         }
-
-        Map map = appId as Map
-        map.putAll([cube: buildName(c, cubeName), rev: revision])
-        Sql sql = new Sql(c)
-        boolean result = false
-        sql.eachRow(map, """\
-SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
- FROM n_cube
- WHERE """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
- AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""", 0, 1, { ResultSet row ->
-            byte[] bytes = row.getBytes(CUBE_VALUE_BIN)
-            byte[] testData = row.getBytes(TEST_DATA_BIN)
-            String sha1 = row.getString('sha1')
-            String headSha1 = row.getString('head_sha1')
-
-            Long newRevision = getMaxRevision(c, appId, cubeName)
-            if (newRevision == null)
-            {
-                throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + ", app: " + appId)
-            }
-
-            String notes = "Rollback of cube: " + cubeName + ", app: " + appId + ", was successful"
-            Long rev = Math.abs(newRevision as long) + 1L
-
-            if (insertCube(c, appId, cubeName, (revision < 0 || headSha1 == null) ?  -rev : rev, bytes, testData, notes, false, sha1, headSha1, System.currentTimeMillis(), username) == null)
-            {
-                throw new IllegalStateException("Unable to rollback branch cube: '" + cubeName + ", app: " + appId)
-            }
-            result = true
-        })
-        return result
+        finally
+        {
+            c.setAutoCommit(autoCommit)
+        }
+        return count
     }
 
     boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String headSha1)
@@ -708,7 +756,7 @@ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, 
         int count = sql.executeUpdate(map, 'UPDATE n_cube set head_sha1 = :sha1, changed = 0 WHERE n_cube_id = :id')
         if (count == 0)
         {
-            throw new IllegalStateException("error updating branch cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", no record found.")
+            throw new IllegalArgumentException("error updating branch cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", no record found.")
         }
         if (count != 1)
         {
@@ -758,12 +806,7 @@ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, 
 
         String notes = "Merge: branch cube accepted over head cube: " + appId + ", name: " + cubeName
         Long rev = Math.abs(newRevision as long) + 1L
-
-        if (insertCube(c, appId, cubeName, newRevision < 0 ?  -rev : rev, myBytes, myTestData, notes, changed, tipBranchSha1, headSha1, System.currentTimeMillis(), username) == null)
-        {
-            throw new IllegalStateException("Unable to overwrite branch cube: " + cubeName + ", app: " + appId)
-        }
-
+        insertCube(c, appId, cubeName, newRevision < 0 ?  -rev : rev, myBytes, myTestData, notes, changed, tipBranchSha1, headSha1, System.currentTimeMillis(), username)
         return true
     }
 
@@ -814,11 +857,7 @@ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, 
 
         String notes = "Branch cube overwritten: " + appId + ", name: " + cubeName
         Long rev = Math.abs(newRevision as long) + 1L
-
-        if (insertCube(c, appId, cubeName, headRevision < 0 ?  -rev : rev, headBytes, headTestData, notes, false, headSha1, headSha1, System.currentTimeMillis(), username) == null)
-        {
-            throw new IllegalStateException("Unable to overwrite branch cube: " + cubeName + ", app: " + appId)
-        }
+        insertCube(c, appId, cubeName, headRevision < 0 ?  -rev : rev, headBytes, headTestData, notes, false, headSha1, headSha1, System.currentTimeMillis(), username)
         return true
     }
 

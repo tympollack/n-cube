@@ -1025,7 +1025,7 @@ class TestNCubeManager
     {
         try
         {
-            NCubeManager.restoreCube(defaultSnapshotApp, [] as Object[], USER_ID)
+            NCubeManager.restoreCubes(defaultSnapshotApp, [] as Object[], USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1040,12 +1040,10 @@ class TestNCubeManager
     {
         try
         {
-            NCubeInfoDto[] dtos = new NCubeInfoDto[2];
-            dtos[0] = new NCubeInfoDto();
-            dtos[0].name = "TestCube";
-            dtos[0].headSha1 = "FOOFOO";
+            Object[] names = new Object[2]
+            names[0] = "TestCube"
 
-            NCubeManager.rollbackBranch(defaultSnapshotApp, dtos, USER_ID)
+            NCubeManager.rollbackCubes(defaultSnapshotApp, names, USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1056,11 +1054,55 @@ class TestNCubeManager
     }
 
     @Test
+    void testRollbackMultiple()
+    {
+        ApplicationID appId = new ApplicationID('NONE', 'none', '1.0.0', 'SNAPSHOT', 'jdereg')
+
+        NCube cube1 = NCubeManager.getNCubeFromResource(appId, 'testCube1.json')
+        NCubeManager.updateCube(appId, cube1, USER_ID)
+        String sha1 = cube1.sha1()
+
+        NCube cube2 = NCubeManager.getNCubeFromResource(appId, 'template1.json')
+        NCubeManager.updateCube(appId, cube2, USER_ID)
+        String sha2 = cube2.sha1()
+
+        NCube cube3 = NCubeManager.getNCubeFromResource(appId, 'urlPieces.json')
+        NCubeManager.updateCube(appId, cube3, USER_ID)
+        String sha3 = cube3.sha1()
+
+        NCube cube4 = NCubeManager.getNCubeFromResource(appId, 'months.json')
+        NCubeManager.updateCube(appId, cube4, USER_ID)
+        String sha4 = cube4.sha1()
+
+        List<NCubeInfoDto> changes = NCubeManager.getBranchChangesFromDatabase(appId)
+        assert 4 == changes.size()
+
+        Object[] cubes = [cube1.name, cube2.name, cube3.name, cube4.name].toArray()
+        assert 4 == NCubeManager.rollbackCubes(appId, cubes, USER_ID)
+        changes = NCubeManager.getBranchChangesFromDatabase(appId)
+        assert 0 == changes.size()  // Looks like we've got no cubes (4 deleted ones but 0 active)
+
+        List<NCubeInfoDto> deleted = NCubeManager.search(appId, null, null, [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY): true])
+        assert 4 == deleted.size()  // Rollback of a create is a DELETE
+
+        NCubeManager.restoreCubes(appId, cubes, USER_ID)
+        assert 4 == NCubeManager.getCubeNames(appId).size()
+
+        changes = NCubeManager.getBranchChangesFromDatabase(appId)
+        assert 4 == changes.size()
+
+        NCubeManager.loadCube(appId, cubes[0]).sha1() == sha1
+        NCubeManager.loadCube(appId, cubes[1]).sha1() == sha2
+        NCubeManager.loadCube(appId, cubes[2]).sha1() == sha3
+        NCubeManager.loadCube(appId, cubes[3]).sha1() == sha4
+    }
+
+    @Test
     void testRestoreCubeWithNullArray()
     {
         try
         {
-            NCubeManager.restoreCube(defaultSnapshotApp, null, USER_ID)
+            NCubeManager.restoreCubes(defaultSnapshotApp, null, USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1075,13 +1117,13 @@ class TestNCubeManager
     {
         try
         {
-            NCubeManager.restoreCube(defaultSnapshotApp, [Integer.MAX_VALUE] as Object[], USER_ID)
+            NCubeManager.restoreCubes(defaultSnapshotApp, [Integer.MAX_VALUE] as Object[], USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains('Non string name'))
-            assertTrue(e.message.contains('to restore'))
+            assertTrue(e.message.contains('names to restore'))
+            assertTrue(e.message.contains('must be string'))
         }
     }
 
@@ -1091,7 +1133,7 @@ class TestNCubeManager
         NCube cube = createCube()
         try
         {
-            NCubeManager.restoreCube(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
+            NCubeManager.restoreCubes(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
             fail('should not make it here')
         }
         catch (IllegalArgumentException e)
@@ -1122,7 +1164,7 @@ class TestNCubeManager
         records = NCubeManager.search(defaultSnapshotApp, '', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertEquals(1, records.length)
 
-        NCubeManager.restoreCube(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
+        NCubeManager.restoreCubes(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
         records = NCubeManager.search(defaultSnapshotApp, 'test*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertEquals(1, records.length)
 
@@ -1146,7 +1188,7 @@ class TestNCubeManager
     {
         try
         {
-            NCubeManager.restoreCube(defaultSnapshotApp, ['foo'] as Object[], USER_ID)
+            NCubeManager.restoreCubes(defaultSnapshotApp, ['foo'] as Object[], USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1202,7 +1244,7 @@ class TestNCubeManager
         assertEquals(1, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
         assertEquals(4, NCubeManager.getRevisionHistory(defaultSnapshotApp, cube.name).size())
 
-        NCubeManager.restoreCube(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
+        NCubeManager.restoreCubes(defaultSnapshotApp, [cube.name] as Object[], USER_ID)
         NCube restored = NCubeManager.loadCube(defaultSnapshotApp, cube.name)
         assert cube.sha1() == restored.sha1()
 
@@ -1459,6 +1501,65 @@ class TestNCubeManager
         assert cubes[0].revision == '1'
     }
 
+    @Test
+    void testLoadCubeByUsingNonExistingSha1()
+    {
+        NCube cube = createCube()
+        try
+        {
+            NCubeManager.getPersister().loadCubeBySha1(cube.getApplicationID(), cube.name, "phonySha1")
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('unable to find')
+        }
+    }
+
+    @Test
+    void testUpdateBranchCubeHeadSha1BadArgs()
+    {
+        try
+        {
+            NCubeManager.getPersister().updateBranchCubeHeadSha1(null, 'badSha1')
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('id cannot be empty')
+        }
+        try
+        {
+            NCubeManager.getPersister().updateBranchCubeHeadSha1(75, '')
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('sha-1 cannot be empty')
+        }
+
+        try
+        {
+            NCubeManager.getPersister().updateBranchCubeHeadSha1(75, 'phony')
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('no record found')
+        }
+    }
+
+    @Test
+    void testBadSearchFlags()
+    {
+        Map options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
+                       (NCubeManager.SEARCH_DELETED_RECORDS_ONLY): true]
+        try
+        {
+            NCubeManager.search(defaultSnapshotApp, null, null, options)
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.contains('activeRecordsOnly and deletedRecordsOnly are mutually exclusive')
+        }
+    }
+
 //    @Test
 //    void testGetApplicationId()
 //    {
@@ -1539,7 +1640,7 @@ class TestNCubeManager
 
         try
         {
-            NCubeManager.restoreCube(defaultReleaseApp, [cube.name] as Object[], USER_ID)
+            NCubeManager.restoreCubes(defaultReleaseApp, [cube.name] as Object[], USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)

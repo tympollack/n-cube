@@ -679,7 +679,7 @@ public class NCubeManager
     /**
      * Restore a previously deleted n-cube.
      */
-    public static void restoreCube(ApplicationID appId, Object[] cubeNames, String username)
+    public static void restoreCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
@@ -694,13 +694,16 @@ public class NCubeManager
             throw new IllegalArgumentException("Empty array of cube names passed to be restored.");
         }
 
+        // Batch restore
+        getPersister().restoreCubes(appId, cubeNames, username);
+
+        // Load cache
         for (Object name : cubeNames)
         {
             if ((name instanceof String))
             {
                 String cubeName = (String) name;
                 NCube.validateCubeName(cubeName);
-                getPersister().restoreCube(appId, cubeName, username);
                 NCube ncube = getPersister().loadCube(appId, cubeName);
                 addCube(appId, ncube);
             }
@@ -1042,37 +1045,14 @@ public class NCubeManager
      * when the branch was created.  This is an insert cube (maintaining revision history) for
      * each cube passed in.
      */
-    public static int rollbackBranch(ApplicationID appId, Object[] infoDtos, String username)
+    public static int rollbackCubes(ApplicationID appId, Object[] names, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
         appId.validateStatusIsNotRelease();
-
-        int count = 0;
-        for (Object dto : infoDtos)
-        {
-            NCubeInfoDto info = (NCubeInfoDto)dto;
-            if (getPersister().rollbackCube(appId, info.name, username))
-            {
-                count++;
-            }
-        }
+        int count = getPersister().rollbackCubes(appId, names, username);
         clearCache(appId);
         return count;
-    }
-
-    /**
-     * Rollback the given cube.  This means that it will be returned to the state it was
-     * when the branch was created.  This is an insert cube (maintaining revision history).
-     */
-    public static boolean rollbackCube(ApplicationID appId, String cubeName, String username)
-    {
-        validateAppId(appId);
-        appId.validateBranchIsNotHead();
-        appId.validateStatusIsNotRelease();
-        boolean ret = getPersister().rollbackCube(appId, cubeName, username);
-        clearCache(appId);
-        return ret;
     }
 
     /**

@@ -133,7 +133,7 @@ import com.cedarsoftware.util.io.*
         }
     }
 
-    private static void handleException(Exception e, String msg)
+    protected static void handleException(Exception e, String msg)
     {
         if (LOG.isDebugEnabled())
         {

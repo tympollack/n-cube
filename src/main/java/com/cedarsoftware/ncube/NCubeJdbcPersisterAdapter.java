@@ -87,12 +87,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public void restoreCube(ApplicationID appId, String cubeName, String username)
+    public void restoreCubes(ApplicationID appId, Object[] names, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            persister.restoreCube(c, appId, cubeName, username);
+            persister.restoreCubes(c, appId, names, username);
         }
         finally
         {
@@ -348,12 +348,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public boolean rollbackCube(ApplicationID appId, String cubeName, String username)
+    public int rollbackCubes(ApplicationID appId, Object[] names, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.rollbackCube(c, appId, cubeName, username);
+            return persister.rollbackCubes(c, appId, names, username);
         }
         finally
         {

@@ -261,8 +261,8 @@ abstract class TestWithPreloadedDatabase
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(1, dtos.length)
-
-        NCubeManager.rollbackBranch(branch1, dtos, USER_ID)
+        Object[] names = [dtos[0].name]
+        NCubeManager.rollbackCubes(branch1, names, USER_ID)
 
         dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(0, dtos.length)
@@ -282,10 +282,11 @@ abstract class TestWithPreloadedDatabase
         NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
+        Object[] names = [dtos[0].name]
         assertEquals(1, dtos.length)
 
         // undo delete
-        NCubeManager.rollbackBranch(branch1, dtos, USER_ID)
+        NCubeManager.rollbackCubes(branch1, names, USER_ID)
 
         dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(0, dtos.length)
@@ -779,8 +780,8 @@ abstract class TestWithPreloadedDatabase
         //  loads in both TestAge and TestBranch through only TestBranch has changed.
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(1, dtos.length)
-
-        assertEquals(1, NCubeManager.rollbackBranch(branch1, dtos, USER_ID))
+        dtos[0] = dtos[0].name
+        assertEquals(1, NCubeManager.rollbackCubes(branch1, dtos, USER_ID))
 
         assertEquals(6, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
 
@@ -1273,7 +1274,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(2, getDeletedCubesFromDatabase(head, "*").size())
 
 
-        NCubeManager.restoreCube(branch1, ["TestBranch"] as Object[], USER_ID)
+        NCubeManager.restoreCubes(branch1, ["TestBranch"] as Object[], USER_ID)
         assertEquals(1, getDeletedCubesFromDatabase(branch1, "*").size())
         assertNull(NCubeManager.getCube(branch1, "TestAge"))
         assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
@@ -1446,7 +1447,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(0, dtos.length)
 
         assertNull(NCubeManager.getCube(branch1, "TestBranch2"))
-        assertEquals(0, NCubeManager.rollbackBranch(branch1, dtos, USER_ID))
+        assertEquals(0, NCubeManager.rollbackCubes(branch1, dtos, USER_ID))
 
         assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
         assertNull(NCubeManager.getCube(branch1, "TestBranch2"))
@@ -1475,9 +1476,11 @@ abstract class TestWithPreloadedDatabase
         assertEquals(2, NCubeManager.getBranchChangesFromDatabase(branch1).size())
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
+        dtos[0] = dtos[0].name
+        dtos[1] = dtos[1].name
         assertEquals(2, dtos.length)
 
-        assertEquals(2, NCubeManager.rollbackBranch(branch1, dtos, USER_ID))
+        assertEquals(2, NCubeManager.rollbackCubes(branch1, dtos, USER_ID))
 
         assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
         assertNull(NCubeManager.getCube(branch1, "TestBranch2"))
@@ -1746,9 +1749,11 @@ abstract class TestWithPreloadedDatabase
 
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
+        dtos[0] = dtos[0].name
+        dtos[1] = dtos[1].name
         assertEquals(2, dtos.length)
 
-        assertEquals(2, NCubeManager.rollbackBranch(branch1, dtos, USER_ID))
+        assertEquals(2, NCubeManager.rollbackCubes(branch1, dtos, USER_ID))
 
         assertEquals(0, getDeletedCubesFromDatabase(head, null).size())
         assertEquals(1, getDeletedCubesFromDatabase(branch1, null).size())
@@ -1765,10 +1770,10 @@ abstract class TestWithPreloadedDatabase
         {
             NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
-        } catch (IllegalArgumentException e) { }
+        }
+        catch (IllegalArgumentException e) { }
 
         assert 2 == NCubeManager.getRevisionHistory(branch1, "TestBranch2").size()
-
 
         assertTrue(NCubeManager.renameCube(branch1, "TestBranch", "TestBranch2", USER_ID))
 
@@ -1870,9 +1875,10 @@ abstract class TestWithPreloadedDatabase
 
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
+        dtos[0] = dtos[0].name
         assertEquals(1, dtos.length)
 
-        assertEquals(1, NCubeManager.rollbackBranch(branch2, dtos, USER_ID))
+        assertEquals(1, NCubeManager.rollbackCubes(branch2, dtos, USER_ID))
 
         assertEquals(0, getDeletedCubesFromDatabase(head, null).size())
         assertEquals(0, getDeletedCubesFromDatabase(branch1, null).size())
