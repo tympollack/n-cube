@@ -10,7 +10,6 @@ import java.sql.ResultSet
 import java.sql.SQLException
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
@@ -86,30 +85,25 @@ class TestNCubeJdbcPersister
         // Verify that you cannot delete a RELEASE ncube
         try
         {
-            assertFalse(persister.deleteCube(defaultSnapshotApp, ncube1.name, false, USER_ID))
+            persister.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), false, USER_ID)
         }
-        catch (Exception e)
+        catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("delete"))
-            assertTrue(e.message.contains("nable"))
-            assertTrue(e.message.contains("find"))
+            e.message.contains('does not exist')
         }
+
         try
         {
-            assertFalse(persister.deleteCube(defaultSnapshotApp, ncube2.name, false, USER_ID))
+            persister.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray(), false, USER_ID)
         }
-        catch (Exception e)
+        catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("delete"))
-            assertTrue(e.message.contains("nable"))
-            assertTrue(e.message.contains("find"))
+            e.message.contains('does not exist')
         }
 
         // Delete new SNAPSHOT cubes
-        assertTrue(persister.deleteCube(next, ncube1.name, false, USER_ID))
-        assertTrue(persister.deleteCube(next, ncube2.name, false, USER_ID))
+        assertTrue(persister.deleteCubes(next, [ncube1.name].toArray(), false, USER_ID))
+        assertTrue(persister.deleteCubes(next, [ncube2.name].toArray(), false, USER_ID))
 
         // Ensure that all test ncubes are deleted
         cubeList = persister.search(defaultSnapshotApp, "test.%", null, ['activeRecordsOnly' : true])

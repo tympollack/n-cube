@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import org.junit.After
@@ -8,7 +7,6 @@ import org.junit.Ignore
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNotSame
@@ -16,7 +14,6 @@ import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertSame
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -279,7 +276,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.search(head, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, NCubeManager.search(branch1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
 
-        NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID)
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         Object[] names = [dtos[0].name]
@@ -299,7 +296,7 @@ abstract class TestWithPreloadedDatabase
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
 
         NCubeManager.updateCube(branch1, cube, 'kenny')
-        NCubeManager.deleteCube(branch1, "TestAge", 'kenny')
+        NCubeManager.deleteCubes(branch1, ['TestAge'].toArray(), 'kenny')
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(0, dtos.length)
@@ -316,7 +313,7 @@ abstract class TestWithPreloadedDatabase
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
 
         NCubeManager.updateCube(branch1, cube, 'kenny')
-        NCubeManager.deleteCube(branch1, "TestAge", 'kenny')
+        NCubeManager.deleteCubes(branch1, ['TestAge'].toArray(), 'kenny')
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(0, dtos.length)
@@ -337,7 +334,7 @@ abstract class TestWithPreloadedDatabase
 
         NCubeManager.createBranch(branch1)
         NCubeManager.createBranch(branch2)
-        NCubeManager.deleteCube(branch2, "TestBranch", USER_ID)
+        NCubeManager.deleteCubes(branch2, ['TestBranch'].toArray(), USER_ID)
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
 
@@ -361,8 +358,8 @@ abstract class TestWithPreloadedDatabase
 
         NCubeManager.createBranch(branch1)
         NCubeManager.createBranch(branch2)
-        NCubeManager.deleteCube(branch2, "TestBranch", USER_ID)
-        NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
+        NCubeManager.deleteCubes(branch2, ['TestBranch'].toArray(), USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID)
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
 
@@ -827,7 +824,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
         // update the new edited cube.
-        assertTrue(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID))
 
         // Only Branch "TestBranch" has been updated.
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
@@ -868,8 +865,8 @@ abstract class TestWithPreloadedDatabase
 
         //  delete and re-add these cubes.
         assertEquals(4, NCubeManager.createBranch(branch1))
-        NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
-        NCubeManager.deleteCube(branch1, "TestAge", USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestAge'].toArray(), USER_ID)
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(2, dtos.length)
@@ -994,7 +991,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
         // update the new edited cube.
-        assertTrue(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID))
 
         // Only Branch "TestBranch" has been updated.
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
@@ -1151,7 +1148,7 @@ abstract class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         assertEquals(1, NCubeManager.createBranch(branch1))
-        assertTrue(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID))
 
         try
         {
@@ -1171,7 +1168,7 @@ abstract class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         assertEquals(1, NCubeManager.createBranch(branch1))
-        assertTrue(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID))
 
         try
         {
@@ -1252,9 +1249,9 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestAge").size())
         assertEquals(0, getDeletedCubesFromDatabase(branch1, "*").size())
 
-        assertTrue(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID))
         assertEquals(1, getDeletedCubesFromDatabase(branch1, "*").size())
-        assertTrue(NCubeManager.deleteCube(branch1, "TestAge", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestAge'].toArray(), USER_ID))
         assertEquals(2, getDeletedCubesFromDatabase(branch1, "*").size())
 
         assertEquals(2, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
@@ -1376,7 +1373,7 @@ abstract class TestWithPreloadedDatabase
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
 
-        NCubeManager.deleteCube(branch1, "TestAge", USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestAge'].toArray(), USER_ID)
 
         assertNull(NCubeManager.getCube(branch1, "TestAge"))
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
@@ -1404,7 +1401,7 @@ abstract class TestWithPreloadedDatabase
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
 
-        NCubeManager.deleteCube(branch1, "TestAge", USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestAge'].toArray(), USER_ID)
 
         assertNull(NCubeManager.getCube(branch1, "TestAge"))
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
@@ -1988,7 +1985,7 @@ abstract class TestWithPreloadedDatabase
     {
         preloadCubes(head, "test.branch.1.json")
         NCubeManager.createBranch(branch1)
-        NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID)
 
         assertNull(NCubeManager.getCube(branch1, "TestBranch"))
 
@@ -2011,7 +2008,7 @@ abstract class TestWithPreloadedDatabase
     {
         preloadCubes(head, "test.branch.1.json")
         NCubeManager.createBranch(branch1)
-        NCubeManager.deleteCube(branch1, "TestBranch", USER_ID)
+        NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID)
 
         assertNull(NCubeManager.getCube(branch1, "TestBranch"))
 
@@ -2036,11 +2033,17 @@ abstract class TestWithPreloadedDatabase
         NCubeManager.updateCube(branch1, cubes[0], USER_ID)
         assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
 
-        assertTrue(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID))
         assertNull(NCubeManager.getCube(branch1, "TestBranch"))
 
-        //  delete on deleted just returns false, no exception.
-        assertFalse(NCubeManager.deleteCube(branch1, "TestBranch", USER_ID))
+        try
+        {
+            NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray(), USER_ID)
+        }
+        catch (IllegalArgumentException e)
+        {
+            e.message.contains('does not exist')
+        }
     }
 
 

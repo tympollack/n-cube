@@ -118,10 +118,13 @@ class NCubeJdbcPersister
         Map map = appId as Map
         map.cube = buildName(c, cubeName)
         Sql sql = new Sql(c)
-        sql.eachRow(map, "SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed " +
-                "FROM n_cube " +
-                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch " +
-                "ORDER BY abs(revision_number) DESC", {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
+
+        sql.eachRow(map, """\
+SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
+ FROM n_cube
+ WHERE """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch
+ ORDER BY abs(revision_number) DESC
+""", {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
         if (records.isEmpty())
         {
@@ -235,39 +238,79 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         throw new IllegalStateException('Unable to insert cube: ' + cube.name + ' into database, app: ' + appId + ", attempted action: " + notes)
     }
 
-    boolean deleteCube(Connection c, ApplicationID appId, String cubeName, boolean allowDelete, String username)
+    boolean deleteCubes(Connection c, ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     {
+        int count = 0
         if (allowDelete)
-        {
-            String sqlCmd = "DELETE FROM n_cube WHERE app_cd = ? AND " + buildNameCondition(c, "n_cube_nm") + " = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ?"
+        {   // Not the most efficient, but this is only used for testing, never from running app.
+            for (int i=0; i < cubeNames.length; i++)
+            {
+                String sqlCmd = "DELETE FROM n_cube WHERE app_cd = ? AND " + buildNameCondition(c, "n_cube_nm") + " = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ?"
 
-            PreparedStatement ps = c.prepareStatement(sqlCmd)
-            ps.setString(1, appId.app)
-            ps.setString(2, buildName(c, cubeName))
-            ps.setString(3, appId.version)
-            ps.setString(4, appId.tenant)
-            ps.setString(5, appId.branch)
-            return ps.executeUpdate() > 0
+                PreparedStatement ps = c.prepareStatement(sqlCmd)
+                ps.setString(1, appId.app)
+                ps.setString(2, buildName(c, (String)cubeNames[i]))
+                ps.setString(3, appId.version)
+                ps.setString(4, appId.tenant)
+                ps.setString(5, appId.branch)
+                count += ps.executeUpdate()
+            }
+            return count > 0
         }
-        else
-        {
-            Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                           (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                           (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                           (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
 
-            boolean result = false
+        PreparedStatement ins = c.prepareStatement("""\
+INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+ sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+
+
+        Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
+                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
+                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
+        cubeNames.each { String cubeName ->
+            Long revision = null
             runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
-                Long revision = row.getLong('revision_number')
+                revision = row.getLong('revision_number')
                 byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
                 byte[] testData = row.getBytes(TEST_DATA_BIN)
                 String sha1 = row.getString('sha1')
                 String headSha1 = row.getString('head_sha1')
-                insertCube(c, appId, cubeName, -(revision + 1), jsonBytes, testData, "Cube deleted", true, sha1, headSha1, System.currentTimeMillis(), username)
-                result = true
+
+                long uniqueId = UniqueIdGenerator.getUniqueId()
+                ins.setLong(1, uniqueId)
+                ins.setString(2, appId.tenant)
+                ins.setString(3, appId.app)
+                ins.setString(4, appId.version)
+                ins.setString(5, appId.status)
+                ins.setString(6, appId.branch)
+                ins.setString(7, cubeName)
+                ins.setLong(8, -(revision + 1))
+                ins.setString(9, sha1)
+                ins.setString(10, headSha1)
+                ins.setTimestamp(11, new Timestamp(System.currentTimeMillis()))
+                ins.setString(12, username)
+                ins.setBytes(13, jsonBytes)
+                ins.setBytes(14, testData)
+                ins.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "deleted"), "UTF-8"))
+                ins.setInt(16, 1)
+                ins.addBatch()
+                count++
+                if (count % EXECUTE_BATCH_CONSTANT == 0)
+                {
+                    ins.executeBatch()
+                }
             })
-            return result
+            if (revision == null)
+            {
+                throw new IllegalArgumentException("Cannot delete cube: " + cubeName + " as it does not exist in app: " + appId)
+            }
         }
+        if (count % EXECUTE_BATCH_CONSTANT != 0)
+        {
+            ins.executeBatch()
+        }
+        return count > 0
     }
 
     void restoreCubes(Connection c, ApplicationID appId, Object[] names, String username)
@@ -286,7 +329,6 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                                            (NCubeManager.SEARCH_INCLUDE_TEST_DATA)   : true,
                                            (NCubeManager.SEARCH_EXACT_MATCH_NAME)    : true] as Map
             int count = 0
-
             names.each { Object potential ->
                 if (!(potential instanceof String))
                 {
@@ -316,7 +358,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                     ins.setString(12, username)
                     ins.setBytes(13, jsonBytes)
                     ins.setBytes(14, testData)
-                    ins.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "Cube restored"), "UTF-8"))
+                    ins.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "restored"), "UTF-8"))
                     ins.setInt(16, 1)
                     ins.addBatch()
                     count++
@@ -381,7 +423,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 maxRevision = Math.abs(maxRevision as long) + 1
             }
 
-            NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "Cube updated from HEAD", false, sha1, sha1, time, username)
+            NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "updated from HEAD", false, sha1, sha1, time, username)
             return dto
         }
         return null
@@ -412,7 +454,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 return
             }
 
-            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "Cube updated", true, headSha1, System.currentTimeMillis(), username)
+            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "updated", true, headSha1, System.currentTimeMillis(), username)
         })
 
         // No existing row found, then create a new cube (updateCube can be used for update or create)
@@ -533,7 +575,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
 
         NCube ncube = NCube.createCubeFromGzipBytes(oldBytes)
         ncube.setName(newName)
-        String notes = "Cube renamed: " + oldName + " -> " + newName
+        String notes = "renamed: " + oldName + " -> " + newName
 
         Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
         insertCube(c, appId, ncube, rev, oldTestData, notes, true, newHeadSha1, System.currentTimeMillis(), username)
@@ -553,7 +595,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             byte[] testData = row.getBytes(TEST_DATA_BIN)
             long now = System.currentTimeMillis()
             revision = revision < 0 ? revision - 1 : revision + 1
-            result = insertCube(c, appId, cube, revision, testData, "Cube committed", true, headSha1, now, username)
+            result = insertCube(c, appId, cube, revision, testData, "committed", true, headSha1, now, username)
         })
         return result
     }
@@ -592,7 +634,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             byte[] cubeData = cube.getCubeAsGzipJsonBytes()
             String sha1 = cube.sha1()
 
-            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "Cube committed", false, sha1, null, now, username)
+            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "committed", false, sha1, null, now, username)
             result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, "Cube committed", false, sha1, sha1, now, username)
         })
         return result
@@ -636,7 +678,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             byte[] testData = row.getBytes(TEST_DATA_BIN)
             long now = System.currentTimeMillis()
 
-            NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, "Cube committed", false, sha1, null, now, username)
+            NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, now, username)
             def map1 = [head_sha1: sha1, create_dt: new Timestamp(now), id: cubeId]
             Sql sql1 = new Sql(c)
 
@@ -697,7 +739,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                     {
                         throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + ", app: " + appId)
                     }
-                    String notes = "Rollback of cube: " + cubeName + ", app: " + appId + ", was successful"
+                    String notes = "rolled back"
                     Long rev = Math.abs(newRevision as long) + 1L
 
                     long uniqueId = UniqueIdGenerator.getUniqueId()
@@ -804,7 +846,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             throw new IllegalStateException("failed to update branch cube because branch cube does not exist: " + cubeName + ", app: " + appId)
         }
 
-        String notes = "Merge: branch cube accepted over head cube: " + appId + ", name: " + cubeName
+        String notes = 'merge: branch accepted over head'
         Long rev = Math.abs(newRevision as long) + 1L
         insertCube(c, appId, cubeName, newRevision < 0 ?  -rev : rev, myBytes, myTestData, notes, changed, tipBranchSha1, headSha1, System.currentTimeMillis(), username)
         return true
@@ -855,7 +897,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             throw new IllegalStateException("failed to overwrite cube in your branch, because branch cube has changed: " + cubeName + ", app: " + appId)
         }
 
-        String notes = "Branch cube overwritten: " + appId + ", name: " + cubeName
+        String notes = 'merge: head accepted over branch'
         Long rev = Math.abs(newRevision as long) + 1L
         insertCube(c, appId, cubeName, headRevision < 0 ?  -rev : rev, headBytes, headTestData, notes, false, headSha1, headSha1, System.currentTimeMillis(), username)
         return true
@@ -926,7 +968,7 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
                 changedCondition
 
         if (max >= 1)
-        {
+        {   // Use pre-closure to fiddle with batch fetchSize and to monitor row count
             long count = 0
             sql.eachRow(map, select, 0, max + 1, { ResultSet row ->
                 if (row.getFetchSize() < FETCH_SIZE)
@@ -942,7 +984,7 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
             })
         }
         else
-        {
+        {   // Use pre-closure to fiddle with batch fetchSizes
             sql.eachRow(map, select, { ResultSet row ->
                 if (row.getFetchSize() < FETCH_SIZE)
                 {

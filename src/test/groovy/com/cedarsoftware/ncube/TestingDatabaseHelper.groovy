@@ -142,14 +142,14 @@ class TestingDatabaseHelper
     {
         try
         {
-            NCubeManager.deleteCube TestNCubeManager.defaultSnapshotApp, 'sys.classpath', TestNCubeManager.USER_ID
+            NCubeManager.deleteCubes TestNCubeManager.defaultSnapshotApp, 'sys.classpath', TestNCubeManager.USER_ID
         }
         catch (Exception ignored)
         { }
 
         try
         {
-            NCubeManager.deleteCube ApplicationID.testAppId, 'sys.classpath', TestNCubeManager.USER_ID
+            NCubeManager.deleteCubes ApplicationID.testAppId, 'sys.classpath', TestNCubeManager.USER_ID
         }
         catch (Exception ignored)
         { }

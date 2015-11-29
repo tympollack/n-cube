@@ -133,8 +133,8 @@ class TestNCubeManager
         assertFalse(NCubeManager.isCubeCached(appId, name1))
         assertFalse(NCubeManager.isCubeCached(appId, name2))
 
-        NCubeManager.deleteCube(appId, name1, true, USER_ID)
-        NCubeManager.deleteCube(appId, name2, true, USER_ID)
+        NCubeManager.deleteCubes(appId, [name1].toArray(), true, USER_ID)
+        NCubeManager.deleteCubes(appId, [name2].toArray(), true, USER_ID)
 
         Map options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY) : true, (NCubeManager.SEARCH_EXACT_MATCH_NAME) : true];
         Object[] cubeInfo = NCubeManager.search(appId, name1, null, options)
@@ -176,7 +176,7 @@ class TestNCubeManager
         data = NCubeManager.getTestData(defaultSnapshotApp, 'test.Age-Gender')
         assertTrue(DeepEquals.deepEquals(expectedTests, new NCubeTestReader().convert(data).toArray(new NCubeTest[0])))
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, cube.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), true, USER_ID))
     }
 
     @Test
@@ -277,9 +277,9 @@ class TestNCubeManager
         NCube test = NCubeManager.getCube(defaultSnapshotApp, 'test.ContinentCountries')
         assertEquals((Double) test.getCell(coord1), 1.0d, 0.00001d)
 
-        NCubeManager.deleteCube(defaultSnapshotApp, 'test.ContinentCountries', false, USER_ID)
-        NCubeManager.deleteCube(defaultSnapshotApp, 'test.States', false, USER_ID)
-        NCubeManager.deleteCube(defaultSnapshotApp, 'test.Provinces', false, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, ['test.ContinentCountries'].toArray(), false, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, ['test.States'].toArray(), false, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, ['test.Provinces'].toArray(), false, USER_ID)
         assertEquals(1, NCubeManager.getCubeNames(defaultSnapshotApp).size())
 
         HtmlFormatter formatter = new HtmlFormatter();
@@ -307,8 +307,8 @@ class TestNCubeManager
         assertEquals(2, refs.size())
         assertTrue(refs.contains('Template1Cube'))
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, n1.name, true, USER_ID))
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, n2.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [n1.name].toArray(), true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [n2.name].toArray(), true, USER_ID))
 
         try
         {
@@ -368,8 +368,8 @@ class TestNCubeManager
         NCubeManager.duplicate(defaultSnapshotApp, newId, n1.name, n1.name, USER_ID)
         NCube n2 = NCubeManager.getCube(defaultSnapshotApp, n1.name)
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, n1.name, true, USER_ID))
-        assertTrue(NCubeManager.deleteCube(newId, n2.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [n1.name].toArray(), true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(newId, [n2.name].toArray(), true, USER_ID))
         assertTrue(n1.equals(n2))
     }
 
@@ -402,7 +402,7 @@ class TestNCubeManager
             }
         }
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, n1.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [n1.name].toArray(), true, USER_ID))
         assertTrue(foundName)
         assertTrue(foundVer)
     }
@@ -426,7 +426,7 @@ class TestNCubeManager
         NCube n2 = NCubeManager.getCube(newId, 'idTest')
         assertEquals(n1, n2)
 
-        assertTrue(NCubeManager.deleteCube(newId, n1.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(newId, [n1.name].toArray(), true, USER_ID))
     }
 
     @Test
@@ -438,7 +438,7 @@ class TestNCubeManager
 
         assertTrue(ncube1.numDimensions == 3)
 
-        NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), USER_ID)
 
         assertTrue(NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID))
     }
@@ -463,7 +463,7 @@ class TestNCubeManager
         NCube ncube1 = NCubeBuilder.testNCube3D_Boolean
         NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID)
         assertTrue(ncube1.numDimensions == 3)
-        NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), USER_ID)
         NCubeManager.updateTestData(defaultSnapshotApp, ncube1.name, 'test data')
         String testData = NCubeManager.getTestData(defaultSnapshotApp, ncube1.name)
         assert 'test data' == testData
@@ -481,7 +481,7 @@ class TestNCubeManager
         NCube ncube1 = NCubeBuilder.testNCube3D_Boolean
         NCubeManager.updateCube(defaultSnapshotApp, ncube1, USER_ID)
         assertTrue(ncube1.numDimensions == 3)
-        NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), USER_ID)
         NCubeManager.updateNotes(defaultSnapshotApp, ncube1.name, 'new notes')
         String notes = NCubeManager.getNotes(defaultSnapshotApp, ncube1.name)
         assert 'new notes' == notes
@@ -595,8 +595,8 @@ class TestNCubeManager
         assertTrue('This is JSON data'.equals(testData))
 
         // Delete new SNAPSHOT cubes
-        assertTrue(NCubeManager.deleteCube(next, ncube1.name, false, USER_ID))
-        assertTrue(NCubeManager.deleteCube(next, ncube2.name, false, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(next, [ncube1.name].toArray(), false, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(next, [ncube2.name].toArray(), false, USER_ID))
 
         // Ensure that all test ncubes are deleted
         cubeList = NCubeManager.search(defaultSnapshotApp, 'test.*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
@@ -613,7 +613,15 @@ class TestNCubeManager
         assertEquals(2, cubeInfos.length)
         NCubeManager.commitBranch(defaultSnapshotApp, cubeInfos, USER_ID)
         assert 2 == NCubeManager.releaseCubes(defaultSnapshotApp, "1.2.3")
-        assertFalse(NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID))
+
+        try
+        {
+            NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), USER_ID)
+        }
+        catch (IllegalArgumentException e)
+        {
+            e.message.contains('does not exist')
+        }
 
         try
         {
@@ -660,10 +668,10 @@ class TestNCubeManager
         assertTrue(nc1.name.equals('test.Floppy') || nc2.name.equals('test.Floppy'))
         assertFalse(nc1.name.equals('test.Floppy') && nc2.name.equals('test.Floppy'))
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, 'test.Floppy', true, USER_ID))
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, ncube2.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, ['test.Floppy'].toArray(), true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray(), true, USER_ID))
 
-        assertFalse(NCubeManager.deleteCube(defaultSnapshotApp, 'test.Floppy', true, USER_ID))
+        assertFalse(NCubeManager.deleteCubes(defaultSnapshotApp, ['test.Floppy'].toArray(), true, USER_ID))
     }
 
     @Test
@@ -680,8 +688,8 @@ class TestNCubeManager
 
         assertEquals(3, cubeList.length)
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, true, USER_ID))
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, ncube2.name, true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), true, USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray(), true, USER_ID))
     }
 
     @Test
@@ -849,14 +857,14 @@ class TestNCubeManager
         dtos = NCubeManager.getRevisionHistory(defaultSnapshotApp, ncube1.name);
         assertEquals(1, dtos.size());
 
-        NCubeManager.deleteCube(defaultSnapshotApp, ncube1.name, true, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), true, USER_ID)
     }
 
     @Test
     void testNCubeManagerDeleteNotExistingCube()
     {
         ApplicationID id = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'DASHBOARD', '0.1.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        assertFalse(NCubeManager.deleteCube(id, 'DashboardRoles', true, USER_ID))
+        assertFalse(NCubeManager.deleteCubes(id, ['DashboardRoles'].toArray(), true, USER_ID))
     }
 
     @Test
@@ -902,7 +910,7 @@ class TestNCubeManager
             assertTrue(e.message.contains('notes'))
         }
 
-        NCubeManager.deleteCube(defaultSnapshotApp, 'test.Age-Gender', true, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, ['test.Age-Gender'].toArray(), true, USER_ID)
     }
 
     @Test
@@ -948,7 +956,7 @@ class TestNCubeManager
             assertTrue(e.message.contains('exist'))
         }
 
-        assertTrue(NCubeManager.deleteCube(defaultSnapshotApp, 'test.Age-Gender', USER_ID))
+        assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, ['test.Age-Gender'].toArray(), USER_ID))
     }
 
 
@@ -970,7 +978,7 @@ class TestNCubeManager
                 assertTrue(column.metaProperties.size() == 0)
             }
         }
-        NCubeManager.deleteCube(defaultSnapshotApp, ncube.name, true, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [ncube.name].toArray(), true, USER_ID)
     }
 
     @Test
@@ -1141,7 +1149,7 @@ class TestNCubeManager
             assertTrue(e.message.toLowerCase().contains('cannot restore'))
             assertTrue(e.message.contains('not deleted in app'))
         }
-        NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), USER_ID)
     }
 
     @Test
@@ -1157,7 +1165,7 @@ class TestNCubeManager
 
         assertEquals(0, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
 
-        NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), USER_ID)
 
         assertEquals(1, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
 
@@ -1173,7 +1181,7 @@ class TestNCubeManager
         assert ncube.sha1() == cube.sha1()
         assert ncube.sha1() == sha1
 
-        NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), USER_ID)
     }
 
     @Test
@@ -1238,7 +1246,7 @@ class TestNCubeManager
         assertEquals(2, NCubeManager.search(defaultSnapshotApp, '', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(0, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
 
-        NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), USER_ID)
 
         assertEquals(1, NCubeManager.search(defaultSnapshotApp, '', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
@@ -1252,7 +1260,7 @@ class TestNCubeManager
         assertEquals(0, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
         assertEquals(5, NCubeManager.getRevisionHistory(defaultSnapshotApp, cube.name).size())
 
-        NCubeManager.deleteCube(defaultSnapshotApp, cube.name, USER_ID)
+        NCubeManager.deleteCubes(defaultSnapshotApp, [cube.name].toArray(), USER_ID)
 
         assertEquals(1, NCubeManager.search(defaultSnapshotApp, '', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, getDeletedCubesFromDatabase(defaultSnapshotApp, '').size())
@@ -1614,7 +1622,7 @@ class TestNCubeManager
         NCubeManager.releaseCubes(defaultSnapshotApp, "1.2.3")
         try
         {
-            NCubeManager.deleteCube(defaultReleaseApp, cube.name, USER_ID)
+            NCubeManager.deleteCubes(defaultReleaseApp, [cube.name].toArray(), USER_ID)
             fail()
         }
         catch (IllegalArgumentException e)

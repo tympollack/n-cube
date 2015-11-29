@@ -1222,30 +1222,32 @@ public class NCubeManager
     /**
      * Delete the named NCube from the database
      *
-     * @param cubeName   NCube to be deleted
+     * @param cubeNames  Object[] of String cube names to be deleted (soft deleted)
      */
-    public static boolean deleteCube(ApplicationID appId, String cubeName, String username)
+    public static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
         appId.validateBranchIsNotHead();
-        return deleteCube(appId, cubeName, false, username);
+        return deleteCubes(appId, cubeNames, false, username);
     }
 
-    static boolean deleteCube(ApplicationID appId, String cubeName, boolean allowDelete, String username)
+    static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     {
         validateAppId(appId);
-        NCube.validateCubeName(cubeName);
         if (!allowDelete)
         {
             if (appId.isRelease())
             {
-                throw new IllegalArgumentException(ReleaseStatus.RELEASE + " cubes cannot be deleted, cube: " + cubeName + ", app: " + appId);
+                throw new IllegalArgumentException(ReleaseStatus.RELEASE + " cubes cannot be hard-deleted, app: " + appId);
             }
         }
 
-        if (getPersister().deleteCube(appId, cubeName, allowDelete, username))
+        if (getPersister().deleteCubes(appId, cubeNames, allowDelete, username))
         {
             Map<String, Object> appCache = getCacheForApp(appId);
-            appCache.remove(cubeName.toLowerCase());
+            for (int i=0; i < cubeNames.length; i++)
+            {
+                appCache.remove(((String)cubeNames[i]).toLowerCase());
+            }
             broadcast(appId);
             return true;
         }

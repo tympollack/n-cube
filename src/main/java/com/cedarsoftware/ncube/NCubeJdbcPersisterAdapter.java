@@ -139,12 +139,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public boolean deleteCube(ApplicationID appId, String name, boolean allowDelete, String username)
+    public boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.deleteCube(c, appId, name, allowDelete, username);
+            return persister.deleteCubes(c, appId, cubeNames, allowDelete, username);
         }
         finally
         {

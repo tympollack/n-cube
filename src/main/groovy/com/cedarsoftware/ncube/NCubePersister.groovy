@@ -28,7 +28,7 @@ interface NCubePersister extends NCubeReadOnlyPersister
     void updateCube(ApplicationID appId, NCube cube, String username)
     boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
     boolean duplicateCube(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
-    boolean deleteCube(ApplicationID appId, String cubeName, boolean allowDelete, String username)
+    boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     void restoreCubes(ApplicationID appId, Object[] names, String username)
 
     // Used during commit, rollback, updating branch, merging
