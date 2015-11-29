@@ -10,7 +10,6 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
 
 import static org.junit.Assert.fail
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -225,5 +224,30 @@ return ret
         assert exp.cmd == "return 'world'"
         assert exp.cacheable == true
         assert exp.getRunnableCode() == null
+    }
+
+    @Test
+    void testGetMethodToExecute()
+    {
+        GroovyExpression exp = new GroovyExpression("return 9", "", false)
+        assert "run" == exp.getMethodToExecute([:])
+    }
+
+    @Test
+    void testSysProtoErrorHandling()
+    {
+        assert null == GroovyExpression.getPrototypeExpClass(null, null)
+    }
+
+    @Test
+    void testSysProtoErrorHandling2()
+    {
+        assert null == GroovyExpression.getSysPrototype(null)
+    }
+
+    @Test
+    void testSysProtoErrorHandling3()
+    {
+        GroovyExpression.addPrototypeExpImports(null, null, null)
     }
 }

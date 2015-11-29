@@ -78,6 +78,36 @@ class TestBadJsonFormats
     }
 
     @Test
+    void testNoNcubeRoot()
+    {
+        try
+        {
+            NCubeManager.getNCubeFromResource("badJsonNoNcubeRoot.json")
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.contains('must have a root')
+        }
+    }
+
+    @Test
+    void testToJson()
+    {
+        assert '"Hello"' == NCube.toJson('Hello') // String at root (now valid)
+        String s = NCube.toJson(['Hello']) // Array at root
+        assert s.contains('["Hello"]')
+
+        try
+        {
+            NCube.createCubeFromStream(null)
+        }
+        catch (IllegalArgumentException e)
+        {
+            e.message.toLowerCase().contains('stream cannot be null')
+        }
+    }
+
+    @Test
     void testNoCells()
     {
         NCube cube = NCubeManager.getNCubeFromResource("no-cells.json")

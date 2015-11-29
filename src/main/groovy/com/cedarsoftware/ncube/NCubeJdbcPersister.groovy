@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.formatters.JsonFormatter
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
@@ -387,57 +389,61 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         }
     }
 
-    NCubeInfoDto pullToBranch(Connection c, ApplicationID appId, Long cubeId, String username)
+    List<NCubeInfoDto> pullToBranch(Connection c, ApplicationID appId, Object[] cubeIds, String username)
     {
-        if (cubeId == null)
+        List<NCubeInfoDto> infoRecs = new ArrayList<>()
+        if (ArrayUtilities.isEmpty(cubeIds))
         {
-            throw new IllegalArgumentException("Updating branch, cube id cannot be empty, app: " + appId)
+            return infoRecs
         }
 
-        // select head cube in question
         String sql = "SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1, create_dt from n_cube WHERE n_cube_id = ?"
         PreparedStatement stmt = null
         try
         {
             stmt = c.prepareStatement(sql)
-            stmt.setLong(1, cubeId)
-            ResultSet row = stmt.executeQuery()
-
-            if (row.next())
+            for (int i = 0; i < cubeIds.length; i++)
             {
-                byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-                String sha1 = row.getString('sha1')
-                String cubeName = row.getString('n_cube_nm')
-                Long revision = row.getLong('revision_number')
-                long time = row.getTimestamp('create_dt').getTime()
-                byte[] testData = row.getBytes(TEST_DATA_BIN)
+                stmt.setLong(1, (Long) Converter.convert(cubeIds[i], Long.class))
+                ResultSet row = stmt.executeQuery()
 
-                Long maxRevision = getMaxRevision(c, appId, cubeName)
+                if (row.next())
+                {
+                    byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+                    String sha1 = row.getString('sha1')
+                    String cubeName = row.getString('n_cube_nm')
+                    Long revision = row.getLong('revision_number')
+                    long time = row.getTimestamp('create_dt').getTime()
+                    String branch = row.getString('branch_id')
+                    byte[] testData = row.getBytes(TEST_DATA_BIN)
 
-                //  create case because max revision was not found.
-                if (maxRevision == null)
-                {
-                    maxRevision = revision < 0 ? new Long(-1) : new Long(0)
-                }
-                else if (revision < 0)
-                {
-                    // cube deleted in branch
-                    maxRevision = -(Math.abs(maxRevision as long) + 1)
-                }
-                else
-                {
-                    maxRevision = Math.abs(maxRevision as long) + 1
-                }
+                    Long maxRevision = getMaxRevision(c, appId, cubeName)
 
-                NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "updated from HEAD", false, sha1, sha1, time, username)
-                return dto
+                    //  create case because max revision was not found.
+                    if (maxRevision == null)
+                    {
+                        maxRevision = revision < 0 ? new Long(-1) : new Long(0)
+                    }
+                    else if (revision < 0)
+                    {
+                        // cube deleted in branch
+                        maxRevision = -(Math.abs(maxRevision as long) + 1)
+                    }
+                    else
+                    {
+                        maxRevision = Math.abs(maxRevision as long) + 1
+                    }
+
+                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, 'updated from ' + branch, false, sha1, sha1, time, username)
+                    infoRecs.add(dto)
+                }
             }
-            return null
         }
         finally
         {
             stmt?.close()
         }
+        return infoRecs
     }
 
     void updateCube(Connection c, ApplicationID appId, NCube cube, String username)
@@ -651,57 +657,89 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         return result
     }
 
-    NCubeInfoDto commitCube(Connection c, ApplicationID appId, Long cubeId, String username)
+    List<NCubeInfoDto> commitCubes(Connection c, ApplicationID appId, Object[] cubeIds, String username)
     {
-        if (cubeId == null)
+        List<NCubeInfoDto> infoRecs = new ArrayList<>()
+        if (ArrayUtilities.isEmpty(cubeIds))
         {
-            throw new IllegalArgumentException("Commit cube, cube id cannot be empty, app: " + appId)
+            return infoRecs
         }
 
         ApplicationID headAppId = appId.asHead()
-        def map = [id:cubeId]
         Sql sql = new Sql(c)
-        NCubeInfoDto result = null
+        def map = [:]
 
-        sql.eachRow("SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1 from n_cube WHERE n_cube_id = :id",
-                map, 0, 1, { ResultSet row ->
-            byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-            String sha1 = row.getString("sha1")
-            String cubeName = row.getString("n_cube_nm")
-            Long revision = row.getLong("revision_number")
-            Long maxRevision = getMaxRevision(c, headAppId, cubeName)
+        for (int i = 0; i < cubeIds.length; i++)
+        {
+            map.id = Converter.convert(cubeIds[i], Long.class)
+            sql.eachRow("SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1 from n_cube WHERE n_cube_id = :id",
+                    map, 0, 1, { ResultSet row ->
+                byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+                String sha1 = row.getString("sha1")
+                String cubeName = row.getString("n_cube_nm")
+                Long revision = row.getLong("revision_number")
+                Long maxRevision = getMaxRevision(c, headAppId, cubeName)
 
-            //  create case because max revision was not found.
-            if (maxRevision == null)
-            {
-                maxRevision = revision < 0 ? new Long(-1) : new Long(0)
-            }
-            else if (revision < 0)
-            {
-                // cube deleted in branch
-                maxRevision = -(Math.abs(maxRevision as long) + 1)
-            }
-            else
-            {
-                maxRevision = Math.abs(maxRevision as long) + 1
-            }
+                //  create case because max revision was not found.
+                String changeType
+                boolean skip = false
+                if (maxRevision == null)
+                {
+                    if (revision < 0)
+                    {   // User created then deleted cube, but it has no HEAD corresponding cube, don't promote it
+                        skip = true
+                    }
+                    else
+                    {
+                        changeType = ChangeType.CREATED.code
+                        maxRevision = 0L
+                    }
+                }
+                else if (revision < 0)
+                {
+                    if (maxRevision < 0)
+                    {   // Deleted in both, don't promote it
+                        skip = true
+                    }
+                    else
+                    {
+                        changeType = ChangeType.DELETED.code
+                        maxRevision = -(maxRevision + 1)
+                    }
+                }
+                else
+                {
+                    if (maxRevision < 0)
+                    {
+                        changeType = ChangeType.RESTORED.code
+                    }
+                    else
+                    {
+                        changeType = ChangeType.UPDATED.code
+                    }
+                    maxRevision = Math.abs(maxRevision as long) + 1
+                }
 
-            byte[] testData = row.getBytes(TEST_DATA_BIN)
-            long now = System.currentTimeMillis()
+                if (!skip)
+                {
+                    byte[] testData = row.getBytes(TEST_DATA_BIN)
+                    long now = System.currentTimeMillis()
 
-            NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, now, username)
-            def map1 = [head_sha1: sha1, create_dt: new Timestamp(now), id: cubeId]
-            Sql sql1 = new Sql(c)
+                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, now, username)
+                    def map1 = [head_sha1: sha1, create_dt: new Timestamp(now), id: cubeIds[i]]
+                    Sql sql1 = new Sql(c)
 
-            sql1.executeUpdate(map1, 'UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id')
-            dto.changed = false
-            dto.id = Long.toString(cubeId)
-            dto.sha1 = sha1
-            dto.headSha1 = sha1
-            result = dto
-        })
-
-        return result
+                    sql1.executeUpdate(map1, 'UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id')
+                    dto.changed = false
+                    dto.changeType = changeType
+                    dto.id = Converter.convert(cubeIds[i], String.class)
+                    dto.sha1 = sha1
+                    dto.headSha1 = sha1
+                    infoRecs.add(dto)
+                }
+            })
+        }
+        return infoRecs
     }
 
     /**

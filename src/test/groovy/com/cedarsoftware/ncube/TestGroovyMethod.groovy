@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.fail
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -155,5 +156,18 @@ class TestGroovyMethod
         x = cube.getCell([method:'bar'])
         assertEquals('far', x)
         TestingDatabaseHelper.tearDownDatabase()
+    }
+
+    @Test
+    void testErrorHandling()
+    {
+        try
+        {
+            GroovyMethod method = new GroovyMethod("1", null, false)
+            method.getMethodToExecute([input:[:]])
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        { }
     }
 }

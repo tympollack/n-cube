@@ -3,8 +3,6 @@ package com.cedarsoftware.ncube
 import org.junit.Test
 
 /**
- * NCube Advice Tests (Advice often used for security annotations on Groovy Methods / Expressions)
- *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
  *         Copyright (c) Cedar Software LLC
@@ -31,5 +29,12 @@ class TestDelta
         assert x.type == Delta.Type.ADD
         assert x.description == 'foo'
         assert x.toString() == 'foo'
+    }
+
+    @Test
+    void testBadInputToChangeSetComparator()
+    {
+        assert !NCube.areCellChangeSetsCompatible(null, [:])
+        assert !NCube.areCellChangeSetsCompatible([:], null)
     }
 }

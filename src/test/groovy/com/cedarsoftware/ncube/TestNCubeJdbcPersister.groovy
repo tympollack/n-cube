@@ -10,7 +10,6 @@ import java.sql.ResultSet
 import java.sql.SQLException
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
 import static org.mockito.Matchers.anyInt
@@ -152,7 +151,8 @@ class TestNCubeJdbcPersister
         when(rs.getLong(1)).thenReturn(5L)
         when(rs.getDate(anyString())).thenReturn(new java.sql.Date(System.currentTimeMillis()))
 
-        assertNull(new NCubeJdbcPersister().pullToBranch(c, defaultSnapshotApp, 0, USER_ID))
+        Object[] ids = [0] as Object[]
+        assert new NCubeJdbcPersister().pullToBranch(c, defaultSnapshotApp, ids, USER_ID).isEmpty()
     }
 
     @Test
@@ -179,15 +179,7 @@ class TestNCubeJdbcPersister
     @Test
     void testCommitCubeWithInvalidRevision()
     {
-        try
-        {
-            new NCubeJdbcPersister().commitCube(null, defaultSnapshotApp, null, USER_ID)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains("cannot be empty"))
-        }
+        assert 0 == new NCubeJdbcPersister().commitCubes(null, defaultSnapshotApp, null, USER_ID).size()
     }
 
     @Test
@@ -203,7 +195,7 @@ class TestNCubeJdbcPersister
         when(rs.next()).thenReturn(false)
         when(rs.getBytes("cube_value_bin")).thenReturn("".getBytes("UTF-8"))
 
-        assertNull(new NCubeJdbcPersister().commitCube(c, defaultSnapshotApp, 1L, USER_ID))
+        assert new NCubeJdbcPersister().commitCubes(c, defaultSnapshotApp, [1L] as Object[], USER_ID).size() == 0
     }
 
     @Test
@@ -265,48 +257,76 @@ class TestNCubeJdbcPersister
     @Test
     void testUpdateBranchCubeWithNull()
     {
+        List<NCubeInfoDto> list = new NCubeJdbcPersister().pullToBranch((Connection)null, (ApplicationID) null,(Object[]) null, null)
+        assert 0 == list.size()
+    }
+
+    @Test
+    void testAdaptorException()
+    {
+        NCubeJdbcPersisterAdapter adapter = new NCubeJdbcPersisterAdapter(TestingDatabaseHelper.createJdbcConnectionProvider())
         try
         {
-            new NCubeJdbcPersister().pullToBranch((Connection)null, (ApplicationID) null,(Long) null, null);
+            adapter.commitMergedCubeToHead(ApplicationID.testAppId, null, "yo")
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.commitMergedCubeToBranch(ApplicationID.testAppId, null, "", "yo")
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.getAppNames(null, null, null)
             fail()
         }
         catch (IllegalArgumentException e)
+        { }
+
+        try
         {
-            assertTrue(e.message.contains('cannot be empty'));
+            adapter.getAppVersions(null, null, null, null)
+            fail()
         }
+        catch (IllegalArgumentException e)
+        { }
+
+        try
+        {
+            adapter.getBranches(null)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        { }
+
+        try
+        {
+            adapter.deleteBranch(null)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.updateCube(null, null, null)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.loadCube(null, null)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
     }
-
-//    @Test
-//    void testReleaseCubesWithCubeThatExistsAlready()
-//    {
-//        NCubeBuilder.getTestNCube2D(true)
-//        Connection c = getConnectionThatThrowsExceptionAfterExistenceCheck(true)
-//
-//        try
-//        {
-//            new NCubeJdbcPersister().releaseCubes(c, defaultSnapshotApp, "1.2.3")
-//            fail()
-//        }
-//        catch (IllegalStateException e)
-//        {
-//            assertTrue(e.message.contains("already exists"))
-//        }
-//    }
-
-//    @Test
-//    void testChangeVersionWhenCubeAlreadyExists()
-//    {
-//        NCubeBuilder.getTestNCube2D(true)
-//        Connection c = getConnectionThatThrowsExceptionAfterExistenceCheck(true)
-//        try
-//        {
-//            new NCubeJdbcPersister().changeVersionValue(c, defaultSnapshotApp, "1.1.1")
-//            fail()
-//        }
-//        catch (IllegalStateException e)
-//        {
-//            assertTrue(e.message.contains("already"))
-//            assertTrue(e.message.contains("exist"))
-//        }
-//    }
 }

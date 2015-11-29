@@ -906,24 +906,21 @@ public class NCubeManager
             {   // No matching head cube, CREATE case
                 if (infoRev >= 0)
                 {   // Only create if the cube in the branch is active (revision number not negative)
-                    branchCubeInfo.changeType = ChangeType.CREATED.getCode();
                     dtosToUpdate.add(branchCubeInfo);
                 }
             }
             else if (StringUtilities.equalsIgnoreCase(branchCubeInfo.headSha1, headCubeInfo.sha1))
             {   // HEAD cube has not changed (at least in terms of SHA-1 it could have it's revision sign changed)
                 if (StringUtilities.equalsIgnoreCase(branchCubeInfo.sha1, branchCubeInfo.headSha1))
-                {   // Cubes are same, but active status opposite (delete or restore case)
+                {   // Cubes are same, but active status could be opposite (delete or restore case)
                     long headRev = (long) Converter.convert(headCubeInfo.revision, long.class);
                     if ((infoRev < 0) != (headRev < 0))
                     {
-                        branchCubeInfo.changeType = infoRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode();
                         dtosToUpdate.add(branchCubeInfo);
                     }
                 }
                 else
                 {   // Regular update case (branch updated cube that was not touched in HEAD)
-                    branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
                     dtosToUpdate.add(branchCubeInfo);
                 }
             }
@@ -931,7 +928,6 @@ public class NCubeManager
             {   // Branch headSha1 does not match HEAD sha1, but it's SHA-1 matches the HEAD SHA-1.
                 // This means that the branch cube and HEAD cube are identical, but the HEAD was
                 // different when the branch was created.
-                branchCubeInfo.changeType = ChangeType.UPDATED.getCode();
                 dtosToUpdate.add(branchCubeInfo);
             }
             else
@@ -961,17 +957,14 @@ public class NCubeManager
         }
 
         List<NCubeInfoDto> committedCubes = new ArrayList<>(dtosToUpdate.size());
-
+        Object[] ids = new Object[dtosToUpdate.size()];
+        int i=0;
         for (NCubeInfoDto dto : dtosToUpdate)
         {
-            NCubeInfoDto committed = getPersister().commitCube(appId, (Long) Converter.convert(dto.id, Long.class), username);
-            if (committed != null)
-            {
-                committed.changeType = dto.changeType;
-                committedCubes.add(committed);
-            }
+            ids[i++] = dto.id;
         }
 
+        committedCubes.addAll(getPersister().commitCubes(appId, ids, username));
         committedCubes.addAll(dtosMerged);
         clearCache(appId);
         clearCache(headAppId);
@@ -1133,11 +1126,13 @@ public class NCubeManager
 
         List<NCubeInfoDto> finalUpdates = new ArrayList<>(updates.size());
 
+        Object[] ids = new Object[updates.size()];
+        int i=0;
         for (NCubeInfoDto dto : updates)
         {
-            NCubeInfoDto info = getPersister().pullToBranch(appId, (Long) Converter.convert(dto.id, Long.class), username);
-            finalUpdates.add(info);
+            ids[i++] = dto.id;
         }
+        finalUpdates.addAll(getPersister().pullToBranch(appId, ids, username));
 
         clearCache(appId);
 

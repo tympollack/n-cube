@@ -25,28 +25,30 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubePersister extends NCubeReadOnlyPersister
 {
+    // Basic CRUD operations
     void updateCube(ApplicationID appId, NCube cube, String username)
     boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
     boolean duplicateCube(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
     boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     boolean restoreCubes(ApplicationID appId, Object[] names, String username)
 
-    // Used during commit, rollback, updating branch, merging
-    NCubeInfoDto commitCube(ApplicationID appId, Long cubeId, String username)
+    // Branch Management
+    List<NCubeInfoDto> commitCubes(ApplicationID appId, Object[] cubeIds, String username)
     int rollbackCubes(ApplicationID appId, Object[] names, String username)
-    NCubeInfoDto pullToBranch(ApplicationID appId, Long cubeId, String username)
+    List<NCubeInfoDto> pullToBranch(ApplicationID appId, Object[] cubeIds, String username)
     boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
     boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
     NCubeInfoDto commitMergedCubeToHead(ApplicationID appId, NCube cube, String username)
     NCubeInfoDto commitMergedCubeToBranch(ApplicationID appId, NCube cube, String headSha1, String username)
     boolean updateBranchCubeHeadSha1(Long cubeId, String headSha1)
+    int createBranch(ApplicationID appId)
+    boolean deleteBranch(ApplicationID appId)
 
+    // Release Management
     int changeVersionValue(ApplicationID appId, String newVersion)
     int releaseCubes(ApplicationID appId, String newSnapVer)
 
+    // Testing
     boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     boolean updateTestData(ApplicationID appId, String cubeName, String testData)
-
-    int createBranch(ApplicationID appId)
-    boolean deleteBranch(ApplicationID appId)
 }

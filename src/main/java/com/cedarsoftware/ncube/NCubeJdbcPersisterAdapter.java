@@ -335,12 +335,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public NCubeInfoDto commitCube(ApplicationID appId, Long cubeId, String username)
+    public List<NCubeInfoDto> commitCubes(ApplicationID appId, Object[] cubeIds, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.commitCube(c, appId, cubeId, username);
+            return persister.commitCubes(c, appId, cubeIds, username);
         }
         finally
         {
@@ -361,12 +361,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public NCubeInfoDto pullToBranch(ApplicationID appId, Long cubeId, String username)
+    public List<NCubeInfoDto> pullToBranch(ApplicationID appId, Object[] cubeIds, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.pullToBranch(c, appId, cubeId, username);
+            return persister.pullToBranch(c, appId, cubeIds, username);
         }
         finally
         {

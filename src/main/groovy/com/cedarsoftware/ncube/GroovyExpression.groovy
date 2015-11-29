@@ -169,7 +169,7 @@ import com.cedarsoftware.util.io.*
         }
     }
 
-    private static String getPrototypeExpClass(Map<String, Object> ctx, NCube prototype)
+    protected static String getPrototypeExpClass(Map<String, Object> ctx, NCube prototype)
     {
         try
         {

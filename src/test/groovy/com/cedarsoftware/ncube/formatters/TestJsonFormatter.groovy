@@ -240,6 +240,7 @@ class TestJsonFormatter
         {
             return name != null && name.endsWith('.json') &&
                     !(name.endsWith('idBasedCubeError.json') ||
+                            name.endsWith('badJsonNoNcubeRoot.json') ||
                             name.endsWith('idBasedCubeError2.json') ||
                             name.endsWith('error.json') ||
                             name.endsWith('arrays.json') ||  /** won't have equivalency **/
