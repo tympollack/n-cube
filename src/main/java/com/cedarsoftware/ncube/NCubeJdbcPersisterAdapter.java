@@ -87,12 +87,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public void restoreCubes(ApplicationID appId, Object[] names, String username)
+    public boolean restoreCubes(ApplicationID appId, Object[] names, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            persister.restoreCubes(c, appId, names, username);
+            return persister.restoreCubes(c, appId, names, username);
         }
         finally
         {

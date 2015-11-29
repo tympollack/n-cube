@@ -135,52 +135,60 @@ SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, String name, Long revision, byte[] cubeData, byte[] testData, String notes, boolean changed, String sha1, String headSha1, long time, String username) throws SQLException
     {
-        PreparedStatement s = c.prepareStatement("""\
-INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
- sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
- VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
-        long uniqueId = UniqueIdGenerator.getUniqueId()
-        s.setLong(1, uniqueId)
-        s.setString(2, appId.tenant)
-        s.setString(3, appId.app)
-        s.setString(4, appId.version)
-        s.setString(5, appId.status)
-        s.setString(6, appId.branch)
-        s.setString(7, name)
-        s.setLong(8, revision)
-        s.setString(9, sha1)
-        s.setString(10, headSha1)
-        Timestamp now = new Timestamp(time)
-        s.setTimestamp(11, now)
-        s.setString(12, username)
-        s.setBytes(13, cubeData)
-        s.setBytes(14, testData)
-        String note = createNote(username, now, notes)
-        s.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
-        s.setInt(16, changed ? 1 : 0)
-
-        NCubeInfoDto dto = new NCubeInfoDto()
-        dto.id = Long.toString(uniqueId)
-        dto.name = name
-        dto.sha1 = sha1
-        dto.headSha1 = sha1
-        dto.changed = changed
-        dto.tenant = appId.tenant
-        dto.app = appId.app
-        dto.version = appId.version
-        dto.status = appId.status
-        dto.branch = appId.branch
-        dto.createDate = new Date(time)
-        dto.createHid = username
-        dto.notes = note
-        dto.revision = Long.toString(revision)
-
-        int rows = s.executeUpdate()
-        if (rows == 1)
+        PreparedStatement s = null
+        try
         {
-            return dto
+            s = c.prepareStatement("""\
+    INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+     sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+            long uniqueId = UniqueIdGenerator.getUniqueId()
+            s.setLong(1, uniqueId)
+            s.setString(2, appId.tenant)
+            s.setString(3, appId.app)
+            s.setString(4, appId.version)
+            s.setString(5, appId.status)
+            s.setString(6, appId.branch)
+            s.setString(7, name)
+            s.setLong(8, revision)
+            s.setString(9, sha1)
+            s.setString(10, headSha1)
+            Timestamp now = new Timestamp(time)
+            s.setTimestamp(11, now)
+            s.setString(12, username)
+            s.setBytes(13, cubeData)
+            s.setBytes(14, testData)
+            String note = createNote(username, now, notes)
+            s.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
+            s.setInt(16, changed ? 1 : 0)
+
+            NCubeInfoDto dto = new NCubeInfoDto()
+            dto.id = Long.toString(uniqueId)
+            dto.name = name
+            dto.sha1 = sha1
+            dto.headSha1 = sha1
+            dto.changed = changed
+            dto.tenant = appId.tenant
+            dto.app = appId.app
+            dto.version = appId.version
+            dto.status = appId.status
+            dto.branch = appId.branch
+            dto.createDate = new Date(time)
+            dto.createHid = username
+            dto.notes = note
+            dto.revision = Long.toString(revision)
+
+            int rows = s.executeUpdate()
+            if (rows == 1)
+            {
+                return dto
+            }
+            throw new IllegalStateException('Unable to insert cube: ' + name + ' into database, app: ' + appId + ', attempted action: ' + notes)
         }
-        throw new IllegalStateException('Unable to insert cube: ' + name + ' into database, app: ' + appId + ', attempted action: ' + notes)
+        finally
+        {
+            s?.close()
+        }
     }
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, NCube cube, Long revision, byte[] testData, String notes, boolean changed, String headSha1, long time, String username)
@@ -191,135 +199,155 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         OutputStream out = blob.setBinaryStream(1L)
         OutputStream stream = new GZIPOutputStream(out, 8192)
         new JsonFormatter(stream).formatCube(cube)
+        PreparedStatement s = null
 
-        PreparedStatement s = c.prepareStatement("""\
-INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
- sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
- VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
-        s.setLong(1, uniqueId)
-        s.setString(2, appId.tenant)
-        s.setString(3, appId.app)
-        s.setString(4, appId.version)
-        s.setString(5, appId.status)
-        s.setString(6, appId.branch)
-        s.setString(7, cube.name)
-        s.setLong(8, revision)
-        s.setString(9, cube.sha1())
-        s.setString(10, headSha1)
-        s.setTimestamp(11, now)
-        s.setString(12, username)
-        s.setBlob(13, blob)
-        s.setBytes(14, testData)
-        String note = createNote(username, now, notes)
-        s.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
-        s.setBoolean(16, changed)
-
-        NCubeInfoDto dto = new NCubeInfoDto()
-        dto.id = Long.toString(uniqueId)
-        dto.name = cube.name
-        dto.sha1 = cube.sha1()
-        dto.headSha1 = cube.sha1()
-        dto.changed = changed
-        dto.tenant = appId.tenant
-        dto.app = appId.app
-        dto.version = appId.version
-        dto.status = appId.status
-        dto.branch = appId.branch
-        dto.createDate = new Date(time)
-        dto.createHid = username
-        dto.notes = note
-        dto.revision = Long.toString(revision)
-
-        int rows = s.executeUpdate()
-        if (rows == 1)
+        try
         {
-            return dto
+            s = c.prepareStatement("""\
+    INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+     sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+            s.setLong(1, uniqueId)
+            s.setString(2, appId.tenant)
+            s.setString(3, appId.app)
+            s.setString(4, appId.version)
+            s.setString(5, appId.status)
+            s.setString(6, appId.branch)
+            s.setString(7, cube.name)
+            s.setLong(8, revision)
+            s.setString(9, cube.sha1())
+            s.setString(10, headSha1)
+            s.setTimestamp(11, now)
+            s.setString(12, username)
+            s.setBlob(13, blob)
+            s.setBytes(14, testData)
+            String note = createNote(username, now, notes)
+            s.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
+            s.setBoolean(16, changed)
+
+            NCubeInfoDto dto = new NCubeInfoDto()
+            dto.id = Long.toString(uniqueId)
+            dto.name = cube.name
+            dto.sha1 = cube.sha1()
+            dto.headSha1 = cube.sha1()
+            dto.changed = changed
+            dto.tenant = appId.tenant
+            dto.app = appId.app
+            dto.version = appId.version
+            dto.status = appId.status
+            dto.branch = appId.branch
+            dto.createDate = new Date(time)
+            dto.createHid = username
+            dto.notes = note
+            dto.revision = Long.toString(revision)
+
+            int rows = s.executeUpdate()
+            if (rows == 1)
+            {
+                return dto
+            }
+            throw new IllegalStateException('Unable to insert cube: ' + cube.name + ' into database, app: ' + appId + ", attempted action: " + notes)
         }
-        throw new IllegalStateException('Unable to insert cube: ' + cube.name + ' into database, app: ' + appId + ", attempted action: " + notes)
+        finally
+        {
+            s?.close()
+        }
     }
 
     boolean deleteCubes(Connection c, ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     {
-        int count = 0
-        if (allowDelete)
-        {   // Not the most efficient, but this is only used for testing, never from running app.
-            for (int i=0; i < cubeNames.length; i++)
-            {
+        boolean autoCommit = c.getAutoCommit()
+        PreparedStatement stmt = null
+        try
+        {
+            c.setAutoCommit(false)
+            int count = 0
+            if (allowDelete)
+            {   // Not the most efficient, but this is only used for testing, never from running app.
                 String sqlCmd = "DELETE FROM n_cube WHERE app_cd = ? AND " + buildNameCondition(c, "n_cube_nm") + " = ? AND version_no_cd = ? AND tenant_cd = RPAD(?, 10, ' ') AND branch_id = ?"
+                stmt = c.prepareStatement(sqlCmd)
+                for (int i = 0; i < cubeNames.length; i++)
+                {
 
-                PreparedStatement ps = c.prepareStatement(sqlCmd)
-                ps.setString(1, appId.app)
-                ps.setString(2, buildName(c, (String)cubeNames[i]))
-                ps.setString(3, appId.version)
-                ps.setString(4, appId.tenant)
-                ps.setString(5, appId.branch)
-                count += ps.executeUpdate()
+                    stmt.setString(1, appId.app)
+                    stmt.setString(2, buildName(c, (String) cubeNames[i]))
+                    stmt.setString(3, appId.version)
+                    stmt.setString(4, appId.tenant)
+                    stmt.setString(5, appId.branch)
+                    count += stmt.executeUpdate()
+                }
+                return count > 0
             }
-            return count > 0
-        }
 
-        PreparedStatement ins = c.prepareStatement("""\
+            stmt = c.prepareStatement("""\
 INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
  sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
 
-        Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
-        cubeNames.each { String cubeName ->
-            Long revision = null
-            runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
-                revision = row.getLong('revision_number')
-                byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-                byte[] testData = row.getBytes(TEST_DATA_BIN)
-                String sha1 = row.getString('sha1')
-                String headSha1 = row.getString('head_sha1')
+            Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
+                                           (NCubeManager.SEARCH_INCLUDE_CUBE_DATA)  : true,
+                                           (NCubeManager.SEARCH_INCLUDE_TEST_DATA)  : true,
+                                           (NCubeManager.SEARCH_EXACT_MATCH_NAME)   : true] as Map
+            cubeNames.each { String cubeName ->
+                Long revision = null
+                runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
+                    revision = row.getLong('revision_number')
+                    byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+                    byte[] testData = row.getBytes(TEST_DATA_BIN)
+                    String sha1 = row.getString('sha1')
+                    String headSha1 = row.getString('head_sha1')
 
-                long uniqueId = UniqueIdGenerator.getUniqueId()
-                ins.setLong(1, uniqueId)
-                ins.setString(2, appId.tenant)
-                ins.setString(3, appId.app)
-                ins.setString(4, appId.version)
-                ins.setString(5, appId.status)
-                ins.setString(6, appId.branch)
-                ins.setString(7, cubeName)
-                ins.setLong(8, -(revision + 1))
-                ins.setString(9, sha1)
-                ins.setString(10, headSha1)
-                ins.setTimestamp(11, new Timestamp(System.currentTimeMillis()))
-                ins.setString(12, username)
-                ins.setBytes(13, jsonBytes)
-                ins.setBytes(14, testData)
-                ins.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "deleted"), "UTF-8"))
-                ins.setInt(16, 1)
-                ins.addBatch()
-                count++
-                if (count % EXECUTE_BATCH_CONSTANT == 0)
+                    long uniqueId = UniqueIdGenerator.getUniqueId()
+                    stmt.setLong(1, uniqueId)
+                    stmt.setString(2, appId.tenant)
+                    stmt.setString(3, appId.app)
+                    stmt.setString(4, appId.version)
+                    stmt.setString(5, appId.status)
+                    stmt.setString(6, appId.branch)
+                    stmt.setString(7, cubeName)
+                    stmt.setLong(8, -(revision + 1))
+                    stmt.setString(9, sha1)
+                    stmt.setString(10, headSha1)
+                    stmt.setTimestamp(11, new Timestamp(System.currentTimeMillis()))
+                    stmt.setString(12, username)
+                    stmt.setBytes(13, jsonBytes)
+                    stmt.setBytes(14, testData)
+                    stmt.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "deleted"), "UTF-8"))
+                    stmt.setInt(16, 1)
+                    stmt.addBatch()
+                    count++
+                    if (count % EXECUTE_BATCH_CONSTANT == 0)
+                    {
+                        stmt.executeBatch()
+                    }
+                })
+                if (revision == null)
                 {
-                    ins.executeBatch()
+                    throw new IllegalArgumentException("Cannot delete cube: " + cubeName + " as it does not exist in app: " + appId)
                 }
-            })
-            if (revision == null)
-            {
-                throw new IllegalArgumentException("Cannot delete cube: " + cubeName + " as it does not exist in app: " + appId)
             }
+            if (count % EXECUTE_BATCH_CONSTANT != 0)
+            {
+                stmt.executeBatch()
+            }
+            return count > 0
         }
-        if (count % EXECUTE_BATCH_CONSTANT != 0)
+        finally
         {
-            ins.executeBatch()
+            c.setAutoCommit(autoCommit)
+            stmt?.close()
         }
-        return count > 0
     }
 
-    void restoreCubes(Connection c, ApplicationID appId, Object[] names, String username)
+    boolean restoreCubes(Connection c, ApplicationID appId, Object[] names, String username)
     {
         boolean autoCommit = c.getAutoCommit()
+        PreparedStatement ins = null
         try
         {
             c.setAutoCommit(false)
-            PreparedStatement ins = c.prepareStatement("""\
+            ins = c.prepareStatement("""\
     INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
      sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
@@ -377,10 +405,12 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             {
                 ins.executeBatch()
             }
+            return count > 0
         }
         finally
         {
             c.setAutoCommit(autoCommit)
+            ins?.close()
         }
     }
 
@@ -393,40 +423,48 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
 
         // select head cube in question
         String sql = "SELECT n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, sha1, head_sha1, create_dt from n_cube WHERE n_cube_id = ?"
-        PreparedStatement stmt = c.prepareStatement(sql)
-        stmt.setLong(1, cubeId)
-        ResultSet row = stmt.executeQuery()
-
-        if (row.next())
+        PreparedStatement stmt = null
+        try
         {
-            byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-            String sha1 = row.getString("sha1")
-            String cubeName = row.getString("n_cube_nm")
-            Long revision = row.getLong("revision_number")
-            long time = row.getTimestamp("create_dt").getTime()
-            byte[] testData = row.getBytes(TEST_DATA_BIN)
+            stmt = c.prepareStatement(sql)
+            stmt.setLong(1, cubeId)
+            ResultSet row = stmt.executeQuery()
 
-            Long maxRevision = getMaxRevision(c, appId, cubeName)
+            if (row.next())
+            {
+                byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+                String sha1 = row.getString("sha1")
+                String cubeName = row.getString("n_cube_nm")
+                Long revision = row.getLong("revision_number")
+                long time = row.getTimestamp("create_dt").getTime()
+                byte[] testData = row.getBytes(TEST_DATA_BIN)
 
-            //  create case because max revision was not found.
-            if (maxRevision == null)
-            {
-                maxRevision = revision < 0 ? new Long(-1) : new Long(0)
-            }
-            else if (revision < 0)
-            {
-                // cube deleted in branch
-                maxRevision = -(Math.abs(maxRevision as long) + 1)
-            }
-            else
-            {
-                maxRevision = Math.abs(maxRevision as long) + 1
-            }
+                Long maxRevision = getMaxRevision(c, appId, cubeName)
 
-            NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "updated from HEAD", false, sha1, sha1, time, username)
-            return dto
+                //  create case because max revision was not found.
+                if (maxRevision == null)
+                {
+                    maxRevision = revision < 0 ? new Long(-1) : new Long(0)
+                }
+                else if (revision < 0)
+                {
+                    // cube deleted in branch
+                    maxRevision = -(Math.abs(maxRevision as long) + 1)
+                }
+                else
+                {
+                    maxRevision = Math.abs(maxRevision as long) + 1
+                }
+
+                NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "updated from HEAD", false, sha1, sha1, time, username)
+                return dto
+            }
+            return null
         }
-        return null
+        finally
+        {
+            stmt?.close()
+        }
     }
 
     void updateCube(Connection c, ApplicationID appId, NCube cube, String username)
@@ -704,10 +742,11 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
     {
         int count = 0
         boolean autoCommit = c.getAutoCommit()
+        PreparedStatement ins = null
         try
         {
             c.setAutoCommit(false)
-            PreparedStatement ins = c.prepareStatement("""\
+            ins = c.prepareStatement("""\
     INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
      sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
@@ -777,6 +816,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         finally
         {
             c.setAutoCommit(autoCommit)
+            ins?.close()
         }
         return count
     }
@@ -1007,10 +1047,11 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
                                        (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true] as Map
         int count = 0
         boolean autoCommit = c.getAutoCommit()
+        PreparedStatement insert = null
         try
         {
             c.setAutoCommit(false)
-            PreparedStatement insert = c.prepareStatement(
+            insert = c.prepareStatement(
                     "INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             runSelectCubesStatement(c, headId, null, options, { ResultSet row ->
@@ -1047,6 +1088,7 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
         finally
         {
             c.setAutoCommit(autoCommit)
+            insert?.close()
         }
     }
 
@@ -1083,11 +1125,12 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
                                        (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true] as Map
 
         boolean autoCommit = c.getAutoCommit()
+        PreparedStatement insert = null
         try
         {
             c.setAutoCommit(false)
             int count = 0
-            PreparedStatement insert = c.prepareStatement(
+            insert = c.prepareStatement(
                     "INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
@@ -1123,6 +1166,7 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
         finally
         {
             c.setAutoCommit(autoCommit)
+            insert?.close()
         }
     }
 
