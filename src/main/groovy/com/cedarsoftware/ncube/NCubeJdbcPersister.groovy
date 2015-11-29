@@ -293,34 +293,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 Long revision = null
                 runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
                     revision = row.getLong('revision_number')
-                    byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-                    byte[] testData = row.getBytes(TEST_DATA_BIN)
-                    String sha1 = row.getString('sha1')
-                    String headSha1 = row.getString('head_sha1')
-
-                    long uniqueId = UniqueIdGenerator.getUniqueId()
-                    stmt.setLong(1, uniqueId)
-                    stmt.setString(2, appId.tenant)
-                    stmt.setString(3, appId.app)
-                    stmt.setString(4, appId.version)
-                    stmt.setString(5, appId.status)
-                    stmt.setString(6, appId.branch)
-                    stmt.setString(7, cubeName)
-                    stmt.setLong(8, -(revision + 1))
-                    stmt.setString(9, sha1)
-                    stmt.setString(10, headSha1)
-                    stmt.setTimestamp(11, new Timestamp(System.currentTimeMillis()))
-                    stmt.setString(12, username)
-                    stmt.setBytes(13, jsonBytes)
-                    stmt.setBytes(14, testData)
-                    stmt.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "deleted"), "UTF-8"))
-                    stmt.setInt(16, 1)
-                    stmt.addBatch()
-                    count++
-                    if (count % EXECUTE_BATCH_CONSTANT == 0)
-                    {
-                        stmt.executeBatch()
-                    }
+                    addBatchInsert(stmt, row, appId, cubeName, -(revision + 1), "deleted", username, ++count)
                 })
                 if (revision == null)
                 {
@@ -357,43 +330,11 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                                            (NCubeManager.SEARCH_INCLUDE_TEST_DATA)   : true,
                                            (NCubeManager.SEARCH_EXACT_MATCH_NAME)    : true] as Map
             int count = 0
-            names.each { Object potential ->
-                if (!(potential instanceof String))
-                {
-                    throw new IllegalArgumentException('Cube names to restore must be strings, instead got: ' + potential + ', app: ' + appId)
-                }
-                String cubeName = (String) potential
+            names.each { String cubeName ->
                 Long revision = null
                 runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
                     revision = row.getLong('revision_number')
-                    byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-                    byte[] testData = row.getBytes(TEST_DATA_BIN)
-                    String sha1 = row.getString('sha1')
-                    String headSha1 = row.getString('head_sha1')
-
-                    long uniqueId = UniqueIdGenerator.getUniqueId()
-                    ins.setLong(1, uniqueId)
-                    ins.setString(2, appId.tenant)
-                    ins.setString(3, appId.app)
-                    ins.setString(4, appId.version)
-                    ins.setString(5, appId.status)
-                    ins.setString(6, appId.branch)
-                    ins.setString(7, cubeName)
-                    ins.setLong(8, Math.abs(revision as long) + 1)
-                    ins.setString(9, sha1)
-                    ins.setString(10, headSha1)
-                    ins.setTimestamp(11, new Timestamp(System.currentTimeMillis()))
-                    ins.setString(12, username)
-                    ins.setBytes(13, jsonBytes)
-                    ins.setBytes(14, testData)
-                    ins.setBytes(15, StringUtilities.getBytes(createNote(username, new Timestamp(System.currentTimeMillis()), "restored"), "UTF-8"))
-                    ins.setInt(16, 1)
-                    ins.addBatch()
-                    count++
-                    if (count % EXECUTE_BATCH_CONSTANT == 0)
-                    {
-                        ins.executeBatch()
-                    }
+                    addBatchInsert(ins, row, appId, cubeName, Math.abs(revision as long) + 1, "restored", username, ++count)
                 })
 
                 if (revision == null)
@@ -414,11 +355,43 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         }
     }
 
-    NCubeInfoDto updateCube(Connection c, ApplicationID appId, Long cubeId, String username)
+    private void addBatchInsert(PreparedStatement stmt, ResultSet row, ApplicationID appId, String cubeName, long rev, String action, String username, int count)
+    {
+        byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
+        byte[] testData = row.getBytes(TEST_DATA_BIN)
+        String sha1 = row.getString('sha1')
+        String headSha1 = row.getString('head_sha1')
+
+        long uniqueId = UniqueIdGenerator.getUniqueId()
+        stmt.setLong(1, uniqueId)
+        stmt.setString(2, appId.tenant)
+        stmt.setString(3, appId.app)
+        stmt.setString(4, appId.version)
+        stmt.setString(5, appId.status)
+        stmt.setString(6, appId.branch)
+        stmt.setString(7, cubeName)
+        stmt.setLong(8, rev)
+        stmt.setString(9, sha1)
+        stmt.setString(10, headSha1)
+        Timestamp now = new Timestamp(System.currentTimeMillis())
+        stmt.setTimestamp(11, now)
+        stmt.setString(12, username)
+        stmt.setBytes(13, jsonBytes)
+        stmt.setBytes(14, testData)
+        stmt.setBytes(15, StringUtilities.getBytes(createNote(username, now, action), "UTF-8"))
+        stmt.setInt(16, 1)
+        stmt.addBatch()
+        if (count % EXECUTE_BATCH_CONSTANT == 0)
+        {
+            stmt.executeBatch()
+        }
+    }
+
+    NCubeInfoDto pullToBranch(Connection c, ApplicationID appId, Long cubeId, String username)
     {
         if (cubeId == null)
         {
-            throw new IllegalArgumentException("Update cube, cube id cannot be empty, app: " + appId)
+            throw new IllegalArgumentException("Updating branch, cube id cannot be empty, app: " + appId)
         }
 
         // select head cube in question
@@ -433,10 +406,10 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             if (row.next())
             {
                 byte[] jsonBytes = row.getBytes(CUBE_VALUE_BIN)
-                String sha1 = row.getString("sha1")
-                String cubeName = row.getString("n_cube_nm")
-                Long revision = row.getLong("revision_number")
-                long time = row.getTimestamp("create_dt").getTime()
+                String sha1 = row.getString('sha1')
+                String cubeName = row.getString('n_cube_nm')
+                Long revision = row.getLong('revision_number')
+                long time = row.getTimestamp('create_dt').getTime()
                 byte[] testData = row.getBytes(TEST_DATA_BIN)
 
                 Long maxRevision = getMaxRevision(c, appId, cubeName)
@@ -498,7 +471,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         // No existing row found, then create a new cube (updateCube can be used for update or create)
         if (!rowFound)
         {
-            insertCube(c, appId, cube, 0L, null, "Cube created", true, null, System.currentTimeMillis(), username)
+            insertCube(c, appId, cube, 0L, null, "created", true, null, System.currentTimeMillis(), username)
         }
     }
 
@@ -821,6 +794,11 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         return count
     }
 
+    /**
+     * Fast forward branch cube to HEAD cube, because even though it's HEAD_SHA-1 value is out-of-date,
+     * the cubes current SHA-1 is the same as the HEAD cube's SHA-1.  Therefore, we can 'scoot' up the
+     * cube record's HEAD-SHA-1 value to the same as the HEAD Cube's SHA-1.
+     */
     boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String headSha1)
     {
         if (cubeId == null)
@@ -1448,7 +1426,7 @@ SELECT a.revision_number
     protected static NCube buildCube(ApplicationID appId, ResultSet row)
     {
         NCube ncube = NCube.createCubeFromStream(row.getBinaryStream(CUBE_VALUE_BIN))
-        ncube.setSha1(row.getString("sha1"))
+        ncube.setSha1(row.getString('sha1'))
         ncube.setApplicationID(appId)
         return ncube
     }
@@ -1501,7 +1479,7 @@ SELECT a.revision_number
     {
         if (isOracle(c))
         {
-            return ("LOWER(" + name + ")")
+            return ('LOWER(' + name + ')')
         }
         return name
     }

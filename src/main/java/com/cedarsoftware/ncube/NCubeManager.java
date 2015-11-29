@@ -691,7 +691,7 @@ public class NCubeManager
 
         if (ArrayUtilities.isEmpty(cubeNames))
         {
-            throw new IllegalArgumentException("Empty array of cube names passed to be restored.");
+            throw new IllegalArgumentException("Error, empty array of cube names passed in to be restored.");
         }
 
         // Batch restore
@@ -1135,7 +1135,7 @@ public class NCubeManager
 
         for (NCubeInfoDto dto : updates)
         {
-            NCubeInfoDto info = getPersister().updateCube(appId, (Long) Converter.convert(dto.id, Long.class), username);
+            NCubeInfoDto info = getPersister().pullToBranch(appId, (Long) Converter.convert(dto.id, Long.class), username);
             finalUpdates.add(info);
         }
 

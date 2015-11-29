@@ -1038,7 +1038,7 @@ class TestNCubeManager
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains('Empty array'))
+            assertTrue(e.message.contains('empty array'))
             assertTrue(e.message.contains('to be restored'))
         }
     }
@@ -1115,23 +1115,8 @@ class TestNCubeManager
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains('Empty array'))
+            assertTrue(e.message.contains('empty array'))
             assertTrue(e.message.contains('to be restored'))
-        }
-    }
-
-    @Test
-    void testRestoreCubeWithNonStringArray()
-    {
-        try
-        {
-            NCubeManager.restoreCubes(defaultSnapshotApp, [Integer.MAX_VALUE] as Object[], USER_ID)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains('names to restore'))
-            assertTrue(e.message.contains('must be string'))
         }
     }
 

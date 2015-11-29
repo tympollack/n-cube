@@ -152,7 +152,7 @@ class TestNCubeJdbcPersister
         when(rs.getLong(1)).thenReturn(5L)
         when(rs.getDate(anyString())).thenReturn(new java.sql.Date(System.currentTimeMillis()))
 
-        assertNull(new NCubeJdbcPersister().updateCube(c, defaultSnapshotApp, 0, USER_ID))
+        assertNull(new NCubeJdbcPersister().pullToBranch(c, defaultSnapshotApp, 0, USER_ID))
     }
 
     @Test
@@ -267,7 +267,7 @@ class TestNCubeJdbcPersister
     {
         try
         {
-            new NCubeJdbcPersister().updateCube((Connection)null, (ApplicationID) null,(Long) null, null);
+            new NCubeJdbcPersister().pullToBranch((Connection)null, (ApplicationID) null,(Long) null, null);
             fail()
         }
         catch (IllegalArgumentException e)

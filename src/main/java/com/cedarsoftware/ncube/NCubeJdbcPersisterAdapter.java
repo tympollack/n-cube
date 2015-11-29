@@ -361,12 +361,12 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
-    public NCubeInfoDto updateCube(ApplicationID appId, Long cubeId, String username)
+    public NCubeInfoDto pullToBranch(ApplicationID appId, Long cubeId, String username)
     {
         Connection c = connectionProvider.getConnection();
         try
         {
-            return persister.updateCube(c, appId, cubeId, username);
+            return persister.pullToBranch(c, appId, cubeId, username);
         }
         finally
         {
