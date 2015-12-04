@@ -426,7 +426,7 @@ public abstract class GroovyBase extends UrlCommandCell
         }
 
         m.reset()
-        newGroovy.append(m.replaceAll(""))
+        newGroovy.append(m.replaceAll(''))
         return importNames
     }
 }

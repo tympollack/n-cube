@@ -47,9 +47,9 @@ class x { }"""
         assert m.find()
         assert '   import z' == m.group(1)
         assert m.find()
-        assert ' import a.b.* // comment after' == m.group(1)
+        assert ' import a.b.*' == m.group(1)
         assert m.find()
-        assert ' import a.b.*; /* comment after */' == m.group(1)
+        assert ' import a.b.*;' == m.group(1)
         assert !m.find()
 
         m.reset()
@@ -86,13 +86,28 @@ class x { println " import i.fooled.it;" }"""
         assert m.find()
         assert 'import java.lang.*' == m.group(1)
         assert m.find()
-        assert 'import this.is.ok  // are you sure?' == m.group(1)
+        assert 'import this.is.ok' == m.group(1)
         assert !m.find()
 
         m.reset()
         code = m.replaceAll('')
         assert code.startsWith('package foo')
         assert code.endsWith('class x { println " import i.fooled.it;" }')
+    }
+
+    @Test
+    void testImport4()
+    {
+        String code = """import foo.bar.baz.Qux; if (true) { return true } else { return false }"""
+        Matcher m = Regexes.importPattern.matcher(code)
+        assert m.find()
+        assert 'import foo.bar.baz.Qux;' == m.group(1)
+        assert !m.find()
+
+        m.reset()
+        code = m.replaceAll('')
+        assert code.startsWith(' if (true)')
+        assert code.endsWith('false }')
     }
 
     @Test

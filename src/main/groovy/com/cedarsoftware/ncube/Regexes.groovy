@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  */
 interface Regexes
 {
-    Pattern importPattern = ~/(?m)^(\s*import\s+[^;\n"'\/ ]+;?.*)$/
+    Pattern importPattern = ~/(?m)^(\s*import\s+[^;\n"'\/ ]+;?)/
     Pattern inputVar = ~/(?i)([^a-zA-Z0-9_.]|^)input[?]?[.]([a-zA-Z0-9_]+)/
 
     Pattern scripletPattern = ~/<%(.*?)%>/
