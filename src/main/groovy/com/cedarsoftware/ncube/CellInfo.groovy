@@ -1,19 +1,16 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.io.JsonObject
 import groovy.transform.CompileStatic
 
 import java.text.DecimalFormat
 import java.text.MessageFormat
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-
 /**
  * Get information about a cell (makes it a uniform query-able object).  Optional method
  * exists to collapse types for UI.<br><br>
@@ -641,11 +638,11 @@ class CellInfo
                 throw new IllegalArgumentException("Unknown value (" + type + ") for 'type' field")
             }
         }
-        else if (val instanceof JsonObject)
+        else if (val.getClass().isArray())
         {   // Legacy support - remove once we drop support for array type (can be done using GroovyExpression).
             StringBuilder exp = new StringBuilder()
             exp.append("[")
-            Object[] values = (val as JsonObject).getArray()
+            Object[] values = val as Object[]
             int i=0
             for (Object value : values)
             {

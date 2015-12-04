@@ -1778,15 +1778,14 @@ public class NCube<T>
         boolean defCache = getBoolean(jsonNCube, DEFAULT_CELL_VALUE_CACHE);
         ncube.defaultCellValue = CellInfo.parseJsonValue(jsonNCube.get(DEFAULT_CELL_VALUE), defUrl, defType, defCache);
 
-        if (!(jsonNCube.get("axes") instanceof JsonObject))
+        if (!jsonNCube.containsKey("axes"))
         {
             throw new IllegalArgumentException("Must specify a list of axes for the ncube, under the key 'axes' as [{axis 1}, {axis 2}, ... {axis n}], cube: " + cubeName);
         }
 
-        JsonObject axes = (JsonObject) jsonNCube.get("axes");
-        Object[] items = axes.getArray();
+        Object[] axes = (Object[]) jsonNCube.get("axes");
 
-        if (ArrayUtilities.isEmpty(items))
+        if (ArrayUtilities.isEmpty(axes))
         {
             throw new IllegalArgumentException("Must be at least one axis defined in the JSON format, cube: " + cubeName);
         }
@@ -1795,7 +1794,7 @@ public class NCube<T>
         long idBase = 1;
 
         // Read axes
-        for (Object item : items)
+        for (Object item : axes)
         {
             Map<String, Object> jsonAxis = (Map) item;
             String name = getString(jsonAxis, "name");
@@ -1831,19 +1830,13 @@ public class NCube<T>
                 loadMetaProperties(axis.metaProps);
             }
 
-            if (!(jsonAxis.get("columns") instanceof JsonObject))
+            if (!jsonAxis.containsKey("columns"))
             {
                 throw new IllegalArgumentException("'columns' must be specified, axis: " + name + ", cube: " + cubeName);
             }
-            JsonObject colMap = (JsonObject) jsonAxis.get("columns");
-
-            if (!colMap.isArray())
-            {
-                throw new IllegalArgumentException("'columns' must be an array, axis: " + name + ", cube: " + cubeName);
-            }
 
             // Read columns
-            Object[] cols = colMap.getArray();
+            Object[] cols = (Object[]) jsonAxis.get("columns");
             for (Object col : cols)
             {
                 Map<String, Object> jsonColumn = (Map) col;
@@ -1880,7 +1873,7 @@ public class NCube<T>
                 }
                 else if (type == AxisType.RANGE)
                 {
-                    Object[] rangeItems = ((JsonObject)value).getArray();
+                    Object[] rangeItems = (Object[])value;
                     if (rangeItems.length != 2)
                     {
                         throw new IllegalArgumentException("Range must have exactly two items, axis: " + name +", cube: " + cubeName);
@@ -1891,7 +1884,7 @@ public class NCube<T>
                 }
                 else if (type == AxisType.SET)
                 {
-                    Object[] rangeItems = ((JsonObject)value).getArray();
+                    Object[] rangeItems = (Object[])value;
                     RangeSet rangeSet = new RangeSet();
                     for (Object pt : rangeItems)
                     {
@@ -1964,16 +1957,10 @@ public class NCube<T>
         }
 
         // Read cells
-        if (jsonNCube.get("cells") instanceof JsonObject)
-        {   // Allow JSON to have no cells
-            JsonObject cellMap = (JsonObject) jsonNCube.get("cells");
+        if (jsonNCube.containsKey("cells"))
+        {   // Allow JSON to have no cells - empty cube
+            Object[] cells = (Object[]) jsonNCube.get("cells");
 
-            if (!cellMap.isArray())
-            {
-                throw new IllegalArgumentException("'cells' must be an []. It can be empty but must be specified, cube: " + cubeName);
-            }
-
-            Object[] cells = cellMap.getArray();
             for (Object cell : cells)
             {
                 JsonObject cMap = (JsonObject) cell;
@@ -1989,10 +1976,10 @@ public class NCube<T>
 
                 Object v = CellInfo.parseJsonValue(cMap.get("value"), url, type, cache);
 
-                if (ids instanceof JsonObject)
+                if (ids instanceof Object[])
                 {   // If specified as ID array, build coordinate that way
                     Set<Long> colIds = new LongHashSet();
-                    for (Object id : ((JsonObject)ids).getArray())
+                    for (Object id : (Object[])ids)
                     {
                         if (!userIdToUniqueId.containsKey(id))
                         {
