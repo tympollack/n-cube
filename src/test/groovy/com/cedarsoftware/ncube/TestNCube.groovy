@@ -3762,7 +3762,7 @@ class TestNCube
         bytes[1] = (byte)0x8b;
         try
         {
-            NCube.createCubeFromGzipBytes(bytes)
+            NCube.createCubeFromBytes(bytes)
             fail()
         }
         catch (RuntimeException e)

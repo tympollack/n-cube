@@ -531,7 +531,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
         // If names are different we need to recalculate the sha-1
         if (changed)
         {
-            NCube ncube = NCube.createCubeFromGzipBytes(jsonBytes)
+            NCube ncube = NCube.createCubeFromBytes(jsonBytes)
             ncube.setName(newName)
             ncube.setApplicationID(newAppId)
             jsonBytes = ncube.getCubeAsGzipJsonBytes()
@@ -590,7 +590,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
             throw new IllegalArgumentException("Unable to rename cube, a cube already exists with that name, app:  " + appId + ", name: " + newName)
         }
 
-        NCube ncube = NCube.createCubeFromGzipBytes(oldBytes)
+        NCube ncube = NCube.createCubeFromBytes(oldBytes)
         ncube.setName(newName)
         String notes = "renamed: " + oldName + " -> " + newName
 

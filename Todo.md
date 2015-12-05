@@ -3,14 +3,10 @@ n-cube 'ToDo' list
 
 ### n-cube engine
 TODO: Write test for NCubeManager.rollbackCube() or remove the API
-TODO: Write test for updateBranchesHeadSha1()
 * Datatypes
 * OptionalScope
- * Support additional (and subtractive) optional scope keys (minus sign (-) in front will remove an optional scope key)
- * Test all regular expression patterns to ensure they find cube names
  * Docs on optional scope: mention that optional scope will not be found in URL GroovyExpression cells
 * Cell Prototype
- * Allow specification of the class that expression "exp" cells inherit from.
  * For cube BAR in app FOO, the prototype could be specified as BAR.prototype - meaning that there is a prototype specific to the cube, -or-
    FOO.prototype meaning that this is the prototype for all expression cells in the app 'FOO' 
 * MetaCommandCell

@@ -2125,7 +2125,7 @@ public class NCube<T>
      */
     public NCube duplicate(String newName)
     {
-        NCube copy = createCubeFromGzipBytes(getCubeAsGzipJsonBytes());
+        NCube copy = createCubeFromBytes(getCubeAsGzipJsonBytes());
         copy.setName(newName);
         return copy;
     }
@@ -2958,11 +2958,20 @@ public class NCube<T>
         throw new IllegalArgumentException("Invalid n-cube name: '" + cubeName + "'. Name can only contain a-z, A-Z, 0-9, '.', '_', '-'");
     }
 
-    public static NCube<?> createCubeFromGzipBytes(byte[] gzipJsonBytes)
+    /**
+     * Create a cube from a byte[] of JSON bytes, or a gzip byte[] of JSON bytes, both
+     * are JSON content representing an n-cube.  Calling ncube.toFormattedJson() is the source
+     * of the JSON format used.
+     */
+    public static NCube<?> createCubeFromBytes(byte[] bytes)
     {
-        return createCubeFromStream(new ByteArrayInputStream(gzipJsonBytes));
+        return createCubeFromStream(new ByteArrayInputStream(bytes));
     }
 
+    /**
+     * Create an n-cube from a stream of bytes.  The stream can be either a JSON version
+     * of an n-cube or a g-zip JSON stream.
+     */
     public static NCube<?> createCubeFromStream(InputStream stream)
     {
         if (stream == null)
