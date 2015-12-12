@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube.formatters
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.io.JsonWriter
+import groovy.transform.CompileStatic
 
 /**
  * Base class for NCube formatters
@@ -23,6 +24,7 @@ import com.cedarsoftware.util.io.JsonWriter
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class BaseJsonFormatter
 {
     public static final SafeSimpleDateFormat dateFormat = new SafeSimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")

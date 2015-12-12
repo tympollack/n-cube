@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube.formatters;
 
-import com.cedarsoftware.ncube.NCube;
+import com.cedarsoftware.ncube.NCube
+import groovy.transform.CompileStatic;
 
 /**
  * Base class for NCube formatters
@@ -21,6 +22,7 @@ import com.cedarsoftware.ncube.NCube;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public interface NCubeFormatter
 {
     String format(NCube ncube)

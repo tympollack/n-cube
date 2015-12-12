@@ -12,6 +12,8 @@ import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonWriter
+import groovy.transform.CompileStatic
+
 /**
  * Format an NCube into an JSON document
  *
@@ -31,6 +33,7 @@ import com.cedarsoftware.util.io.JsonWriter
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 {
     private static final String MAX_INT = Long.toString(Integer.MAX_VALUE)
@@ -42,20 +45,32 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
      */
     public String format(NCube ncube)
     {
+        return format(ncube, null)
+    }
+
+    /**
+     * Use this API to generate JSON view of this NCube.
+     */
+    public String format(NCube ncube, Map<String, Object> options)
+    {
         if (!(builder instanceof StringWriter))
         {
             throw new IllegalStateException("Builder is not a StringWriter.  Use formatCube(ncube) to write to your stream.")
         }
 
-        formatCube(ncube)
+        formatCube(ncube, options)
         return builder.toString()
     }
 
-    public void formatCube(NCube ncube)
+    public void formatCube(NCube ncube, Map<String, Object> options)
     {
         if (ncube == null)
         {
             throw new IllegalArgumentException("Cube to format cannot be null")
+        }
+        if (options == null)
+        {
+            options = [:]
         }
 
         String name = ncube.getName()
@@ -74,7 +89,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 }
                 if (defCellValue instanceof CommandCell)
                 {
-                    CommandCell cmd = (CommandCell) defCellValue;
+                    CommandCell cmd = (CommandCell) defCellValue
 
                     if (cmd.isCacheable())
                     {   // Only write 'cache' when the cache value is true.  Leave false be default.
@@ -96,8 +111,8 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             }
 
             writeMetaProperties(ncube.getMetaProperties())
-            writeAxes(ncube.getAxes())
-            writeCells(ncube.getCellMap())
+            writeAxes(ncube.getAxes(), options)
+            writeCells(ncube.getCellMap() as Map, options)
             endObject()
             closeStream()
         }
@@ -111,7 +126,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     {
         if (metaProps.size() < 1)
         {
-            return;
+            return
         }
 
         for (Map.Entry<String, Object> entry : metaProps.entrySet())
@@ -143,35 +158,67 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         }
     }
 
-    void writeAxes(List<Axis> axes) throws IOException
+    void writeAxes(List<Axis> axes, Map<String, Object> options) throws IOException
     {
         if (axes.isEmpty())
         {   // Make sure the formatter writes valid JSON
-            append('"axes":[],')
+            options.indexFormat ? append('"axes":{},') : append('"axes":[],')
             return
         }
 
         writeObjectKey("axes")
-        startArray()
-        boolean firstPass = true
-        for (Axis item : axes)
+
+        if (options.indexFormat)
         {
-            if (!firstPass) {
-                comma()
+            startObject()
+            Iterator i = axes.iterator()
+            while (i.hasNext())
+            {
+                writeIndexAxis(i.next(), options)
+                if (i.hasNext())
+                {
+                    comma()
+                }
             }
-            writeAxis(item)
-            firstPass = false
+            endObject()
         }
-        endArray()
+        else
+        {
+            startArray()
+            Iterator i = axes.iterator()
+            while (i.hasNext())
+            {
+                writeAxis(i.next(), options)
+                if (i.hasNext())
+                {
+                    comma()
+                }
+            }
+            endArray()
+        }
         comma()
     }
 
     // default is false, so no need to write those out.
-    void writeAxis(Axis axis) throws IOException
+    void writeAxis(Axis axis, Map<String, Object> options) throws IOException
     {
         startObject()
 
         // required inputs
+        writeAxisGuts(axis, options)
+    }
+
+    // default is false, so no need to write those out.
+    void writeIndexAxis(Axis axis, Map<String, Object> options) throws IOException
+    {
+        // required inputs
+        writeObjectKey(axis.getName().toLowerCase())
+        startObject()
+        writeAxisGuts(axis, options)
+    }
+
+    private void writeAxisGuts(Axis axis, Map<String, Object> options)
+    {
         writeObjectKeyValue("name", axis.getName(), true)
         writeObjectKeyValue("type", axis.getType().name(), true)
         writeObjectKeyValue("valueType", axis.getValueType().name(), true)
@@ -181,15 +228,16 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
         writeObjectKeyValue("fireAll", axis.isFireAll(), true)
         writeMetaProperties(axis.getMetaProperties())
-        writeColumns(axis.getColumns())
+        writeColumns(axis.getColumns(), options)
         endObject()
     }
 
-    void writeColumns(List<Column> columns) throws IOException
+    void writeColumns(List<Column> columns, Map<String, Object> options) throws IOException
     {
         append('"columns":')
-        startArray()
-        boolean firstPass = true;
+        options.indexFormat ? startObject() : startArray()
+
+        boolean firstPass = true
 
         for (Column item : columns)
         {
@@ -198,21 +246,29 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 if (!firstPass) {
                     comma()
                 }
-                writeColumn(item)
-                firstPass = false;
+                writeColumn(item, options)
+                firstPass = false
             }
         }
 
-        endArray()
+        options.indexFormat ? endObject() : endArray()
     }
 
-    void writeColumn(Column column) throws IOException
+    void writeColumn(Column column, Map<String, Object> options) throws IOException
     {
-        startObject()
-
-        //  Check to see if id exists anywhere. then optimize
         String columnType = getColumnType(column.getValue())
-        writeId(column.getId(), true)
+        if (options.indexFormat)
+        {
+            writeObjectKey(String.valueOf(column.id))
+            startObject()
+        }
+        else
+        {
+            startObject()
+
+            //  Check to see if id exists anywhere. then optimize
+            writeId(column.getId(), true)
+        }
         writeType(columnType)
         writeMetaProperties(column.getMetaProperties())
         if (column.getValue() instanceof CommandCell)
@@ -223,7 +279,6 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         {
             writeObjectKeyValue("value", column.getValue(), false)
         }
-
         endObject()
     }
 
@@ -252,57 +307,97 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     void writeType(String type) throws IOException
     {
         if (type == null) {
-            return;
+            return
         }
 
         writeObjectKeyValue("type", type, true)
     }
 
-    void writeCells(Map<Collection<Long>, ?> cells) throws IOException
+    void writeCells(Map<Set<Long>, Object> cells, Map<String, Object> options) throws IOException
     {
         append('"cells":')
         if (cells == null || cells.isEmpty())
         {
-            append("[]")
-            return;
+            options.indexFormat ? append('{}') : append("[]")
+            return
         }
-        startArray()
-        boolean firstPass = true;
-        for (Map.Entry<Collection<Long>, ?> cell : cells.entrySet())
-        {
-            if (!firstPass) {
-                comma()
+
+        if (options.indexFormat)
+        {   // {"1000000000001_2000000000001":{"type":"string", "value":10}}
+            startObject()
+            Iterator i = cells.entrySet().iterator()
+            while (i.hasNext())
+            {
+                // Write key, e.g. "1000000000001_2000000000001"
+                Map.Entry<Set<Long>, Object> entry = i.next()
+                append('"')
+                Iterator j = entry.key.iterator()
+                while (j.hasNext())
+                {
+                    append(j.next())
+                    if (j.hasNext())
+                    {
+                        append('_')
+                    }
+                }
+                append('":')
+
+                Object value = entry.value
+                startObject()
+                writeType(CellInfo.getType(value, "cell"))
+                writeCellValue(value)
+                endObject()
+
+                if (i.hasNext())
+                {
+                    comma()
+                }
             }
-            writeCell(cell)
-            firstPass = false;
+            endObject()
         }
-        endArray()
+        else
+        {
+            startArray()
+            Iterator i = cells.entrySet().iterator()
+            while (i.hasNext())
+            {
+                writeCell(i.next())
+                if (i.hasNext())
+                {
+                    comma()
+                }
+            }
+            endArray()
+        }
     }
 
-    private void writeCell(Map.Entry<Collection<Long>, ?> cell) throws IOException
+    private void writeCell(Map.Entry<Set<Long>, Object> cell) throws IOException
     {
         startObject()
         writeIds(cell.getKey())
         writeType(CellInfo.getType(cell.getValue(), "cell"))
-
-        if ((cell.getValue() instanceof CommandCell))
-        {
-            writeCommandCell((CommandCell)cell.getValue())
-        }
-        else
-        {
-            writeObjectKeyValue("value", cell.getValue(), false)
-        }
+        writeCellValue(cell.value)
         endObject()
     }
 
+    private void writeCellValue(Object value)
+    {
+        if (value instanceof CommandCell)
+        {
+            writeCommandCell(value as CommandCell)
+        }
+        else
+        {
+            writeObjectKeyValue("value", value, false)
+        }
+    }
 
-    void writeIds(Collection<Long> colIds)
+    void writeIds(Set<Long> colIds)
     {
         append('"id":')
         startArray()
 
-        boolean firstPass = true;
+        boolean firstPass = true
 
         for (Long colId : colIds)
         {
@@ -310,7 +405,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             if (!idAsString.endsWith(MAX_INT))
             {
                 writeIdValue(colId, !firstPass)
-                firstPass = false;
+                firstPass = false
             }
         }
 
@@ -336,7 +431,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     public static String getColumnType(Object o)
     {
         if (o instanceof Range || o instanceof RangeSet) {
-            return null;
+            return null
         }
 
         return CellInfo.getType(o, "column")
@@ -356,7 +451,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         }
         else if (o instanceof BigInteger)
         {
-            BigInteger i = (BigInteger)o
+            BigInteger i = o as BigInteger
             builder.append('"')
             builder.append(i.toString())
             builder.append('"')
@@ -413,14 +508,14 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             RangeSet r = o as RangeSet
             Iterator i = r.iterator()
             startArray()
-            boolean firstPass = true;
+            boolean firstPass = true
             while (i.hasNext())
             {
                 if (!firstPass) {
                     comma()
                 }
                 writeObjectValue(i.next())
-                firstPass = false;
+                firstPass = false
             }
             endArray()
         }

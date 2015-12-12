@@ -1694,6 +1694,20 @@ public class NCube<T>
         return new JsonFormatter().format(this);
     }
 
+    public String toFormattedJson(Map<String, Object> options)
+    {
+        return new JsonFormatter().format(this, options);
+    }
+
+    /**
+     * @return String JSON representing this entire n-cube.  This JSON format is designed to withstand changes to
+     * retain backward and forward compatibility.
+     */
+//    public String toFormattedJson(Map options)
+//    {
+//        return new JsonFormatter().format(this, options);
+//    }
+
     public String toString()
     {
         return toFormattedJson();
@@ -3026,7 +3040,7 @@ public class NCube<T>
         try
         {
             gzipOut = new GZIPOutputStream(byteOut, 8192);
-            new JsonFormatter(gzipOut).formatCube(this);
+            new JsonFormatter(gzipOut).formatCube(this, null);
         }
         catch (Exception e)
         {

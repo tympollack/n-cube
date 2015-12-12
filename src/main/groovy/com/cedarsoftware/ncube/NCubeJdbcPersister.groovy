@@ -201,7 +201,7 @@ SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create
         final Blob blob = c.createBlob()
         OutputStream out = blob.setBinaryStream(1L)
         OutputStream stream = new GZIPOutputStream(out, 8192)
-        new JsonFormatter(stream).formatCube(cube)
+        new JsonFormatter(stream).formatCube(cube, null)
         PreparedStatement s = null
 
         try

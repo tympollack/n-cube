@@ -70,7 +70,7 @@ class TestCubeLevelDefault
 
         NCube x = NCube.fromSimpleJson(json)
         String json2 = x.toFormattedJson()
-        NCube y = NCube.fromSimpleJson(json2)
+        NCube y = NCube.fromSimpleJson((String)json2)
         assert x.sha1() == y.sha1()
     }
 }

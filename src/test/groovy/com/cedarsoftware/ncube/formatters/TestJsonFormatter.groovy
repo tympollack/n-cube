@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube.formatters
-
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeManager
@@ -18,13 +17,12 @@ import static org.mockito.Matchers.anyInt
 import static org.mockito.Matchers.anyObject
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
  *         Copyright (c) Cedar Software LLC
  *         <br/><br/>
- *         Licensed under the Apache License, Version 2.0 (the 'License');
+ *         Licensed under the Apache License, Version 2.0 (the 'License')
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br/><br/>
@@ -74,8 +72,8 @@ class TestJsonFormatter
     void testConvertArray()
     {
 
-        NCube[] cubes = TestingDatabaseHelper.getCubesFromDisk('sys.classpath.tests.json', 'arrays.json');
-        manager.addCubes(ApplicationID.testAppId, 'lol', cubes);
+        NCube[] cubes = TestingDatabaseHelper.getCubesFromDisk('sys.classpath.tests.json', 'arrays.json')
+        manager.addCubes(ApplicationID.testAppId, 'lol', cubes)
 
         NCube ncube = cubes[1];
 
@@ -107,7 +105,7 @@ class TestJsonFormatter
         assertEquals 147573952589676410000g, ((Object[]) ncube.getCell(coord))[3]
 
         String s = ncube.toFormattedJson()
-        ncube = NCube.fromSimpleJson s
+        ncube = NCube.fromSimpleJson(s)
 
         coord.Code = 'longs'
         assertEquals 9223372036854775807L, ((Object[]) ncube.getCell(coord))[2]
@@ -136,7 +134,7 @@ class TestJsonFormatter
         assertEquals new BigInteger('9223372036854775807'), ((Object[]) ncube.getCell(coord))[2]
         assertEquals new BigInteger('147573952589676410000'), ((Object[]) ncube.getCell(coord))[3]
 
-        manager.removeBranches([ApplicationID.testAppId] as ApplicationID[]);
+        manager.removeBranches([ApplicationID.testAppId] as ApplicationID[])
     }
 
     @Test
@@ -151,23 +149,23 @@ class TestJsonFormatter
     @Test
     void testNullValueGoingToAppend()
     {
-        OutputStream stream = mock(OutputStream.class);
-        when(stream.write(anyObject(), anyInt(), anyInt())).thenThrow(new IOException("foo error"));
+        OutputStream stream = mock(OutputStream.class)
+        when(stream.write(anyObject(), anyInt(), anyInt())).thenThrow(new IOException("foo error"))
 
         BufferedInputStream input = null;
 
         try
         {
             JsonFormatter formatter = new JsonFormatter(stream)
-            formatter.append((String)null);
-            fail();
+            formatter.append((String)null)
+            fail()
         }
         catch (NullPointerException e)
         {
         }
         finally
         {
-            IOUtilities.close((Closeable)input);
+            IOUtilities.close((Closeable)input)
         }
     }
 
@@ -186,15 +184,19 @@ class TestJsonFormatter
     }
 
     @Test
-    void testTryingToUseFormatToWriteToStream() {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        JsonFormatter formatter = new JsonFormatter(stream);
-        try {
-            formatter.format(null);
-        } catch (IllegalStateException e) {
-            String msg = e.getMessage().toLowerCase();
+    void testTryingToUseFormatToWriteToStream()
+    {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream()
+        JsonFormatter formatter = new JsonFormatter(stream)
+        try
+        {
+            formatter.format(null)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            String msg = e.getMessage().toLowerCase()
             assertTrue(msg.contains("builder is not a stringwriter"))
-            assertTrue(msg.contains("use formatcube"))
         }
     }
 
@@ -230,8 +232,22 @@ class TestJsonFormatter
             assertEquals(IllegalArgumentException.class, e.cause.class)
             assert e.message.contains('Unable to format NCube')
             assert e.cause.message.contains('Cell cannot be an array')
-            assert e.cause.message.contains('Use Groovy Expression')
         }
+    }
+
+    @Test
+    void testAlternateJsonFormat()
+    {
+        NCube ncube = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, "idBasedCube.json")
+        String json = ncube.toFormattedJson([indexFormat: true])
+        assert json.contains('"cells":{"1000000000001_2000000000001":{"type":"string","value":"1 10"}')
+        assert json.contains('"axes":{"age":{"name":"Age"')
+        assert json.contains('"columns":{"2000000000001":{"type":"string","value":"CA"}')
+
+        json = ncube.toFormattedJson([indexFormat: false])
+        assert json.contains('"cells":[{"id":[1000000000001,2000000000001],"type":"string","value":"1 10"}')
+        assert json.contains('"axes":[{"name":"Age"')
+        assert json.contains('"columns":[{"id":2000000000001,"type":"string","value":"CA"}')
     }
 
     private static class TestFilenameFilter implements FilenameFilter
@@ -252,7 +268,7 @@ class TestJsonFormatter
     {
         URL u = getClass().classLoader.getResource('')
         File dir = new File(u.file)
-        File[] files = dir.listFiles(new TestFilenameFilter());
+        File[] files = dir.listFiles(new TestFilenameFilter())
         List<String> names = new ArrayList<>(files.length)
 
         for (File f : files)
@@ -272,12 +288,12 @@ class TestJsonFormatter
             //long start = System.nanoTime()
             String s = ncube.toFormattedJson()
 //            System.out.println(s)
-            NCube res = NCube.fromSimpleJson(s)
+            NCube res = NCube.fromSimpleJson((String)s)
             //long end = System.nanoTime()
             assertEquals(res, ncube)
             //long time = (end-start)/1000000;
             //if (time > 250) {
-                //System.out.println(f + " " + time);
+                //System.out.println(f + " " + time)
             //}
         }
     }
