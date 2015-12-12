@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube.util;
 
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.TreeSet;
 
 
 /**
@@ -24,7 +24,7 @@ import java.util.HashSet;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class LongHashSet extends HashSet<Long>
+public class LongHashSet extends TreeSet<Long>
 {
     public LongHashSet()
     {

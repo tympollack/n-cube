@@ -12,22 +12,10 @@ import com.cedarsoftware.util.StringUtilities;
 import com.cedarsoftware.util.io.JsonReader;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Implements an Axis of an NCube. When modeling, think of an axis as a 'condition'
@@ -67,9 +55,6 @@ public class Axis
 	public static final int SORTED = 0;
 	public static final int DISPLAY = 1;
     private static final AtomicLong baseAxisIdForTesting = new AtomicLong(1);
-    private static final Pattern setPattern = Pattern.compile("(?:([^ \\[,][^,\\[]+)|(?:\\[\\s*([^,]+?)\\s*,\\s*([^\\[]+?)\\s*\\])|(?:,)|(?:\\s*))+?");
-    private static final Pattern rangePattern = Pattern.compile("\\s*([^,]+)[,](.*)\\s*$");
-
 
     // used to get O(1) on SET axis for the discrete elements in the Set
     final transient Map<Comparable, Column> discreteToCol = new TreeMap<>();
@@ -775,6 +760,7 @@ public class Axis
         {
             throw new IllegalArgumentException("Column value cannot be empty, axis: " + name);
         }
+        value = value.trim();
 
         switch(type)
         {
@@ -786,25 +772,32 @@ public class Axis
 
             case SET:
                 try
-                {
+                {   // input we always be comma delimited list of items and ranges (we add the final array brackets)
+                    value = '[' + value + ']';
+                    Map options = new HashMap();
+                    options.put(JsonReader.USE_MAPS, true);
+                    Object[] list = (Object[]) JsonReader.jsonToJava(value, options);
                     final RangeSet set = new RangeSet();
-                    Matcher matcher = setPattern.matcher(value);
-                    while (matcher.find())
+
+                    for (Object item : list)
                     {
-                        // Determine range or single value
-                        if (matcher.groupCount() > 2 && matcher.group(2) != null && matcher.group(3) != null)
-                        {   // Range
-                            String one = matcher.group(2);
-                            String two = matcher.group(3);
-                            set.add(new Range(trimQuotes(one), trimQuotes(two)));
+                        if (item instanceof Object[])
+                        {   // Convert to Range
+                            Object[] subList = (Object[]) item;
+                            if (subList.length != 2)
+                            {
+                                throw new IllegalArgumentException("Range inside set must have exactly two (2) entries.");
+                            }
+                            Range range = new Range((Comparable)subList[0], (Comparable)subList[1]);
+                            set.add(range);
+                        }
+                        else if (item == null)
+                        {
+                            throw new IllegalArgumentException("Set cannot have null value inside.");
                         }
                         else
                         {
-                            String v = matcher.group(1);
-                            if (StringUtilities.hasContent(v))
-                            {
-                                set.add(trimQuotes(v));
-                            }
+                            set.add((Comparable)item);
                         }
                     }
                     if (set.size() > 0)
@@ -812,6 +805,10 @@ public class Axis
                         return standardizeColumnValue(set);
                     }
                     throw new IllegalArgumentException("Value: " + value + " cannot be parsed as a Set. Must have at least one element within the set, axis: " + name);
+                }
+                catch (IllegalArgumentException e)
+                {
+                    throw e;
                 }
                 catch (Exception e)
                 {
@@ -869,7 +866,7 @@ public class Axis
         {   // Remove surrounding brackets
             value = value.substring(1, value.length() - 1);
         }
-        Matcher matcher = rangePattern.matcher(value);
+        Matcher matcher = Regexes.rangePattern.matcher(value);
         if (matcher.matches())
         {
             String one = matcher.group(1);

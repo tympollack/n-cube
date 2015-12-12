@@ -23,5 +23,5 @@ import com.cedarsoftware.ncube.NCube;
  */
 public interface NCubeFormatter
 {
-    String format(NCube ncube);
+    String format(NCube ncube)
 }

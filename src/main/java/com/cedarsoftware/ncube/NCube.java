@@ -1315,20 +1315,22 @@ public class NCube<T>
         final Set<Long> colsToDel = axisToUpdate.updateColumns(newCols);
         Iterator<Set<Long>> i = cells.keySet().iterator();
 
-        while (i.hasNext())
-        {
-            Collection<Long> cols = i.next();
-
-            for (Long id : colsToDel)
+        if (!colsToDel.isEmpty())
+        {   // If there are columns to delete, then delete any cells referencing those columns
+            while (i.hasNext())
             {
-                if (cols.contains(id))
-                {   // If cell referenced deleted column, drop the cell
-                    i.remove();
-                    break;
+                Collection<Long> cols = i.next();
+
+                for (Long id : colsToDel)
+                {
+                    if (cols.contains(id))
+                    {   // If cell referenced deleted column, drop the cell
+                        i.remove();
+                        break;
+                    }
                 }
             }
         }
-
         clearScopeKeyCaches();
         clearSha1();
         return colsToDel;
@@ -2150,7 +2152,7 @@ public class NCube<T>
         return name.hashCode();
     }
 
-    void clearSha1()
+    public void clearSha1()
     {
         sha1 = null;
     }
@@ -2220,7 +2222,7 @@ public class NCube<T>
                 deepSha1(sha1Digest, new TreeMap<>(axis.metaProps), sep);
             }
             sha1Digest.update(sep);
-
+            boolean displayOrder = axis.getColumnOrder() == Axis.DISPLAY;
             for (Column column : axis.getColumnsWithoutDefault())
             {
                 Object v = column.getValue();
@@ -2232,6 +2234,12 @@ public class NCube<T>
                     deepSha1(sha1Digest, column.metaProps, sep);
                 }
                 sha1Digest.update(sep);
+                if (displayOrder)
+                {
+                    String order = String.valueOf(column.getDisplayOrder());
+                    sha1Digest.update(order.getBytes());
+                    sha1Digest.update(sep);
+                }
             }
         }
 
@@ -2969,7 +2977,7 @@ public class NCube<T>
     }
 
     /**
-     * Create an n-cube from a stream of bytes.  The stream can be either a JSON version
+     * Create an n-cube from a stream of bytes.  The stream can be either a JSON stream
      * of an n-cube or a g-zip JSON stream.
      */
     public static NCube<?> createCubeFromStream(InputStream stream)

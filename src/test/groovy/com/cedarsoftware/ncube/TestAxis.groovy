@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.proximity.LatLon
@@ -18,7 +17,6 @@ import static org.junit.Assert.assertNotEquals
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-
 /**
  * NCube Axis Tests
  *
@@ -1044,7 +1042,7 @@ class TestAxis
         }
         catch (IllegalArgumentException e)
         {
-            assert e.message.toLowerCase().contains("cannot be parsed as a set")
+            assert e.message.toLowerCase().contains("range value cannot be null")
         }
 
         try
@@ -1054,7 +1052,7 @@ class TestAxis
         }
         catch (IllegalArgumentException e)
         {
-            assert e.message.toLowerCase().contains("cannot be parsed as a set")
+            assert e.message.toLowerCase().contains("set cannot have null value inside")
         }
     }
 
@@ -1953,17 +1951,17 @@ class TestAxis
         Axis axis = new Axis('ages', AxisType.SET, AxisValueType.BIG_DECIMAL, true, Axis.SORTED)
         RangeSet set = (RangeSet) axis.convertStringToColumnValue('10.1, 20, [50, 90.5], 100.1')
         assert set.size() == 4
-        assert set.get(0) == 10.1
+        assert set.get(0) == 10.1d
         assert set.get(1) == 20
         assert set.get(2) == new Range(50.0, 90.5)
-        assert set.get(3) == 100.1
+        assert set.get(3) == 100.1d
     }
 
     @Test
     void testDateSetParsing()
     {
         Axis axis = new Axis('dates', AxisType.SET, AxisValueType.DATE, true, Axis.SORTED)
-        RangeSet set = (RangeSet) axis.convertStringToColumnValue('10 Dec 1995, 1995/12/25, [1996 dec 17, 2001-01-31], Jun 10th 2010')
+        RangeSet set = (RangeSet) axis.convertStringToColumnValue('"10 Dec 1995", "1995/12/25", ["1996 dec 17", "2001-01-31"], "Jun 10th 2010"')
         assert set.size() == 4
         assert set.get(0) == Converter.convert("10 Dec 1995", Date.class)
         assert set.get(1) == Converter.convert("25 Dec 1995", Date.class)
@@ -1975,14 +1973,14 @@ class TestAxis
     void testStringSetParsing()
     {
         Axis axis = new Axis('strings', AxisType.SET, AxisValueType.STRING, true, Axis.SORTED)
-        RangeSet set = (RangeSet) axis.convertStringToColumnValue('10 Dec 1995, 1995/12/25, [1996 dec 17, 2001-01-31], Jun 10th 2010')
+        RangeSet set = (RangeSet) axis.convertStringToColumnValue('"10 Dec 1995", "1995/12/25", ["1996 dec 17", "2001-01-31"], "Jun 10th 2010"')
         assert set.size() == 4
         assert set.get(0) == "10 Dec 1995"
         assert set.get(1) == "1995/12/25"
         assert set.get(2) == new Range("1996 dec 17", '2001-01-31')
         assert set.get(3) == "Jun 10th 2010"
 
-        set = (RangeSet) axis.convertStringToColumnValue('  The quick, "brown fox", [ "jumps over", the lazy dog], I\'m dead serious, ""this is quoted""')
+        set = (RangeSet) axis.convertStringToColumnValue('  "The quick", "brown fox", [ "jumps over", "the lazy dog"], "I\'m dead serious", "\\"this is quoted\\""')
         assert set.size() == 5
         assert set.get(0) == "The quick"
         assert set.get(1) == "brown fox"

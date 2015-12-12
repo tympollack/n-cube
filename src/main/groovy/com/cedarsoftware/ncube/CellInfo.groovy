@@ -232,15 +232,41 @@ class CellInfo
                 if (val instanceof Range)
                 {
                     Range range = (Range) val
+                    boolean needsQuoted = range.low instanceof String
                     builder.append('[')
+                    if (needsQuoted)
+                    {
+                        builder.append('"')
+                    }
                     builder.append(formatForEditing(range.low))
+                    if (needsQuoted)
+                    {
+                        builder.append('"')
+                    }
                     builder.append(", ")
+                    if (needsQuoted)
+                    {
+                        builder.append('"')
+                    }
                     builder.append(formatForEditing(range.high))
+                    if (needsQuoted)
+                    {
+                        builder.append('"')
+                    }
                     builder.append("]")
                 }
                 else
                 {
+                    boolean needsQuoted = val instanceof String
+                    if (needsQuoted)
+                    {
+                        builder.append('"')
+                    }
                     builder.append(formatForEditing(val))
+                    if (needsQuoted)
+                    {
+                        builder.append('"')
+                    }
                 }
             }
             value = builder.toString()

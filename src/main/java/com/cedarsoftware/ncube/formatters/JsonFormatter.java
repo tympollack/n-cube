@@ -441,5 +441,4 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             builder.append(o.toString());
         }
     }
-
 }
