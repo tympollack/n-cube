@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.5</version>
+  <version>3.4.6</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,13 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.6
+ * Added retry logic to URL resolution (tries twice - logs warning on each failed attempt).  If fails both times, an error is marked in the cell and it will not be tried again (Malformed URL, sys.classpath issue, etc).  
+ * Added retry logic to URL content fetching (tries twice - logs warning on each failed attempt).  If it fails both times, future attempts at fetching will still be tried.
+ * Added new JSON format that places the axes, columns, and cells in the JSON in a way that axes, columns, and cells are directly accessible as String keys in a Map - O(1).  Useful for sending to Javascript clients for quick access to the n-cube content.
+ * Bug fix: Upating axis URL was not causing cube to be updated in database as SHA-1 was not being cleared.
+ * Bug fix: Column order changes were not included in the SHA-1, causing no save to happen when only columns were re-ordered.
+ * Bug fix: Parsing SET columns was failing in many cases.  JSON Format is used for SET columns as it is robust.  Requires String and Date variables to be quoted.  Instructions in NCE have been updated.
 * 3.4.5
  * Bug fix on regex that parses import statements.  Import statements that were on the same line as code (code after the import statement) did not work.
 * 3.4.4

@@ -42,7 +42,7 @@ public class BinaryUrlCmd extends ContentCmdCell
         NCube cube = getNCube(ctx)
 
         for (int i=0; i < 2; i++)
-        {
+        {   // Try URL resolution twice (HTTP HEAD to called for connecting relative URLs to sys.classpath)
             try
             {
                 u = getActualUrl(ctx)
