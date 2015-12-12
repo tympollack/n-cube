@@ -1,4 +1,5 @@
 package com.cedarsoftware.ncube
+
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.Converter

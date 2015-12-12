@@ -149,7 +149,8 @@ class TestJsonFormatter
     }
 
     @Test
-    void testNullValueGoingToAppend() {
+    void testNullValueGoingToAppend()
+    {
         OutputStream stream = mock(OutputStream.class);
         when(stream.write(anyObject(), anyInt(), anyInt())).thenThrow(new IOException("foo error"));
 
@@ -161,9 +162,8 @@ class TestJsonFormatter
             formatter.append((String)null);
             fail();
         }
-        catch (RuntimeException e)
+        catch (NullPointerException e)
         {
-            assertEquals(NullPointerException.class, e.getCause().getClass());
         }
         finally
         {
