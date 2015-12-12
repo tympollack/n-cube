@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class ContentCmdCell extends UrlCommandCell
 {
     private static Map<String, String> extToMimeType = new ConcurrentHashMap<>()
-    private static final Logger LOG = LogManager.getLogger(CdnRouter.class)
+    private static final Logger LOG = LogManager.getLogger(ContentCmdCell.class)
 
     static
     {
@@ -95,16 +95,52 @@ abstract class ContentCmdCell extends UrlCommandCell
 
     protected Object simpleFetch(Map ctx)
     {
-        try
+        URL u
+        NCube cube = getNCube(ctx)
+
+        for (int i=0; i < 2; i++)
         {
-            URL u = getActualUrl(ctx)
-            return UrlUtilities.getContentFromUrlAsString(u, true)
+            try
+            {
+                u = getActualUrl(ctx)
+            }
+            catch (Exception e)
+            {
+                if (i == 1)
+                {   // Note: Error is marked so that it will not be retried in the future
+                    setErrorMessage("Invalid URL in content cell (malformed or cannot resolve given classpath): " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion())
+                    LOG.warn('ContentCmdCell: failed 2nd attempt [will NOT retry in future] getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName())
+                    throw new IllegalStateException(getErrorMessage(), e)
+                }
+                else
+                {
+                    LOG.warn('ContentCmdCell: retrying getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName())
+                    Thread.sleep(100)
+                }
+            }
         }
-        catch (Exception e)
+
+        // Try to load twice.
+        for (int i=0; i < 2; i++)
         {
-            NCube cube = getNCube(ctx)
-            setErrorMessage("Failed to load cell contents from URL: " + url + ", cube: " + cube.name + ", version: " + cube.version)
-            throw new IllegalStateException(getErrorMessage(), e)
+            try
+            {
+                return UrlUtilities.getContentFromUrlAsString(u, true)
+            }
+            catch (Exception e)
+            {
+                if (i == 1)
+                {   // Note: Error is not marked - it will be retried in the future
+                    String msg = "Unable to load content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion();
+                    LOG.warn('ContentCmdCell: failed 2nd attempt [will retry in future] UrlUtilities.getContentFromUrlAsString() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
+                    throw new IllegalStateException(msg, e)
+                }
+                else
+                {
+                    LOG.warn('ContentCmdCell: retrying UrlUtilities.getContentFromUrlAsString() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
+                    Thread.sleep(100)
+                }
+            }
         }
     }
 

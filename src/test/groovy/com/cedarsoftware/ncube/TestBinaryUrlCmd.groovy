@@ -65,8 +65,10 @@ class TestBinaryUrlCmd
             cmd.simpleFetch(args)
             fail();
         }
-        catch (IllegalStateException e) {
-            assertTrue(e.message.toLowerCase().contains("failed to load binary content"))
+        catch (IllegalStateException e)
+        {
+            assertTrue(e.message.toLowerCase().contains("invalid url in byte[] cell"))
+            assertTrue(e.message.toLowerCase().contains("malformed"))
         }
     }
 }

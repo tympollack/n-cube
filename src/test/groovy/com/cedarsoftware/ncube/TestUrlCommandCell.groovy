@@ -165,7 +165,8 @@ class TestUrlCommandCell
         catch (Exception e)
         {
             e = e.getCause()
-            assert e.message.toLowerCase().contains('failed to load cell contents from url')
+            assert e.message.toLowerCase().contains('invalid url in content cell')
+            assert e.message.toLowerCase().contains('malformed')
         }
 
         coord['content.name'] = 'badRelative'

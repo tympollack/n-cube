@@ -2,6 +2,8 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 
 /**
  * Process a binary type (byte[]) that is specified at a URL.
@@ -10,7 +12,7 @@ import groovy.transform.CompileStatic
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -25,6 +27,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 public class BinaryUrlCmd extends ContentCmdCell
 {
+    private static final Logger LOG = LogManager.getLogger(BinaryUrlCmd.class)
     //  Private constructor only for serialization.
     private BinaryUrlCmd() {}
 
@@ -35,16 +38,52 @@ public class BinaryUrlCmd extends ContentCmdCell
 
     protected Object simpleFetch(Map ctx)
     {
-        try
+        URL u
+        NCube cube = getNCube(ctx)
+
+        for (int i=0; i < 2; i++)
         {
-            URL u = getActualUrl(ctx)
-            return UrlUtilities.getContentFromUrl(u, true)
+            try
+            {
+                u = getActualUrl(ctx)
+            }
+            catch (Exception e)
+            {   // Do not retry (mark as BAD)
+                if (i == 1)
+                {   // Note: Error is marked, it will not be retried in the future
+                    setErrorMessage("Invalid URL in byte[] cell (malformed or cannot resolve given classpath): " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion())
+                    LOG.warn('BinaryUrlCmd: failed 2nd attempt [will NOT retry in future] getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName())
+                    throw new IllegalStateException(getErrorMessage(), e)
+                }
+                else
+                {
+                    LOG.warn('BinaryUrlCmd: retrying getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName())
+                    Thread.sleep(100)
+                }
+            }
         }
-        catch (Exception e)
+
+        // Try to load twice.
+        for (int i=0; i < 2; i++)
         {
-            NCube cube = getNCube(ctx)
-            setErrorMessage("Failed to load binary content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion())
-            throw new IllegalStateException(getErrorMessage(), e)
+            try
+            {
+                return UrlUtilities.getContentFromUrl(u, true)
+            }
+            catch (Exception e)
+            {
+                if (i == 1)
+                {   // Note: Error is not marked - it will be retried in the future
+                    String msg = "Unable to load binary content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion()
+                    LOG.warn('BinaryUrlCmd: failed 2nd attempt [will retry in future] UrlUtilities.getContentFromUrl() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
+                    throw new IllegalStateException(msg, e)
+                }
+                else
+                {
+                    LOG.warn('BinaryUrlCmd: retrying UrlUtilities.getContentFromUrl() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
+                    Thread.sleep(100)
+                }
+            }
         }
     }
 }
