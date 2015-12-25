@@ -992,8 +992,8 @@ public class NCubeManager
                 {
                     NCube baseCube = getPersister().loadCubeBySha1(appId, info.name, info.headSha1);
 
-                    Map delta1 = baseCube.getCellChangeSet(branchCube);
-                    Map delta2 = baseCube.getCellChangeSet(headCube);
+                    Map delta1 = baseCube.getDelta(branchCube);
+                    Map delta2 = baseCube.getDelta(headCube);
 
                     if (NCube.areCellChangeSetsCompatible(delta1, delta2))
                     {

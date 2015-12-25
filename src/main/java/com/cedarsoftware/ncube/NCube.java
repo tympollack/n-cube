@@ -52,6 +52,9 @@ public class NCube<T>
     public static final String DEFAULT_CELL_VALUE = "defaultCellValue";
     public static final String DEFAULT_CELL_VALUE_URL = "defaultCellValueUrl";
     public static final String DEFAULT_CELL_VALUE_CACHE = "defaultCellValueCache";
+    public static final String DELTA_CELLS = "~cell-deltas~";
+    public static final String DELTA_COLUMNS = "~column-deltas~";
+    static final String REMOVE_CELL = "~remove-cell~";
     private String name;
     private String sha1;
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>();
@@ -61,7 +64,6 @@ public class NCube<T>
     private volatile Set<String> declaredScopeKeys = null;
     public static final String validCubeNameChars = "0-9a-zA-Z._-";
     public static final String RULE_EXEC_INFO = "_rule";
-    static final String REMOVE_CELL = "~remove-cell~";
     private final Map<String, Advice> advices = new LinkedHashMap<>();
     private Map<String, Object> metaProps = new CaseInsensitiveMap<>();
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
@@ -2410,28 +2412,51 @@ public class NCube<T>
     }
 
     /**
-     * Fetch the difference between this cube and the passed in cube, in terms of cells.  The two cubes must
-     * have the same number of axes with the same names, and each axis must have the same columns.  If those
-     * conditions are met, then this method will return a Map of cell coordinates to the associated values.
-     * If the value is NCUBE.REMOVE_CELL, then that indicates a cell that needs to be removed.  All other cell
-     * values are actual cell value changes.
+     * Fetch the difference between this cube and the passed in cube.  The two cubes must have the same number of axes
+     * with the same names.  If those conditions are met, then this method will return a Map with keys for each delta
+     * type.
+     *
+     * The key DELTA_CELLS, will have an associated value that is a Map<Set<Long>, T> which are the cell contents
+     * that are different.  These cell differences when applied to 'this' will result in this cube's cells matching
+     * the passed in 'other'. If the value is NCUBE.REMOVE_CELL, then that indicates a cell that needs to be removed.
+     * All other cell values are actual cell value changes.
+     *
+     * The key DELTA_COLUMNS, contains the column differences.
+     *
+     * In the future, meta-property differences may be reported.
+     *
      * @param other NCube to compare to this ncube.
-     * @return Map containing the coordinates and associated values from the 'other' cube where there are blank
-     * cells in 'this' cube. If any of the following conditions are not met (different number of axes, different
-     * axis names, different columns, or cells exist in both cubes at the same location but not with the same
-     * value), then null is returned.
+     * @return Map containing the differences as described above.  If different number of axes, or different axis names,
+     * then null is returned.
      */
-    public Map<Set<Long>, T> getCellChangeSet(NCube<T> other)
+    public Map<String, Object> getDelta(NCube<T> other)
     {
+        Map<String, Object> delta = new LinkedHashMap<>();
+
         if (!isComparableCube(other))
         {
             return null;
         }
 
+        // Step 1: Build axial differences
+        for (Axis axis : axisList.values())
+        {
+            Axis otherAxis = other.axisList.get(axis.getName());
+
+        }
+
+        // TODO: Back coordinates IDs to column values that will bind.
+
         // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
         // transactionally apply the merge.  We do not want a partial merge.
+        delta.put(DELTA_CELLS, getCellDelta(other));
+        return delta;
+    }
+
+    private Map<Set<Long>, T> getCellDelta(NCube<T> other)
+    {
         Map<Set<Long>, T> delta = new HashMap<>();
-        Set<Set<Long>> copyCells =  new HashSet<>();
+        Set<Set<Long>> copyCells = new HashSet<>();
 
         for (Map.Entry<Set<Long>, T> entry : cells.entrySet())
         {
@@ -2466,12 +2491,12 @@ public class NCube<T>
 
     /**
      * Test if another n-cube is 'compatible' with this n-cube.  This means that they have the same number of
-     * dimensions (axes) and each axis has the same number of columns.  This test will allow many operations to
+     * dimensions (axes) and each axis has the same name.  This test will allow many operations to
      * be performed on two cubes once it is known they are 'compatible' such as union, intersection, even matrix
      * operations like multiply, etc.
      * @param other NCube to compare to this ncube.
-     * @return boolean true if the passed in cube has the same number of axes, the axes have the same names,
-     * and the columns are the same on each axis, otherwise return false.
+     * @return boolean true if the passed in cube has the same number of axes, the axes have the same names, otherwise
+     * false.
      */
     public boolean isComparableCube(NCube<T> other)
     {
@@ -2484,64 +2509,29 @@ public class NCube<T>
         CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
         a1.removeAll(a2);
 
-        if (!a1.isEmpty())
-        {   // Axis names must be the same (ignoring case)
-            return false;
-        }
-
-        for (Axis axis : axisList.values())
-        {
-            Axis otherAxis = other.axisList.get(axis.getName());
-
-            if (axis.columns.size() != otherAxis.columns.size())
-            {   // Must have same number of columns [columns includes default]
-                return false;
-            }
-
-            int len = axis.columns.size();
-            for (int i=0; i < len; i++)
-            {
-                Column column = axis.columns.get(i);
-                Column otherColumn = otherAxis.columns.get(i);
-
-                if (column.getValue() == null)
-                {
-                    if (otherColumn.getValue() != null)
-                    {   // if one column is null, so must the other be
-                        return false;
-                    }
-                }
-                else
-                {
-                    if (otherColumn.getValue() == null)
-                    {
-                        return false;
-                    }
-
-                    if (!column.getValue().equals(otherColumn.getValue()))
-                    {   // column values must be equivalent
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
+        return a1.isEmpty();
     }
 
     /**
      * Test the compatibility of two 'cell change-set' maps.  This method determines if these two
      * change sets intersect properly or intersect with conflicts.  Used internally when merging
      * two ncubes together in branch-merge operations.
-     * @param delta1 Map of cell coordinates to values generated from comparing two cubes (A -> B)
-     * @param delta2 Map of cell coordinates to values generated from comparing two cubes (A -> C)
+     * @param completeDelta1 Map of cell coordinates to values generated from comparing two cubes (A -> B)
+     * @param completeDelta2 Map of cell coordinates to values generated from comparing two cubes (A -> C)
      * @return boolean true if the two cell change-sets are compatible, false otherwise.
      */
-    static boolean areCellChangeSetsCompatible(Map<Set<Long>, Object> delta1, Map<Set<Long>, Object> delta2)
+    static boolean areCellChangeSetsCompatible(Map<String, Object> completeDelta1, Map<String, Object> completeDelta2)
     {
-        if (delta1 == null || delta2 == null)
+        if (completeDelta1 == null || completeDelta2 == null)
         {
             return false;
         }
+        // TODO:  Need to check if any conflicts on column updates
+        // Step 1: Do any column-level updates conflict?
+
+        // Step 2: Do any cell-level updates conflict?
+        Map<Set<Long>, Object> delta1 = (Map<Set<Long>, Object>) completeDelta1.get(DELTA_CELLS);
+        Map<Set<Long>, Object> delta2 = (Map<Set<Long>, Object>) completeDelta2.get(DELTA_CELLS);
         Map<Set<Long>, Object> smallerChangeSet;
         Map<Set<Long>, Object> biggerChangeSet;
 
@@ -2581,10 +2571,13 @@ public class NCube<T>
      * @param cellChangeSet Map containing cell change-set.  The cell change-set contains cell coordinates
      * mapped to the associated value to set (or remove) for the given coordinate.
      */
-    public void mergeCellChangeSet(Map<Set<Long>, T> cellChangeSet)
+    public void mergeCellChangeSet(Map<String, Object> cellChangeSet)
     {
+        // Step 1: Merge column-level changes
+        // Step 2: Merge cell-level changes
+        Map<Set<Long>, T> cellDelta = (Map<Set<Long>, T>) cellChangeSet.get(DELTA_CELLS);
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
-        for (Map.Entry<Set<Long>, T> entry : cellChangeSet.entrySet())
+        for (Map.Entry<Set<Long>, T> entry : cellDelta.entrySet())
         {
             Set<Long> cols = ensureFullCoordinate(entry.getKey());
             if (cols.size() > 0)

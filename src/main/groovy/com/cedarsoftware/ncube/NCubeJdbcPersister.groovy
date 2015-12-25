@@ -1208,30 +1208,25 @@ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.creat
 
     boolean updateTestData(Connection c, ApplicationID appId, String cubeName, String testData)
     {
-        Map map = appId as Map
-        map.putAll([testData: testData == null ? null : testData.getBytes("UTF-8"),
-                    status: ReleaseStatus.SNAPSHOT.name(), cube: buildName(c, cubeName)])
+        Long maxRev = getMaxRevision(c, appId, cubeName)
+
+        if (maxRev == null)
+        {
+            throw new IllegalArgumentException("Cannot update test data, cube: " + cubeName + " does not exist in app: " + appId)
+        }
+
+        Map map = [testData: testData == null ? null : testData.getBytes("UTF-8"), tenant: appId.getTenant(),
+                   app: appId.getApp(), ver: appId.getVersion(), status: ReleaseStatus.SNAPSHOT.name(),
+                   branch: appId.getBranch(), rev: maxRev, cube: buildName(c, cubeName)]
         Sql sql = new Sql(c)
 
         int rows = sql.executeUpdate(map, """\
-UPDATE n_cube SET test_data_bin = :testData
-WHERE n_cube_id = (SELECT a.n_cube_id
- FROM n_cube a
- LEFT OUTER JOIN n_cube b
- ON abs(a.revision_number) < abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
- AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
- WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :cube AND a.app_cd = :app AND a.status_cd = :status
- AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL)
-""")
-        if (rows == 0)
-        {
-            throw new IllegalArgumentException('Cannot update test data, cube: ' + cubeName + ' does not exist in app: ' + appId)
-        }
-        if (rows != 1)
-        {
-            throw new IllegalArgumentException('Cannot update test data as more than one matches, cube: ' + cubeName + ', app: ' + appId)
-        }
+UPDATE n_cube SET test_data_bin=:testData
+WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND version_no_cd = :ver
+ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""")
+        return rows == 1
     }
+
 
     String getTestData(Connection c, ApplicationID appId, String cubeName)
     {
@@ -1262,30 +1257,22 @@ SELECT a.test_data_bin
 
     boolean updateNotes(Connection c, ApplicationID appId, String cubeName, String notes)
     {
+        Long maxRev = getMaxRevision(c, appId, cubeName)
+        if (maxRev == null)
+        {
+            throw new IllegalArgumentException("Cannot update notes, cube: " + cubeName + " does not exist in app: " + appId)
+        }
+
         Map map = appId as Map
         map.putAll([notes: notes == null ? null : notes.getBytes("UTF-8"), status: ReleaseStatus.SNAPSHOT.name(),
-                    cube: buildName(c, cubeName)])
+                    rev: maxRev, cube: buildName(c, cubeName)])
         Sql sql = new Sql(c)
 
         int rows = sql.executeUpdate(map, """\
 UPDATE n_cube SET notes_bin = :notes
-WHERE n_cube_id = (SELECT a.n_cube_id
- FROM n_cube a
- LEFT OUTER JOIN n_cube b
- ON abs(a.revision_number) < abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
- AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
- WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :cube AND a.app_cd = :app AND a.status_cd = :status
- AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL)
-""")
-        if (rows == 0)
-        {
-            throw new IllegalArgumentException('Cannot update notes, cube: ' + cubeName + ' does not exist in app: ' + appId)
-        }
-        if (rows != 1)
-        {
-            throw new IllegalArgumentException('Cannot update notes as more than one matches, cube: ' + cubeName + ', app: ' + appId)
-        }
-        return true
+WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND version_no_cd = :version
+AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""")
+        return rows == 1
     }
 
     List<String> getAppNames(Connection c, String tenant, String status, String branch)
