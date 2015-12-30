@@ -54,7 +54,7 @@ class TestAllCellsInBigCube
                 }
             }
 
-            def coord = [:]
+            Map coord = [:]
             for (int a = 1; a <= 11; a++)
             {
                 coord.axis0 = a - 1
