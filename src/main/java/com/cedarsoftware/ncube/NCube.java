@@ -53,7 +53,7 @@ public class NCube<T>
     public static final String DEFAULT_CELL_VALUE_URL = "defaultCellValueUrl";
     public static final String DEFAULT_CELL_VALUE_CACHE = "defaultCellValueCache";
     public static final String DELTA_CELLS = "~cell-deltas~";
-    public static final String DELTA_COLUMNS = "~column-deltas~";
+    public static final String DELTA_AXES_COLUMNS = "~column-deltas~";
     static final String REMOVE_CELL = "~remove-cell~";
     private String name;
     private String sha1;
@@ -746,7 +746,7 @@ public class NCube<T>
         final Map<String, Object> coord = validateCoordinate(coordinate, false);
         final Axis wildcardAxis = getWildcardAxis(coord);
         final List<Column> columns = getWildcardColumns(wildcardAxis, coord);
-        final Map<Object, T> result = new HashMap<>();
+        final Map<Object, T> result = new LinkedHashMap<>();
         final String axisName = wildcardAxis.getName();
 
         for (final Column column : columns)
@@ -1217,7 +1217,7 @@ public class NCube<T>
      */
     public Column addColumn(final String axisName, final Comparable value)
     {
-        return addColumn(axisName, value, null);
+        return addColumn(axisName, value, null, null);
     }
 
     /**
@@ -1229,12 +1229,26 @@ public class NCube<T>
      */
     public Column addColumn(final String axisName, final Comparable value, String colName)
     {
+        return addColumn(axisName, value, colName, null);
+    }
+
+    /**
+     * Add a column to the n-cube
+     * @param axisName String name of the Axis to which the column will be added.
+     * @param value Comparable that will be the value for the given column.  Cannot be null.
+     * @param colName The optional name of the column, useful for RULE axis columns.
+     * @param suggestedId Long id.  If id is not valid for the column (unique id, and axis portion matches axis on which
+     *                    it is added), then the ID will be generated.
+     * @return Column the added Column.
+     */
+    public Column addColumn(final String axisName, final Comparable value, String colName, Long suggestedId)
+    {
         final Axis axis = getAxis(axisName);
         if (axis == null)
         {
             throw new IllegalArgumentException("Could not add column. Axis name '" + axisName + "' was not found on cube: " + name);
         }
-        Column newCol = axis.addColumn(value, colName);
+        Column newCol = axis.addColumn(value, colName, suggestedId);
         clearScopeKeyCaches();
         clearSha1();
         return newCol;
@@ -1884,10 +1898,10 @@ public class NCube<T>
                 }
 
                 Column colAdded;
-
+                Long suggestedId = (id instanceof Long) ? (Long) id : null;
                 if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
                 {
-                    colAdded = ncube.addColumn(axis.getName(), (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName);
+                    colAdded = ncube.addColumn(axis.getName(), (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId);
                 }
                 else if (type == AxisType.RANGE)
                 {
@@ -1898,7 +1912,7 @@ public class NCube<T>
                     }
                     Comparable low = (Comparable) CellInfo.parseJsonValue(rangeItems[0], null, colType, false);
                     Comparable high = (Comparable) CellInfo.parseJsonValue(rangeItems[1], null, colType, false);
-                    colAdded = ncube.addColumn(axis.getName(), new Range(low, high), colName);
+                    colAdded = ncube.addColumn(axis.getName(), new Range(low, high), colName, suggestedId);
                 }
                 else if (type == AxisType.SET)
                 {
@@ -1923,7 +1937,7 @@ public class NCube<T>
                             rangeSet.add((Comparable)CellInfo.parseJsonValue(pt, null, colType, false));
                         }
                     }
-                    colAdded = ncube.addColumn(axis.getName(), rangeSet, colName);
+                    colAdded = ncube.addColumn(axis.getName(), rangeSet, colName, suggestedId);
                 }
                 else if (type == AxisType.RULE)
                 {
@@ -1932,7 +1946,7 @@ public class NCube<T>
                     {
                         cmd = new GroovyExpression("false", null, cache);
                     }
-                    colAdded = ncube.addColumn(axis.getName(), (CommandCell)cmd, colName);
+                    colAdded = ncube.addColumn(axis.getName(), (CommandCell)cmd, colName, suggestedId);
                 }
                 else
                 {
@@ -1959,17 +1973,6 @@ public class NCube<T>
                 else
                 {
                     loadMetaProperties(colAdded.metaProps);
-                }
-            }
-
-            Map<Long, Long> oldToNew = axis.renumberIds();
-            for (Map.Entry<Object, Long> entry : userIdToUniqueId.entrySet())
-            {
-                long oldId = entry.getValue();
-
-                if (oldToNew.containsKey(oldId))
-                {
-                    entry.setValue(oldToNew.get(oldId));
                 }
             }
         }
@@ -2421,7 +2424,9 @@ public class NCube<T>
      * the passed in 'other'. If the value is NCUBE.REMOVE_CELL, then that indicates a cell that needs to be removed.
      * All other cell values are actual cell value changes.
      *
-     * The key DELTA_COLUMNS, contains the column differences.
+     * The key DELTA_AXES_COLUMNS, contains the column differences.  The value associated to this key is a Map, that
+     * maps axis name (case-insensitively) to a Map where the key is a column and the associated value is
+     * either the 'true' (new) or false (if it should be removed).
      *
      * In the future, meta-property differences may be reported.
      *
@@ -2439,18 +2444,92 @@ public class NCube<T>
         }
 
         // Step 1: Build axial differences
+        Map<String, Map<Column, Boolean>> deltaMap = new CaseInsensitiveMap<>();
+        delta.put(DELTA_AXES_COLUMNS, deltaMap);
+
         for (Axis axis : axisList.values())
         {
             Axis otherAxis = other.axisList.get(axis.getName());
-
+            deltaMap.put(axis.getName(), getAxisDelta(otherAxis));
         }
-
-        // TODO: Back coordinates IDs to column values that will bind.
 
         // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
         // transactionally apply the merge.  We do not want a partial merge.
         delta.put(DELTA_CELLS, getCellDelta(other));
         return delta;
+    }
+
+    private Map<Column, Boolean> getAxisDelta(Axis other)
+    {
+        Axis thisAxis = axisList.get(other.getName());
+        Map<Column, Boolean> deltaColumns = new CaseInsensitiveMap<>();
+        Map<Comparable, Column> copyColumns = new LinkedHashMap<>();
+        Set<Column> copyRuleColumns = new LinkedHashSet<>();
+
+        if (thisAxis.getType() == AxisType.RULE)
+        {   // Have to look up RULE columns by ID (no choice, they could all have the value 'true' for example.)
+            for (Column column : thisAxis.getColumnsWithoutDefault())
+            {
+                copyRuleColumns.add(column);
+            }
+
+            for (Column otherColumn : other.getColumnsWithoutDefault())
+            {
+                Column foundCol = null;
+                for (Column thisColumn : thisAxis.getColumnsWithoutDefault())
+                {   // Linearly walk rule columns to locate other column with same ID.
+                    if (thisColumn.id == otherColumn.id)
+                    {
+                        foundCol = otherColumn;
+                        break;
+                    }
+                }
+
+                if (foundCol == null || foundCol == other.getDefaultColumn())
+                {   // Not found, the 'other' axis has a column 'this' axis does not have
+                    deltaColumns.put(otherColumn, true);
+                }
+                else
+                {   // Matched - this column will not be added to the delta map.
+                    copyColumns.remove(foundCol);
+                }
+            }
+
+            // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
+            for (Column column : copyRuleColumns)
+            {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
+                deltaColumns.put(column, null);
+            }
+        }
+        else
+        {   // Handle non-rule columns (faster - can use findColumn).
+            for (Column column : thisAxis.getColumnsWithoutDefault())
+            {
+                copyColumns.put(column.getValue(), column);
+            }
+
+            for (Column otherColumn : other.getColumnsWithoutDefault())
+            {
+                final Comparable otherColumnValue = otherColumn.getValue();
+                Column foundCol = thisAxis.findColumn(otherColumnValue);
+                if (foundCol == null || foundCol == other.getDefaultColumn())
+                {   // Not found, the 'other' axis has a column 'this' axis does not have
+                    deltaColumns.put(otherColumn, true);
+                }
+                else
+                {   // Matched - this column will not be added to the delta map.
+                    copyColumns.remove(otherColumnValue);
+                }
+            }
+
+            // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
+            for (Comparable colValue : copyColumns.keySet())
+            {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
+                deltaColumns.put(copyColumns.get(colValue), null);
+            }
+        }
+
+        return deltaColumns;
     }
 
     private Map<Set<Long>, T> getCellDelta(NCube<T> other)
@@ -2504,6 +2583,9 @@ public class NCube<T>
         {   // Must have same dimensionality
             return false;
         }
+
+        // TODO: Verify the axis names are same.
+        // TODO: Verify the axis type (and value type) is the same.
 
         CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
         CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
@@ -3037,7 +3119,7 @@ public class NCube<T>
         }
         catch (Exception e)
         {
-           throw new IllegalStateException("Error writing cube to stream", e);
+            throw new IllegalStateException("Error writing cube to stream", e);
         }
         finally
         {

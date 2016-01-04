@@ -1484,25 +1484,25 @@ class TestAxis
         axis2.addColumn(new Range(20, 30))
         axis2.addColumn(new Range(30, 40))
 
-        Column newCol = axis.createColumnFromValue new Range(10, 20)
+        Column newCol = axis.createColumnFromValue(new Range(10, 20), null)
         newCol.id = -newCol.id
-        axis.columnsInternal.add newCol
+        axis.columnsInternal.add(newCol)
 
         axis2.updateColumns(axis)
         assert 4 == axis2.columns.size()
 
-        newCol = axis.createColumnFromValue new Range(0, 5)
+        newCol = axis.createColumnFromValue(new Range(0, 5), null)
         newCol.id = -newCol.id
-        axis.columnsInternal.add newCol
+        axis.columnsInternal.add(newCol)
 
         axis2.updateColumns(axis)
         assert 5 == axis2.columns.size()
 
-        newCol = axis.createColumnFromValue new Range(40, 50)
+        newCol = axis.createColumnFromValue(new Range(40, 50), null)
         newCol.id = -newCol.id
-        axis.columnsInternal.add newCol
+        axis.columnsInternal.add(newCol)
 
-        axis2.updateColumns axis
+        axis2.updateColumns(axis)
         assert 6 == axis2.columns.size()
 
         for (Column column : axis2.columns)
@@ -1512,11 +1512,11 @@ class TestAxis
 
         // Test remove via updateColumns()
         axis = new Axis('Age', AxisType.RANGE, AxisValueType.LONG, false, Axis.SORTED, 1)
-        axis.addColumn new Range(5, 10)
-        axis.addColumn new Range(20, 30)
-        axis.addColumn new Range(30, 40)
+        axis.addColumn(new Range(5, 10))
+        axis.addColumn(new Range(20, 30))
+        axis.addColumn(new Range(30, 40))
 
-        axis2.updateColumns axis
+        axis2.updateColumns(axis)
         assert 3 == axis2.size()
     }
 
@@ -1535,7 +1535,7 @@ class TestAxis
         axis2.addColumn new Range('6', '8')
         axis2.addColumn new Range('0', '2')
 
-        Column newCol = axis.createColumnFromValue new Range('8', '10')
+        Column newCol = axis.createColumnFromValue(new Range('8', '10'), null)
         newCol.id = -newCol.id
         axis.columnsInternal.add newCol
 

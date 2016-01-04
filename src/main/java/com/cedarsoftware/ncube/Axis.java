@@ -55,6 +55,7 @@ public class Axis
 	public static final int SORTED = 0;
 	public static final int DISPLAY = 1;
     private static final AtomicLong baseAxisIdForTesting = new AtomicLong(1);
+    private static final long BASE_AXIS_ID = 1000000000000L;
 
     // used to get O(1) on SET axis for the discrete elements in the Set
     final transient Map<Comparable, Column> discreteToCol = new TreeMap<>();
@@ -119,12 +120,16 @@ public class Axis
 
     long getNextColId()
     {
-        return id * 1000000000000L + (++colIdBase);
+        long baseAxisId = id * BASE_AXIS_ID;
+        while (idToCol.containsKey(++colIdBase + baseAxisId))
+        {
+        }
+        return baseAxisId + colIdBase;
     }
 
     long getDefaultColId()
     {
-        return id * 1000000000000L + Integer.MAX_VALUE;
+        return id * BASE_AXIS_ID + Integer.MAX_VALUE;
     }
 
     /**
@@ -365,11 +370,14 @@ public class Axis
      * converting the 'raw' value to the correct type, promoting the value to the appropriate
      * internal value for comparison, and so on.
      * @param value Comparable typically a primitive, but can also be an n-cube Range, RangeSet, CommandCell,
-     *              or 2D, 3D, or LatLon
+     * or 2D, 3D, or LatLon.
+     * @param suggestedId Long suggested column ID.  Can be null, in which case an ID will be generated. If not null,
+     * then if the ID < BASE_AXIS_ID, the ID will be used (and shifted by the axis ID * BASE_AXIS_ID), otherwise the
+     * ID will be used as-is.
      * @return a Column with the up-promoted value as the column's value, and a unique ID on the column.  If
      * the original value is a Range or RangeSet, the components in the Range or RangeSet are also up-promoted.
      */
-    Column createColumnFromValue(Comparable value)
+    Column createColumnFromValue(Comparable value, Long suggestedId)
     {
         Comparable v;
         if (value == null)
@@ -399,7 +407,23 @@ public class Axis
                 throw new IllegalStateException("New axis type added without complete support.");
             }
         }
-        return new Column(v, getNextColId());
+
+        if (suggestedId != null)
+        {
+            long impliedAxisId = suggestedId / BASE_AXIS_ID;
+
+            if (impliedAxisId != id ||                  // suggestedID must include matching Axis ID
+                idToCol.containsKey(suggestedId))       // suggestedID must not already exist on axis
+            {
+                return new Column(v, getNextColId());
+            }
+
+            return new Column(v, suggestedId);
+        }
+        else
+        {
+            return new Column(v, getNextColId());
+        }
     }
 
     /**
@@ -465,7 +489,12 @@ public class Axis
 
 	public Column addColumn(Comparable value, String colName)
 	{
-        final Column column = createColumnFromValue(value);
+        return addColumn(value, colName, null);
+    }
+
+	public Column addColumn(Comparable value, String colName, Long suggestedId)
+	{
+        final Column column = createColumnFromValue(value, suggestedId);
         if (StringUtilities.hasContent(colName))
         {
             column.setMetaProperty(Column.NAME, colName);
@@ -603,7 +632,7 @@ public class Axis
     {
         Column col = idToCol.get(colId);
         deleteColumnById(colId);
-        Column newCol = createColumnFromValue(value);
+        Column newCol = createColumnFromValue(value, null);
         ensureUnique(newCol.getValue());
         newCol.setId(colId);
         newCol.setDisplayOrder(col.getDisplayOrder());
@@ -642,7 +671,7 @@ public class Axis
         // Step 1. Map all columns coming in from "DTO" Axis by ID
         for (Column col : newCols.columns)
         {
-            Column newColumn = createColumnFromValue(col.getValue());
+            Column newColumn = createColumnFromValue(col.getValue(), null);
             Map<String, Object> metaProperties = col.getMetaProperties();
             for (Map.Entry<String, Object> entry : metaProperties.entrySet())
             {
@@ -1362,24 +1391,6 @@ public class Axis
             return columns.subList(0, columns.size() - 1);
         }
         return columns;
-    }
-
-    public Map<Long, Long> renumberIds()
-    {
-        colIdBase = 0;
-        Map<Long, Long> oldToNew = new HashMap<>();
-
-        for (Column column : columns)
-        {
-            if (!column.isDefault())
-            {
-                long newId = getNextColId();
-                oldToNew.put(column.id, newId);
-                column.id = newId;
-            }
-        }
-        buildScaffolding();
-        return oldToNew;
     }
 
     private static final class RangeToColumn implements Comparable<RangeToColumn>
