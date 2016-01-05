@@ -38,7 +38,6 @@ public abstract class GroovyBase extends UrlCommandCell
     protected transient String cmdHash
     private volatile transient Class runnableCode = null
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>>  compiledClasses = new ConcurrentHashMap<>()
-    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Method>> runMethods = new ConcurrentHashMap<>()
 
     //  Private constructor only for serialization.
     protected GroovyBase() {}
@@ -107,17 +106,9 @@ public abstract class GroovyBase extends UrlCommandCell
     {
         Map<String, Class> compiledMap = getCache(appId, compiledClasses)
         compiledMap.clear()
-
-        Map<String, Method> runMethods = getCache(appId, runMethods)
-        runMethods.clear()
     }
 
-    protected Map<String, Method> getRunMethodCache(ApplicationID appId)
-    {
-        return getCache(appId, runMethods)
-    }
-
-    private static <T> Map<String, T> getCache(ApplicationID appId, ConcurrentMap<ApplicationID, ConcurrentMap<String, T>> container)
+    protected static <T> Map<String, T> getCache(ApplicationID appId, ConcurrentMap<ApplicationID, ConcurrentMap<String, T>> container)
     {
         ConcurrentMap<String, T> map = container[appId]
 
@@ -183,11 +174,19 @@ public abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        Class groovyCode = compile(ctx)
-        setRunnableCode(groovyCode)
-        if (!isCacheable())
+        synchronized(GroovyBase.class)
         {
-            compiledMap[cmdHash] = getRunnableCode()
+            if (compiledMap.containsKey(cmdHash))
+            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+                setRunnableCode(compiledMap[cmdHash])
+                return
+            }
+            Class groovyCode = compile(ctx)
+            setRunnableCode(groovyCode)
+            if (!isCacheable())
+            {
+                compiledMap[cmdHash] = getRunnableCode()
+            }
         }
     }
 

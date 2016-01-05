@@ -4764,13 +4764,13 @@ class TestNCube
 
         Map changeSet1 = cube2.getDelta(cube1)
         Map changeSet2 = cube2.getDelta(cube3)
-        assertFalse NCube.areCellChangeSetsCompatible(changeSet1, changeSet2)
-        assertFalse NCube.areCellChangeSetsCompatible(changeSet2, changeSet1)
+        assertFalse NCube.areDeltaSetsCompatible(changeSet1, changeSet2)
+        assertFalse NCube.areDeltaSetsCompatible(changeSet2, changeSet1)
 
         changeSet1 = cube1.getDelta(cube2)
         changeSet2 = cube3.getDelta(cube2)
-        assert NCube.areCellChangeSetsCompatible(changeSet1, changeSet2)
-        assert NCube.areCellChangeSetsCompatible(changeSet2, changeSet1)
+        assert NCube.areDeltaSetsCompatible(changeSet1, changeSet2)
+        assert NCube.areDeltaSetsCompatible(changeSet2, changeSet1)
     }
 
     @Test

@@ -34,7 +34,7 @@ class TestDelta
     @Test
     void testBadInputToChangeSetComparator()
     {
-        assert !NCube.areCellChangeSetsCompatible(null, [:])
-        assert !NCube.areCellChangeSetsCompatible([:], null)
+        assert !NCube.areDeltaSetsCompatible(null, [:])
+        assert !NCube.areDeltaSetsCompatible([:], null)
     }
 }

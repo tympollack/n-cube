@@ -2475,23 +2475,19 @@ public class NCube<T>
 
             for (Column otherColumn : other.getColumnsWithoutDefault())
             {
-                Column foundCol = null;
-                for (Column thisColumn : thisAxis.getColumnsWithoutDefault())
-                {   // Linearly walk rule columns to locate other column with same ID.
-                    if (thisColumn.id == otherColumn.id)
-                    {
-                        foundCol = otherColumn;
-                        break;
-                    }
-                }
+                Column foundCol = thisAxis.getColumnById(otherColumn.id);
 
-                if (foundCol == null || foundCol == other.getDefaultColumn())
+                if (foundCol == null)
                 {   // Not found, the 'other' axis has a column 'this' axis does not have
                     deltaColumns.put(otherColumn, true);
                 }
-                else
-                {   // Matched - this column will not be added to the delta map.
+                else if (otherColumn.getValue().equals(foundCol.getValue()))
+                {   // Matched (id and value same) - this column will not be added to the delta map.
                     copyColumns.remove(foundCol);
+                }
+                else
+                {   // Column exists on both (same IDs), but the value is different
+                    deltaColumns.put(otherColumn, false);
                 }
             }
 
@@ -2512,6 +2508,7 @@ public class NCube<T>
             {
                 final Comparable otherColumnValue = otherColumn.getValue();
                 Column foundCol = thisAxis.findColumn(otherColumnValue);
+
                 if (foundCol == null || foundCol == other.getDefaultColumn())
                 {   // Not found, the 'other' axis has a column 'this' axis does not have
                     deltaColumns.put(otherColumn, true);
@@ -2523,9 +2520,9 @@ public class NCube<T>
             }
 
             // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
-            for (Comparable colValue : copyColumns.keySet())
+            for (Column column : copyColumns.values())
             {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns.put(copyColumns.get(colValue), null);
+                deltaColumns.put(column, null);
             }
         }
 
@@ -2610,21 +2607,54 @@ public class NCube<T>
     }
 
     /**
-     * Test the compatibility of two 'cell change-set' maps.  This method determines if these two
+     * Test the compatibility of two 'delta change-set' maps.  This method determines if these two
      * change sets intersect properly or intersect with conflicts.  Used internally when merging
      * two ncubes together in branch-merge operations.
      * @param completeDelta1 Map of cell coordinates to values generated from comparing two cubes (A -> B)
      * @param completeDelta2 Map of cell coordinates to values generated from comparing two cubes (A -> C)
      * @return boolean true if the two cell change-sets are compatible, false otherwise.
      */
-    static boolean areCellChangeSetsCompatible(Map<String, Object> completeDelta1, Map<String, Object> completeDelta2)
+    static boolean areDeltaSetsCompatible(Map<String, Object> completeDelta1, Map<String, Object> completeDelta2)
     {
         if (completeDelta1 == null || completeDelta2 == null)
         {
             return false;
         }
-        // TODO:  Need to check if any conflicts on column updates
         // Step 1: Do any column-level updates conflict?
+        Map<String, Map<Column, Boolean>> deltaMap1 = (Map<String, Map<Column,Boolean>>) completeDelta1.get(DELTA_AXES_COLUMNS);
+        Map<String, Map<Column, Boolean>> deltaMap2 = (Map<String, Map<Column,Boolean>>) completeDelta2.get(DELTA_AXES_COLUMNS);
+        if (deltaMap1.size() != deltaMap2.size())
+        {   // Must have same number of axis (axis name is the outer Map key).
+            return false;
+        }
+
+        CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(deltaMap1.keySet());
+        CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(deltaMap2.keySet());
+        a1.removeAll(a2);
+
+        if (!a1.isEmpty())
+        {   // Axis names must be all be the same (ignoring case)
+            return false;
+        }
+
+        // Column change maps must be compatible
+        for (Map.Entry<String, Map<Column, Boolean>> entry : deltaMap1.entrySet())
+        {
+            String axisName = entry.getKey();
+            Map<Column, Boolean> changes = entry.getValue();
+            Map<Column, Boolean> otherChanges = deltaMap2.get(axisName);
+
+            for (Map.Entry<Column, Boolean> changeEntry : changes.entrySet())
+            {
+                Column column = changeEntry.getKey();
+                Boolean change = changeEntry.getValue();
+                if (otherChanges.containsKey(column))
+                {
+                    Boolean otherChange = otherChanges.get(column);
+                    // TODO: Left off here
+                }
+            }
+        }
 
         // Step 2: Do any cell-level updates conflict?
         Map<Set<Long>, Object> delta1 = (Map<Set<Long>, Object>) completeDelta1.get(DELTA_CELLS);
@@ -2671,6 +2701,8 @@ public class NCube<T>
     public void mergeCellChangeSet(Map<String, Object> cellChangeSet)
     {
         // Step 1: Merge column-level changes
+        // TODO: ------
+
         // Step 2: Merge cell-level changes
         Map<Set<Long>, T> cellDelta = (Map<Set<Long>, T>) cellChangeSet.get(DELTA_CELLS);
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)

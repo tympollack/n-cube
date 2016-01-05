@@ -995,7 +995,7 @@ public class NCubeManager
                     Map delta1 = baseCube.getDelta(branchCube);
                     Map delta2 = baseCube.getDelta(headCube);
 
-                    if (NCube.areCellChangeSetsCompatible(delta1, delta2))
+                    if (NCube.areDeltaSetsCompatible(delta1, delta2))
                     {
                         if (reverse)
                         {

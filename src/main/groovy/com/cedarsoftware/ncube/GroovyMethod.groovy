@@ -1,8 +1,7 @@
 package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
-
-import java.lang.reflect.Method
+import ncube.grv.method.NCubeGroovyController
 /**
  * This class is used to hold Groovy Programs.  The code must start
  * with method declarations.  The outer class wrapper is built for
@@ -69,26 +68,9 @@ public class GroovyMethod extends GroovyBase
         return theirGroovy
     }
 
-    protected Method getRunMethod(Map<String, Object> ctx) throws NoSuchMethodException
-    {
-        Map<String, Method> runMethodMap = getRunMethodCache(getNCube(ctx).applicationID)
-        Method runMethod = runMethodMap[cmdHash]
-        if (runMethod == null)
-        {
-            runMethod = getRunnableCode().getMethod('run', String.class)
-            if (!isCacheable())
-            {
-                // Do NOT cache the run() method when the entire cell value is cache:true, because
-                // the class is going to be dropped and the return value cached.
-                runMethodMap[cmdHash] = runMethod
-            }
-        }
-
-        return runMethod
-    }
-
     protected Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Exception
     {
-        return getRunMethod(ctx).invoke(instance, cmdHash)
+        NCubeGroovyController controller = (NCubeGroovyController) instance
+        return controller.run(cmdHash)
     }
 }
