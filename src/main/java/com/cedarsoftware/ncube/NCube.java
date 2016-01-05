@@ -2584,14 +2584,29 @@ public class NCube<T>
             return false;
         }
 
-        // TODO: Verify the axis names are same.
-        // TODO: Verify the axis type (and value type) is the same.
-
         CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
         CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
         a1.removeAll(a2);
 
-        return a1.isEmpty();
+        if (!a1.isEmpty())
+        {   // Axis names must be all be the same (ignoring case)
+            return false;
+        }
+
+        for (Axis axis : axisList.values())
+        {
+            Axis otherAxis = other.getAxis(axis.getName());
+            if (axis.getType() != otherAxis.getType())
+            {   // Axes must be same type (DISCRETE, RANGE, SET, NEAREST, or RULE)
+                return false;
+            }
+            if (axis.getValueType() != otherAxis.getValueType())
+            {   // Axes must be same value type (LONG, DOUBLE, DATE, etc.)
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

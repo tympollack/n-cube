@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UrlUtilities
@@ -8,13 +7,11 @@ import ncube.grv.exp.NCubeGroovyExpression
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
-import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
-
 /**
  * Base class for Groovy CommandCells.
  *
@@ -41,7 +38,6 @@ public abstract class GroovyBase extends UrlCommandCell
     protected transient String cmdHash
     private volatile transient Class runnableCode = null
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>>  compiledClasses = new ConcurrentHashMap<>()
-    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Constructor>> constructors = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Method>> runMethods = new ConcurrentHashMap<>()
 
     //  Private constructor only for serialization.
@@ -114,9 +110,6 @@ public abstract class GroovyBase extends UrlCommandCell
         Map<String, Class> compiledMap = getCompiledClassesCache(appId)
         compiledMap.clear()
 
-        Map<String, Constructor> constructorMap = getConstructorCache(appId)
-        constructorMap.clear()
-
         Map<String, Method> runMethodMap = getRunMethodCache(appId)
         runMethodMap.clear()
     }
@@ -124,11 +117,6 @@ public abstract class GroovyBase extends UrlCommandCell
     private static Map<String, Class> getCompiledClassesCache(ApplicationID appId)
     {
         return getCache(appId, compiledClasses)
-    }
-
-    private static Map<String, Constructor> getConstructorCache(ApplicationID appId)
-    {
-        return getCache(appId, constructors)
     }
 
     private static Map<String, Method> getRunMethodCache(ApplicationID appId)
@@ -170,23 +158,9 @@ public abstract class GroovyBase extends UrlCommandCell
     protected Object executeGroovy(final Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx)
-        Map<String, Constructor> constructorMap = getConstructorCache(cube.applicationID)
 
-        // Step 1: Construct the object (use default constructor)
-        Constructor c = constructorMap[cmdHash]
-        if (c == null)
-        {
-            c = getRunnableCode().getConstructor()
-            if (!isCacheable())
-            {
-                // Do NOT cache the constructor when the entire cell value is cache:true, because
-                // the class is going to be dropped and the return value cached.
-                constructorMap[cmdHash] = c
-            }
-        }
-
-        // Step 2: Assign the input, output, and ncube pointers to the groovy cell instance.
-        final Object instance = c.newInstance()
+        // Step 1: Assign the input, output, and ncube pointers to the new groovy cell instance.
+        final Object instance = getRunnableCode().newInstance()
         if (instance instanceof NCubeGroovyExpression)
         {
             NCubeGroovyExpression exp = (NCubeGroovyExpression) instance
@@ -195,7 +169,7 @@ public abstract class GroovyBase extends UrlCommandCell
             exp.ncube = cube
         }
 
-        // Step 3: Call the run() [for expressions] or run(Signature) [for controllers] method
+        // Step 2: Call the run() [for expressions] or run(Signature) [for controllers] method
         Map<String, Method> runMethodMap = getRunMethodCache(cube.applicationID)
         Method runMethod = runMethodMap[cmdHash]
         if (runMethod == null)
