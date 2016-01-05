@@ -151,14 +151,13 @@ public abstract class GroovyBase extends UrlCommandCell
     protected Object executeGroovy(final Map<String, Object> ctx)
     {
         // Step 1: Assign the input, output, and n-cube pointers to the new groovy cell instance.
-        final NCubeGroovyExpression instance = (NCubeGroovyExpression) getRunnableCode().newInstance()
-        NCubeGroovyExpression exp = (NCubeGroovyExpression) instance
+        final NCubeGroovyExpression exp = (NCubeGroovyExpression) getRunnableCode().newInstance()
         exp.input = getInput(ctx)
         exp.output = getOutput(ctx)
         exp.ncube = getNCube(ctx)
 
         // Step 2: Call the run() [for expressions] or run(Signature) [for controllers] method
-        return invokeRunMethod(instance, ctx)
+        return invokeRunMethod(exp, ctx)
     }
 
     protected abstract Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Throwable
