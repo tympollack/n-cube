@@ -184,7 +184,9 @@ public abstract class GroovyBase extends UrlCommandCell
             Class groovyCode = compile(ctx)
             setRunnableCode(groovyCode)
             if (!isCacheable())
-            {
+            {   // This seems backward, but is correct.  Cached GroovyExpressions ultimately store and return the
+                // executed value of the GroovyExpression.  Therefore we do not want to hold a reference to the
+                // compiled class when it is cached.
                 compiledMap[cmdHash] = getRunnableCode()
             }
         }
