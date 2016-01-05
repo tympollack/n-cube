@@ -227,13 +227,6 @@ return ret
     }
 
     @Test
-    void testGetMethodToExecute()
-    {
-        GroovyExpression exp = new GroovyExpression("return 9", "", false)
-        assert "run" == exp.getMethodToExecute([:])
-    }
-
-    @Test
     void testSysProtoErrorHandling()
     {
         assert null == GroovyExpression.getPrototypeExpClass(null, null)

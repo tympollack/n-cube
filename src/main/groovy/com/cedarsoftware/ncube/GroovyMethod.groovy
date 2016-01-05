@@ -1,9 +1,8 @@
 package com.cedarsoftware.ncube
-
 import groovy.transform.CompileStatic
+import ncube.grv.exp.NCubeGroovyExpression
 
 import java.lang.reflect.Method
-
 /**
  * This class is used to hold Groovy Programs.  The code must start
  * with method declarations.  The outer class wrapper is built for
@@ -57,6 +56,7 @@ import java.lang.reflect.Method
 public class GroovyMethod extends GroovyBase
 {
     //  Private constructor only for serialization.
+
     private GroovyMethod() {}
 
     public GroovyMethod(String cmd, String url, boolean cacheable)
@@ -69,23 +69,26 @@ public class GroovyMethod extends GroovyBase
         return theirGroovy
     }
 
-    protected String getMethodToExecute(Map<String, Object> ctx)
+    protected Method getRunMethod(Map<String, Object> ctx) throws NoSuchMethodException
     {
-        Map input = getInput(ctx)
-        if (!input.containsKey('method'))
+        Map<String, Method> runMethodMap = getRunMethodCache(getNCube(ctx).applicationID)
+        Method runMethod = runMethodMap[cmdHash]
+        if (runMethod == null)
         {
-            throw new IllegalArgumentException("There must be a 'method' axis (String, DISCRETE) in order to define cells of type 'method'.")
+            runMethod = getRunnableCode().getMethod('run', String.class)
+            if (!isCacheable())
+            {
+                // Do NOT cache the run() method when the entire cell value is cache:true, because
+                // the class is going to be dropped and the return value cached.
+                runMethodMap[cmdHash] = runMethod
+            }
         }
-        return (String)input.method
+
+        return runMethod
     }
 
-    protected Method getRunMethod() throws NoSuchMethodException
+    protected Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Exception
     {
-        return getRunnableCode().getMethod('run', String.class)
-    }
-
-    protected Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Exception
-    {
-        return runMethod.invoke(instance, cmdHash)
+        return getRunMethod(ctx).invoke(instance, cmdHash)
     }
 }

@@ -1,11 +1,6 @@
 package ncube.grv.exp;
 
-import com.cedarsoftware.ncube.ApplicationID;
-import com.cedarsoftware.ncube.Axis;
-import com.cedarsoftware.ncube.Column;
-import com.cedarsoftware.ncube.NCube;
-import com.cedarsoftware.ncube.NCubeInfoDto;
-import com.cedarsoftware.ncube.NCubeManager;
+import com.cedarsoftware.ncube.*;
 import com.cedarsoftware.ncube.exception.RuleJump;
 import com.cedarsoftware.ncube.exception.RuleStop;
 
@@ -253,5 +248,10 @@ public class NCubeGroovyExpression
     public double elapsedMillis(long begin, long end)
     {
         return (end - begin) / 1000000.0;
+    }
+
+    public Object run()
+    {
+        throw new IllegalStateException("Should never be called.");
     }
 }

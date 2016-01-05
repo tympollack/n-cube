@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube
-
 import org.junit.Assert
 import org.junit.Test
 
@@ -7,8 +6,6 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.fail
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -44,13 +41,6 @@ class TestGroovyMethod
         Set set = new HashSet()
         GroovyBase.getCubeNamesFromText set, ''
         assertEquals 0, set.size()
-    }
-
-    @Test
-    void testGroovyMethod()
-    {
-        GroovyMethod m = new GroovyMethod('cmd', null, false)
-        assertEquals 'foo', m.getMethodToExecute([input:[method:'foo']])
     }
 
     @Test
@@ -156,18 +146,5 @@ class TestGroovyMethod
         x = cube.getCell([method:'bar'])
         assertEquals('far', x)
         TestingDatabaseHelper.tearDownDatabase()
-    }
-
-    @Test
-    void testErrorHandling()
-    {
-        try
-        {
-            GroovyMethod method = new GroovyMethod("1", null, false)
-            method.getMethodToExecute([input:[:]])
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        { }
     }
 }

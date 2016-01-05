@@ -103,23 +103,16 @@ public abstract class GroovyBase extends UrlCommandCell
 
     protected abstract String buildGroovy(Map<String, Object> ctx, String theirGroovy)
 
-    protected abstract String getMethodToExecute(Map<String, Object> ctx)
-
     static void clearCache(ApplicationID appId)
     {
-        Map<String, Class> compiledMap = getCompiledClassesCache(appId)
+        Map<String, Class> compiledMap = getCache(appId, compiledClasses)
         compiledMap.clear()
 
-        Map<String, Method> runMethodMap = getRunMethodCache(appId)
-        runMethodMap.clear()
+        Map<String, Method> runMethods = getCache(appId, runMethods)
+        runMethods.clear()
     }
 
-    private static Map<String, Class> getCompiledClassesCache(ApplicationID appId)
-    {
-        return getCache(appId, compiledClasses)
-    }
-
-    private static Map<String, Method> getRunMethodCache(ApplicationID appId)
+    protected Map<String, Method> getRunMethodCache(ApplicationID appId)
     {
         return getCache(appId, runMethods)
     }
@@ -157,38 +150,18 @@ public abstract class GroovyBase extends UrlCommandCell
      */
     protected Object executeGroovy(final Map<String, Object> ctx)
     {
-        NCube cube = getNCube(ctx)
-
-        // Step 1: Assign the input, output, and ncube pointers to the new groovy cell instance.
-        final Object instance = getRunnableCode().newInstance()
-        if (instance instanceof NCubeGroovyExpression)
-        {
-            NCubeGroovyExpression exp = (NCubeGroovyExpression) instance
-            exp.input = getInput(ctx)
-            exp.output = getOutput(ctx)
-            exp.ncube = cube
-        }
+        // Step 1: Assign the input, output, and n-cube pointers to the new groovy cell instance.
+        final NCubeGroovyExpression instance = (NCubeGroovyExpression) getRunnableCode().newInstance()
+        NCubeGroovyExpression exp = (NCubeGroovyExpression) instance
+        exp.input = getInput(ctx)
+        exp.output = getOutput(ctx)
+        exp.ncube = getNCube(ctx)
 
         // Step 2: Call the run() [for expressions] or run(Signature) [for controllers] method
-        Map<String, Method> runMethodMap = getRunMethodCache(cube.applicationID)
-        Method runMethod = runMethodMap[cmdHash]
-        if (runMethod == null)
-        {
-            runMethod = getRunMethod()
-            if (!isCacheable())
-            {
-                // Do NOT cache the run() method when the entire cell value is cache:true, because
-                // the class is going to be dropped and the return value cached.
-                runMethodMap[cmdHash] = runMethod
-            }
-        }
-
-        return invokeRunMethod(runMethod, instance, ctx)
+        return invokeRunMethod(instance, ctx)
     }
 
-    protected abstract Method getRunMethod() throws NoSuchMethodException
-
-    protected abstract Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Throwable
+    protected abstract Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Throwable
 
     /**
      * Conditionally compile the passed in command.  If it is already compiled, this method
@@ -203,7 +176,7 @@ public abstract class GroovyBase extends UrlCommandCell
 
         computeCmdHash(data, ctx)
         NCube cube = getNCube(ctx)
-        Map<String, Class> compiledMap = getCompiledClassesCache(cube.applicationID)
+        Map<String, Class> compiledMap = getCache(cube.applicationID, compiledClasses)
 
         if (compiledMap.containsKey(cmdHash))
         {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).

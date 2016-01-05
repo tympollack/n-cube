@@ -1,13 +1,11 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
+import ncube.grv.exp.NCubeGroovyExpression
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
-import java.lang.reflect.Method
 import java.util.regex.Matcher
-
 /**
  * This class is used to hold Groovy Expressions.  This means that
  * the code can start without any class or method signatures.  For
@@ -188,26 +186,16 @@ import com.cedarsoftware.util.io.*
         return null
     }
 
-    protected String getMethodToExecute(Map<String, Object> ctx)
-    {
-        return "run"
-    }
-
-    protected Method getRunMethod() throws NoSuchMethodException
-    {
-        return getRunnableCode().getMethod("run")
-    }
-
-    protected Object invokeRunMethod(Method runMethod, Object instance, Map<String, Object> ctx) throws Throwable
+    protected Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Throwable
     {
         // If 'around' Advice has been added to n-cube, invoke it before calling Groovy expression's run() method
         NCube ncube = getNCube(ctx)
         Map input = getInput(ctx)
         Map output = getOutput(ctx)
-        List<Advice> advices = ncube.getAdvices("run")
+        List<Advice> advices = ncube.getAdvices('run')
         for (Advice advice : advices)
         {
-            if (!advice.before(runMethod, ncube, input, output))
+            if (!advice.before(null, ncube, input, output))
             {
                 return null
             }
@@ -218,7 +206,7 @@ import com.cedarsoftware.util.io.*
 
         try
         {
-            ret = runMethod.invoke(instance)
+            ret = instance.run();
         }
         catch (ThreadDeath e)
         {
@@ -236,7 +224,7 @@ import com.cedarsoftware.util.io.*
             Advice advice = advices.get(i)
             try
             {
-                advice.after(runMethod, ncube, input, output, ret, t)  // pass exception (t) to advice (or null)
+                advice.after(null, ncube, input, output, ret, t)  // pass exception (t) to advice (or null)
             }
             catch (ThreadDeath e)
             {
@@ -244,7 +232,7 @@ import com.cedarsoftware.util.io.*
             }
             catch (Throwable e)
             {
-                LOG.error("An exception occurred calling 'after' advice: " + advice.getName() + " on method: " + runMethod.getName(), e)
+                LOG.error("An exception occurred calling 'after' advice: " + advice.getName(), e)
             }
         }
         if (t == null)
