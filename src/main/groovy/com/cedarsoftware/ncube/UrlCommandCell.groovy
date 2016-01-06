@@ -104,7 +104,7 @@ public abstract class UrlCommandCell implements CommandCell
             return
         }
 
-        synchronized (this)
+        synchronized (getLock())
         {
             if (isUrlExpanded.get())
             {
