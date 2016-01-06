@@ -76,7 +76,7 @@ public abstract class UrlCommandCell implements CommandCell
             return
         }
 
-        synchronized (this)
+        synchronized (getLock())
         {
             if (!hasBeenCached.get())
             {
@@ -91,7 +91,6 @@ public abstract class UrlCommandCell implements CommandCell
 
             hasBeenCached.set(false)
         }
-
     }
 
     /**
@@ -273,7 +272,7 @@ public abstract class UrlCommandCell implements CommandCell
             return cache
         }
 
-        synchronized (this)
+        synchronized (getLock())
         {
             if (hasBeenCached.get())
             {
@@ -284,6 +283,11 @@ public abstract class UrlCommandCell implements CommandCell
             hasBeenCached.set(true)
             return cache
         }
+    }
+
+    protected Object getLock()
+    {
+        return this;
     }
 
     protected abstract Object fetchResult(Map<String, Object> ctx)

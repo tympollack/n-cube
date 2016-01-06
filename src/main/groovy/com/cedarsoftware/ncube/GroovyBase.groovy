@@ -57,6 +57,11 @@ public abstract class GroovyBase extends UrlCommandCell
         this.runnableCode = runnableCode
     }
 
+    protected Object getLock()
+    {
+        return GroovyBase.class;
+    }
+
     protected Object fetchResult(Map<String, Object> ctx)
     {
         Object data = null
@@ -174,21 +179,13 @@ public abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        synchronized(GroovyBase.class)
-        {
-            if (compiledMap.containsKey(cmdHash))
-            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-                setRunnableCode(compiledMap[cmdHash])
-                return
-            }
-            Class groovyCode = compile(ctx)
-            setRunnableCode(groovyCode)
-            if (!isCacheable())
-            {   // This seems backward, but is correct.  Cached GroovyExpressions ultimately store and return the
-                // executed value of the GroovyExpression.  Therefore we do not want to hold a reference to the
-                // compiled class when it is cached.
-                compiledMap[cmdHash] = getRunnableCode()
-            }
+        Class groovyCode = compile(ctx)
+        setRunnableCode(groovyCode)
+        if (!isCacheable())
+        {   // This seems backward, but is correct.  Cached GroovyExpressions ultimately store and return the
+            // executed value of the GroovyExpression.  Therefore we do not want to hold a reference to the
+            // compiled class when it is cached.
+            compiledMap[cmdHash] = getRunnableCode()
         }
     }
 
@@ -196,7 +193,7 @@ public abstract class GroovyBase extends UrlCommandCell
      * Compute SHA1 hash for this CommandCell.  The tricky bit here is that the command can be either
      * defined inline or via a URL.  If defined inline, then the command hash is SHA1(command text).  If
      * defined through a URL, then the command hash is SHA1(command URL + GroovyClassLoader URLs.toString).
-     s    */
+     */
     private void computeCmdHash(Object data, Map<String, Object> ctx)
     {
         String content
