@@ -76,7 +76,7 @@ public abstract class UrlCommandCell implements CommandCell
             return
         }
 
-        synchronized (getLock())
+        synchronized (this)
         {
             if (!hasBeenCached.get())
             {
@@ -87,6 +87,7 @@ public abstract class UrlCommandCell implements CommandCell
             if (cache instanceof GroovyClassLoader)
             {
                 ((GroovyClassLoader)cache).clearCache()
+                cache = null
             }
 
             hasBeenCached.set(false)
@@ -104,7 +105,7 @@ public abstract class UrlCommandCell implements CommandCell
             return
         }
 
-        synchronized (getLock())
+        synchronized (this)
         {
             if (isUrlExpanded.get())
             {
@@ -272,7 +273,7 @@ public abstract class UrlCommandCell implements CommandCell
             return cache
         }
 
-        synchronized (getLock())
+        synchronized (this)
         {
             if (hasBeenCached.get())
             {
@@ -283,11 +284,6 @@ public abstract class UrlCommandCell implements CommandCell
             hasBeenCached.set(true)
             return cache
         }
-    }
-
-    protected Object getLock()
-    {
-        return this;
     }
 
     protected abstract Object fetchResult(Map<String, Object> ctx)

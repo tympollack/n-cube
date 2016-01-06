@@ -57,11 +57,6 @@ public abstract class GroovyBase extends UrlCommandCell
         this.runnableCode = runnableCode
     }
 
-    protected Object getLock()
-    {
-        return GroovyBase.class;
-    }
-
     protected Object fetchResult(Map<String, Object> ctx)
     {
         Object data = null
@@ -133,7 +128,11 @@ public abstract class GroovyBase extends UrlCommandCell
     {
         try
         {
-            return executeGroovy(ctx)
+            final NCubeGroovyExpression exp = (NCubeGroovyExpression) getRunnableCode().newInstance()
+            exp.input = getInput(ctx)
+            exp.output = getOutput(ctx)
+            exp.ncube = getNCube(ctx)
+            return invokeRunMethod(exp, ctx)
         }
         catch (InvocationTargetException e)
         {
@@ -144,18 +143,6 @@ public abstract class GroovyBase extends UrlCommandCell
     /**
      * Fetch constructor (from cache, if cached) and instantiate GroovyExpression
      */
-    protected Object executeGroovy(final Map<String, Object> ctx)
-    {
-        // Step 1: Assign the input, output, and n-cube pointers to the new groovy cell instance.
-        final NCubeGroovyExpression exp = (NCubeGroovyExpression) getRunnableCode().newInstance()
-        exp.input = getInput(ctx)
-        exp.output = getOutput(ctx)
-        exp.ncube = getNCube(ctx)
-
-        // Step 2: Call the run() [for expressions] or run(Signature) [for controllers] method
-        return invokeRunMethod(exp, ctx)
-    }
-
     protected abstract Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Throwable
 
     /**
@@ -179,13 +166,19 @@ public abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        Class groovyCode = compile(ctx)
-        setRunnableCode(groovyCode)
-        if (!isCacheable())
-        {   // This seems backward, but is correct.  Cached GroovyExpressions ultimately store and return the
-            // executed value of the GroovyExpression.  Therefore we do not want to hold a reference to the
-            // compiled class when it is cached.
-            compiledMap[cmdHash] = getRunnableCode()
+        synchronized(GroovyBase.class)
+        {
+            if (compiledMap.containsKey(cmdHash))
+            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+                setRunnableCode(compiledMap[cmdHash])
+                return
+            }
+            Class groovyCode = compile(ctx)
+            setRunnableCode(groovyCode)
+            if (!isCacheable())
+            {
+                compiledMap[cmdHash] = getRunnableCode()
+            }
         }
     }
 
