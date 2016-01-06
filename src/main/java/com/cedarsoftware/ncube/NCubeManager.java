@@ -999,12 +999,12 @@ public class NCubeManager
                     {
                         if (reverse)
                         {
-                            headCube.mergeCellChangeSet(delta1);
+                            headCube.mergeDeltaSet(delta1);
                             return headCube;
                         }
                         else
                         {
-                            branchCube.mergeCellChangeSet(delta2);
+                            branchCube.mergeDeltaSet(delta2);
                             return branchCube;
                         }
                     }

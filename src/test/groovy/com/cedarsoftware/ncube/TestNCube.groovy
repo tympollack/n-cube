@@ -4666,7 +4666,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("2DSimpleJson.json")
         assert cube1.sha1() == cube2.sha1()
         Map delta = cube1.getDelta(cube2)
-        cube1.mergeCellChangeSet(delta)
+        cube1.mergeDeltaSet(delta)
         assert cube1.sha1() == cube2.sha1()
     }
 
@@ -4677,7 +4677,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("merge1.json")
         Map cubeDelta = cube1.getDelta(cube2)
         Map delta = cubeDelta[NCube.DELTA_CELLS]
-        cube1.mergeCellChangeSet(cubeDelta)
+        cube1.mergeDeltaSet(cubeDelta)
         assert delta.size() == 5
         Map coord = [row:1, column:'A']
         assert "1" == cube1.getCell(coord)
@@ -4705,7 +4705,7 @@ class TestNCube
         Map cubeDelta = cube1.getDelta(cube2)
         Map delta = cubeDelta[NCube.DELTA_CELLS]
         assert delta.size() == 5
-        cube1.mergeCellChangeSet(cubeDelta)
+        cube1.mergeDeltaSet(cubeDelta)
         assert cube1.cells.size() == 0
     }
 
@@ -4736,7 +4736,7 @@ class TestNCube
         Map coord = [row:3, column:'C']
         cube1.removeCell(coord);
         Map delta = cube1.getDelta(cube2);
-        cube1.mergeCellChangeSet(delta)
+        cube1.mergeDeltaSet(delta)
         Object v = cube1.getCell(coord)
         assert v == 3.14159
     }
@@ -4749,7 +4749,7 @@ class TestNCube
         Map coord = [row:3, column:'C']
         cube1.removeCell(coord);
         Map delta = cube1.getDelta(cube2);
-        cube1.mergeCellChangeSet(delta)
+        cube1.mergeDeltaSet(delta)
         Object v = cube1.getCell(coord)
         assert cube1.sha1() == cube2.sha1();
         assert v == 3.14159
