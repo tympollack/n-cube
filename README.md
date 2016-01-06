@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.7</version>
+  <version>3.4.8</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,10 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.8
+ * Update / Commit branch - increased instances where automatic merge can be done, including columns being added, deleted, or changed.  
+ * Bug fix: When many threads accessed an expression cell at the same time, each thread was compiling the same code after it had its 'turn', rather than the first one getting it compiled, and then later threads picking up the compiled code.
+ * Bug fix: When an expression cell is executed, the constructor and 'run()' method objects were being cached.  By changing the code not to cache these reflective objects, it eliminated an issue where a class cast exception was occurring on the same class (but loaded by different class loaders).  This was caused by a combination of different threads compiling a class, and the 'inflation-based' accessors that Java creates for reflective methods after 15 calls. 
 * 3.4.7
  * Bug fix: updateNotes() and updateTestData() used SQL supported by HyperSonic and Oracle, but not MySQL.  Reverted to prior technique (2 queries - one to find max, one to update).
 * 3.4.6
