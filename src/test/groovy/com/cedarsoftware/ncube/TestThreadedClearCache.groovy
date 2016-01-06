@@ -67,7 +67,7 @@ class TestThreadedClearCache
 
     private void concurrencyTestWithAppId()
     {
-        int numThreads = 4;
+        int numThreads = 8;
         def run =
         {
             long start = System.currentTimeMillis()
