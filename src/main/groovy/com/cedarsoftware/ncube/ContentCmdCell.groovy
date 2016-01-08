@@ -68,7 +68,6 @@ abstract class ContentCmdCell extends UrlCommandCell
         }
         else
         {
-            expandUrl(ctx)
             data = fetchContentFromUrl(ctx)
         }
 

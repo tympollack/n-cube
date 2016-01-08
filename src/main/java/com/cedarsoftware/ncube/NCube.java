@@ -63,8 +63,6 @@ public class NCube<T>
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>();
     final Map<Set<Long>, T> cells = new LinkedHashMap<>();
     private T defaultCellValue;
-    private volatile Set<String> optionalScopeKeys = null;
-    private volatile Set<String> declaredScopeKeys = null;
     public static final String validCubeNameChars = "0-9a-zA-Z._-";
     public static final String RULE_EXEC_INFO = "_rule";
     private final Map<String, Advice> advices = new LinkedHashMap<>();
@@ -309,7 +307,6 @@ public class NCube<T>
      */
     public T removeCell(final Map<String, Object> coordinate)
     {
-        clearScopeKeyCaches();
         clearSha1();
         return cells.remove(getCoordinateKey(validateCoordinate(coordinate, true)));
     }
@@ -320,7 +317,6 @@ public class NCube<T>
      */
     public T removeCellById(final Set<Long> coordinate)
     {
-        clearScopeKeyCaches();
         clearSha1();
         Set<Long> ids = ensureFullCoordinate(coordinate);
         if (ids == null)
@@ -393,7 +389,6 @@ public class NCube<T>
         {
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.");
         }
-        clearScopeKeyCaches();
         clearSha1();
         return cells.put(getCoordinateKey(validateCoordinate(coordinate, true)), value);
     }
@@ -408,7 +403,6 @@ public class NCube<T>
         {
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.");
         }
-        clearScopeKeyCaches();
         clearSha1();
         Set<Long> ids = ensureFullCoordinate(coordinate);
         if (ids == null)
@@ -416,18 +410,6 @@ public class NCube<T>
             return null;
         }
         return cells.put(ids, value);
-    }
-
-    /**
-     * Clear the require scope caches.  This is required when a cell, column, or axis
-     * changes.
-     */
-    private void clearScopeKeyCaches()
-    {
-        synchronized(name)
-        {
-            optionalScopeKeys = null;
-        }
     }
 
     /**
@@ -910,12 +892,15 @@ public class NCube<T>
      * Make sure the returned Set<Long> contains a column ID for each axis, even if the input set does
      * not have a coordinate for an axis, but the axis has a default column (the default column's ID will
      * be added to the returned Set).
-     *
-     * @throws IllegalArgumentException if not enough IDs are passed in, or an axis
-     * cannot bind to any of the passed in IDs.
+     * @return Set<Long> that contains only the necessary coordinates from the passed in Collection.  If it cannot
+     * bind, null is returned.
      */
     Set<Long> ensureFullCoordinate(final Collection<Long> coordinate)
     {
+        if (coordinate == null)
+        {
+            return null;
+        }
         // Ensure that the specified coordinate matches a column on each axis
         final Set<String> allAxes = new CaseInsensitiveSet<>(axisList.keySet());
         final Set<Long> point = new LongHashSet();
@@ -1143,7 +1128,7 @@ public class NCube<T>
 
         if (ignoreDeclaredRequiredScope)
         {
-            requiredScope.removeAll(getDeclaredScopeKeys());
+            requiredScope.removeAll(getDeclaredScope());
         }
 
         for (String scopeKey : requiredScope)
@@ -1228,7 +1213,6 @@ public class NCube<T>
     public void clearCells()
     {
         cells.clear();
-        clearScopeKeyCaches();
         clearSha1();
     }
 
@@ -1272,7 +1256,6 @@ public class NCube<T>
             throw new IllegalArgumentException("Could not add column. Axis name '" + axisName + "' was not found on cube: " + name);
         }
         Column newCol = axis.addColumn(value, colName, suggestedId);
-        clearScopeKeyCaches();
         clearSha1();
         return newCol;
     }
@@ -1293,9 +1276,28 @@ public class NCube<T>
         }
 
         Column column;
-        if (axis.getType() == AxisType.RULE && value instanceof Long)
-        {
-            column = axis.deleteColumnById((Long)value);
+        if (axis.getType() == AxisType.RULE)
+        {   // Rule axes are deleted by ID, name, or null (default - can be deleted with null or ID).
+            if (value instanceof Long)
+            {
+                column = axis.deleteColumnById((Long) value);
+            }
+            else if (value instanceof String)
+            {
+                column = axis.findColumnByName((String) value);
+                if (column == axis.getDefaultColumn())
+                {
+                    return false;
+                }
+            }
+            else if (value == null)
+            {
+                column = axis.deleteColumn(null);
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
@@ -1306,7 +1308,6 @@ public class NCube<T>
             return false;
         }
 
-        clearScopeKeyCaches();
         clearSha1();
 
         long colId = column.id;
@@ -1338,7 +1339,6 @@ public class NCube<T>
         {
             throw new IllegalArgumentException("No column exists with the id " + id + " within cube: " + name);
         }
-        clearScopeKeyCaches();
         clearSha1();
         axis.updateColumn(id, value);
     }
@@ -1381,7 +1381,7 @@ public class NCube<T>
                 }
             }
         }
-        clearScopeKeyCaches();
+
         clearSha1();
         return colsToDel;
     }
@@ -1447,7 +1447,6 @@ public class NCube<T>
 
         cells.clear();
         axisList.put(axisName, axis);
-        clearScopeKeyCaches();
         clearSha1();
     }
 
@@ -1474,7 +1473,6 @@ public class NCube<T>
         axisList.remove(oldName);
         axis.setName(newName);
         axisList.put(newName, axis);
-        clearScopeKeyCaches();
         clearSha1();
     }
 
@@ -1487,7 +1485,6 @@ public class NCube<T>
     public boolean deleteAxis(final String axisName)
     {
         cells.clear();
-        clearScopeKeyCaches();
         clearSha1();
         return axisList.remove(axisName) != null;
     }
@@ -1520,78 +1517,19 @@ public class NCube<T>
      */
     public Set<String> getOptionalScope()
     {
-        if (optionalScopeKeys != null)
-        {   // Cube name ==> optional scope keys map
-            return new CaseInsensitiveSet<>(optionalScopeKeys); // return sorted, modifiable, case-insensitive copy
-        }
+        final Set<String> optionalScope = new CaseInsensitiveSet<>();
 
-        synchronized(name)
-        {
-            if (optionalScopeKeys != null)
-            {   // Check again in case more than one thread was waiting for the cached answer to be built.
-                return new CaseInsensitiveSet<>(optionalScopeKeys);  // return sorted, modifiable, case-insensitive copy
-            }
-
-            optionalScopeKeys = new CaseInsensitiveSet<>();
-            final LinkedList<NCube> stack = new LinkedList<>();
-            final Set<String> visited = new HashSet<>();
-            stack.addFirst(this);
-
-            while (!stack.isEmpty())
+        for (final Axis axis : axisList.values())
+        {   // Use original axis name (not .toLowerCase() version)
+            if (axis.hasDefaultColumn())
             {
-                final NCube<?> cube = stack.removeFirst();
-                final String cubeName = cube.getName();
-                if (visited.contains(cubeName))
-                {
-                    continue;
-                }
-                visited.add(cubeName);
-
-                for (final Axis axis : cube.axisList.values())
-                {   // Use original axis name (not .toLowerCase() version)
-                    if (axis.hasDefaultColumn() || axis.getType() == AxisType.RULE)
-                    {
-                        optionalScopeKeys.add(axis.getName());
-                    }
-                }
-
-                if (defaultCellValue instanceof CommandCell)
-                {
-                    CommandCell cmd = (CommandCell) defaultCellValue;
-                    cmd.getScopeKeys(optionalScopeKeys);
-                }
-
-                // Snag all input.variable references from CommandCells ('variable' is a potential required scope)
-                for (String key : getScopeKeysFromCommandCells(cube.cells))
-                {
-                    optionalScopeKeys.add(key);
-                }
-
-                // Snag all input.variable references from Rule axis conditions ('variable' is a potential required scope)
-                for (String key : getScopeKeysFromRuleAxes(cube))
-                {
-                    optionalScopeKeys.add(key);
-                }
-
-                // Add all referenced sub-cubes to the stack (locate n-cube references @cube[:], $cube[:],
-                // and NCubeManager.getCube('name').  Each of these n-cubes needs to be checked.
-                for (final String ncube : getReferencedCubeNames())
-                {
-                    NCube refCube = NCubeManager.getCube(appId, ncube);
-                    if (refCube == null)
-                    {
-                        throw new IllegalStateException("Attempting to get required scope, but cube: " + ncube + " failed to load");
-                    }
-                    stack.addFirst(refCube);
-                }
+                optionalScope.add(axis.getName());
             }
-
-            optionalScopeKeys.removeAll(getRequiredScope());
-            Set<String> sort = new TreeSet<>(optionalScopeKeys);
-            optionalScopeKeys.clear();
-            optionalScopeKeys.addAll(sort);
-            return new CaseInsensitiveSet<>(optionalScopeKeys); // return sorted, modifiable, case-insensitive copy
         }
+
+        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("optionalScopeKeys"));
+        optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<String>(declaredOptionalScope));
+        return optionalScope;
     }
 
     /**
@@ -1618,72 +1556,14 @@ public class NCube<T>
             }
         }
 
-        requiredScope.addAll(getDeclaredScopeKeys());
+        requiredScope.addAll(getDeclaredScope());
         return requiredScope;
     }
 
-    Set<String> getDeclaredScopeKeys()
+    Set<String> getDeclaredScope()
     {
-        if (declaredScopeKeys != null)
-        {
-            return declaredScopeKeys;
-        }
-        // Declared scope keys have not yet been set.
-        synchronized(name)
-        {
-            if (declaredScopeKeys != null)
-            {   // Double-check (blocked threads should not rebuild...only do for first thread allowed thru)
-                return declaredScopeKeys;
-            }
-            List declaredRequiredScope = (List) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"));
-            declaredScopeKeys = declaredRequiredScope == null ? new CaseInsensitiveSet() : new CaseInsensitiveSet(declaredRequiredScope);
-        }
-        return declaredScopeKeys;
-    }
-
-    /**
-     * @return a Set of Strings, where each String is the name of a scope key (input.variable, where 'variable'
-     * is a required scope) located within the n-cube cells, inside CommandCells.
-     */
-    private static Set<String> getScopeKeysFromCommandCells(Map<Set<Long>, ?> cubeCells)
-    {
-        Set<String> scopeKeys = new CaseInsensitiveSet<>();
-
-        for (Object cell : cubeCells.values())
-        {
-            if (cell instanceof CommandCell)
-            {
-                CommandCell cmd = (CommandCell) cell;
-                cmd.getScopeKeys(scopeKeys);
-            }
-        }
-
-        return scopeKeys;
-    }
-
-    /**
-     * Find all occurrences of 'input.variable' within conditions on
-     * a Rule axis.  Add 'variable' as required scope key.
-     * @param ncube NCube to search
-     * @return Set<String> of required scope (coordinate) keys.
-     */
-    private static Set<String> getScopeKeysFromRuleAxes(NCube<?> ncube)
-    {
-        Set<String> scopeKeys = new CaseInsensitiveSet<>();
-
-        for (Axis axis : ncube.getAxes())
-        {
-            if (axis.getType() == AxisType.RULE)
-            {
-                for (Column column : axis.getColumnsWithoutDefault())
-                {
-                    CommandCell cmd = (CommandCell) column.getValue();
-                    cmd.getScopeKeys(scopeKeys);
-                }
-            }
-        }
-
-        return scopeKeys;
+        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"));
+        return declaredRequiredScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredRequiredScope);
     }
 
     /**
@@ -2563,40 +2443,119 @@ public class NCube<T>
         return deltaColumns;
     }
 
-    private Map<Set<Long>, T> getCellDelta(NCube<T> other)
+    private Map<Map<String, Object>, T> getCellDelta(NCube<T> other)
     {
-        Map<Set<Long>, T> delta = new HashMap<>();
-        Set<Set<Long>> copyCells = new HashSet<>();
+        Map<Map<String, Object>, T> delta = new HashMap<>();
+        Set<Map<String, Object>> copyCells = new HashSet<>();
 
         for (Map.Entry<Set<Long>, T> entry : cells.entrySet())
         {
-            copyCells.add(new LongHashSet(entry.getKey()));
+            copyCells.add(getDeltaCoordinate(new LongHashSet(entry.getKey())));
         }
 
-        // At this point, the cubes are the same shape and size.
+        // At this point, the cubes have the same number of axes and same axis types.
         // Now, compute cell deltas.
         for (Map.Entry<Set<Long>, T> otherEntry : other.cells.entrySet())
         {
             Set<Long> ids = new LongHashSet(otherEntry.getKey());
-            T content = getCellByIdNoExecute(ids);
-            T otherContent = otherEntry.getValue();
-            copyCells.remove(ids);
+            Map<String, Object> deltaCoord = other.getDeltaCoordinate(ids);
+            Set<Long> idKey = other.deltaCoordToSetOfLong(deltaCoord);
+            if (idKey != null)
+            {   // Was able to bind deltaCoord between cubes
+                T content = getCellByIdNoExecute(idKey);
+                T otherContent = otherEntry.getValue();
+                copyCells.remove(deltaCoord);
 
-            CellInfo info = new CellInfo(content);
-            CellInfo otherInfo = new CellInfo(otherContent);
+                CellInfo info = new CellInfo(content);
+                CellInfo otherInfo = new CellInfo(otherContent);
 
-            if (!info.equals(otherInfo))
-            {
-                delta.put(ids, otherContent);
+                if (!info.equals(otherInfo))
+                {
+                    delta.put(deltaCoord, otherContent);
+                }
             }
         }
 
-        for (Set<Long> coord : copyCells)
+        for (Map<String, Object> coord : copyCells)
         {
             delta.put(coord, (T) DELTA_CELL_REMOVE);
         }
 
         return delta;
+    }
+
+    /**
+     * Convert a DeltaCoord to a Set<Long>.  A 'deltaCoord' is a coordinate which has String axis name
+     * keys and associated values (to match against standard axes), but for Rule axes it has the Long ID
+     * for the associated value.  These deltaCoord's are used during cube merging to allow coordinates from
+     * one cube to bind into another cube.
+     * @param deltaCoord Map<String, Object> where the String keys are axis names, and the object is the associated
+     * value to bind to the axis.  For RULE axes, the associated value is a Long ID (or rule name, or null
+     * for default column - note: long ID can be used for default too).
+     * @return Set<Long> that can be used with any n-cube API that binds by ID (getCellById, etc.) or null
+     * if the deltaCoord could not bind to this n-cube.
+     */
+    private Set<Long> deltaCoordToSetOfLong(final Map<String, Object> deltaCoord)
+    {
+        final Set<Long> key = new LongHashSet();
+
+        for (final Map.Entry<String, Axis> entry : axisList.entrySet())
+        {
+            final Axis axis = entry.getValue();
+            final Object value = deltaCoord.get(entry.getKey());
+            if (axis.getType() == AxisType.RULE)
+            {
+                if (value instanceof Long)
+                {
+                    if (axis.getColumnById((Long) value) != null)
+                    {   // Verify the ID is good
+                        key.add((Long) value);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                else if (value instanceof String)
+                {
+                    Column column = axis.findColumnByName((String)value);
+                    if (column != null)
+                    {
+                        key.add(column.id);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                else if (value == null)
+                {
+                    Column column = axis.findColumn(null);
+                    if (column != null)
+                    {
+                        key.add(column.id);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                else
+                {   // Only a Long, String, or null can be associated to the name of a rule axis in a deltaCoord.
+                    return null;
+                }
+            }
+            else
+            {
+                final Column column = axis.findColumn((Comparable) value);
+                if (column == null)
+                {
+                    return null;
+                }
+                key.add(column.id);
+            }
+        }
+        return key;
     }
 
     /**
@@ -2700,10 +2659,10 @@ public class NCube<T>
         }
 
         // Step 2: Do any cell-level updates conflict?
-        Map<Set<Long>, Object> delta1 = (Map<Set<Long>, Object>) completeDelta1.get(DELTA_CELLS);
-        Map<Set<Long>, Object> delta2 = (Map<Set<Long>, Object>) completeDelta2.get(DELTA_CELLS);
-        Map<Set<Long>, Object> smallerChangeSet;
-        Map<Set<Long>, Object> biggerChangeSet;
+        Map<Map<String, Object>, Object> delta1 = (Map<Map<String, Object>, Object>) completeDelta1.get(DELTA_CELLS);
+        Map<Map<String, Object>, Object> delta2 = (Map<Map<String, Object>, Object>) completeDelta2.get(DELTA_CELLS);
+        Map<Map<String, Object>, Object> smallerChangeSet;
+        Map<Map<String, Object>, Object> biggerChangeSet;
 
         // Performance optimization: determine which cell change set is smaller.
         if (delta1.size() < delta2.size())
@@ -2717,14 +2676,14 @@ public class NCube<T>
             biggerChangeSet = delta1;
         }
 
-        for (Map.Entry<Set<Long>, Object> entry : smallerChangeSet.entrySet())
+        for (Map.Entry<Map<String, Object>, Object> entry : smallerChangeSet.entrySet())
         {
-            Set<Long> coord = entry.getKey();
+            Map<String, Object> deltaCoord = entry.getKey();
 
-            if (biggerChangeSet.containsKey(coord))
+            if (biggerChangeSet.containsKey(deltaCoord))
             {
                 CellInfo info1 = new CellInfo(entry.getValue());
-                CellInfo info2 = new CellInfo(biggerChangeSet.get(coord));
+                CellInfo info2 = new CellInfo(biggerChangeSet.get(deltaCoord));
 
                 if (!info1.equals(info2))
                 {
@@ -2778,11 +2737,11 @@ public class NCube<T>
         }
 
         // Step 2: Merge cell-level changes
-        Map<Set<Long>, T> cellDelta = (Map<Set<Long>, T>) deltaSet.get(DELTA_CELLS);
+        Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet.get(DELTA_CELLS);
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
-        for (Map.Entry<Set<Long>, T> entry : cellDelta.entrySet())
+        for (Map.Entry<Map<String, Object>, T> entry : cellDelta.entrySet())
         {
-            Set<Long> cols = ensureFullCoordinate(entry.getKey());
+            Set<Long> cols = deltaCoordToSetOfLong(entry.getKey());
             if (cols != null && cols.size() > 0)
             {
                 T value = entry.getValue();
@@ -2798,7 +2757,6 @@ public class NCube<T>
         }
 
         clearSha1();
-        clearScopeKeyCaches();
     }
 
     /**
@@ -3129,6 +3087,31 @@ public class NCube<T>
             catch (Exception ignored) { }
         }
         return properCoord;
+    }
+
+    private Map<String, Object> getDeltaCoordinate(Collection<Long> idCoord)
+    {
+        Map<String, Object> deltaCoord = new CaseInsensitiveMap<>();
+        for (Long colId : idCoord)
+        {
+            Axis axis = getAxisFromColumnId(colId);
+            if (axis == null)
+            {
+                return deltaCoord;
+            }
+            Object value;
+            if (axis.getType() == AxisType.RULE)
+            {
+                value = colId;
+            }
+            else
+            {
+                Column column = axis.getColumnById(colId);
+                value = column.getValueThatMatches();
+            }
+            deltaCoord.put(axis.getName(), value);
+        }
+        return deltaCoord;
     }
 
     long getMaxAxisId()

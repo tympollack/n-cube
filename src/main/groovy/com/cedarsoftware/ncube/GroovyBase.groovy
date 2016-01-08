@@ -65,10 +65,6 @@ public abstract class GroovyBase extends UrlCommandCell
         {
             data = getCmd()
         }
-        else
-        {
-            expandUrl(ctx)
-        }
 
         prepare(data, ctx)
         Object result = executeInternal(ctx)

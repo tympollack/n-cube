@@ -42,9 +42,8 @@ class TestOptionalScope
     {
         NCube n1 = NCubeManager.getNCubeFromResource('optionalScope.json')
         Set<String> optionalScope = n1.getOptionalScope()
-        assert optionalScope.contains('STAte')
         assert optionalScope.contains('teST')
-        assert optionalScope.size() == 2
+        assert optionalScope.size() == 1
         assert n1.getRequiredScope().isEmpty()
     }
 }

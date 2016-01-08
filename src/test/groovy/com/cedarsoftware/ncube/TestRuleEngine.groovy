@@ -155,13 +155,7 @@ class TestRuleEngine
         assert reqScope.contains('state')
 
         Set<String> optScope = ncube.optionalScope
-        assert 6 == optScope.size()
-        assert optScope.contains('condition')
-        assert optScope.contains('driverAge')
-        assert optScope.contains('gender')
-        assert optScope.contains('stop')
-        assert optScope.contains('vehicleCylinders')
-        assert optScope.contains('vehiclePrice')
+        assert 0 == optScope.size()
     }
 
     @Test
@@ -179,9 +173,7 @@ class TestRuleEngine
         assert reqScope.size() == 1
         assert reqScope.contains('state')
         optScope = ncube2.optionalScope
-        assert 2 == optScope.size()
-        assert optScope.contains('condition')
-        assert optScope.contains('AGE')
+        assert 0 == optScope.size()
 
         def coord = [age:18,state:'OH'];
         Map output = [:]

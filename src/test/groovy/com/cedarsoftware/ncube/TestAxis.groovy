@@ -1660,7 +1660,7 @@ class TestAxis
         axis2.addColumn 'Whoops'
         axis2.deleteColumn 'Wed'
 
-        axis2.updateColumns axis
+        axis2.updateColumns(axis)
         assert 7 == axis2.size()
         assert 'Mon' == axis2.columns[0].value
         assert 'Tue' == axis2.columns[1].value

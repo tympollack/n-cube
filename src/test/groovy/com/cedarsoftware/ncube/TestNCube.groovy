@@ -3183,9 +3183,7 @@ class TestNCube
         assertTrue(scope.contains("CODe"))
 
         scope = ncube.optionalScope
-        assertEquals(2, scope.size())
-        assertTrue(scope.contains("AGe"))
-        assertTrue(scope.contains("OVERDUe"))
+        assertEquals(0, scope.size())
 
         NCubeManager.getNCubeFromResource("template2.json")   // Get it loaded
         ncube = NCubeManager.getNCubeFromResource("template1.json")

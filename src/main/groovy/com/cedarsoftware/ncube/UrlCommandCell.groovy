@@ -1,10 +1,7 @@
 package com.cedarsoftware.ncube
-
 import groovy.transform.CompileStatic
 
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.regex.Matcher
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  * @author Ken Partlow (kpartlow@gmail.com)
@@ -29,9 +26,7 @@ public abstract class UrlCommandCell implements CommandCell
     private String cmd
     private volatile transient String errorMsg = null
     private String url = null
-    private final AtomicBoolean isUrlExpanded = new AtomicBoolean(false)
     private int hash
-    private static final GroovyShell shell = new GroovyShell()
     public static final char EXTENSION_SEPARATOR = '.'
     private AtomicBoolean hasBeenCached = new AtomicBoolean(false)
     private Object cache
@@ -91,53 +86,6 @@ public abstract class UrlCommandCell implements CommandCell
             }
 
             hasBeenCached.set(false)
-        }
-    }
-
-    /**
-     * Expand URL in case it has any n-cube references in it.
-     * Rare use of GroovyShell in N-Cube.  Using it to replace any @cube[:] references in URL.
-     */
-    public void expandUrl(Map<String, Object> ctx)
-    {
-        if (isUrlExpanded.get())
-        {
-            return
-        }
-
-        synchronized (this)
-        {
-            if (isUrlExpanded.get())
-            {
-                return
-            }
-            NCube ncube = getNCube(ctx)
-            Matcher m = Regexes.groovyRelRefCubeCellPatternA.matcher(url)
-            StringBuilder expandedUrl = new StringBuilder()
-            int last = 0
-            Map input = getInput(ctx)
-
-            while (m.find())
-            {
-                expandedUrl.append(url.substring(last, m.start()))
-                String cubeName = m.group(2)
-                NCube refCube = NCubeManager.getCube(ncube.applicationID, cubeName)
-                if (refCube == null)
-                {
-                    throw new IllegalStateException("Reference to not-loaded cube: " + cubeName + ", from cube: " + ncube.name + ", url: " + url)
-                }
-
-                Map coord = (Map) shell.evaluate(m.group(3))
-                input.putAll(coord)
-                Object val = refCube.getCell(input)
-                val = (val == null) ? '' : val.toString()
-                expandedUrl.append(val)
-                last = m.end()
-            }
-
-            expandedUrl.append(url.substring(last))
-            url = expandedUrl.toString()
-            isUrlExpanded.set(true)
         }
     }
 
