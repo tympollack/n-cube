@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.8</version>
+  <version>3.4.9</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,8 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.9
+ * Update / Commit branch - furhter increased instanes where automatic merge can be done (better rule axis support).
 * 3.4.8
  * Update / Commit branch - increased instances where automatic merge can be done, including columns being added, deleted, or changed.  
  * Bug fix: When many threads accessed an expression cell at the same time, each thread was compiling the same code after it had its 'turn', rather than the first one getting it compiled, and then later threads picking up the compiled code.
