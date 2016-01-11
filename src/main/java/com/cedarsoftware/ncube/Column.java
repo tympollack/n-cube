@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube;
 
 import com.cedarsoftware.ncube.proximity.Distance;
 import com.cedarsoftware.util.CaseInsensitiveMap;
+import com.cedarsoftware.util.StringUtilities;
 
 import java.util.Collections;
 import java.util.Map;
@@ -131,6 +132,33 @@ public class Column implements Comparable<Comparable>
         this.id = id;
     }
 
+    /**
+     * Get the optional name of a column.  Since names are optional they are stored
+     * within meta-properties.  Any column used on any type of axis can have a name.
+     *
+     * @return String name of Column if one is set, otherwise return null.
+     */
+    public String getColumnName()
+    {
+        Object name = getMetaProperty("name");
+        if (name instanceof String && StringUtilities.hasContent((String)name))
+        {
+            return (String) name;
+        }
+        return null;
+    }
+
+    /**
+     * Set the optional name of a column.  Since names are optional they are stored within
+     * meta-properties.  Any column used on any type of axis can have a name.
+     *
+     * @param name String name for column.
+     */
+    public void setColumnName(String name)
+    {
+        setMetaProperty("name", name);
+    }
+
     public int hashCode()
     {
         long x = id;
@@ -145,11 +173,18 @@ public class Column implements Comparable<Comparable>
         return that instanceof Column && id == ((Column) that).id;
     }
 
+    /**
+     * @return Comparable value of the column.
+     */
 	public Comparable getValue()
 	{
 		return value;
 	}
 
+    /**
+     * Set the value of a column.
+     * @param v Comparable instance to store as the column value.
+     */
     void setValue(Comparable v)
     {
         value = v;

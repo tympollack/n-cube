@@ -255,9 +255,13 @@ public class Axis
     private void addScaffolding(Column column)
     {
         idToCol.put(column.id, column);
-        String colName = (String) column.getMetaProperty(Column.NAME);
-        if (StringUtilities.hasContent(colName))
+        String colName = column.getColumnName();
+        if (colName != null)
         {
+            if (colNameToCol.containsKey(colName))
+            {
+                throw new IllegalArgumentException("Column with name '" + colName + "' alread exists on axis: " + name);
+            }
             colNameToCol.put(colName, column);
         }
 
@@ -497,7 +501,7 @@ public class Axis
         final Column column = createColumnFromValue(value, suggestedId);
         if (StringUtilities.hasContent(colName))
         {
-            column.setMetaProperty(Column.NAME, colName);
+            column.setColumnName(colName);
         }
         addColumnInternal(column);
         return column;
@@ -585,7 +589,7 @@ public class Axis
         if (!hasScaffolding())
         {
             idToCol.remove(col.id);
-            colNameToCol.remove(col.getMetaProperty(Column.NAME));
+            colNameToCol.remove(col.getColumnName());
             return;
         }
 
@@ -694,10 +698,6 @@ public class Axis
                 Column newCol = newColumnMap.get(col.id);
                 col.setValue(newCol.getValue());
 
-                if (newCol.getMetaProperty(Column.NAME) != null)
-                {   // Copy 'name' meta-property (used on Rule axis Expression [condition] columns)
-                    col.setMetaProperty(Column.NAME, newCol.getMetaProperty(Column.NAME));
-                }
                 Map<String, Object> metaProperties = newCol.getMetaProperties();
                 for (Map.Entry<String, Object> entry : metaProperties.entrySet())
                 {
@@ -712,6 +712,10 @@ public class Axis
         }
 
         columns.clear();
+        colNameToCol.clear();
+        idToCol.clear();
+        rangeToCol.clear();
+        discreteToCol.clear();
         for (Column column : tempCol)
         {
             addColumnInternal(column);
@@ -1177,8 +1181,45 @@ public class Axis
             throw new IllegalArgumentException("'null' passed to axis '" + name + "' which does not have a default column");
         }
 
-        final Comparable promotedValue = promoteValue(valueType, value);
+        if (value instanceof Range)
+        {   // Linearly locate - used when finding by column during delta processing.
+            if (type != AxisType.RANGE)
+            {
+                throw new IllegalArgumentException("Attempt to search non-Range axis to match a Range");
+            }
+            Range thatRange = (Range) value;
+            for (Column column : columns)
+            {
+                Range thisRange = (Range)column.getValue();
+                if (thisRange.equals(thatRange))
+                {
+                    return column;
+                }
+            }
+            return null;
+        }
+
+         if (value instanceof RangeSet)
+         {   // Linearly locate - used when finding by column during delta processing.
+             if (type != AxisType.SET)
+             {
+                 throw new IllegalArgumentException("Attempt to search non-Set axis to match a Set");
+             }
+             RangeSet thatSet = (RangeSet) value;
+             for (Column column : columns)
+             {
+                 RangeSet thisSet = (RangeSet)column.getValue();
+                 if (thisSet.equals(thatSet))
+                 {
+                     return column;
+                 }
+             }
+             return null;
+         }
+
+         final Comparable promotedValue = promoteValue(valueType, value);
         int pos;
+
         if (type == AxisType.DISCRETE || type == AxisType.RANGE)
         {	// DISCRETE and RANGE axis searched in O(Log n) time using a binary search
             pos = binarySearchAxis(promotedValue);
@@ -1193,12 +1234,18 @@ public class Axis
         }
         else if (type == AxisType.RULE)
         {
-            if (!(promotedValue instanceof String))
+            if (promotedValue instanceof Long)
+            {
+                return idToCol.get(promotedValue);
+            }
+            else if (promotedValue instanceof String)
+            {
+                return findColumnByName((String)promotedValue);
+            }
+            else
             {
                 throw new IllegalArgumentException("A column on a rule axis can only be located by the 'name' attribute, which must be a String, axis: " + name);
             }
-
-            return findColumnByName((String)promotedValue);
         }
         else
         {
@@ -1215,7 +1262,7 @@ public class Axis
 
     /**
      * Locate a column on an axis using the 'name' meta property.  If the value passed in matches no names, then
-     * the Default column will be returned if one exists, otherwise null will be returned.
+     * null will be returned.
      * Note: This is a case-insensitive match.
      */
     public Column findColumnByName(String colName)
@@ -1225,7 +1272,7 @@ public class Axis
         {
             return col;
         }
-        return defaultCol;
+        return null;
     }
 
     private Column findOnSetAxis(final Comparable promotedValue)

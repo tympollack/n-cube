@@ -34,4 +34,9 @@ class ColumnDelta
     public AxisType axisType
     public Column column
     public String changeType
+
+    public String toString()
+    {
+        return '' + axisType + '/' + changeType + '/' + column.toString()
+    }
 }
