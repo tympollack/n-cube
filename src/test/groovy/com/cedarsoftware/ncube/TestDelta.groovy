@@ -58,7 +58,7 @@ class TestDelta
         // Apply this delta to the 2nd cube to force the same changes on it.
         Map<String, Object> delta1 = cube2.getDelta(cube1)
         Map<String, Object> delta2 = cube2.getDelta(cube2)  // Other guy made no changes
-        println delta1
+
         boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         cube2.mergeDeltaSet(delta1)
