@@ -1,5 +1,8 @@
 package com.cedarsoftware.ncube;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +32,7 @@ public class NCubeJdbcPersisterAdapter implements NCubePersister
 {
     private final NCubeJdbcPersister persister = new NCubeJdbcPersister();
     private final JdbcConnectionProvider connectionProvider;
+    private static final Logger LOG = LogManager.getLogger(NCubeManager.class);
 
     public NCubeJdbcPersisterAdapter(JdbcConnectionProvider provider)
     {

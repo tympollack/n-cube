@@ -69,6 +69,92 @@ class TestDelta
         assert cube2.getAxis('state').findColumn('TX') != null
         assert cube2.getAxis('state').findColumn('GA') == null
         assert count == 2
+        // TODO: Assert the four corners
+    }
+
+    @Test
+    void testDiscreteMergeAddCol()
+    {
+    }
+
+    @Test
+    void testRuleMergeRemoveColumnWithName()
+    {
+    }
+
+    @Test
+    void testRuleMergeRemoveColumnWithNoName()
+    {
+    }
+
+    @Test
+    void testRuleMergeAddColumnWithName()
+    {
+    }
+
+    @Test
+    void testRuleMergeAddColumnWithNoName()
+    {
+    }
+
+    @Test
+    void testDiscreteMergeAddAddUniqueColumn()
+    {
+    }
+
+    @Test
+    void testDiscreteMergeAddAddSameColumn()
+    {
+    }
+
+    @Test
+    void testDiscreteMergeRemoveRemoveUniqueColumn()
+    {
+    }
+
+    @Test
+    void testDiscreteMergeRemoveRemoveSameColumn()
+    {
+    }
+
+    @Test
+    void testRuleMergeAddAddUniqueColumn()
+    {
+    }
+
+    @Test
+    void testRuleMergeAddAddSameColumn()
+    {
+    }
+
+    @Test
+    void testRuleMergeAddAddSameColumnConflict()
+    {
+    }
+
+    @Test
+    void testRuleMergeRemoveRemoveUniqueColumn()
+    {
+    }
+
+    @Test
+    void testRuleMergeRemoveRemoveSameColumn()
+    {
+    }
+
+    @Test
+    void testRuleMergeAddRemoveSameColumnConflict()
+    {
+    }
+
+    @Test
+    void testDiscreteRangeAddColumnBoth()
+    {   // Change 2 axes
+    }
+
+    @Test
+    void testDiscreteRangeRemoveColumnBoth()
+    {   // Change 2 axes
     }
 
     NCube getTestCube()
