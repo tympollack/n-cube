@@ -1,7 +1,12 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import groovy.transform.CompileStatic
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+
+import static org.junit.Assert.fail
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -23,6 +28,18 @@ import org.junit.Test
 @CompileStatic
 class TestDelta
 {
+    @Before
+    public void setUp()
+    {
+        TestingDatabaseHelper.setupDatabase()
+    }
+
+    @After
+    public void tearDown()
+    {
+        TestingDatabaseHelper.tearDownDatabase()
+    }
+
     @Test
     void testDeltaApis()
     {
@@ -47,6 +64,14 @@ class TestDelta
         NCube cube1 = getTestCube()
         NCube cube2 = getTestCube()
 
+        assert '4' == cube1.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
+        assert '5' == cube1.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
+        assert '6' == cube1.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+
+        assert '46' == cube1.getCell([age:20, salary:85000, log:1000, state:'OH'] as Map)
+        assert '47' == cube1.getCell([age:20, salary:85000, log:1000, state:'GA'] as Map)
+        assert '48' == cube1.getCell([age:20, salary:85000, log:1000, state:'TX'] as Map)
+
         // Verify deletion occurred
         int count = cube1.cellMap.size()
         assert count == 48
@@ -69,12 +94,55 @@ class TestDelta
         assert cube2.getAxis('state').findColumn('TX') != null
         assert cube2.getAxis('state').findColumn('GA') == null
         assert count == 2
-        // TODO: Assert the four corners
+
+        assert '4' == cube2.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
+        assert '6' == cube2.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+        try
+        {
+            cube2.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
+            fail()
+        }
+        catch (CoordinateNotFoundException ignored)
+        { }
+
+        assert '46' == cube2.getCell([age:20, salary:85000, log:1000, state:'OH'] as Map)
+        assert '48' == cube2.getCell([age:20, salary:85000, log:1000, state:'TX'] as Map)
+        try
+        {
+            assert '47' == cube2.getCell([age:20, salary:85000, log:1000, state:'GA'] as Map)
+        }
+        catch (CoordinateNotFoundException ignored)
+        { }
     }
 
     @Test
     void testDiscreteMergeAddCol()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+
+        // Verify addition occurred
+        int count = cube1.cellMap.size()
+        assert count == 48
+        cube1.addColumn('state', 'AL')
+
+        assert cube1.cellMap.size() == 48
+        Map coord = [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'process'] as Map
+        cube1.setCell('foo', coord)
+        assert cube1.cellMap.size() == 49
+        assert 'foo' == cube1.getCell(coord)
+
+        // Compute delta between copy of original cube and the cube with deleted column.
+        // Apply this delta to the 2nd cube to force the same changes on it.
+        Map<String, Object> delta1 = cube2.getDelta(cube1)
+        Map<String, Object> delta2 = cube2.getDelta(cube2)  // Other guy made no changes
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.cellMap.size() == 49
+
+        assert 'foo' == cube2.getCell([age: 16, salary: 60000, log: 1000, state: 'AL'] as Map)
     }
 
     @Test

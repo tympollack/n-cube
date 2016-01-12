@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.10</version>
+  <version>3.4.11</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -80,7 +80,7 @@ Use either the Simple JSON format to create n-cubes, or the nCubeEditor to editi
 These are read in using the NCubeManager.getNCubeFromResource() API.  You can also call ncube.fromSimpleJson(String json).
 
 #### Licensing
-Copyright 2012-2015 Cedar Software, LLC
+Copyright 2012-2016 Cedar Software, LLC
 
 Licensed under the Apache License, Version 2.0
 
@@ -95,6 +95,11 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.11
+ * All SQL queries now include the originating method name in a SQL comment before the query text.  Helpful for performance monitoring.
+ * NCubeJdbcPersisterAdaptor moved to Groovy and updated to use lambda function.  This removed all the boiler plate code and makes the Adaptor code much smaller.
+ * Binding class updated to provide public API access to ALL of its fields including depth and value.
+ * Added another test for merging columns.  Many more tests to come.
 * 3.4.10
  * Increased robustness of colum merge.  Rule axes use rule name for locating rules and fall back to ID.
  * Uniqueness of rule names enforced - per axis.

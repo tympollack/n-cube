@@ -604,7 +604,7 @@ public class NCube<T>
     {
         try
         {
-            final Set<Long> colIds = binding.getBoundColumnIdsForAxis();
+            final Set<Long> colIds = binding.getIdCoordinate();
             T statementValue = getCellById(colIds, input, output);
             binding.setValue(statementValue);
             return statementValue;

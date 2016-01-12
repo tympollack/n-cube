@@ -32,8 +32,8 @@ public class Binding
 {
     private final String cubeName;
     private final int depth;
-    private final Map<String, Column> axes = new CaseInsensitiveMap<>();
-    private final Set<Long> axes2 = new LongHashSet();
+    private final Map<String, Column> coord = new CaseInsensitiveMap<>();
+    private final Set<Long> idCoord = new LongHashSet();
     private Object value;
     private static final String newLine = "\n";
 
@@ -50,8 +50,18 @@ public class Binding
 
     public void bind(String axisName, Column column)
     {
-        axes.put(axisName, column);
-        axes2.add(column.id);
+        coord.put(axisName, column);
+        idCoord.add(column.id);
+    }
+
+    public Object getValue()
+    {
+        return value;
+    }
+
+    public int getDepth()
+    {
+        return depth;
     }
 
     public void setValue(Object value)
@@ -61,12 +71,17 @@ public class Binding
 
     public int getNumBoundAxes()
     {
-        return axes2.size();
+        return idCoord.size();
     }
 
-    public Set<Long> getBoundColumnIdsForAxis()
+    public Set<Long> getIdCoordinate()
     {
-        return axes2;
+        return idCoord;
+    }
+
+    public Map<String, Column> getCoordinate()
+    {
+        return coord;
     }
 
     public String toString()
@@ -81,11 +96,11 @@ public class Binding
 
     String toHtml(boolean tagsOK)
     {
-        String spaces = padString("    ", depth);
+        String spaces = padString("    ", getDepth());
         StringBuilder s = new StringBuilder(spaces);
         s.append(cubeName);
         s.append(newLine);
-        for (Map.Entry<String, Column> entry : axes.entrySet())
+        for (Map.Entry<String, Column> entry : coord.entrySet())
         {
             Column column = entry.getValue();
             s.append(spaces);
