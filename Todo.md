@@ -3,9 +3,8 @@ n-cube 'ToDo' list
 
 ### n-cube engine
 TODO: Write test for NCubeManager.rollbackCube() or remove the API
+* Fininsh tests for merge
 * Datatypes
-* OptionalScope
- * Docs on optional scope: mention that optional scope will not be found in URL GroovyExpression cells
 * Cell Prototype
  * For cube BAR in app FOO, the prototype could be specified as BAR.prototype - meaning that there is a prototype specific to the cube, -or-
    FOO.prototype meaning that this is the prototype for all expression cells in the app 'FOO' 
@@ -33,3 +32,8 @@ TODO: Write test for NCubeManager.rollbackCube() or remove the API
 * TODO: test all regex's related to finding referenced cubes
 * TODO: create visualization of n-cube in NCE
 * Run all tests
+
+* TODO: Figure out what tabs have changed on the backend and return any that need updating.
+* Update cube on drop-down menu
+* Commit cube on drop-down menu
+* Rollback cube on drop-down meun

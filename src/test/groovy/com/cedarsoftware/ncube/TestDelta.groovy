@@ -148,6 +148,47 @@ class TestDelta
     @Test
     void testRuleMergeRemoveColumnWithName()
     {
+        // Delete a column from cube 1, which not only deletes the column, but also the cells pointing to it.
+        NCube cube1 = getTestCube()
+        NCube cube2 = getTestCube()
+
+        assert '4' == cube1.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
+        assert '5' == cube1.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
+        assert '6' == cube1.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+
+        // Verify deletion occurred
+        int count = cube1.cellMap.size()
+        assert count == 48
+        cube1.deleteColumn('rule', 'process')
+        assert cube1.cellMap.size() == 24
+        assert cube2.cellMap.size() == 48
+
+        // Compute delta between copy of original cube and the cube with deleted column.
+        // Apply this delta to the 2nd cube to force the same changes on it.
+        Map<String, Object> delta1 = cube2.getDelta(cube1)
+        Map<String, Object> delta2 = cube2.getDelta(cube2)  // Other guy made no changes
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.cellMap.size() == 24
+
+        count = cube2.getAxis("rule").getColumns().size()
+        assert count == 1
+        assert cube2.getAxis('rule').findColumn('init') != null
+        assert cube2.getAxis('rule').findColumn('process') == null
+
+        try
+        {
+            cube1.getCell([age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
+            fail()
+        }
+        catch (CoordinateNotFoundException ignored)
+        { }
+
+        assert '1' == cube2.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
+        assert '2' == cube2.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
+        assert '3' == cube2.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
     }
 
     @Test

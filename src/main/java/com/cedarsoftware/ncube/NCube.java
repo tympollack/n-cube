@@ -1285,6 +1285,10 @@ public class NCube<T>
             else if (value instanceof String)
             {
                 column = axis.findColumnByName((String) value);
+                if (column != null)
+                {
+                    axis.deleteColumnById(column.id);
+                }
             }
             else if (value == null)
             {

@@ -57,10 +57,9 @@ class NCubeJdbcPersister
         if (StringUtilities.hasContent(searchContent))
         {
             options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA] = true
-            options[METHOD_NAME] = 'search'
             searchPattern = Pattern.compile(convertPattern(searchContent), Pattern.CASE_INSENSITIVE)
         }
-
+        options[METHOD_NAME] = 'search'
         runSelectCubesStatement(c, appId, cubeNamePattern, options, { ResultSet row -> getCubeInfoRecords(appId, searchPattern, list, row) })
         return list
     }
