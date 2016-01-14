@@ -1091,11 +1091,20 @@ public class NCube<T>
     public Set<Long> getCoordinateKey(final Map<String, Object> coordinate)
     {
         final Set<Long> key = new LongHashSet();
+        Map<String, Object> safeCoord;
+        if (!(coordinate instanceof CaseInsensitiveMap))
+        {
+            safeCoord = new CaseInsensitiveMap<>(coordinate);
+        }
+        else
+        {
+            safeCoord = coordinate;
+        }
 
         for (final Map.Entry<String, Axis> entry : axisList.entrySet())
         {
             final Axis axis = entry.getValue();
-            final Object value = coordinate.get(entry.getKey());
+            final Object value = safeCoord.get(entry.getKey());
             final Column column = axis.findColumn((Comparable) value);
             if (column == null)
             {
@@ -1659,7 +1668,9 @@ public class NCube<T>
     {
         try
         {
-            Map<String, Object> jsonNCube = JsonReader.jsonToMaps(json);
+            Map<String, Object> options = new HashMap<>();
+            options.put(JsonReader.USE_MAPS, true);
+            Map<String, Object> jsonNCube = (Map<String, Object>) JsonReader.jsonToJava(json, options);
             return hydrateCube(jsonNCube);
         }
         catch (RuntimeException | ThreadDeath e)
@@ -1684,7 +1695,9 @@ public class NCube<T>
     {
         try
         {
-            Map<String, Object> jsonNCube = JsonReader.jsonToMaps(stream, null);
+            Map<String, Object> options = new HashMap<>();
+            options.put(JsonReader.USE_MAPS, true);
+            Map<String, Object> jsonNCube = (Map<String, Object>) JsonReader.jsonToJava(stream, options);
             return hydrateCube(jsonNCube);
         }
         catch (RuntimeException | ThreadDeath e)

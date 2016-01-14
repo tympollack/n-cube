@@ -1,5 +1,4 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import groovy.transform.CompileStatic
 import org.junit.After
@@ -7,7 +6,6 @@ import org.junit.Before
 import org.junit.Test
 
 import static org.junit.Assert.fail
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -63,6 +61,7 @@ class TestDelta
         // Delete a column from cube 1, which not only deletes the column, but also the cells pointing to it.
         NCube cube1 = getTestCube()
         NCube cube2 = getTestCube()
+        NCube orig = getTestCube()
 
         assert '4' == cube1.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
         assert '5' == cube1.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
@@ -80,9 +79,8 @@ class TestDelta
         assert cube2.cellMap.size() == 48
 
         // Compute delta between copy of original cube and the cube with deleted column.
-        // Apply this delta to the 2nd cube to force the same changes on it.
-        Map<String, Object> delta1 = cube2.getDelta(cube1)
-        Map<String, Object> delta2 = cube2.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
 
         boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -120,6 +118,7 @@ class TestDelta
     {
         NCube<String> cube1 = (NCube<String>) getTestCube()
         NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
 
         // Verify addition occurred
         int count = cube1.cellMap.size()
@@ -133,9 +132,8 @@ class TestDelta
         assert 'foo' == cube1.getCell(coord)
 
         // Compute delta between copy of original cube and the cube with deleted column.
-        // Apply this delta to the 2nd cube to force the same changes on it.
-        Map<String, Object> delta1 = cube2.getDelta(cube1)
-        Map<String, Object> delta2 = cube2.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
 
         boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -151,6 +149,7 @@ class TestDelta
         // Delete a column from cube 1, which not only deletes the column, but also the cells pointing to it.
         NCube cube1 = getTestCube()
         NCube cube2 = getTestCube()
+        NCube orig = getTestCube()
 
         assert '4' == cube1.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
         assert '5' == cube1.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
@@ -164,9 +163,8 @@ class TestDelta
         assert cube2.cellMap.size() == 48
 
         // Compute delta between copy of original cube and the cube with deleted column.
-        // Apply this delta to the 2nd cube to force the same changes on it.
-        Map<String, Object> delta1 = cube2.getDelta(cube1)
-        Map<String, Object> delta2 = cube2.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
 
         boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -192,23 +190,77 @@ class TestDelta
     }
 
     @Test
-    void testRuleMergeRemoveColumnWithNoName()
-    {
-    }
-
-    @Test
     void testRuleMergeAddColumnWithName()
     {
-    }
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
 
-    @Test
-    void testRuleMergeAddColumnWithNoName()
-    {
+        assert cube1.cellMap.size() == 48
+        GroovyExpression exp = new GroovyExpression("false", null, false)
+        cube1.addColumn('rule', exp, 'jones')
+        Map coord = [age:16, salary:65000, log:100, state:'OH', rule:'jones'] as Map
+        cube1.setCell('alpha', coord)
+        assert cube1.cellMap.size() == 49
+
+        // Compute delta between copy of original cube and the cube with deleted column.
+        // Apply this delta to the 2nd cube to force the same changes on it.
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        assert cube2.cellMap.size() == 48
+        try
+        {
+            cube2.getCell(coord)
+            fail()
+        }
+        catch (CoordinateNotFoundException e)
+        { }
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.cellMap.size() == 49
+        Set<Long> idCoord = cube2.getCoordinateKey(coord)
+        assert 'alpha' == cube2.getCellById(idCoord, coord, [:])
     }
 
     @Test
     void testDiscreteMergeAddAddUniqueColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        // Verify addition occurred
+        int count = cube1.cellMap.size()
+        assert count == 48
+        cube1.addColumn('state', 'AL')
+
+        Map coord = [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'process'] as Map
+        cube1.setCell('foo', coord)
+        assert cube1.cellMap.size() == 49
+        assert 'foo' == cube1.getCell(coord)
+
+        count = cube2.cellMap.size()
+        assert count == 48
+        cube2.addColumn('state', 'WY')
+
+        coord = [age: 16, salary: 60000, log: 1000, state: 'WY', rule: 'process'] as Map
+        cube2.setCell('bar', coord)
+        assert cube2.cellMap.size() == 49
+        assert 'bar' == cube2.getCell(coord)
+
+        // Compute delta between copy of original cube
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube1)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.cellMap.size() == 50
+
+        assert 'foo' == cube2.getCell([age: 16, salary: 60000, log: 1000, state: 'AL'] as Map)
+        assert 'bar' == cube2.getCell([age: 16, salary: 60000, log: 1000, state: 'WY'] as Map)
     }
 
     @Test
@@ -264,6 +316,16 @@ class TestDelta
     @Test
     void testDiscreteRangeRemoveColumnBoth()
     {   // Change 2 axes
+    }
+
+    @Test
+    void testRuleMergeAddColumnWithNoName()
+    {
+    }
+
+    @Test
+    void testRuleMergeRemoveColumnWithNoName()
+    {
     }
 
     NCube getTestCube()
