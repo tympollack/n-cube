@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.11</version>
+  <version>3.4.12</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,9 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.12
+ * Bug fix: Merging columns between two cubes where they both added the same column value and had non-conflicting cell changes was getting reported as a merge conflict.  This is fixed.
+ * More merge tests added, still more to come.
 * 3.4.11
  * All SQL queries now include the originating method name in a SQL comment before the query text.  Helpful for performance monitoring.
  * NCubeJdbcPersisterAdaptor moved to Groovy and updated to use lambda function.  This removed all the boiler plate code and makes the Adaptor code much smaller.

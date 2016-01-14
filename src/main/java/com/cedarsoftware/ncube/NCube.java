@@ -2762,7 +2762,28 @@ public class NCube<T>
                 Column column = colDelta.column;
                 if (DELTA_COLUMN_ADD.equals(colDelta.changeType))
                 {
-                    addColumn(axisName, column.getValue(), column.getColumnName(), column.id);
+                    Axis axis = getAxis(axisName);
+                    Column findCol;
+                    if (axis.getType() == AxisType.RULE)
+                    {
+                        if (StringUtilities.hasContent(column.getColumnName()))
+                        {
+                            findCol = axis.findColumnByName(column.getColumnName());
+                        }
+                        else
+                        {
+                            findCol = axis.findColumn(column.id);
+                        }
+                    }
+                    else
+                    {   // If the value is not already on the Axis, add it.
+                        findCol = axis.findColumn(column.getValue());
+                    }
+
+                    if (findCol == null)
+                    {
+                        addColumn(axisName, column.getValue(), column.getColumnName(), column.id);
+                    }
                 }
                 else if (DELTA_COLUMN_REMOVE.equals(colDelta.changeType))
                 {

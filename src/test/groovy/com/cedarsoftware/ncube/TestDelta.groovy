@@ -63,13 +63,13 @@ class TestDelta
         NCube cube2 = getTestCube()
         NCube orig = getTestCube()
 
-        assert '4' == cube1.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
-        assert '5' == cube1.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
-        assert '6' == cube1.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+        assert '4' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
+        assert '5' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'GA', rule:'process'] as Map)
+        assert '6' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'TX', rule:'process'] as Map)
 
-        assert '46' == cube1.getCell([age:20, salary:85000, log:1000, state:'OH'] as Map)
-        assert '47' == cube1.getCell([age:20, salary:85000, log:1000, state:'GA'] as Map)
-        assert '48' == cube1.getCell([age:20, salary:85000, log:1000, state:'TX'] as Map)
+        assert '46' == getCellIgnoreRule(cube1, [age:20, salary:85000, log:1000, state:'OH', rule:'process'] as Map)
+        assert '47' == getCellIgnoreRule(cube1, [age:20, salary:85000, log:1000, state:'GA', rule:'process'] as Map)
+        assert '48' == getCellIgnoreRule(cube1, [age:20, salary:85000, log:1000, state:'TX', rule:'process'] as Map)
 
         // Verify deletion occurred
         int count = cube1.cellMap.size()
@@ -93,21 +93,21 @@ class TestDelta
         assert cube2.getAxis('state').findColumn('GA') == null
         assert count == 2
 
-        assert '4' == cube2.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
-        assert '6' == cube2.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+        assert '4' == getCellIgnoreRule(cube2, [age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
+        assert '6' == getCellIgnoreRule(cube2, [age:16, salary:65000, log:100, state:'TX', rule:'process'] as Map)
         try
         {
-            cube2.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
+            getCellIgnoreRule(cube2, [age:16, salary:65000, log:100, state:'GA', rule:'process'] as Map)
             fail()
         }
         catch (CoordinateNotFoundException ignored)
         { }
 
-        assert '46' == cube2.getCell([age:20, salary:85000, log:1000, state:'OH'] as Map)
-        assert '48' == cube2.getCell([age:20, salary:85000, log:1000, state:'TX'] as Map)
+        assert '46' == getCellIgnoreRule(cube2, [age:20, salary:85000, log:1000, state:'OH', rule:'process'] as Map)
+        assert '48' == getCellIgnoreRule(cube2, [age:20, salary:85000, log:1000, state:'TX', rule:'process'] as Map)
         try
         {
-            assert '47' == cube2.getCell([age:20, salary:85000, log:1000, state:'GA'] as Map)
+            assert '47' == getCellIgnoreRule(cube2, [age:20, salary:85000, log:1000, state:'GA', rule:'process'] as Map)
         }
         catch (CoordinateNotFoundException ignored)
         { }
@@ -129,7 +129,7 @@ class TestDelta
         Map coord = [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'process'] as Map
         cube1.setCell('foo', coord)
         assert cube1.cellMap.size() == 49
-        assert 'foo' == cube1.getCell(coord)
+        assert 'foo' == getCellIgnoreRule(cube1, coord)
 
         // Compute delta between copy of original cube and the cube with deleted column.
         Map<String, Object> delta1 = orig.getDelta(cube1)
@@ -140,7 +140,7 @@ class TestDelta
         cube2.mergeDeltaSet(delta1)
         assert cube2.cellMap.size() == 49
 
-        assert 'foo' == cube2.getCell([age: 16, salary: 60000, log: 1000, state: 'AL'] as Map)
+        assert 'foo' == getCellIgnoreRule(cube2, [age: 16, salary: 60000, log: 1000, state: 'AL', rule:'process'] as Map)
     }
 
     @Test
@@ -151,9 +151,9 @@ class TestDelta
         NCube cube2 = getTestCube()
         NCube orig = getTestCube()
 
-        assert '4' == cube1.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
-        assert '5' == cube1.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
-        assert '6' == cube1.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+        assert '4' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
+        assert '5' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'GA', rule:'process'] as Map)
+        assert '6' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'TX', rule:'process'] as Map)
 
         // Verify deletion occurred
         int count = cube1.cellMap.size()
@@ -178,15 +178,15 @@ class TestDelta
 
         try
         {
-            cube1.getCell([age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
+            getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
             fail()
         }
         catch (CoordinateNotFoundException ignored)
         { }
 
-        assert '1' == cube2.getCell([age:16, salary:65000, log:100, state:'OH'] as Map)
-        assert '2' == cube2.getCell([age:16, salary:65000, log:100, state:'GA'] as Map)
-        assert '3' == cube2.getCell([age:16, salary:65000, log:100, state:'TX'] as Map)
+        assert '1' == getCellIgnoreRule(cube2, [age:16, salary:65000, log:100, state:'OH', rule:'init'] as Map)
+        assert '2' == getCellIgnoreRule(cube2, [age:16, salary:65000, log:100, state:'GA', rule:'init'] as Map)
+        assert '3' == getCellIgnoreRule(cube2, [age:16, salary:65000, log:100, state:'TX', rule:'init'] as Map)
     }
 
     @Test
@@ -220,8 +220,7 @@ class TestDelta
         { }
         cube2.mergeDeltaSet(delta1)
         assert cube2.cellMap.size() == 49
-        Set<Long> idCoord = cube2.getCoordinateKey(coord)
-        assert 'alpha' == cube2.getCellById(idCoord, coord, [:])
+        assert 'alpha' == getCellIgnoreRule(cube2, coord)
     }
 
     @Test
@@ -239,7 +238,7 @@ class TestDelta
         Map coord = [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'process'] as Map
         cube1.setCell('foo', coord)
         assert cube1.cellMap.size() == 49
-        assert 'foo' == cube1.getCell(coord)
+        assert 'foo' == getCellIgnoreRule(cube1, coord)
 
         count = cube2.cellMap.size()
         assert count == 48
@@ -248,7 +247,7 @@ class TestDelta
         coord = [age: 16, salary: 60000, log: 1000, state: 'WY', rule: 'process'] as Map
         cube2.setCell('bar', coord)
         assert cube2.cellMap.size() == 49
-        assert 'bar' == cube2.getCell(coord)
+        assert 'bar' == getCellIgnoreRule(cube2, coord)
 
         // Compute delta between copy of original cube
         Map<String, Object> delta1 = orig.getDelta(cube1)
@@ -259,13 +258,47 @@ class TestDelta
         cube2.mergeDeltaSet(delta1)
         assert cube2.cellMap.size() == 50
 
-        assert 'foo' == cube2.getCell([age: 16, salary: 60000, log: 1000, state: 'AL'] as Map)
-        assert 'bar' == cube2.getCell([age: 16, salary: 60000, log: 1000, state: 'WY'] as Map)
+        assert 'foo' == getCellIgnoreRule(cube2, [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'process'] as Map)
+        assert 'bar' == getCellIgnoreRule(cube2, [age: 16, salary: 60000, log: 1000, state: 'WY', rule: 'process'] as Map)
     }
 
     @Test
     void testDiscreteMergeAddAddSameColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        // Verify addition occurred
+        int count = cube1.cellMap.size()
+        assert count == 48
+        cube1.addColumn('state', 'AL')
+
+        Map coord = [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'process'] as Map
+        cube1.setCell('foo', coord)
+        assert cube1.cellMap.size() == 49
+        assert 'foo' == getCellIgnoreRule(cube1, coord)
+
+        count = cube2.cellMap.size()
+        assert count == 48
+        cube2.addColumn('state', 'AL')
+
+        Map coord2 = [age: 16, salary: 60000, log: 1000, state: 'AL', rule: 'init'] as Map
+        cube2.setCell('bar', coord2)
+        assert cube2.cellMap.size() == 49
+        assert 'bar' == getCellIgnoreRule(cube2, coord2)
+
+        // Compute delta between copy of original cube
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube1)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.cellMap.size() == 50
+
+        assert 'foo' == getCellIgnoreRule(cube2, coord)
+        assert 'bar' == getCellIgnoreRule(cube2, coord2)
     }
 
     @Test
@@ -326,6 +359,12 @@ class TestDelta
     @Test
     void testRuleMergeRemoveColumnWithNoName()
     {
+    }
+
+    def getCellIgnoreRule(NCube ncube, Map coord)
+    {
+        Set<Long> idCoord = ncube.getCoordinateKey(coord)
+        return ncube.getCellById(idCoord, coord, [:])
     }
 
     NCube getTestCube()
