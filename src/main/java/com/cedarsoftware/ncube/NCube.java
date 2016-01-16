@@ -1448,11 +1448,18 @@ public class NCube<T>
      */
     public void addAxis(final Axis axis)
     {
-        // TODO: Verify axis IDs are not the same!
         String axisName = axis.getName();
         if (axisList.containsKey(axisName))
         {
             throw new IllegalArgumentException("An axis with the name '" + axisName + "' already exists on cube: " + name);
+        }
+
+        for (Axis axe : axisList.values())
+        {
+            if (axe.id == axis.id)
+            {
+                throw new IllegalArgumentException("An axis with the id '" + axe.id + "' already exists on cube: " + name);
+            }
         }
 
         cells.clear();
