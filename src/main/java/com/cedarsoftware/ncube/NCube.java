@@ -1448,6 +1448,7 @@ public class NCube<T>
      */
     public void addAxis(final Axis axis)
     {
+        // TODO: Verify axis IDs are not the same!
         String axisName = axis.getName();
         if (axisList.containsKey(axisName))
         {

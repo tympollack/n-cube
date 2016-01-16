@@ -247,7 +247,7 @@ public class NCubeManager
     /**
      * Testing API (Cache validation)
      */
-    static boolean isCubeCached(ApplicationID appId, String cubeName)
+    public static boolean isCubeCached(ApplicationID appId, String cubeName)
     {
         validateAppId(appId);
         NCube.validateCubeName(cubeName);
@@ -1046,6 +1046,104 @@ public class NCubeManager
         int count = getPersister().rollbackCubes(appId, names, username);
         clearCache(appId);
         return count;
+    }
+
+    /**
+     * Update a branch from the HEAD.  Changes from the HEAD are merged into the
+     * supplied branch.  If the merge cannot be done perfectly, an exception is
+     * thrown indicating the cubes that are in conflict.
+     */
+    public static Map<String, Object> updateBranch(ApplicationID appId, String cubeName, String username)
+    {
+        validateAppId(appId);
+        appId.validateBranchIsNotHead();
+        appId.validateStatusIsNotRelease();
+
+        ApplicationID headAppId = appId.asHead();
+
+        Map<String, Object> options = new HashMap<>();
+        options.put(SEARCH_ACTIVE_RECORDS_ONLY, true);
+        List<NCubeInfoDto> records = search(appId, cubeName, null, options);
+        if (records.isEmpty())
+        {
+            return new LinkedHashMap<>();
+        }
+        if (records.size() > 1)
+        {
+            throw new IllegalArgumentException("Name passed in matches more than one n-cube, no update performed. Name: " + cubeName + ", app: " + appId);
+        }
+
+        Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>();
+
+        for (NCubeInfoDto info : records)
+        {
+            branchRecordMap.put(info.name, info);
+        }
+
+        List<NCubeInfoDto> updates = new ArrayList<>();
+        List<NCubeInfoDto> dtosMerged = new ArrayList<>();
+        Map<String, Map> conflicts = new CaseInsensitiveMap<>();
+        List<NCubeInfoDto> headRecords = search(headAppId, cubeName, null, options);
+
+        for (NCubeInfoDto head : headRecords)
+        {
+            NCubeInfoDto info = branchRecordMap.get(head.name);
+
+            long infoRev = (long) Converter.convert(info.revision, long.class);
+            long headRev = (long) Converter.convert(head.revision, long.class);
+            boolean activeStatusMatches = (infoRev < 0) == (headRev < 0);
+
+            // Did branch change?
+            if (!info.isChanged())
+            {   // No change on branch
+                if (!activeStatusMatches || !StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // 1. The active/deleted statuses don't match, or
+                    // 2. HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
+                    // In both cases, the cube was marked NOT changed in the branch, so safe to update.
+                    updates.add(head);
+                }
+            }
+            else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
+            {   // If branch is 'changed' but has same SHA-1 as head, then see if branch needs Fast-Forward
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // Fast-Forward branch
+                    // Update HEAD SHA-1 on branch directly (no need to insert)
+                    getPersister().updateBranchCubeHeadSha1((Long) Converter.convert(info.id, Long.class), head.sha1);
+                }
+            }
+            else
+            {
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
+                    String message = "Cube was changed in both branch and HEAD";
+                    NCube cube = checkForConflicts(appId, conflicts, message, info, head, true);
+
+                    if (cube != null)
+                    {
+                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, head.sha1, username);
+                        dtosMerged.add(mergedDto);
+                    }
+                }
+            }
+        }
+
+        List<NCubeInfoDto> finalUpdates = new ArrayList<>(updates.size());
+
+        Object[] ids = new Object[updates.size()];
+        int i=0;
+        for (NCubeInfoDto dto : updates)
+        {
+            ids[i++] = dto.id;
+        }
+        finalUpdates.addAll(getPersister().pullToBranch(appId, ids, username));
+
+        clearCache(appId);
+
+        Map<String, Object> ret = new LinkedHashMap<>();
+        ret.put(BRANCH_UPDATES, finalUpdates);
+        ret.put(BRANCH_MERGES, dtosMerged);
+        ret.put(BRANCH_CONFLICTS, conflicts);
+        return ret;
     }
 
     /**

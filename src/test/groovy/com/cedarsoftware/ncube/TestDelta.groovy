@@ -5,6 +5,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
 import static org.junit.Assert.fail
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -304,11 +306,55 @@ class TestDelta
     @Test
     void testDiscreteMergeRemoveRemoveUniqueColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        assert cube1.cellMap.size() == 48
+        cube1.deleteColumn('state', 'OH')
+        assert cube1.cellMap.size() == 32
+
+        assert cube2.cellMap.size() == 48
+        cube2.deleteColumn('state', 'GA')
+        assert cube2.cellMap.size() == 32
+
+        // Compute delta between copy of original cube
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube1)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis state = cube2.getAxis('state');
+        assertNotNull state.findColumn('TX')
+        assertNull state.findColumn('OH')
+        assertNull state.findColumn('GA')
+        assert cube2.cellMap.size() == 16
     }
 
     @Test
     void testDiscreteMergeRemoveRemoveSameColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        assert cube1.cellMap.size() == 48
+        cube1.deleteColumn('state', 'OH')
+        assert cube1.cellMap.size() == 32
+
+        assert cube2.cellMap.size() == 48
+        cube2.deleteColumn('state', 'OH')
+        assert cube2.cellMap.size() == 32
+
+        // Compute delta between copy of original cube
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube1)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.cellMap.size() == 32
     }
 
     @Test

@@ -1046,19 +1046,11 @@ class TestNCubeManager
     @Test
     void testRollbackBranchWhenCubeDoesntExist()
     {
-        try
-        {
-            Object[] names = new Object[2]
-            names[0] = "TestCube"
+        Object[] names = new Object[2]
+        names[0] = "TestCube"
 
-            NCubeManager.rollbackCubes(defaultSnapshotApp, names, USER_ID)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains('Could not rollback'))
-            assertTrue(e.message.contains('not found'))
-        }
+        int x = NCubeManager.rollbackCubes(defaultSnapshotApp, names, USER_ID)
+        assert 0 == x
     }
 
     @Test

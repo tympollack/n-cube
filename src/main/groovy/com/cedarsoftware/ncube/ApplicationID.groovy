@@ -53,15 +53,6 @@ class ApplicationID
         branch = HEAD;
     }
 
-    /**
-     * This constructor is used only by Test Code
-     */
-    @Deprecated
-    ApplicationID(String tenant, String app, String version, String status)
-    {
-        throw new RuntimeException("Use the 5 argument constructor - add branch as the last argument")
-    }
-
     ApplicationID(String tenant, String app, String version, String status, String branch)
     {
         this.tenant = tenant

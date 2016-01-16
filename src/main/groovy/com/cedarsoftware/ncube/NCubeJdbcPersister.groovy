@@ -8,6 +8,8 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 
 import java.sql.Blob
 import java.sql.Connection
@@ -40,6 +42,7 @@ import java.util.zip.GZIPOutputStream
 @CompileStatic
 class NCubeJdbcPersister
 {
+    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersister.class);
     static final SafeSimpleDateFormat dateTimeFormat = new SafeSimpleDateFormat('yyyy-MM-dd HH:mm:ss')
     static final String CUBE_VALUE_BIN = 'cube_value_bin'
     static final String TEST_DATA_BIN = 'test_data_bin'
@@ -758,11 +761,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
     }
 
     /**
-     * Rollback branch cube to initial state when it was created from the HEAD.  This is different
-     * than what the HEAD cube is currently.  This is also different than deleting the branch cube's
-     * history.  We are essentially copying the initial revision to the end (max revision).  This
-     * approach maintains revision history in the branch (and adheres to the no SQL DELETE rule on
-     * n_cube table).
+     * Rollback branch cube to the last time it matched the HEAD branch (SHA-1 == HEAD_SHA-1).  This entails
+     * going through the revision history from highest revision toward lowest revision, and finding the
+     * last time sha1 == headSha1.  When found, INSERT a new record that is a copy of that record, with
+     * revision_number == max(revision_number) + 1.
+     * If there are no matches, then the revision_number inserted is negative (deleted).  This is the case of
+     * creating a new cube and never calling commit with it.
      */
     int rollbackCubes(Connection c, ApplicationID appId, Object[] names, String username)
     {
@@ -778,61 +782,59 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
             names.each { String cubeName ->
-                Long revision = getMinRevision(c, appId, cubeName, 'rollbackCubes')
-
-                if (revision == null)
+                Long maxRev = getMaxRevision(c, appId, cubeName, 'rollbackCubes')
+                if (maxRev == null)
                 {
-                    throw new IllegalArgumentException("Could not rollback cube.  Cube was not found.  App:  " + appId + ", cube: " + cubeName)
+                    LOG.info('Attempt to rollback non-existing cube: ' + cubeName + ', app: ' + appId)
                 }
+                else
+                {
+                    Long rollbackRev = findRollbackRevision(c, appId, cubeName)
+                    boolean mustDelete = rollbackRev == null
+                    Map map = appId as Map
+                    map.putAll([cube: buildName(c, cubeName), rev: (mustDelete ? maxRev : rollbackRev)])
+                    Sql sql = new Sql(c)
 
-                Map map = appId as Map
-                map.putAll([cube: buildName(c, cubeName), rev: revision])
-                Sql sql = new Sql(c)
-
-                sql.eachRow(map, """\
+                    sql.eachRow(map, """\
 /* rollbackCubes */ SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
  FROM n_cube
  WHERE """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
  AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""", 0, 1, { ResultSet row ->
-                    byte[] bytes = row.getBytes(CUBE_VALUE_BIN)
-                    byte[] testData = row.getBytes(TEST_DATA_BIN)
-                    String sha1 = row.getString('sha1')
-                    String headSha1 = row.getString('head_sha1')
+                        byte[] bytes = row.getBytes(CUBE_VALUE_BIN)
+                        byte[] testData = row.getBytes(TEST_DATA_BIN)
+                        String sha1 = row.getString('sha1')
+                        String headSha1 = row.getString('head_sha1')
 
-                    Long newRevision = getMaxRevision(c, appId, cubeName, 'rollbackCubes')
-                    if (newRevision == null)
-                    {
-                        throw new IllegalStateException("failed to rollback because branch cube does not exist: " + cubeName + ", app: " + appId)
-                    }
-                    String notes = "rolled back"
-                    Long rev = Math.abs(newRevision as long) + 1L
+                        String notes = "rolled back"
+                        Long rev = Math.abs(maxRev as long) + 1L
 
-                    long uniqueId = UniqueIdGenerator.getUniqueId()
-                    ins.setLong(1, uniqueId)
-                    ins.setString(2, appId.tenant)
-                    ins.setString(3, appId.app)
-                    ins.setString(4, appId.version)
-                    ins.setString(5, appId.status)
-                    ins.setString(6, appId.branch)
-                    ins.setString(7, cubeName)
-                    ins.setLong(8, (revision < 0 || headSha1 == null) ?  -rev : rev)
-                    ins.setString(9, sha1)
-                    ins.setString(10, headSha1)
-                    Timestamp now = new Timestamp(System.currentTimeMillis())
-                    ins.setTimestamp(11, now)
-                    ins.setString(12, username)
-                    ins.setBytes(13, bytes)
-                    ins.setBytes(14, testData)
-                    String note = createNote(username, now, notes)
-                    ins.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
-                    ins.setInt(16, 0)
-                    ins.addBatch()
-                    count++
-                    if (count % EXECUTE_BATCH_CONSTANT == 0)
-                    {
-                        ins.executeBatch()
-                    }
-                })
+                        long uniqueId = UniqueIdGenerator.getUniqueId()
+                        ins.setLong(1, uniqueId)
+                        ins.setString(2, appId.tenant)
+                        ins.setString(3, appId.app)
+                        ins.setString(4, appId.version)
+                        ins.setString(5, appId.status)
+                        ins.setString(6, appId.branch)
+                        ins.setString(7, cubeName)
+                        ins.setLong(8, mustDelete ? -rev : rev)
+                        ins.setString(9, sha1)
+                        ins.setString(10, headSha1)
+                        Timestamp now = new Timestamp(System.currentTimeMillis())
+                        ins.setTimestamp(11, now)
+                        ins.setString(12, username)
+                        ins.setBytes(13, bytes)
+                        ins.setBytes(14, testData)
+                        String note = createNote(username, now, notes)
+                        ins.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
+                        ins.setInt(16, 0)
+                        ins.addBatch()
+                        count++
+                        if (count % EXECUTE_BATCH_CONSTANT == 0)
+                        {
+                            ins.executeBatch()
+                        }
+                    })
+                }
             }
             if (count % EXECUTE_BATCH_CONSTANT != 0)
             {
@@ -845,6 +847,23 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             ins?.close()
         }
         return count
+    }
+
+    private Long findRollbackRevision(Connection c, ApplicationID appId, String cubeName)
+    {
+        Sql sql = new Sql(c)
+        Map map = appId as Map
+        map.putAll([cube: buildName(c, cubeName)])
+        Long maxRev = null
+
+        sql.eachRow(map, """\
+/* rollbackCubes.findRollbackRev */ SELECT revision_number FROM n_cube
+ WHERE """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
+ AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
+ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
+            maxRev = row.getLong("revision_number")
+        });
+        return maxRev
     }
 
     /**
@@ -1398,28 +1417,6 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
  FROM n_cube a
  LEFT OUTER JOIN n_cube b
  ON abs(a.revision_number) < abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
- AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
- WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :cube AND a.app_cd = :app AND a.status_cd = :status
- AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL
-"""
-        sql.eachRow(str, map, 0, 1, { ResultSet row ->
-            rev = row.getLong('revision_number')
-        })
-        return rev
-    }
-
-    Long getMinRevision(Connection c, ApplicationID appId, String cubeName, String methodName)
-    {
-        Map map = appId as Map
-        map.cube = buildName(c, cubeName)
-        Sql sql = new Sql(c)
-        Long rev = null
-
-        String str = """\
-/* """ + methodName + """.minRev */ SELECT a.revision_number
- FROM n_cube a
- LEFT OUTER JOIN n_cube b
- ON abs(a.revision_number) > abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
  AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
  WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :cube AND a.app_cd = :app AND a.status_cd = :status
  AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL
