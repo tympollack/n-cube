@@ -474,6 +474,21 @@ class TestDelta
     @Test
     void testRuleMergeRemoveRemoveUniqueColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        cube1.deleteColumn('rule', 'init')
+        cube2.deleteColumn('rule', 'process')
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 0
     }
 
     @Test
