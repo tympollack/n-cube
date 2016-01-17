@@ -4793,6 +4793,48 @@ class TestNCube
         }
     }
 
+    @Test
+    void testNCubeGroovyShortHandAccessors()
+    {
+        String json = '''\
+{
+  "ncube": "ruleDeleteTest",
+  "axes": [
+    {
+      "name": "system",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "value": "sys-a"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "alpha"
+    }
+  ]
+}'''
+        NCube ncube = NCube.fromSimpleJson(json)
+        Axis axis = ncube.system
+        assert axis.name == 'system'
+        axis = ncube.'system'
+        assert axis.name == 'system'
+        axis = ncube['system']
+        assert axis.name == 'system'
+
+        assert 'alpha' == ncube[[system:'sys-a']]
+    }
+
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 

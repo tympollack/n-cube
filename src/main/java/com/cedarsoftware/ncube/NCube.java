@@ -2429,6 +2429,7 @@ public class NCube<T>
                     else
                     {   // Column exists on both (same IDs), but the value is different
                         deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_CHANGE));
+                        copyRuleColumns.remove(foundCol.id);    // Since this is a change, don't leave column in 'remove' list.
                     }
                 }
                 else
@@ -2448,6 +2449,7 @@ public class NCube<T>
                         else
                         {   // Value did not match - need to update column
                             deltaColumns.put(name, new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_CHANGE));
+                            copyRuleColumns.remove(name);    // Since this is a change, don't leave column in 'remove' list.
                         }
                     }
                 }
@@ -3333,5 +3335,27 @@ public class NCube<T>
     {
         this.name = name;
         clearSha1();
+    }
+
+    /**
+     * This API allows Groovy code to do this:
+     * ncube.axisName or ncube['axisName'] to fetch an axis.
+     * @param axisName String name of axis to get (case ignored)
+     * @return Axis if found, null otherwise.
+     */
+    public Axis get(String axisName)
+    {
+        return axisList.get(axisName);
+    }
+
+    /**
+     * This API allows Groovy code to do this:
+     * ncube.axisName or ncube['axisName'] to fetch an axis.
+     * @param coord Map (coordinate map) pointing to cell to get.
+     * @return T value stored at cell.
+     */
+    public T getAt(Map<String, Object> coord)
+    {
+        return getCell(coord);
     }
 }

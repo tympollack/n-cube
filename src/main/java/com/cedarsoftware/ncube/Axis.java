@@ -640,6 +640,11 @@ public class Axis
         ensureUnique(newCol.getValue());
         newCol.setId(colId);
         newCol.setDisplayOrder(col.getDisplayOrder());
+        String colName = col.getColumnName();
+        if (StringUtilities.hasContent(colName))
+        {
+            newCol.setColumnName(col.getColumnName());
+        }
 
         // Updated column is added in the same 'displayOrder' location.  For example, the months are a
         // displayOrder Axis type.  Updating 'Jun' to 'June' will use the same displayOrder value.

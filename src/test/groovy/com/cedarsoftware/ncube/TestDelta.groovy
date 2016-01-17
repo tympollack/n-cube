@@ -199,8 +199,7 @@ class TestDelta
         NCube<String> orig = (NCube<String>) getTestCube()
 
         assert cube1.cellMap.size() == 48
-        GroovyExpression exp = new GroovyExpression("false", null, false)
-        cube1.addColumn('rule', exp, 'jones')
+        cube1.addColumn('rule', 'false', 'jones')
         Map coord = [age:16, salary:65000, log:100, state:'OH', rule:'jones'] as Map
         cube1.setCell('alpha', coord)
         assert cube1.cellMap.size() == 49
@@ -489,39 +488,212 @@ class TestDelta
         cube2.mergeDeltaSet(delta1)
         Axis rule = cube2.getAxis('rule')
         assert rule.size() == 0
+        assert cube2.numCells == 0
     }
 
     @Test
     void testRuleMergeRemoveRemoveSameColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        cube1.deleteColumn('rule', 'init')
+        cube2.deleteColumn('rule', 'init')
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 1
+        assert rule.findColumn('process') != null
+        assert cube2.numCells == 24
     }
 
     @Test
-    void testRuleMergeAddRemoveSameColumnConflict()
-    {
-    }
-
-    @Test
-    void testDiscreteRangeAddColumnBoth()
+    void testRangeAdd()
     {   // Change 2 axes
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        cube1.addColumn('age', new Range(30, 40))
+        Map coord = [age: 35, salary: 60000, log: 1000, state: 'OH', rule: 'init'] as Map
+        cube1.setCell('love', coord)
+        assert 'love' == getCellIgnoreRule(cube1, coord)
+        assert cube1.getNumCells() == 49
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis age = cube2.getAxis('age')
+        assert age.size() == 3
+        assert 'love' == getCellIgnoreRule(cube2, coord)
+        assert cube2.getNumCells() == 49
     }
 
     @Test
-    void testDiscreteRangeRemoveColumnBoth()
+    void testRuleRangeAddBoth()
     {   // Change 2 axes
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        cube1.addColumn('age', new Range(30, 40))
+        Map coord = [age: 35, salary: 60000, log: 1000, state: 'OH', rule: 'init'] as Map
+        cube1.setCell('love', coord)
+        assert 'love' == getCellIgnoreRule(cube1, coord)
+        assert cube1.getNumCells() == 49
+        cube1.addColumn('rule', 'true', 'summary')
+        Map coord2 = [age: 35, salary: 60000, log: 1000, state: 'OH', rule: 'summary'] as Map
+        cube1.setCell('fear', coord2)
+        assert cube1.getNumCells() == 50
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis age = cube2.getAxis('age')
+        assert age.size() == 3
+        assert 'love' == getCellIgnoreRule(cube2, coord)
+        assert cube2.getNumCells() == 50
+
+        assert 'fear' == getCellIgnoreRule(cube2, coord2)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 3
     }
 
     @Test
-    void testRuleMergeAddColumnWithNoName()
-    {
+    void testRuleRangeRemoveColumnBoth()
+    {   // Change 2 axes
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        cube1.deleteColumn('age', 20)
+        cube1.deleteColumn('rule', 'init')
+
+        assert 12 == cube1.numCells
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 1
+        assert rule.findColumn('process') != null
+        assert rule.findColumn('init') == null
+        Axis age = cube2.getAxis('age')
+        assert age.size() == 1
+        assert age.findColumn(16) != null
+        assert age.findColumn(20) == null
+        assert 12 == cube2.numCells
     }
 
     @Test
     void testRuleMergeRemoveColumnWithNoName()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        Column column = cube1.getAxis('rule').getColumns()[0]
+        cube1.deleteColumn('rule', column.id)
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 1
+        assert rule.findColumn('process') != null
+        assert rule.findColumn('init') == null
     }
 
-    def getCellIgnoreRule(NCube ncube, Map coord)
+    @Test
+    void testDeleteColumnWithNoNameFromRuleAxis()
+    {
+        NCube<String> cube1 = (NCube<String>) getTestRuleCube()
+        NCube<String> cube2 = (NCube<String>) getTestRuleCube()
+        NCube<String> orig = (NCube<String>) getTestRuleCube()
+
+        assert cube1.numCells == 3
+        Column col1 = cube1.getAxis('rule').columns[0]
+        cube1.deleteColumn('rule', col1.id)
+        assert cube1.numCells == 2
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        assert cube2.numCells == 3
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 3
+
+        cube2.mergeDeltaSet(delta1)
+
+        assert cube2.numCells == 2
+        assert rule.size() == 2
+    }
+
+    @Test
+    void testChangeColumnWithNoNameOnRuleAxis()
+    {
+        NCube<String> cube1 = (NCube<String>) getTestRuleCube()
+        NCube<String> cube2 = (NCube<String>) getTestRuleCube()
+        NCube<String> orig = (NCube<String>) getTestRuleCube()
+
+        assert cube1.numCells == 3
+        Column col1 = cube1.getAxis('rule').columns[0]
+        cube1.updateColumn(col1.id, '1 < 2')
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        Axis rule = cube2.getAxis('rule')
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.numCells == 3
+
+        Column col2 = rule.getColumns()[0]
+        assert '1 < 2' == col2.getValue().toString()
+    }
+
+    @Test
+    void testChangeColumnWithNameOnRuleAxis()
+    {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        assert cube1.numCells == 48
+        Map coord = [age: 17, salary: 60000, log: 1000, state: 'OH', rule: 'init']
+        assert '7' == getCellIgnoreRule(cube1, coord)
+        Axis rule = (Axis)cube1['rule']
+        Column col = rule.findColumn('init')
+        cube1.updateColumn(col.id, '34 < 40')
+        assert '7' == getCellIgnoreRule(cube1, coord)
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        rule = (Axis)cube2['rule']
+        cube2.mergeDeltaSet(delta1)
+        assert cube2.numCells == 48
+        assert '7' == getCellIgnoreRule(cube2, coord)
+        Column col2 = rule.findColumn('init')
+        assert '34 < 40' == col2.toString()
+    }
+
+    static def getCellIgnoreRule(NCube ncube, Map coord)
     {
         Set<Long> idCoord = ncube.getCoordinateKey(coord)
         return ncube.getCellById(idCoord, coord, [:])
@@ -532,9 +704,76 @@ class TestDelta
         return NCube.fromSimpleJson(getTestCubeJson())
     }
 
+    NCube getTestRuleCube()
+    {
+        return NCube.fromSimpleJson(getTestRuleCubeJson())
+    }
+
+    String getTestRuleCubeJson()
+    {
+        return '''\
+{
+  "ncube": "ruleDeleteTest",
+  "axes": [
+    {
+      "name": "rule",
+      "type": "RULE",
+      "valueType": "EXPRESSION",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "exp",
+          "name": "",
+          "value": "true"
+        },
+        {
+          "id": 1000000000002,
+          "type": "exp",
+          "name": "",
+          "value": "true"
+        },
+        {
+          "id": 1000000000003,
+          "type": "exp",
+          "name": "",
+          "value": "true"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "string",
+      "value": "2"
+    },
+    {
+      "id": [
+        1000000000003
+      ],
+      "type": "string",
+      "value": "3"
+    }
+  ]
+}'''
+    }
+
     String getTestCubeJson()
     {
-        return '''{
+        return '''\
+{
   "ncube": "testMerge",
   "axes": [
     {
