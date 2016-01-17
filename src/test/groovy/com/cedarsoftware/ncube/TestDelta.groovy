@@ -320,12 +320,12 @@ class TestDelta
 
         // Compute delta between copy of original cube
         Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
 
         boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         cube2.mergeDeltaSet(delta1)
-        Axis state = cube2.getAxis('state');
+        Axis state = cube2.getAxis('state')
         assertNotNull state.findColumn('TX')
         assertNull state.findColumn('OH')
         assertNull state.findColumn('GA')
@@ -349,22 +349,80 @@ class TestDelta
 
         // Compute delta between copy of original cube
         Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
 
         boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         cube2.mergeDeltaSet(delta1)
+        Axis state = cube2.getAxis('state');
+        assertNotNull state.findColumn('TX')
+        assertNotNull state.findColumn('GA')
+        assertNull state.findColumn('OH')
         assert cube2.cellMap.size() == 32
     }
 
     @Test
     void testRuleMergeAddAddUniqueColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        assert cube1.cellMap.size() == 48
+        assert cube2.cellMap.size() == 48
+        cube1.addColumn('rule', 'true', 'Summary')
+        Map coord = [age: 16, salary: 60000, log: 1000, state: 'OH', rule: 'Summary'] as Map
+        cube1.setCell('99', coord)
+
+        cube2.addColumn('rule', '1 < 2', 'Finalize')
+        coord.rule = 'Finalize'
+        cube2.setCell('88', coord)
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 4
+        coord = [age: 16, salary: 60000, log: 1000, state: 'OH', rule: 'Summary'] as Map
+        assert '99' == getCellIgnoreRule(cube2, coord)
+        coord.rule = 'Finalize'
+        assert '88' == getCellIgnoreRule(cube2, coord)
+        assert cube2.getNumCells() == 50
     }
 
     @Test
     void testRuleMergeAddAddSameColumn()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        assert cube1.cellMap.size() == 48
+        assert cube2.cellMap.size() == 48
+        cube1.addColumn('rule', 'true', 'Summary')
+        Map coord = [age: 16, salary: 60000, log: 1000, state: 'OH', rule: 'Summary'] as Map
+        cube1.setCell('99', coord)
+
+        cube2.addColumn('rule', '1 < 2', 'Finalize')
+        coord.rule = 'Finalize'
+        cube2.setCell('88', coord)
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis rule = cube2.getAxis('rule')
+        assert rule.size() == 4
+        coord = [age: 16, salary: 60000, log: 1000, state: 'OH', rule: 'Summary'] as Map
+        assert '99' == getCellIgnoreRule(cube2, coord)
+        coord.rule = 'Finalize'
+        assert '88' == getCellIgnoreRule(cube2, coord)
+        assert cube2.getNumCells() == 50
     }
 
     @Test
