@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.12</version>
+  <version>3.4.13</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,11 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.13
+ * The rest of the column merge tests added.
+ * Added check to ensure that an axis with a duplicate ID cannot be added to the same n-cube.
+ * Removed deprecated 4-argument ApplicationID constructor (it existed before there was branch support).
+ * Bug fix: When merging rule axis and there was a column update (condition changed), it was merging it as a remove.
 * 3.4.12
  * Bug fix: Merging columns between two cubes where they both added the same column value and had non-conflicting cell changes was getting reported as a merge conflict.  This is fixed.
  * More merge tests added, still more to come.
