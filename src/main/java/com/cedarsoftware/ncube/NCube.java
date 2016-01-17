@@ -2402,15 +2402,15 @@ public class NCube<T>
         Map<Comparable, Column> copyRuleColumns = new LinkedHashMap<>();
 
         if (thisAxis.getType() == AxisType.RULE)
-        {   // Have to look up RULE columns by ID (no choice, they could all have the value 'true' for example.)
-            for (Column column : thisAxis.getColumnsWithoutDefault())
+        {   // Have to look up RULE columns by name (if set) or ID if not (no choice, they could all have the value 'true' for example.)
+            for (Column column : thisAxis.getColumnsInternal())
             {
                 String name = column.getColumnName();
                 // Use rule-name if it exists.
                 copyRuleColumns.put(name != null ? name : column.id, column);
             }
 
-            for (Column otherColumn : other.getColumnsWithoutDefault())
+            for (Column otherColumn : other.getColumnsInternal())
             {
                 String name = otherColumn.getColumnName();
                 Column foundCol;
@@ -2422,14 +2422,14 @@ public class NCube<T>
                     {   // Not found, the 'other' axis has a column 'this' axis does not have
                         deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_ADD));
                     }
-                    else if (otherColumn.getValue().equals(foundCol.getValue()))
+                    else if (otherColumn.getValue() == foundCol.getValue() || otherColumn.getValue().equals(foundCol.getValue()))   // handles default (null) column
                     {   // Matched (id and value same) - this column will not be added to the delta map.  Remove by ID.
-                        copyRuleColumns.remove(foundCol.id);
+                        copyRuleColumns.remove(foundCol.getColumnName() != null ? foundCol.getColumnName() : foundCol.id);
                     }
                     else
                     {   // Column exists on both (same IDs), but the value is different
                         deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_CHANGE));
-                        copyRuleColumns.remove(foundCol.id);    // Since this is a change, don't leave column in 'remove' list.
+                        copyRuleColumns.remove(foundCol.getColumnName() != null ? foundCol.getColumnName() : foundCol.id);
                     }
                 }
                 else
@@ -2442,7 +2442,7 @@ public class NCube<T>
                     }
                     else
                     {   // Matched name
-                        if (otherColumn.getValue().equals(foundCol.getValue()))
+                        if (otherColumn.getValue() == foundCol.getValue() || otherColumn.getValue().equals(foundCol.getValue()))
                         {   // Matched value - this column will not be added to the delta map.  Remove by name.
                             copyRuleColumns.remove(name);
                         }
@@ -2458,17 +2458,17 @@ public class NCube<T>
             // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
             for (Column column : copyRuleColumns.values())
             {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns.put(column.id, new ColumnDelta(AxisType.RULE, column, DELTA_COLUMN_REMOVE));
+                deltaColumns.put(column.getColumnName() != null ? column.getColumnName() : column.id, new ColumnDelta(AxisType.RULE, column, DELTA_COLUMN_REMOVE));
             }
         }
         else
         {   // Handle non-rule columns
-            for (Column column : thisAxis.getColumnsWithoutDefault())
+            for (Column column : thisAxis.getColumnsInternal())
             {
                 copyColumns.put(column.getValue(), column);
             }
 
-            for (Column otherColumn : other.getColumnsWithoutDefault())
+            for (Column otherColumn : other.getColumnsInternal())
             {
                 final Comparable otherColumnValue = otherColumn.getValue();
                 Column foundCol = thisAxis.findColumn(otherColumnValue);
@@ -2585,7 +2585,7 @@ public class NCube<T>
                     }
                 }
                 else if (value == null)
-                {
+                {   // You can get the Default column by passing in null
                     Column column = axis.findColumn(null);
                     if (column != null)
                     {
@@ -2597,7 +2597,7 @@ public class NCube<T>
                     }
                 }
                 else
-                {   // Only a Long, String, or null can be associated to the name of a rule axis in a deltaCoord.
+                {   // error case: only a Long, String, or null can be associated to the name of a rule axis in a deltaCoord.
                     return null;
                 }
             }
@@ -3346,16 +3346,5 @@ public class NCube<T>
     public Axis get(String axisName)
     {
         return axisList.get(axisName);
-    }
-
-    /**
-     * This API allows Groovy code to do this:
-     * ncube.axisName or ncube['axisName'] to fetch an axis.
-     * @param coord Map (coordinate map) pointing to cell to get.
-     * @return T value stored at cell.
-     */
-    public T getAt(Map<String, Object> coord)
-    {
-        return getCell(coord);
     }
 }

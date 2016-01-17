@@ -693,25 +693,282 @@ class TestDelta
         assert '34 < 40' == col2.toString()
     }
 
+    @Test
+    void testDiscreteAddDefaultColumn()
+    {
+        NCube<String> cube1 = (NCube<String>) getDiscrete1D()
+        NCube<String> cube2 = (NCube<String>) getDiscrete1D()
+        NCube<String> orig = (NCube<String>) getDiscrete1D()
+
+        Axis state = (Axis) cube1['state']
+        assert state.size() == 2
+        cube1.addColumn('state', null)
+        assert state.size() == 3
+        cube1.setCell('3', [:])
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        state = (Axis) cube2['state']
+        assert state.size() == 2
+        cube2.mergeDeltaSet(delta1)
+        assert state.size() == 3
+        assert '3' == cube2.getCell([:])
+    }
+
+    @Test
+    void testDiscreteRemoveDefaultColumn()
+    {
+        NCube<String> orig = (NCube<String>) getDiscrete1D()
+        orig.addColumn('state', null)
+        orig.setCell('3', [:])  // associate '3' to default col
+
+        NCube<String> cube1 = orig.duplicate('cube')
+        NCube<String> cube2 = orig.duplicate('cube')
+
+        assert cube1.numCells == 3
+        assert '3' == cube1.getCell([:])
+        cube1.deleteColumn('state', null)
+        try
+        {
+            cube1.getCell([:])
+            fail()
+        }
+        catch (IllegalArgumentException ignore)
+        {
+        }
+        assert cube1.numCells == 2
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+
+        assert '3' == cube2.getCell([:])
+        assert cube2.numCells == 3
+        cube2.mergeDeltaSet(delta1)
+        try
+        {
+            cube2.getCell([:])
+            fail()
+        }
+        catch (IllegalArgumentException ignore)
+        {
+        }
+        assert cube2.numCells == 2
+    }
+
+    @Test
+    void testRuleAddDefaultColumn()
+    {
+        NCube<String> cube1 = (NCube<String>) getRule1D()
+        NCube<String> cube2 = (NCube<String>) getRule1D()
+        NCube<String> orig = (NCube<String>) getRule1D()
+
+        Axis rules = (Axis) cube1['rule']
+        assert rules.size() == 2
+        cube1.addColumn('rule', null, 'summary')
+        assert rules.size() == 3
+        cube1.setCell('3', [:])
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        rules = (Axis) cube2['rule']
+        assert rules.size() == 2
+        cube2.mergeDeltaSet(delta1)
+        assert rules.size() == 3
+        assert '3' == getCellIgnoreRule(cube2, [:])
+    }
+
+    @Test
+    void testRuleRemoveDefaultColumn()
+    {
+        NCube<String> orig = (NCube<String>) getRule1D()
+        orig.addColumn('rule', null)
+        orig.setCell('3', [:])  // associate '3' to default col
+
+        NCube<String> cube1 = orig.duplicate('cube')
+        NCube<String> cube2 = orig.duplicate('cube')
+
+        assert cube1.numCells == 3
+        assert '3' == getCellIgnoreRule(cube1, [:])
+        cube1.deleteColumn('rule', null)
+        try
+        {
+            getCellIgnoreRule(cube1, [:])
+            fail()
+        }
+        catch (CoordinateNotFoundException ignore)
+        { }
+        assert cube1.numCells == 2
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+
+        assert '3' == getCellIgnoreRule(cube2, [:])
+        assert cube2.numCells == 3
+        cube2.mergeDeltaSet(delta1)
+        try
+        {
+            getCellIgnoreRule(cube2, [:])
+            fail()
+        }
+        catch (CoordinateNotFoundException ignore)
+        {
+        }
+        assert cube2.numCells == 2
+    }
+
+    @Test
+    void testUpdateRemoveRuleColumn()
+    {
+        NCube<String> cube1 = (NCube<String>) getRule1D()
+        NCube<String> cube2 = (NCube<String>) getRule1D()
+        NCube<String> orig = (NCube<String>) getRule1D()
+
+        Axis rule = (Axis) cube1['rule']
+        Column process = rule.findColumn('process')
+        cube1.updateColumn(process.id, '1 < 2')
+
+        rule = (Axis) cube2['rule']
+        rule.deleteColumn('process')
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert !compatibleChange
+    }
+
+    @Test
+    void testUpdateRemoveRuleDefaultColumn()
+    {
+        NCube<String> orig = (NCube<String>) getRule1D()
+        orig.addColumn('rule', null)
+        orig.setCell('3', [:])  // associate '3' to default col
+
+        NCube<String> cube1 = orig.duplicate('cube')
+        NCube<String> cube2 = orig.duplicate('cube')
+
+        assert cube1.numCells == 3
+        assert '3' == getCellIgnoreRule(cube1, [:])
+
+        Axis rule = (Axis) cube1['rule']
+        Column process = rule.findColumn(null)
+        cube1.updateColumn(process.id, '1 < 2')
+
+        rule = (Axis) cube2['rule']
+        rule.deleteColumn(null)
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert !compatibleChange
+    }
+
     static def getCellIgnoreRule(NCube ncube, Map coord)
     {
         Set<Long> idCoord = ncube.getCoordinateKey(coord)
         return ncube.getCellById(idCoord, coord, [:])
     }
 
-    NCube getTestCube()
+    NCube getRule1D()
     {
-        return NCube.fromSimpleJson(getTestCubeJson())
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "SimpleRule",
+  "axes": [
+    {
+      "name": "rule",
+      "type": "RULE",
+      "valueType": "EXPRESSION",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "exp",
+          "value": "true",
+          "name": "init"
+        },
+        {
+          "id": 1000000000002,
+          "type":"exp",
+          "value": "false",
+          "name": "process"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "string",
+      "value": "2"
+    }
+  ]
+}''')
+    }
+
+    NCube getDiscrete1D()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "SimpleDiscrete",
+  "axes": [
+    {
+      "name": "state",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "value": "OH"
+        },
+        {
+          "id": 1000000000002,
+          "value": "TX"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "string",
+      "value": "2"
+    }
+  ]
+}''')
     }
 
     NCube getTestRuleCube()
     {
-        return NCube.fromSimpleJson(getTestRuleCubeJson())
-    }
-
-    String getTestRuleCubeJson()
-    {
-        return '''\
+        return NCube.fromSimpleJson('''\
 {
   "ncube": "ruleDeleteTest",
   "axes": [
@@ -767,12 +1024,12 @@ class TestDelta
       "value": "3"
     }
   ]
-}'''
+}''')
     }
 
-    String getTestCubeJson()
+    NCube getTestCube()
     {
-        return '''\
+        return NCube.fromSimpleJson('''\
 {
   "ncube": "testMerge",
   "axes": [
@@ -1426,7 +1683,7 @@ class TestDelta
       "value": "48"
     }
   ]
-}'''
+}''')
 
     }
 }

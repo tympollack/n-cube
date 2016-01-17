@@ -185,18 +185,7 @@ class TestAxis
         }
 
         axis = new Axis('sorted', AxisType.DISCRETE, AxisValueType.LONG, false, Axis.DISPLAY)
-        try
-        {
-            axis.findColumn null
-            fail 'should not make it here'
-        }
-        catch (IllegalArgumentException e)
-        {
-            assert e.message.toLowerCase().contains('null')
-            assert e.message.toLowerCase().contains('sorted')
-            assert e.message.toLowerCase().contains('not have')
-            assert e.message.toLowerCase().contains('default column')
-        }
+        assert null == axis.findColumn(null)
     }
 
     @Test
@@ -1221,12 +1210,10 @@ class TestAxis
             ncube.getCell(coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (CoordinateNotFoundException e)
         {
             assert e.message.toLowerCase().contains('null')
-            assert e.message.toLowerCase().contains('passed to axis')
-            assert e.message.toLowerCase().contains('not have')
-            assert e.message.toLowerCase().contains('default column')
+            assert e.message.toLowerCase().contains('not found on axis')
         }
 
         // Illegal value to find on String axis:

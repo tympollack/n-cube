@@ -655,11 +655,10 @@ class TestNCube
             cube.getCell(coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (CoordinateNotFoundException e)
         {
             assert e.message.toLowerCase().contains('null')
-            assert e.message.toLowerCase().contains('passed')
-            assert e.message.toLowerCase().contains('not have a default')
+            assert e.message.toLowerCase().contains('not found on axis')
         }
 
         // Illegal value to find on String axis:
@@ -964,12 +963,10 @@ class TestNCube
             ncube.getCell(coord)        // Valid 3D coordinate (if table had default col on all axis)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (CoordinateNotFoundException e)
         {
             assertTrue(e.message.contains("null"))
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("default"))
-            assertTrue(e.message.contains("column"))
+            assertTrue(e.message.contains("not found on axis"))
         }
     }
 
@@ -4628,36 +4625,6 @@ class TestNCube
     }
 
     @Test
-    void testMergeDiffNumCols()
-    {
-        NCube cube1 = NCubeManager.getNCubeFromResource("basicJump.json")
-        NCube cube2 = NCubeManager.getNCubeFromResource("basicJumpRestart.json")
-
-        // TODO: Finish test
-        // All rules are different
-    }
-
-    @Test
-    void testMergeDiffColValues()
-    {
-        NCube cube1 = NCubeManager.getNCubeFromResource("basicJumpRestart.json")
-        NCube cube2 = NCubeManager.getNCubeFromResource("basicJumpStart.json")
-
-        // TODO: Finish test
-        // All rules are different, so expect a big set of deletes one way, or adds the other way
-    }
-
-    @Test
-    void testMergeMismatchOnDefaultCol()
-    {
-        NCube cube1 = NCubeManager.getNCubeFromResource("ruleSimpleWithNoDefault.json")
-        NCube cube2 = NCubeManager.getNCubeFromResource("ruleSimpleWithDefaultForMergeTest.json")
-
-        // Add rule column one way, remove rule the other way
-        //TODO: Finish test
-    }
-
-    @Test
     void testMergeSameCube()
     {
         NCube cube1 = NCubeManager.getNCubeFromResource("2DSimpleJson.json")
@@ -4831,8 +4798,6 @@ class TestNCube
         assert axis.name == 'system'
         axis = ncube['system']
         assert axis.name == 'system'
-
-        assert 'alpha' == ncube[[system:'sys-a']]
     }
 
     // ---------------------------------------------------------------------------------

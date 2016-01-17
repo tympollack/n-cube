@@ -426,7 +426,7 @@ public class Axis
         }
         else
         {
-            return new Column(v, getNextColId());
+            return new Column(v, v == null ? getDefaultColId() : getNextColId());
         }
     }
 
@@ -513,7 +513,7 @@ public class Axis
 
         if (column.getValue() == null)
         {
-            column.setId(getDefaultColId());
+            column.setId(getDefaultColId());    // Safety check - should never happen
             defaultCol = column;
         }
 
@@ -1178,12 +1178,8 @@ public class Axis
      public Column findColumn(Comparable value)
      {
         if (value == null)
-        {
-            if (hasDefaultColumn())
-            {
-                return defaultCol;
-            }
-            throw new IllegalArgumentException("'null' passed to axis '" + name + "' which does not have a default column");
+        {   // By returning defaultCol, this lets null match it if there is one, or null if there is none.
+            return defaultCol;
         }
 
         if (value instanceof Range)
@@ -1249,7 +1245,7 @@ public class Axis
             }
             else
             {
-                throw new IllegalArgumentException("A column on a rule axis can only be located by the 'name' attribute, which must be a String, axis: " + name);
+                throw new IllegalArgumentException("A column on a rule axis can only be located by the 'name' attribute (String) or ID (long), axis: " + name + ", value: " + promotedValue);
             }
         }
         else
