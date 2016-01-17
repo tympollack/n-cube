@@ -226,6 +226,28 @@ class TestDelta
     }
 
     @Test
+    void testRuleMergeAddColumnWithoutName()
+    {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        int numCols = cube1.getAxis('rule').getColumns().size()
+        cube1.addColumn('rule', 'true')
+
+        // Compute delta between copy of original cube and the cube with deleted column.
+        // Apply this delta to the 2nd cube to force the same changes on it.
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        cube2.mergeDeltaSet(delta1)
+        Axis axis = cube2.getAxis('rule')
+        assert axis.getColumns().size() == numCols + 1
+    }
+
+    @Test
     void testDiscreteMergeAddAddUniqueColumn()
     {
         NCube<String> cube1 = (NCube<String>) getTestCube()
@@ -428,6 +450,25 @@ class TestDelta
     @Test
     void testRuleMergeAddAddSameColumnConflict()
     {
+        NCube<String> cube1 = (NCube<String>) getTestCube()
+        NCube<String> cube2 = (NCube<String>) getTestCube()
+        NCube<String> orig = (NCube<String>) getTestCube()
+
+        assert cube1.cellMap.size() == 48
+        assert cube2.cellMap.size() == 48
+        cube1.addColumn('rule', 'true', 'Summary')
+        Map coord = [age: 16, salary: 60000, log: 1000, state: 'OH', rule: 'Summary'] as Map
+        cube1.setCell('99', coord)
+
+        cube2.addColumn('rule', '1 < 2', 'Summary')
+        coord.rule = 'Summary'
+        cube2.setCell('99', coord)
+
+        Map<String, Object> delta1 = orig.getDelta(cube1)
+        Map<String, Object> delta2 = orig.getDelta(cube2)
+
+        boolean compatibleChange = NCube.areDeltaSetsCompatible(delta1, delta2)
+        assert !compatibleChange
     }
 
     @Test
