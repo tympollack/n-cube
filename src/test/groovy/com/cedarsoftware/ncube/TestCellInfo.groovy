@@ -1,8 +1,8 @@
 package com.cedarsoftware.ncube
-
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
+import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.io.JsonObject
 import org.junit.Test
 
@@ -12,7 +12,6 @@ import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -109,7 +108,14 @@ class TestCellInfo
         performRecreateAssertion Boolean.TRUE
         performRecreateAssertion new GroovyExpression('0', null, false)
         performRecreateAssertion new GroovyMethod('0', null, false)
-        performRecreateAssertion new GroovyTemplate(null, 'http://www.google.com', false)
+        GroovyTemplate template = new GroovyTemplate('<html>${return input.age > 17}<div><%=input.state%></div></html>', null, false)
+        Set<String> scopeKeys = new CaseInsensitiveSet<>()
+        template.getScopeKeys(scopeKeys)
+        performRecreateAssertion(template)
+        assert scopeKeys.contains('age')
+        assert scopeKeys.contains('AGE')
+        assert scopeKeys.contains('age')
+        assert scopeKeys.contains('STATE')
         performRecreateAssertion new BinaryUrlCmd('http://www.google.com', false)
         performArrayRecreateAssertion([0, 4, 5, 6] as byte[])
         performRecreateAssertion 'foo'

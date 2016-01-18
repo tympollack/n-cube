@@ -61,9 +61,9 @@ class TestDelta
     void testDiscreteMergeRemoveCol()
     {
         // Delete a column from cube 1, which not only deletes the column, but also the cells pointing to it.
-        NCube cube1 = getTestCube()
-        NCube cube2 = getTestCube()
-        NCube orig = getTestCube()
+        NCube cube1 = NCubeBuilder.get5DTestCube()
+        NCube cube2 = NCubeBuilder.get5DTestCube()
+        NCube orig = NCubeBuilder.get5DTestCube()
 
         assert '4' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
         assert '5' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'GA', rule:'process'] as Map)
@@ -118,9 +118,9 @@ class TestDelta
     @Test
     void testDiscreteMergeAddCol()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         // Verify addition occurred
         int count = cube1.cellMap.size()
@@ -149,9 +149,9 @@ class TestDelta
     void testRuleMergeRemoveColumnWithName()
     {
         // Delete a column from cube 1, which not only deletes the column, but also the cells pointing to it.
-        NCube cube1 = getTestCube()
-        NCube cube2 = getTestCube()
-        NCube orig = getTestCube()
+        NCube cube1 = NCubeBuilder.get5DTestCube()
+        NCube cube2 = NCubeBuilder.get5DTestCube()
+        NCube orig = NCubeBuilder.get5DTestCube()
 
         assert '4' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'OH', rule:'process'] as Map)
         assert '5' == getCellIgnoreRule(cube1, [age:16, salary:65000, log:100, state:'GA', rule:'process'] as Map)
@@ -194,9 +194,9 @@ class TestDelta
     @Test
     void testRuleMergeAddColumnWithName()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.cellMap.size() == 48
         cube1.addColumn('rule', 'false', 'jones')
@@ -227,9 +227,9 @@ class TestDelta
     @Test
     void testRuleMergeAddColumnWithoutName()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         int numCols = cube1.getAxis('rule').getColumns().size()
         cube1.addColumn('rule', 'true')
@@ -249,9 +249,9 @@ class TestDelta
     @Test
     void testDiscreteMergeAddAddUniqueColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         // Verify addition occurred
         int count = cube1.cellMap.size()
@@ -288,9 +288,9 @@ class TestDelta
     @Test
     void testDiscreteMergeAddAddSameColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         // Verify addition occurred
         int count = cube1.cellMap.size()
@@ -327,9 +327,9 @@ class TestDelta
     @Test
     void testDiscreteMergeRemoveRemoveUniqueColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.cellMap.size() == 48
         cube1.deleteColumn('state', 'OH')
@@ -356,9 +356,9 @@ class TestDelta
     @Test
     void testDiscreteMergeRemoveRemoveSameColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.cellMap.size() == 48
         cube1.deleteColumn('state', 'OH')
@@ -385,9 +385,9 @@ class TestDelta
     @Test
     void testRuleMergeAddAddUniqueColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.cellMap.size() == 48
         assert cube2.cellMap.size() == 48
@@ -417,9 +417,9 @@ class TestDelta
     @Test
     void testRuleMergeAddAddSameColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.cellMap.size() == 48
         assert cube2.cellMap.size() == 48
@@ -449,9 +449,9 @@ class TestDelta
     @Test
     void testRuleMergeAddAddSameColumnConflict()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.cellMap.size() == 48
         assert cube2.cellMap.size() == 48
@@ -473,9 +473,9 @@ class TestDelta
     @Test
     void testRuleMergeRemoveRemoveUniqueColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         cube1.deleteColumn('rule', 'init')
         cube2.deleteColumn('rule', 'process')
@@ -494,9 +494,9 @@ class TestDelta
     @Test
     void testRuleMergeRemoveRemoveSameColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         cube1.deleteColumn('rule', 'init')
         cube2.deleteColumn('rule', 'init')
@@ -516,9 +516,9 @@ class TestDelta
     @Test
     void testRangeAdd()
     {   // Change 2 axes
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         cube1.addColumn('age', new Range(30, 40))
         Map coord = [age: 35, salary: 60000, log: 1000, state: 'OH', rule: 'init'] as Map
@@ -540,9 +540,9 @@ class TestDelta
     @Test
     void testRuleRangeAddBoth()
     {   // Change 2 axes
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         cube1.addColumn('age', new Range(30, 40))
         Map coord = [age: 35, salary: 60000, log: 1000, state: 'OH', rule: 'init'] as Map
@@ -572,9 +572,9 @@ class TestDelta
     @Test
     void testRuleRangeRemoveColumnBoth()
     {   // Change 2 axes
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         cube1.deleteColumn('age', 20)
         cube1.deleteColumn('rule', 'init')
@@ -599,9 +599,9 @@ class TestDelta
     @Test
     void testRuleMergeRemoveColumnWithNoName()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         Column column = cube1.getAxis('rule').getColumns()[0]
         cube1.deleteColumn('rule', column.id)
@@ -620,9 +620,9 @@ class TestDelta
     @Test
     void testDeleteColumnWithNoNameFromRuleAxis()
     {
-        NCube<String> cube1 = (NCube<String>) getTestRuleCube()
-        NCube<String> cube2 = (NCube<String>) getTestRuleCube()
-        NCube<String> orig = (NCube<String>) getTestRuleCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getTestRuleCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getTestRuleCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getTestRuleCube()
 
         assert cube1.numCells == 3
         Column col1 = cube1.getAxis('rule').columns[0]
@@ -646,9 +646,9 @@ class TestDelta
     @Test
     void testChangeColumnWithNoNameOnRuleAxis()
     {
-        NCube<String> cube1 = (NCube<String>) getTestRuleCube()
-        NCube<String> cube2 = (NCube<String>) getTestRuleCube()
-        NCube<String> orig = (NCube<String>) getTestRuleCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getTestRuleCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getTestRuleCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getTestRuleCube()
 
         assert cube1.numCells == 3
         Column col1 = cube1.getAxis('rule').columns[0]
@@ -669,9 +669,9 @@ class TestDelta
     @Test
     void testChangeColumnWithNameOnRuleAxis()
     {
-        NCube<String> cube1 = (NCube<String>) getTestCube()
-        NCube<String> cube2 = (NCube<String>) getTestCube()
-        NCube<String> orig = (NCube<String>) getTestCube()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
         assert cube1.numCells == 48
         Map coord = [age: 17, salary: 60000, log: 1000, state: 'OH', rule: 'init']
@@ -696,9 +696,9 @@ class TestDelta
     @Test
     void testDiscreteAddDefaultColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getDiscrete1D()
-        NCube<String> cube2 = (NCube<String>) getDiscrete1D()
-        NCube<String> orig = (NCube<String>) getDiscrete1D()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getDiscrete1D()
 
         Axis state = (Axis) cube1['state']
         assert state.size() == 2
@@ -720,7 +720,7 @@ class TestDelta
     @Test
     void testDiscreteRemoveDefaultColumn()
     {
-        NCube<String> orig = (NCube<String>) getDiscrete1D()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getDiscrete1D()
         orig.addColumn('state', null)
         orig.setCell('3', [:])  // associate '3' to default col
 
@@ -762,9 +762,9 @@ class TestDelta
     @Test
     void testRuleAddDefaultColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getRule1D()
-        NCube<String> cube2 = (NCube<String>) getRule1D()
-        NCube<String> orig = (NCube<String>) getRule1D()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getRule1D()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getRule1D()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getRule1D()
 
         Axis rules = (Axis) cube1['rule']
         assert rules.size() == 2
@@ -786,7 +786,7 @@ class TestDelta
     @Test
     void testRuleRemoveDefaultColumn()
     {
-        NCube<String> orig = (NCube<String>) getRule1D()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getRule1D()
         orig.addColumn('rule', null)
         orig.setCell('3', [:])  // associate '3' to default col
 
@@ -827,9 +827,9 @@ class TestDelta
     @Test
     void testUpdateRemoveRuleColumn()
     {
-        NCube<String> cube1 = (NCube<String>) getRule1D()
-        NCube<String> cube2 = (NCube<String>) getRule1D()
-        NCube<String> orig = (NCube<String>) getRule1D()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getRule1D()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getRule1D()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getRule1D()
 
         Axis rule = (Axis) cube1['rule']
         Column process = rule.findColumn('process')
@@ -847,7 +847,7 @@ class TestDelta
     @Test
     void testUpdateRemoveRuleDefaultColumn()
     {
-        NCube<String> orig = (NCube<String>) getRule1D()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getRule1D()
         orig.addColumn('rule', null)
         orig.setCell('3', [:])  // associate '3' to default col
 
@@ -870,820 +870,43 @@ class TestDelta
         assert !compatibleChange
     }
 
+    @Test
+    void testIncompatibleAxisType()
+    {
+        Axis axis1 = new Axis("state", AxisType.DISCRETE, AxisValueType.STRING, true)
+        Axis axis2 = new Axis("state", AxisType.RANGE, AxisValueType.STRING, true)
+        NCube ncube1 = new NCube("one")
+        ncube1.addAxis(axis1)
+        NCube ncube2 = new NCube("two")
+        ncube2.addAxis(axis2)
+        assert null == ncube1.getDelta(ncube2)
+    }
+
+    @Test
+    void testIncompatibleAxisValueType()
+    {
+        Axis axis1 = new Axis("state", AxisType.DISCRETE, AxisValueType.STRING, true)
+        Axis axis2 = new Axis("state", AxisType.DISCRETE, AxisValueType.LONG, true)
+        NCube ncube1 = new NCube("one")
+        ncube1.addAxis(axis1)
+        NCube ncube2 = new NCube("two")
+        ncube2.addAxis(axis2)
+        assert null == ncube1.getDelta(ncube2)
+    }
+
+    @Test
+    void testColumnDeltaToString()
+    {
+        ColumnDelta delta = new ColumnDelta(AxisType.DISCRETE, new Column('OH', 1), NCube.DELTA_COLUMN_ADD)
+        println delta
+        assert delta.toString().contains('DISCRETE')
+        assert delta.toString().contains('OH')
+        assert delta.toString().contains('added')
+    }
+
     static def getCellIgnoreRule(NCube ncube, Map coord)
     {
         Set<Long> idCoord = ncube.getCoordinateKey(coord)
         return ncube.getCellById(idCoord, coord, [:])
-    }
-
-    NCube getRule1D()
-    {
-        return NCube.fromSimpleJson('''\
-{
-  "ncube": "SimpleRule",
-  "axes": [
-    {
-      "name": "rule",
-      "type": "RULE",
-      "valueType": "EXPRESSION",
-      "preferredOrder": 1,
-      "hasDefault": false,
-      "columns": [
-        {
-          "id": 1000000000001,
-          "type": "exp",
-          "value": "true",
-          "name": "init"
-        },
-        {
-          "id": 1000000000002,
-          "type":"exp",
-          "value": "false",
-          "name": "process"
-        }
-      ]
-    }
-  ],
-  "cells": [
-    {
-      "id": [
-        1000000000001
-      ],
-      "type": "string",
-      "value": "1"
-    },
-    {
-      "id": [
-        1000000000002
-      ],
-      "type": "string",
-      "value": "2"
-    }
-  ]
-}''')
-    }
-
-    NCube getDiscrete1D()
-    {
-        return NCube.fromSimpleJson('''\
-{
-  "ncube": "SimpleDiscrete",
-  "axes": [
-    {
-      "name": "state",
-      "type": "DISCRETE",
-      "valueType": "STRING",
-      "preferredOrder": 1,
-      "hasDefault": false,
-      "columns": [
-        {
-          "id": 1000000000001,
-          "value": "OH"
-        },
-        {
-          "id": 1000000000002,
-          "value": "TX"
-        }
-      ]
-    }
-  ],
-  "cells": [
-    {
-      "id": [
-        1000000000001
-      ],
-      "type": "string",
-      "value": "1"
-    },
-    {
-      "id": [
-        1000000000002
-      ],
-      "type": "string",
-      "value": "2"
-    }
-  ]
-}''')
-    }
-
-    NCube getTestRuleCube()
-    {
-        return NCube.fromSimpleJson('''\
-{
-  "ncube": "ruleDeleteTest",
-  "axes": [
-    {
-      "name": "rule",
-      "type": "RULE",
-      "valueType": "EXPRESSION",
-      "preferredOrder": 1,
-      "hasDefault": false,
-      "fireAll": true,
-      "columns": [
-        {
-          "id": 1000000000001,
-          "type": "exp",
-          "name": "",
-          "value": "true"
-        },
-        {
-          "id": 1000000000002,
-          "type": "exp",
-          "name": "",
-          "value": "true"
-        },
-        {
-          "id": 1000000000003,
-          "type": "exp",
-          "name": "",
-          "value": "true"
-        }
-      ]
-    }
-  ],
-  "cells": [
-    {
-      "id": [
-        1000000000001
-      ],
-      "type": "string",
-      "value": "1"
-    },
-    {
-      "id": [
-        1000000000002
-      ],
-      "type": "string",
-      "value": "2"
-    },
-    {
-      "id": [
-        1000000000003
-      ],
-      "type": "string",
-      "value": "3"
-    }
-  ]
-}''')
-    }
-
-    NCube getTestCube()
-    {
-        return NCube.fromSimpleJson('''\
-{
-  "ncube": "testMerge",
-  "axes": [
-    {
-      "name": "Age",
-      "type": "RANGE",
-      "valueType": "LONG",
-      "preferredOrder": 0,
-      "hasDefault": false,
-      "fireAll": true,
-      "columns": [
-        {
-          "id": 1000000000001,
-          "value": [
-            16,
-            18
-          ]
-        },
-        {
-          "id": 1000000000002,
-          "value": [
-            18,
-            22
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Salary",
-      "type": "SET",
-      "valueType": "LONG",
-      "preferredOrder": 0,
-      "hasDefault": false,
-      "fireAll": true,
-      "columns": [
-        {
-          "id": 2000000000001,
-          "value": [
-            [
-              60000,
-              75000
-            ]
-          ]
-        },
-        {
-          "id": 2000000000002,
-          "value": [
-            [
-              75000,
-              100000
-            ]
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Log",
-      "type": "NEAREST",
-      "valueType": "LONG",
-      "preferredOrder": 0,
-      "hasDefault": false,
-      "fireAll": true,
-      "columns": [
-        {
-          "id": 3000000000001,
-          "type": "long",
-          "value": 100
-        },
-        {
-          "id": 3000000000002,
-          "type": "long",
-          "value": 1000
-        }
-      ]
-    },
-    {
-      "name": "rule",
-      "type": "RULE",
-      "valueType": "EXPRESSION",
-      "preferredOrder": 1,
-      "hasDefault": false,
-      "fireAll": true,
-      "columns": [
-        {
-          "id": 4000000000001,
-          "type": "exp",
-          "name": "init",
-          "value": "true"
-        },
-        {
-          "id": 4000000000002,
-          "type": "exp",
-          "name": "process",
-          "value": "true"
-        }
-      ]
-    },
-    {
-      "name": "State",
-      "type": "DISCRETE",
-      "valueType": "STRING",
-      "preferredOrder": 1,
-      "hasDefault": false,
-      "fireAll": true,
-      "columns": [
-        {
-          "id": 5000000000002,
-          "type": "string",
-          "value": "GA"
-        },
-        {
-          "id": 5000000000001,
-          "type": "string",
-          "value": "OH"
-        },
-        {
-          "id": 5000000000003,
-          "type": "string",
-          "value": "TX"
-        }
-      ]
-    }
-  ],
-  "cells": [
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000001,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "1"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000001,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "2"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000001,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "3"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000001,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "4"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000001,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "5"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000001,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "6"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000002,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "7"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000002,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "8"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000002,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "9"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000002,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "10"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000002,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "11"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000001,
-        3000000000002,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "12"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000001,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "13"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000001,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "14"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000001,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "15"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000001,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "16"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000001,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "17"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000001,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "18"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000002,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "19"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000002,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "20"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000002,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "21"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000002,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "22"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000002,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "23"
-    },
-    {
-      "id": [
-        1000000000001,
-        2000000000002,
-        3000000000002,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "24"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000001,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "25"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000001,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "26"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000001,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "27"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000001,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "28"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000001,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "29"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000001,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "30"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000002,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "31"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000002,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "32"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000002,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "33"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000002,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "34"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000002,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "35"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000001,
-        3000000000002,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "36"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000001,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "37"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000001,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "38"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000001,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "39"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000001,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "40"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000001,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "41"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000001,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "42"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000002,
-        4000000000001,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "43"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000002,
-        4000000000001,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "44"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000002,
-        4000000000001,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "45"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000002,
-        4000000000002,
-        5000000000001
-      ],
-      "type": "string",
-      "value": "46"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000002,
-        4000000000002,
-        5000000000002
-      ],
-      "type": "string",
-      "value": "47"
-    },
-    {
-      "id": [
-        1000000000002,
-        2000000000002,
-        3000000000002,
-        4000000000002,
-        5000000000003
-      ],
-      "type": "string",
-      "value": "48"
-    }
-  ]
-}''')
-
     }
 }

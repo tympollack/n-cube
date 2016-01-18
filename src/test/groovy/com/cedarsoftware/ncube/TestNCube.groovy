@@ -4800,6 +4800,43 @@ class TestNCube
         assert axis.name == 'system'
     }
 
+    @Test
+    void testRemoveCoordWithBadCoord()
+    {
+        NCube ncube = NCubeBuilder.getTestNCube2D(false)
+        assert null == ncube.removeCellById(new HashSet())
+    }
+
+    @Test
+    void testContainsCoordWithBadCoord()
+    {
+        NCube ncube = NCubeBuilder.getTestNCube2D(false)
+        assert false == ncube.containsCellById(null)
+    }
+
+    @Test
+    void testSetCellByIdWithBadCoord()
+    {
+        NCube ncube = NCubeBuilder.getTestNCube2D(false)
+        assert null == ncube.setCellById(1.0, null)
+    }
+
+    @Test
+    void testGetReferencedCubeNamesOnRuleCubeWithDefault()
+    {
+        NCube ncube = NCubeBuilder.getRuleWithOutboundRefs()
+        Set<String> refs = ncube.getReferencedCubeNames()
+        assert refs.size() == 2
+        assert refs.contains('test.available')
+        assert refs.contains('test.price')
+    }
+
+    @Test
+    void testHtmlFormatter()
+    {
+        NCube ncube5 = NCubeBuilder.get5DTestCube()
+        assert ncube5.toHtml() != null
+    }
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 

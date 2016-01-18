@@ -70,4 +70,14 @@ class TestColumn
         Column c2 = new Column("beta", 2)
         assert c1.hashCode() != c2.hashCode()
     }
+
+    @Test
+    void testDeleteRuleColumnBadInput()
+    {
+        NCube ncube = NCubeBuilder.getRule1D()
+        Axis rule = (Axis) ncube['rule']
+        assert rule.size() == 2
+        assert false == ncube.deleteColumn('rule', new Date())
+        assert rule.size() == 2
+    }
 }

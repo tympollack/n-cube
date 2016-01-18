@@ -243,4 +243,14 @@ return ret
     {
         GroovyExpression.addPrototypeExpImports(null, null, null)
     }
+
+    @Test
+    void testGetScopeKeys()
+    {
+        GroovyExpression exp = new GroovyExpression('return input.age', null, false)
+        Set<String> scopeKeys = new LinkedHashSet<>()
+        exp.getScopeKeys(scopeKeys)
+        assert scopeKeys.contains('age')
+        assert !scopeKeys.contains('AGE')
+    }
 }

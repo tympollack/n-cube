@@ -1049,11 +1049,11 @@ public class NCubeManager
     }
 
     /**
-     * Update a branch from the HEAD.  Changes from the HEAD are merged into the
-     * supplied branch.  If the merge cannot be done perfectly, an exception is
-     * thrown indicating the cubes that are in conflict.
+     * Update a branch cube the passed in branch.  It can be the String 'HEAD' or the name of any branch.  The
+     * cube with the passed in name will have the content from a cube with the same name, in the passed in branch,
+     * merged into itself and persisted.
      */
-    public static Map<String, Object> updateBranch(ApplicationID appId, String cubeName, String username)
+    public static Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String branch, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
@@ -1062,11 +1062,22 @@ public class NCubeManager
         ApplicationID headAppId = appId.asHead();
 
         Map<String, Object> options = new HashMap<>();
-        options.put(SEARCH_ACTIVE_RECORDS_ONLY, true);
+        options.put(SEARCH_ACTIVE_RECORDS_ONLY, false);
+        options.put(SEARCH_EXACT_MATCH_NAME, true);
         List<NCubeInfoDto> records = search(appId, cubeName, null, options);
+
+        List<NCubeInfoDto> updates = new ArrayList<>();
+        List<NCubeInfoDto> dtosMerged = new ArrayList<>();
+        Map<String, Map> conflicts = new CaseInsensitiveMap<>();
+        Map<String, Object> ret = new LinkedHashMap<>();
+
+        ret.put(BRANCH_MERGES, dtosMerged);
+        ret.put(BRANCH_CONFLICTS, conflicts);
+
         if (records.isEmpty())
         {
-            return new LinkedHashMap<>();
+            ret.put(BRANCH_UPDATES, new ArrayList());
+            return ret;
         }
         if (records.size() > 1)
         {
@@ -1080,9 +1091,6 @@ public class NCubeManager
             branchRecordMap.put(info.name, info);
         }
 
-        List<NCubeInfoDto> updates = new ArrayList<>();
-        List<NCubeInfoDto> dtosMerged = new ArrayList<>();
-        Map<String, Map> conflicts = new CaseInsensitiveMap<>();
         List<NCubeInfoDto> headRecords = search(headAppId, cubeName, null, options);
 
         for (NCubeInfoDto head : headRecords)
@@ -1136,13 +1144,8 @@ public class NCubeManager
             ids[i++] = dto.id;
         }
         finalUpdates.addAll(getPersister().pullToBranch(appId, ids, username));
-
         clearCache(appId);
-
-        Map<String, Object> ret = new LinkedHashMap<>();
         ret.put(BRANCH_UPDATES, finalUpdates);
-        ret.put(BRANCH_MERGES, dtosMerged);
-        ret.put(BRANCH_CONFLICTS, conflicts);
         return ret;
     }
 

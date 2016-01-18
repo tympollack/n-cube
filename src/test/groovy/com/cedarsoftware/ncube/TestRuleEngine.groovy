@@ -732,6 +732,8 @@ class TestRuleEngine
         {
             String html = binding.toHtml()
             assert html.contains('medium /')
+            assert binding.getValue() != null
+            assert binding.getCoordinate().size() > 0
         }
     }
 

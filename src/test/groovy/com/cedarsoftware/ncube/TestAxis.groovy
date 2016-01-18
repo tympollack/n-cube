@@ -2005,6 +2005,21 @@ class TestAxis
         assert exp.isCacheable()
     }
 
+    @Test
+    void testAddAxisWithSameIdTwice()
+    {
+        Axis axis1 = new Axis('state', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.SORTED, 1)
+        Axis axis2 = new Axis('bu', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.SORTED, 1)
+        NCube ncube = new NCube('test')
+        ncube.addAxis(axis1)
+        try
+        {
+            ncube.addAxis(axis2)
+        }
+        catch (IllegalArgumentException e)
+        { }
+    }
+
     private static boolean isValidRange(Axis axis, Range range)
     {
         try

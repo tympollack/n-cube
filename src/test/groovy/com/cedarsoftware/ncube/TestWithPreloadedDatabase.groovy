@@ -243,6 +243,12 @@ abstract class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 
+        // Re-try same work as above but use the single-cube updateBranchCube() API
+        result = NCubeManager.updateBranchCube(branch1, cube.getName(), ApplicationID.HEAD, USER_ID)
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_MERGES].size() == 0
+        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
+
         //  update didn't affect item added locally
         dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(1, dtos.length)
@@ -323,12 +329,32 @@ abstract class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 
+        result = NCubeManager.updateBranchCube(branch1, cube.getName(), ApplicationID.HEAD, USER_ID)
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_MERGES].size() == 0
+        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
+
         ApplicationID headId = branch1.asHead()
         assertEquals(0, NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false]).size())
     }
 
     @Test
     void testUpdateBranchWhenCubeWasDeletedInDifferentBranchAndNotChangedInOurBranch()
+    {
+        testUpdateBranchWhenSingleCubeWasDeletedinDifferentBranchAndNotChangedInOurBranch({
+           return NCubeManager.updateBranch(branch1, USER_ID)
+        })
+    }
+
+    @Test
+    void testUpdateBranchWhenCubeWasDeletedInDifferentBranchAndNotChangedInOurBranch2()
+    {
+        testUpdateBranchWhenSingleCubeWasDeletedinDifferentBranchAndNotChangedInOurBranch({
+            return NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD, USER_ID)
+        })
+    }
+
+    private void testUpdateBranchWhenSingleCubeWasDeletedinDifferentBranchAndNotChangedInOurBranch(Closure closure)
     {
         preloadCubes(head, "test.branch.1.json")
 
@@ -341,7 +367,8 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, dtos.length)
         assertEquals(1, NCubeManager.commitBranch(branch2, dtos, USER_ID).size())
 
-        Map<String, Object> result = NCubeManager.updateBranch(branch1, USER_ID)
+        Map<String, Object> result = closure()
+
         assert result[NCubeManager.BRANCH_UPDATES].size() == 1
         List updates = result[NCubeManager.BRANCH_UPDATES]
         assert updates.size() == 1
@@ -366,6 +393,11 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, dtos.length)
         assertEquals(1, NCubeManager.commitBranch(branch2, dtos, USER_ID).size())
         Map<String, Object> result = NCubeManager.updateBranch(branch1, USER_ID)
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_MERGES].size() == 0
+        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
+
+        result = NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD, USER_ID)
         assert result[NCubeManager.BRANCH_UPDATES].size() == 0
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
@@ -1018,6 +1050,10 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestAge").size())
 
         Map<String, Object> result = NCubeManager.updateBranch(branch1, USER_ID)
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_MERGES].size() == 0
+        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
+        result = NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD, USER_ID)
         assert result[NCubeManager.BRANCH_UPDATES].size() == 0
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
@@ -2654,7 +2690,11 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, dtos.length)
 
         Map<String, Object> results = NCubeManager.updateBranch(branch1, USER_ID)
+        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 1
 
+        results = NCubeManager.updateBranchCube(branch1, cube.name, ApplicationID.HEAD, USER_ID)
         assert results[NCubeManager.BRANCH_UPDATES].size() == 0
         assert results[NCubeManager.BRANCH_MERGES].size() == 0
         assert results[NCubeManager.BRANCH_CONFLICTS].size() == 1
@@ -2692,7 +2732,11 @@ abstract class TestWithPreloadedDatabase
         assertEquals(1, dtos.length)
 
         Map<String, Object> result = NCubeManager.updateBranch(branch1, USER_ID)
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_MERGES].size() == 0
+        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 1
 
+        result = NCubeManager.updateBranchCube(branch1, cube.name, ApplicationID.HEAD, USER_ID)
         assert result[NCubeManager.BRANCH_UPDATES].size() == 0
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 1
@@ -2799,6 +2843,21 @@ abstract class TestWithPreloadedDatabase
     @Test
     void testUpdateBranchWithItemThatWasChangedOnHeadAndInBranchWithNonConflictingChanges()
     {
+        testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts({
+            NCubeManager.updateBranch(branch1, USER_ID)
+        })
+    }
+
+    @Test
+    void testUpdateBranchWithItemThatWasChangedOnHeadAndInBranchWithNonConflictingChanges2()
+    {
+        testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts({
+            NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD, USER_ID)
+        })
+    }
+
+    private void testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts(Closure closure)
+    {
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
@@ -2807,9 +2866,9 @@ abstract class TestWithPreloadedDatabase
 
         NCube cube = NCubeManager.getCube(branch2, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
-        cube.removeCell([Code : 10.0])
+        cube.removeCell([Code: 10.0])
         assertEquals(2, cube.getCellMap().size())
-        cube.setCell(18L, [Code : 15])
+        cube.setCell(18L, [Code: 15])
         NCubeManager.updateCube(branch2, cube, USER_ID)
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
@@ -2819,30 +2878,30 @@ abstract class TestWithPreloadedDatabase
 
         cube = NCubeManager.getCube(head, "TestBranch")
 
-        assertEquals('ZZZ', cube.getCell([Code : -15]))
-        assertEquals('ABC', cube.getCell([Code : -10]))
-        assertEquals(18L, cube.getCell([Code : 15]))
-        assertEquals('ZZZ', cube.getCell([Code : 10]))
+        assertEquals('ZZZ', cube.getCell([Code: -15]))
+        assertEquals('ABC', cube.getCell([Code: -10]))
+        assertEquals(18L, cube.getCell([Code: 15]))
+        assertEquals('ZZZ', cube.getCell([Code: 10]))
         assertEquals(3, cube.getCellMap().size())
 
 
         cube = NCubeManager.getCube(branch1, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
-        cube.removeCell([Code : -10])
+        cube.removeCell([Code: -10])
         assertEquals(2, cube.getCellMap().size())
-        cube.setCell(-19L, [Code : -15])
+        cube.setCell(-19L, [Code: -15])
         assertEquals(3, cube.getCellMap().size())
         NCubeManager.updateCube(branch1, cube, USER_ID)
 
         dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(1, dtos.length)
 
-        NCubeManager.updateBranch(branch1, USER_ID)
+        closure()
         cube = NCubeManager.getCube(branch1, "TestBranch")
-        assertEquals(-19L, cube.getCell([Code : -15]))
-        assertEquals('ZZZ', cube.getCell([Code : -10]))
-        assertEquals(18L, cube.getCell([Code : 15]))
-        assertEquals('ZZZ', cube.getCell([Code : 10]))
+        assertEquals(-19L, cube.getCell([Code: -15]))
+        assertEquals('ZZZ', cube.getCell([Code: -10]))
+        assertEquals(18L, cube.getCell([Code: 15]))
+        assertEquals('ZZZ', cube.getCell([Code: 10]))
         assertEquals(3, cube.getCellMap().size())
     }
 
