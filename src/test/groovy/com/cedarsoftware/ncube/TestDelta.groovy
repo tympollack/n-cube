@@ -898,7 +898,6 @@ class TestDelta
     void testColumnDeltaToString()
     {
         ColumnDelta delta = new ColumnDelta(AxisType.DISCRETE, new Column('OH', 1), NCube.DELTA_COLUMN_ADD)
-        println delta
         assert delta.toString().contains('DISCRETE')
         assert delta.toString().contains('OH')
         assert delta.toString().contains('added')
