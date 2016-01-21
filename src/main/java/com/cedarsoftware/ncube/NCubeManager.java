@@ -1033,6 +1033,58 @@ public class NCubeManager
         return null;
     }
 
+    private static NCube attemptMerge(ApplicationID appId, Map<String, Map> errors, String message, NCubeInfoDto info, NCubeInfoDto other)
+    {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("message", message);
+        map.put("sha1", info.sha1);
+        map.put("headSha1", info.headSha1);
+
+        long branchCubeId = (long) Converter.convert(info.id, long.class);
+        long otherCubeId = (long) Converter.convert(other.id, long.class);
+        NCube branchCube = getPersister().loadCubeById(branchCubeId);
+        NCube otherCube = getPersister().loadCubeById(otherCubeId);
+        NCube<?> baseCube;
+
+        if (info.headSha1 != null)
+        {   // Treat both as based on the same HEAD cube
+            baseCube = getPersister().loadCubeBySha1(appId, info.name, info.headSha1);
+        }
+        else
+        {   // Treat both as based on the same cube with same axes, no columns and no cells
+            // This causes a complete 'build-up' delta.  If they are both merge compatible,
+            // then they will merge.  This allows a new cube that has not yet been committed
+            // to HEAD to be merged into.
+            baseCube = branchCube.duplicate(info.name);
+            baseCube.clearCells();
+            for (Axis axis : baseCube.getAxes())
+            {
+                axis.getColumnsInternal().clear();
+            }
+        }
+
+        Map delta1 = baseCube.getDelta(branchCube);
+        Map delta2 = baseCube.getDelta(otherCube);
+
+        if (NCube.areDeltaSetsCompatible(delta1, delta2))
+        {
+            otherCube.mergeDeltaSet(delta1);
+            return otherCube;
+        }
+
+        List<Delta> diff = branchCube.getDeltaDescription(otherCube);
+        if (diff.size() > 0)
+        {
+            map.put("diff", diff);
+        }
+        else
+        {
+            return branchCube;
+        }
+        errors.put(info.name, map);
+        return null;
+    }
+
     /**
      * Rollback the passed in list of n-cubes.  Each one will be returned to the state is was
      * when the branch was created.  This is an insert cube (maintaining revision history) for
@@ -1059,12 +1111,13 @@ public class NCubeManager
         appId.validateBranchIsNotHead();
         appId.validateStatusIsNotRelease();
 
-        ApplicationID headAppId = appId.asHead();
+        ApplicationID srcAppId = appId.asBranch(branch);
 
         Map<String, Object> options = new HashMap<>();
         options.put(SEARCH_ACTIVE_RECORDS_ONLY, false);
         options.put(SEARCH_EXACT_MATCH_NAME, true);
         List<NCubeInfoDto> records = search(appId, cubeName, null, options);
+        List<NCubeInfoDto> srcRecords = search(srcAppId, cubeName, null, options);
 
         List<NCubeInfoDto> updates = new ArrayList<>();
         List<NCubeInfoDto> dtosMerged = new ArrayList<>();
@@ -1074,7 +1127,7 @@ public class NCubeManager
         ret.put(BRANCH_MERGES, dtosMerged);
         ret.put(BRANCH_CONFLICTS, conflicts);
 
-        if (records.isEmpty())
+        if (records.isEmpty() || srcRecords.isEmpty())
         {
             ret.put(BRANCH_UPDATES, new ArrayList());
             return ret;
@@ -1083,54 +1136,64 @@ public class NCubeManager
         {
             throw new IllegalArgumentException("Name passed in matches more than one n-cube, no update performed. Name: " + cubeName + ", app: " + appId);
         }
-
-        Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>();
-
-        for (NCubeInfoDto info : records)
+        if (srcRecords.size() > 1)
         {
-            branchRecordMap.put(info.name, info);
+            throw new IllegalArgumentException("Name passed in matches more than one n-cube in branch (" + branch + "), no update performed. Name: " + cubeName + ", app: " + appId);
         }
 
-        List<NCubeInfoDto> headRecords = search(headAppId, cubeName, null, options);
+        NCubeInfoDto srcDto = srcRecords.get(0);    // Exact match, only 1
+        NCubeInfoDto info = records.get(0); // Exact match, only 1
 
-        for (NCubeInfoDto head : headRecords)
-        {
-            NCubeInfoDto info = branchRecordMap.get(head.name);
+        long infoRev = (long) Converter.convert(info.revision, long.class);
+        long srcRev = (long) Converter.convert(srcDto.revision, long.class);
+        boolean activeStatusMatches = (infoRev < 0) == (srcRev < 0);
 
-            long infoRev = (long) Converter.convert(info.revision, long.class);
-            long headRev = (long) Converter.convert(head.revision, long.class);
-            boolean activeStatusMatches = (infoRev < 0) == (headRev < 0);
-
+        if (branch.equalsIgnoreCase(ApplicationID.HEAD))
+        {   // Update from HEAD branch is done differently than update from neighbor branch
             // Did branch change?
             if (!info.isChanged())
             {   // No change on branch
-                if (!activeStatusMatches || !StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                if (!activeStatusMatches || !StringUtilities.equalsIgnoreCase(info.headSha1, srcDto.sha1))
                 {   // 1. The active/deleted statuses don't match, or
                     // 2. HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
                     // In both cases, the cube was marked NOT changed in the branch, so safe to update.
-                    updates.add(head);
+                    updates.add(srcDto);
                 }
             }
-            else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
+            else if (StringUtilities.equalsIgnoreCase(info.sha1, srcDto.sha1))
             {   // If branch is 'changed' but has same SHA-1 as head, then see if branch needs Fast-Forward
-                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, srcDto.sha1))
                 {   // Fast-Forward branch
                     // Update HEAD SHA-1 on branch directly (no need to insert)
-                    getPersister().updateBranchCubeHeadSha1((Long) Converter.convert(info.id, Long.class), head.sha1);
+                    getPersister().updateBranchCubeHeadSha1((Long) Converter.convert(info.id, Long.class), srcDto.sha1);
                 }
             }
             else
             {
-                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, srcDto.sha1))
                 {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
                     String message = "Cube was changed in both branch and HEAD";
-                    NCube cube = checkForConflicts(appId, conflicts, message, info, head, true);
+                    NCube cube = checkForConflicts(appId, conflicts, message, info, srcDto, true);
 
                     if (cube != null)
                     {
-                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, head.sha1, username);
+                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, srcDto.sha1, username);
                         dtosMerged.add(mergedDto);
                     }
+                }
+            }
+        }
+        else
+        {
+            if (!StringUtilities.equalsIgnoreCase(info.sha1, srcDto.sha1))
+            {   // Different SHA-1's
+                String message = "Cube in " + appId.getBranch() + " conflicts with cube in " + branch;
+                NCube cube = attemptMerge(appId, conflicts, message, info, srcDto);
+
+                if (cube != null)
+                {
+                    NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, info.headSha1, username);
+                    dtosMerged.add(mergedDto);
                 }
             }
         }

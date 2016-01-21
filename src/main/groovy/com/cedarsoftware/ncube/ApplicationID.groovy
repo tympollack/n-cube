@@ -220,6 +220,21 @@ class ApplicationID
         return new ApplicationID(tenant, app, version, status, HEAD)
     }
 
+    /**
+     * Convert an ApplicationID from one branch to another
+     * @param bran String destination branch name
+     * @return new ApplicationID in terms of the passed in branch (bran)
+     */
+    ApplicationID asBranch(String bran)
+    {
+        return new ApplicationID(tenant, app, version, status, bran)
+    }
+
+    /**
+     * Convert an Application from one version to another
+     * @param ver String destination version
+     * @return new ApplicationID in terms of the passed in version (ver)
+     */
     ApplicationID asVersion(String ver)
     {
         if (version.equals(ver))
@@ -229,6 +244,9 @@ class ApplicationID
         return new ApplicationID(tenant, app, ver, status, branch)
     }
 
+    /**
+     * Ensure that all components of the ApplicationID are valid (with their specs in terms of allowable characters.)
+     */
     void validate()
     {
         validateTenant(tenant)

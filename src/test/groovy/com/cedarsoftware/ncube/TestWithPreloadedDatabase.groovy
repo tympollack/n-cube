@@ -3460,6 +3460,82 @@ abstract class TestWithPreloadedDatabase
         manager.removeBranches([zero, head] as ApplicationID[])
     }
 
+    @Test
+    void testMergeSuccessfullyFromOtherBranchNoHeadCube()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(branch1, "test.branch.3.json")
+        preloadCubes(branch2, "test.branch.3.json")
+
+        NCube cube = NCubeManager.getNCubeFromResource("test.branch.3.json")
+        cube.setCell('FRI', [code:15])
+        NCubeManager.updateCube(branch2, cube, USER_ID)
+
+        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch, USER_ID)
+        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert results[NCubeManager.BRANCH_MERGES].size() == 1
+        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+        NCube merged = NCubeManager.getCube(branch1, cube.name)
+        assert 'FRI' == merged.getCell([code:15])
+    }
+
+    @Test
+    void testMergeSuccessfullyFromOtherBranch()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(branch1, "test.branch.3.json")
+        preloadCubes(branch2, "test.branch.3.json")
+        preloadCubes(head, "test.branch.3.json")
+
+        NCube cube = NCubeManager.getNCubeFromResource("test.branch.3.json")
+
+        Map results = NCubeManager.updateBranchCube(branch1, cube.name, head.branch, USER_ID)
+        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+
+        cube.setCell('FRI', [code:15])
+        NCubeManager.updateCube(branch2, cube, USER_ID)
+
+        results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch, USER_ID)
+        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert results[NCubeManager.BRANCH_MERGES].size() == 1
+        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+        NCube merged = NCubeManager.getCube(branch1, cube.name)
+        assert 'FRI' == merged.getCell([code:15])
+    }
+
+    @Test
+    void testMergeConflictFromOtherBranch()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(branch1, "test.branch.3.json")
+        preloadCubes(branch2, "test.branch.3.json")
+
+        NCube cube = NCubeManager.getNCubeFromResource("test.branch.3.json")
+        cube.setCell('x', [code:0])
+        NCubeManager.updateCube(branch2, cube, USER_ID)
+
+        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch, USER_ID)
+        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 1
+    }
+
+    @Test
+    void testMergeNoCubeInOtherBranch()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(branch1, "test.branch.3.json")
+
+        NCube cube = NCubeManager.getNCubeFromResource("test.branch.3.json")
+
+        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch, USER_ID)
+        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+    }
+
     /**
      * Get List<NCubeInfoDto> for the given ApplicationID, filtered by the pattern.  If using
      * JDBC, it will be used with a LIKE clause.  For Mongo...TBD.
@@ -3474,9 +3550,4 @@ abstract class TestWithPreloadedDatabase
 
         return NCubeManager.search(appId, pattern, null, options)
     }
-
-
-
-
-
 }

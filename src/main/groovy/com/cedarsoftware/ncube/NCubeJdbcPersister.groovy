@@ -6,6 +6,7 @@ import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
+import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
@@ -628,7 +629,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             byte[] testData = row.getBytes(TEST_DATA_BIN)
             long now = System.currentTimeMillis()
             revision = revision < 0 ? revision - 1 : revision + 1
-            result = insertCube(c, appId, cube, revision, testData, "committed", true, headSha1, now, username, 'commitMergedCubeToBranch')
+            result = insertCube(c, appId, cube, revision, testData, "merged", true, headSha1, now, username, 'commitMergedCubeToBranch')
         })
         return result
     }
@@ -669,8 +670,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             byte[] cubeData = cube.getCubeAsGzipJsonBytes()
             String sha1 = cube.sha1()
 
-            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "committed", false, sha1, null, now, username, methodName)
-            result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, "Cube committed", false, sha1, sha1, now, username,  methodName)
+            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "merged, committed", false, sha1, null, now, username, methodName)
+            result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, "merged", false, sha1, sha1, now, username,  methodName)
         })
         return result
     }
@@ -1037,34 +1038,40 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
         namePattern = convertPattern(buildName(c, namePattern))
         boolean hasNamePattern = StringUtilities.hasContent(namePattern)
-        String nameCondition = ''
+        String nameCondition1 = ''
+        String nameCondition2 = ''
         Map map = appId as Map
         map.putAll([name:namePattern, changed:changedRecordsOnly])
 
         if (hasNamePattern)
         {
-            nameCondition = ' AND ' + buildNameCondition(c, 'a.n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
+            nameCondition1 = ' AND ' + buildNameCondition(c, 'n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
+            nameCondition2 = ' AND ' + buildNameCondition(c, 'm.n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
         }
 
-        String revisionCondition = activeRecordsOnly ? ' AND a.revision_number >= 0' : deletedRecordsOnly ? ' AND a.revision_number < 0' : ''
-        String changedCondition = changedRecordsOnly ? ' AND a.changed = :changed' : ''
-        String testCondition = includeTestData ? ', a.test_data_bin' : ''
-        String cubeCondition = includeCubeData ? ', a.cube_value_bin' : ''
-        String notesCondition = includeNotes ? ', a.notes_bin' : ''
+        String revisionCondition = activeRecordsOnly ? ' AND n.revision_number >= 0' : deletedRecordsOnly ? ' AND n.revision_number < 0' : ''
+        String changedCondition = changedRecordsOnly ? ' AND n.changed = :changed' : ''
+        String testCondition = includeTestData ? ', n.test_data_bin' : ''
+        String cubeCondition = includeCubeData ? ', n.cube_value_bin' : ''
+        String notesCondition = includeNotes ? ', n.notes_bin' : ''
 
         Sql sql = new Sql(c)
+
         String select = '''\
-/* ''' + methodName + ''' */ SELECT a.n_cube_id, a.n_cube_nm, a.app_cd, a.version_no_cd, a.status_cd, a.create_dt, a.create_hid,
-       a.revision_number, a.branch_id, a.changed, a.sha1, a.head_sha1''' + testCondition + cubeCondition + notesCondition + '''\
- FROM n_cube a
- LEFT OUTER JOIN n_cube b
- ON abs(a.revision_number) < abs(b.revision_number) AND ''' + nameCompareCondition(c) + ''' AND a.app_cd = b.app_cd
- AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
- WHERE a.app_cd = :app AND a.status_cd = :status AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ')
- AND a.branch_id = :branch AND b.n_cube_nm is NULL''' +
-                nameCondition +
-                revisionCondition +
-                changedCondition
+/* ''' + methodName + ''' */ SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1 ''' +
+testCondition +
+cubeCondition +
+notesCondition + '''\
+ FROM n_cube n,
+ ( SELECT n_cube_nm, max(abs(revision_number)) AS max_rev
+  FROM n_cube
+  WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch ''' +
+ nameCondition1 + '''\
+ GROUP BY n_cube_nm ) m
+ WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND n.tenant_cd = RPAD(:tenant, 10, ' ') AND n.branch_id = :branch''' +
+revisionCondition +
+changedCondition +
+nameCondition2
 
         if (max >= 1)
         {   // Use pre-closure to fiddle with batch fetchSize and to monitor row count
@@ -1276,25 +1283,17 @@ WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube A
         Map map = appId as Map
         map.cube = buildName(c, cubeName)
         Sql sql = new Sql(c)
-        String testData = null
 
-        sql.eachRow(map, """\
-/* getTestData */ SELECT a.test_data_bin
- FROM n_cube a
- LEFT OUTER JOIN n_cube b
- ON abs(a.revision_number) < abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
- AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
- WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :cube AND a.app_cd = :app AND a.status_cd = :status
- AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL
-""", { ResultSet row ->
-            byte[] testBytes = row.getBytes(TEST_DATA_BIN)
-            testData = testBytes == null ? "" : new String(testBytes, "UTF-8")
-        })
+        GroovyRowResult row = sql.firstRow(map, "/* getTestData */ SELECT test_data_bin FROM n_cube " +
+                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
+                "ORDER BY abs(revision_number) DESC")
 
-        if (testData == null)
+        if (row == null)
         {
             throw new IllegalArgumentException("Unable to fetch test data, cube: " + cubeName + ", app: " + appId + " does not exist.")
         }
+        byte[] testBytes = row['test_data_bin'] as byte[]
+        String testData = testBytes == null ? "" : new String(testBytes, "UTF-8")
         return testData
     }
 
@@ -1405,6 +1404,7 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         return result
     }
 
+
     Long getMaxRevision(Connection c, ApplicationID appId, String cubeName, String methodName)
     {
         Map map = appId as Map
@@ -1412,16 +1412,12 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         Sql sql = new Sql(c)
         Long rev = null
 
-        String str = """\
-/* """ + methodName + """.maxRev */ SELECT a.revision_number
- FROM n_cube a
- LEFT OUTER JOIN n_cube b
- ON abs(a.revision_number) < abs(b.revision_number) AND """ + nameCompareCondition(c) + """ AND a.app_cd = b.app_cd
- AND a.status_cd = b.status_cd AND a.version_no_cd = b.version_no_cd AND a.tenant_cd = b.tenant_cd AND a.branch_id = b.branch_id
- WHERE """ + buildNameCondition(c, "a.n_cube_nm") + """ = :cube AND a.app_cd = :app AND a.status_cd = :status
- AND a.version_no_cd = :version AND a.tenant_cd = RPAD(:tenant, 10, ' ') AND a.branch_id = :branch AND b.n_cube_nm is NULL
-"""
-        sql.eachRow(str, map, 0, 1, { ResultSet row ->
+        String select = '''\
+/* ''' + methodName + '''.maxRev */ SELECT revision_number FROM n_cube
+ WHERE ''' + buildNameCondition(c, "n_cube_nm") + ''' = :cube AND app_cd = :app AND status_cd = :status AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
+ ORDER BY abs(revision_number) DESC'''
+
+        sql.eachRow(select, map, 0, 1, { ResultSet row ->
             rev = row.getLong('revision_number')
         })
         return rev
