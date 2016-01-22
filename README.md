@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.15</version>
+  <version>3.4.16</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,8 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.16
+ * Bug fix: getTestDate() failing.  Need to use JDBC-style API to access test_data_bin instead of pure Groovy approach of acecss (row.getBytes() not row['test_data_bin']) 
 * 3.4.15
  * Enhancement: Cubes can now be merged from one branch to another (before merges were only between HEAD and branch).
  * Changed persister to use 'sub-select' statements instead of 'left outer joins' when locating highest revision number cube.  Seeing which of the two approaches is faster in a product environment.

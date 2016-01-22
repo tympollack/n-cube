@@ -1,4 +1,5 @@
 package com.cedarsoftware.ncube
+
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.Converter
@@ -6,7 +7,6 @@ import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
-import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
@@ -1283,18 +1283,24 @@ WHERE app_cd = :app AND """ + buildNameCondition(c, "n_cube_nm") + """ = :cube A
         Map map = appId as Map
         map.cube = buildName(c, cubeName)
         Sql sql = new Sql(c)
+        byte[] testBytes = null
+        boolean found = false
 
-        GroovyRowResult row = sql.firstRow(map, "/* getTestData */ SELECT test_data_bin FROM n_cube " +
-                "WHERE " + buildNameCondition(c, "n_cube_nm") + " = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch " +
-                "ORDER BY abs(revision_number) DESC")
+        String select = '''\
+/* getTestData */ SELECT test_data_bin FROM n_cube
+ WHERE ''' + buildNameCondition(c, 'n_cube_nm') + ''' = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
+ ORDER BY abs(revision_number) DESC'''
 
-        if (row == null)
+        sql.eachRow(select, map, 0, 1, { ResultSet row ->
+            testBytes = row.getBytes(TEST_DATA_BIN)
+            found = true
+        })
+
+        if (!found)
         {
-            throw new IllegalArgumentException("Unable to fetch test data, cube: " + cubeName + ", app: " + appId + " does not exist.")
+            throw new IllegalArgumentException('Could not fetch test data, cube: ' + cubeName + ' does not exist in app: ' + appId)
         }
-        byte[] testBytes = row['test_data_bin'] as byte[]
-        String testData = testBytes == null ? "" : new String(testBytes, "UTF-8")
-        return testData
+        return testBytes == null ? '' : new String(testBytes, "UTF-8")
     }
 
     boolean updateNotes(Connection c, ApplicationID appId, String cubeName, String notes)
