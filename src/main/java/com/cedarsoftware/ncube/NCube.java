@@ -7,19 +7,46 @@ import com.cedarsoftware.ncube.exception.RuleStop;
 import com.cedarsoftware.ncube.formatters.HtmlFormatter;
 import com.cedarsoftware.ncube.formatters.JsonFormatter;
 import com.cedarsoftware.ncube.util.LongHashSet;
-import com.cedarsoftware.util.*;
+import com.cedarsoftware.util.ArrayUtilities;
+import com.cedarsoftware.util.ByteUtilities;
+import com.cedarsoftware.util.CaseInsensitiveMap;
+import com.cedarsoftware.util.CaseInsensitiveSet;
+import com.cedarsoftware.util.EncryptionUtilities;
+import com.cedarsoftware.util.IOUtilities;
+import com.cedarsoftware.util.MapUtilities;
+import com.cedarsoftware.util.ReflectionUtils;
+import com.cedarsoftware.util.StringUtilities;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
 import groovy.util.MapEntry;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -57,7 +84,7 @@ public class NCube<T>
     public static final String DELTA_COLUMN_ADD = "~column-added~";
     public static final String DELTA_COLUMN_REMOVE = "~column-removed~";
     public static final String DELTA_COLUMN_CHANGE = "~column-changed~";
-    static final String DELTA_CELL_REMOVE = "~remove-cell~";
+    public static final String DELTA_CELL_REMOVE = "~remove-cell~";
     private String name;
     private String sha1;
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>();
@@ -121,7 +148,7 @@ public class NCube<T>
         if (value instanceof CommandCell)
         {
             CommandCell cmd = (CommandCell) value;
-            value = executeExpression(prepareExecutionContext(new HashMap(), new HashMap()), cmd);
+            value = executeExpression(prepareExecutionContext(new HashMap<String, Object>(), new HashMap()), cmd);
         }
         return value;
     }
@@ -299,21 +326,23 @@ public class NCube<T>
 
     /**
      * Clear (remove) the cell at the given coordinate.  The cell is dropped
-     * from the internal sparse storage.
+     * from the internal sparse storage. After this call, containsCell(coord) for the
+     * same cell will return false.
      * @param coordinate Map coordinate of Cell to remove.
      * @return value of cell that was removed.
-     * For RULE axes, the name of the Rule Axis must be
-     * bound to a rule name (e.g. the 'name' attribute on the Column expression).
+     * For RULE axes, the name of the Rule Axis must be bound to a rule name (e.g. the 'name'
+     * attribute on the Column expression).  If you need to distinguish between a null
+     * stored in a null, versus nothing being stored there, use containsCell() first.
      */
     public T removeCell(final Map<String, Object> coordinate)
     {
         clearSha1();
-        return cells.remove(getCoordinateKey(validateCoordinate(coordinate, true)));
+        return cells.remove(getCoordinateKey(coordinate));
     }
 
     /**
      * Clear a cell directly from the cell sparse-matrix specified by the passed in Column
-     * IDs. After this call, containsCell() for the same coordinate would return false.
+     * IDs. After this call, containsCell(coord) for the same coordinate would return false.
      */
     public T removeCellById(final Set<Long> coordinate)
     {
@@ -327,6 +356,9 @@ public class NCube<T>
     }
 
     /**
+     * Test to see if a value is mapped at the given coordinate.  This API ignores any
+     * n-cube level default value.  If you want that to be considered, use containsCell
+     * with boolean true as the 2nd argument.
      * @param coordinate Map (coordinate) of a cell
      * @return boolean true if a cell has been mapped at the specified coordinate,
      * false otherwise.  For RULE axes, the name of the Rule Axis must be
@@ -338,6 +370,9 @@ public class NCube<T>
     }
 
     /**
+     * Test to see if a value is mapped at the given coordinate.  The 2nd argument allows
+     * you to take into account the n-cube level Default Cell value or not. Set to true
+     * to have the default value considered, false otherwise.
      * @param coordinate Map (coordinate) of a cell
      * @return 1. boolean true if a defaultValue is set (non-null) and useDefault is true
      * 2. boolean true if a cell is located at the specified coordinate in the
@@ -354,7 +389,7 @@ public class NCube<T>
                 return true;
             }
         }
-        Set<Long> cols = getCoordinateKey(validateCoordinate(coordinate, true));
+        Set<Long> cols = getCoordinateKey(coordinate);
         return cells.containsKey(cols);
     }
 
@@ -368,10 +403,6 @@ public class NCube<T>
     public boolean containsCellById(final Collection<Long> coordinate)
     {
         Set<Long> ids = ensureFullCoordinate(coordinate);
-        if (ids == null)
-        {
-            return false;
-        }
         return cells.containsKey(ids);
     }
 
@@ -390,7 +421,7 @@ public class NCube<T>
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.");
         }
         clearSha1();
-        return cells.put(getCoordinateKey(validateCoordinate(coordinate, true)), value);
+        return cells.put(getCoordinateKey(coordinate), value);
     }
 
     /**
@@ -418,13 +449,25 @@ public class NCube<T>
      * CommandCell instances for example, as opposed to the return value
      * of the executed CommandCell.
      */
-    public T getCellByIdNoExecute(final Collection<Long> coordinate)
+    public T getCellByIdNoExecute(final Set<Long> coordinate)
     {
         Set<Long> ids = ensureFullCoordinate(coordinate);
-        if (ids == null)
-        {
-            return null;
-        }
+        return cells.get(ids);
+    }
+
+    /**
+     * Fetch the actual 'formula' at the given cell.  In the case of primitives,
+     * the primitive will be returned.  However, in the case of an Expression,
+     * the Expression will be returned, not executed.
+     * @return value stored at the given location.  Since this method will return
+     * null when there is no value in an empty (unset) cell, use containsCell() if
+     * you need to distinguish between not present and null.
+     * @throws CoordinateNotFoundException if the coordinate does not represent a
+     * coordinate with the space of this n-cube.
+     */
+    public T getCellNoExecute(final Map<String, Object> coordinate)
+    {
+        Set<Long> ids = getCoordinateKey(coordinate);
         return cells.get(ids);
     }
 
@@ -455,7 +498,7 @@ public class NCube<T>
     public T getCell(final Map<String, Object> coordinate, final Map<String, Object> output)
     {
         final RuleInfo ruleInfo = getRuleInfo(output);
-        Map<String, Object> input = validateCoordinate(coordinate, false);
+        Map<String, Object> input = validateCoordinate(coordinate);
         T lastStatementValue = null;
 
         if (!hasRuleAxis())
@@ -748,7 +791,7 @@ public class NCube<T>
      */
     public Map<Object, T> getMap(final Map<String, Object> coordinate)
     {
-        final Map<String, Object> coord = validateCoordinate(coordinate, false);
+        final Map<String, Object> coord = validateCoordinate(coordinate);
         final Axis wildcardAxis = getWildcardAxis(coord);
         final List<Column> columns = getWildcardColumns(wildcardAxis, coord);
         final Map<Object, T> result = new LinkedHashMap<>();
@@ -901,6 +944,7 @@ public class NCube<T>
         {
             return null;
         }
+
         // Ensure that the specified coordinate matches a column on each axis
         final Set<String> allAxes = new CaseInsensitiveSet<>(axisList.keySet());
         final Set<Long> point = new LongHashSet();
@@ -1094,7 +1138,7 @@ public class NCube<T>
         Map<String, Object> safeCoord;
         if (!(coordinate instanceof CaseInsensitiveMap))
         {
-            safeCoord = new CaseInsensitiveMap<>(coordinate);
+            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<String, Object>() : new CaseInsensitiveMap<>(coordinate);
         }
         else
         {
@@ -1108,7 +1152,7 @@ public class NCube<T>
             final Column column = axis.findColumn((Comparable) value);
             if (column == null)
             {
-                throw new CoordinateNotFoundException("Value '" + value + "' not found on axis: " + axis.getName() + ", cube: " + name);
+                throw new CoordinateNotFoundException("Value '" + coordinate + "' not found on axis: " + axis.getName() + ", cube: " + name);
             }
             key.add(column.id);
         }
@@ -1119,10 +1163,9 @@ public class NCube<T>
      * Ensure that the Map coordinate dimensionality satisfies this nCube.
      * This method verifies that all axes are listed by name in the input coordinate.
      * @param coordinate Map input coordinate
-     * @param ignoreDeclaredRequiredScope If this is true, then the requiredScopeKeys ncube
-     *                                    metaProperty is ignored
+     *
      */
-    private Map<String, Object> validateCoordinate(final Map<String, Object> coordinate, boolean ignoreDeclaredRequiredScope)
+    private Map<String, Object> validateCoordinate(final Map<String, Object> coordinate)
     {
         if (coordinate == null)
         {
@@ -1134,11 +1177,6 @@ public class NCube<T>
 
         // Ensure required scope is supplied within the input coordinate
         Set<String> requiredScope = getRequiredScope();
-
-        if (ignoreDeclaredRequiredScope)
-        {
-            requiredScope.removeAll(getDeclaredScope());
-        }
 
         for (String scopeKey : requiredScope)
         {
@@ -1523,6 +1561,14 @@ public class NCube<T>
     }
 
     /**
+     * @return Set<String> containing all axis names on this n-cube.
+     */
+    public Set<String> getAxisNames()
+    {
+        return new CaseInsensitiveSet<>(axisList.keySet());
+    }
+
+    /**
      * Get the optional scope keys. These are keys that if supplied, might change the returned value, but if not
      * supplied a value is still returned.  For example, an axis that has a Default column is an optional scope.
      * If no value is supplied for that axis, the Default column is chosen.  However, supplying a value for it
@@ -1641,19 +1687,16 @@ public class NCube<T>
         return new JsonFormatter().format(this);
     }
 
+    /**
+     * Format this n-cube into JSON using the passed in 'options' Map to control the desired output.
+     * See the JsonFormatter's format() API for available options.
+     * @return String JSON representing this entire n-cube, in the format controlled by the passed
+     * in options Map.
+     */
     public String toFormattedJson(Map<String, Object> options)
     {
         return new JsonFormatter().format(this, options);
     }
-
-    /**
-     * @return String JSON representing this entire n-cube.  This JSON format is designed to withstand changes to
-     * retain backward and forward compatibility.
-     */
-//    public String toFormattedJson(Map options)
-//    {
-//        return new JsonFormatter().format(this, options);
-//    }
 
     public String toString()
     {
@@ -1672,7 +1715,7 @@ public class NCube<T>
      * not added to the static list of NCubes.  If you want that, call
      * addCube() after creating the NCube with this API.
      */
-    public static NCube<?> fromSimpleJson(final String json)
+    public static <T> NCube<T> fromSimpleJson(final String json)
     {
         try
         {
@@ -1699,7 +1742,7 @@ public class NCube<T>
      * not added to the static list of NCubes.  If you want that, call
      * addCube() after creating the NCube with this API.
      */
-    public static NCube<?> fromSimpleJson(final InputStream stream)
+    public static <T> NCube<T> fromSimpleJson(final InputStream stream)
     {
         try
         {
@@ -1718,7 +1761,7 @@ public class NCube<T>
         }
     }
 
-    private static NCube<?> hydrateCube(Map<String, Object> jsonNCube)
+    private static <T> NCube<T> hydrateCube(Map<String, Object> jsonNCube)
     {
         String cubeName = getString(jsonNCube, "ncube");  // new cubes always have ncube as they key in JSON storage
         if (StringUtilities.isEmpty(cubeName))
@@ -2071,7 +2114,7 @@ public class NCube<T>
         int i=0;
         for (Map.Entry<String, CellInfo> entry : coord.entrySet())
         {
-            list[i++] = (new StringValuePair(entry.getKey(), entry.getValue()));
+            list[i++] = (new StringValuePair<>(entry.getKey(), entry.getValue()));
         }
         return list;
     }
@@ -2113,15 +2156,18 @@ public class NCube<T>
 
     /**
      * @return List<Map<String, T>> which is a List of coordinates, one for each populated cell within the
-     * n-cube.
+     * n-cube. These coordinates can be used with setCell(), removeCell(), containsCell(), and getCellNoExecute()
+     * APIs.  To use with getCell(), any rule axis bindings in the coordinate would need to be removed.  This is
+     * because it is expected that getCell() will run all conditions on a rule axis.
      */
     public List<Map<String, T>> getPopulatedCellCoordinates()
     {
         List<Map<String, T>> coords = new ArrayList<>();
         for (Map.Entry<Set<Long>, T> entry : cells.entrySet())
         {
-            Collection<Long> colIds = entry.getKey();
-            coords.add(getCoordinateFromColumnIds(colIds));
+            Set<Long> colIds = entry.getKey();
+            Map<String, T> coord = (Map<String, T>) getCoordinateFromIds(colIds);
+            coords.add(coord);
         }
 
         return coords;
@@ -2385,157 +2431,12 @@ public class NCube<T>
         for (Axis axis : axisList.values())
         {
             Axis otherAxis = other.axisList.get(axis.getName());
-            deltaMap.put(axis.getName(), getAxisDelta(otherAxis));
+            deltaMap.put(axis.getName(), DeltaProcessor.getAxisDelta(axis, otherAxis));
         }
 
         // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
         // transactionally apply the merge.  We do not want a partial merge.
-        delta.put(DELTA_CELLS, getCellDelta(other));
-        return delta;
-    }
-
-    private Map<Comparable, ColumnDelta> getAxisDelta(Axis other)
-    {
-        Axis thisAxis = axisList.get(other.getName());
-        Map<Comparable, ColumnDelta> deltaColumns = new CaseInsensitiveMap<>();
-        Map<Comparable, Column> copyColumns = new LinkedHashMap<>();
-        Map<Comparable, Column> copyRuleColumns = new LinkedHashMap<>();
-
-        if (thisAxis.getType() == AxisType.RULE)
-        {   // Have to look up RULE columns by name (if set) or ID if not (no choice, they could all have the value 'true' for example.)
-            for (Column column : thisAxis.getColumnsInternal())
-            {
-                String name = column.getColumnName();
-                // Use rule-name if it exists.
-                copyRuleColumns.put(name != null ? name : column.id, column);
-            }
-
-            for (Column otherColumn : other.getColumnsInternal())
-            {
-                String name = otherColumn.getColumnName();
-                Column foundCol;
-                if (name == null)
-                {
-                    foundCol = thisAxis.getColumnById(otherColumn.id);
-
-                    if (foundCol == null)
-                    {   // Not found, the 'other' axis has a column 'this' axis does not have
-                        deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_ADD));
-                    }
-                    else if (otherColumn.getValue() == foundCol.getValue() || otherColumn.getValue().equals(foundCol.getValue()))   // handles default (null) column
-                    {   // Matched (id and value same) - this column will not be added to the delta map.  Remove by ID.
-                        copyRuleColumns.remove(foundCol.getColumnName() != null ? foundCol.getColumnName() : foundCol.id);
-                    }
-                    else
-                    {   // Column exists on both (same IDs), but the value is different
-                        deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_CHANGE));
-                        copyRuleColumns.remove(foundCol.getColumnName() != null ? foundCol.getColumnName() : foundCol.id);
-                    }
-                }
-                else
-                {
-                    foundCol = thisAxis.findColumnByName(name);
-
-                    if (foundCol == null)
-                    {   // Not found, the 'other' axis has a column 'this' axis does not have
-                        deltaColumns.put(name, new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD));
-                    }
-                    else
-                    {   // Matched name
-                        if (otherColumn.getValue() == foundCol.getValue() || otherColumn.getValue().equals(foundCol.getValue()))
-                        {   // Matched value - this column will not be added to the delta map.  Remove by name.
-                            copyRuleColumns.remove(name);
-                        }
-                        else
-                        {   // Value did not match - need to update column
-                            deltaColumns.put(name, new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_CHANGE));
-                            copyRuleColumns.remove(name);    // Since this is a change, don't leave column in 'remove' list.
-                        }
-                    }
-                }
-            }
-
-            // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
-            for (Column column : copyRuleColumns.values())
-            {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns.put(column.getColumnName() != null ? column.getColumnName() : column.id, new ColumnDelta(AxisType.RULE, column, DELTA_COLUMN_REMOVE));
-            }
-        }
-        else
-        {   // Handle non-rule columns
-            for (Column column : thisAxis.getColumnsInternal())
-            {
-                copyColumns.put(column.getValue(), column);
-            }
-
-            for (Column otherColumn : other.getColumnsInternal())
-            {
-                final Comparable otherColumnValue = otherColumn.getValue();
-                Column foundCol = thisAxis.findColumn(otherColumnValue);
-
-                if (foundCol == null || foundCol == other.getDefaultColumn())
-                {   // Not found, the 'other' axis has a column 'this' axis does not have
-                    deltaColumns.put(otherColumn.id, new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD));
-                }
-                else
-                {   // Matched - this column will not be added to the delta map.
-                    copyColumns.remove(otherColumnValue);
-                }
-            }
-
-            // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
-            for (Column column : copyColumns.values())
-            {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns.put(column.id, new ColumnDelta(thisAxis.getType(), column, DELTA_COLUMN_REMOVE));
-            }
-        }
-
-        return deltaColumns;
-    }
-
-    /**
-     * Get all cellular differences between two n-cubes.
-     * @param other NCube from which to generate the delta.
-     * @return Map containing a Map of cell coordinates [key is Map<String, Object> and value (T)].
-     */
-    private Map<Map<String, Object>, T> getCellDelta(NCube<T> other)
-    {
-        Map<Map<String, Object>, T> delta = new HashMap<>();
-        Set<Map<String, Object>> copyCells = new HashSet<>();
-
-        for (Map.Entry<Set<Long>, T> entry : cells.entrySet())
-        {
-            copyCells.add(getDeltaCoordinate(new LongHashSet(entry.getKey())));
-        }
-
-        // At this point, the cubes have the same number of axes and same axis types.
-        // Now, compute cell deltas.
-        for (Map.Entry<Set<Long>, T> otherEntry : other.cells.entrySet())
-        {
-            Set<Long> ids = new LongHashSet(otherEntry.getKey());
-            Map<String, Object> deltaCoord = other.getDeltaCoordinate(ids);
-            Set<Long> idKey = other.deltaCoordToSetOfLong(deltaCoord);
-            if (idKey != null)
-            {   // Was able to bind deltaCoord between cubes
-                T content = getCellByIdNoExecute(idKey);
-                T otherContent = otherEntry.getValue();
-                copyCells.remove(deltaCoord);
-
-                CellInfo info = new CellInfo(content);
-                CellInfo otherInfo = new CellInfo(otherContent);
-
-                if (!info.equals(otherInfo))
-                {
-                    delta.put(deltaCoord, otherContent);
-                }
-            }
-        }
-
-        for (Map<String, Object> coord : copyCells)
-        {
-            delta.put(coord, (T) DELTA_CELL_REMOVE);
-        }
-
+        delta.put(DELTA_CELLS, DeltaProcessor.getCellDelta(this, other));
         return delta;
     }
 
@@ -2550,7 +2451,7 @@ public class NCube<T>
      * @return Set<Long> that can be used with any n-cube API that binds by ID (getCellById, etc.) or null
      * if the deltaCoord could not bind to this n-cube.
      */
-    private Set<Long> deltaCoordToSetOfLong(final Map<String, Object> deltaCoord)
+    Set<Long> deltaCoordToSetOfLong(final Map<String, Object> deltaCoord)
     {
         final Set<Long> key = new LongHashSet();
 
@@ -2615,7 +2516,7 @@ public class NCube<T>
     }
 
     /**
-     * Test if another n-cube is 'compatible' with this n-cube.  This means that they have the same number of
+     * Test if another n-cube is 'comparable' with this n-cube.  This means that they have the same number of
      * dimensions (axes) and each axis has the same name.  This test will allow many operations to
      * be performed on two cubes once it is known they are 'compatible' such as union, intersection, even matrix
      * operations like multiply, etc.
@@ -2656,417 +2557,13 @@ public class NCube<T>
     }
 
     /**
-     * Test the compatibility of two 'delta change-set' maps.  This method determines if these two
-     * change sets intersect properly or intersect with conflicts.  Used internally when merging
-     * two ncubes together in branch-merge operations.
-     * @param completeDelta1 Map of cell coordinates to values generated from comparing two cubes (A -> B)
-     * @param completeDelta2 Map of cell coordinates to values generated from comparing two cubes (A -> C)
-     * @return boolean true if the two cell change-sets are compatible, false otherwise.
-     */
-    static boolean areDeltaSetsCompatible(Map<String, Object> completeDelta1, Map<String, Object> completeDelta2)
-    {
-        if (completeDelta1 == null || completeDelta2 == null)
-        {
-            return false;
-        }
-        // Step 1: Do any column-level updates conflict?
-        Map<String, Map<Comparable, ColumnDelta>> deltaMap1 = (Map<String, Map<Comparable, ColumnDelta>>) completeDelta1.get(DELTA_AXES_COLUMNS);
-        Map<String, Map<Comparable, ColumnDelta>> deltaMap2 = (Map<String, Map<Comparable, ColumnDelta>>) completeDelta2.get(DELTA_AXES_COLUMNS);
-        if (deltaMap1.size() != deltaMap2.size())
-        {   // Must have same number of axis (axis name is the outer Map key).
-            return false;
-        }
-
-        CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(deltaMap1.keySet());
-        CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(deltaMap2.keySet());
-        a1.removeAll(a2);
-
-        if (!a1.isEmpty())
-        {   // Axis names must be all be the same (ignoring case)
-            return false;
-        }
-
-        // Column change maps must be compatible (on Rule axes)
-        for (Map.Entry<String, Map<Comparable, ColumnDelta>> entry1 : deltaMap1.entrySet())
-        {
-            String axisName = entry1.getKey();
-            Map<Comparable, ColumnDelta> changes1 = entry1.getValue();
-            Map<Comparable, ColumnDelta> changes2 = deltaMap2.get(axisName);
-
-            for (Map.Entry<Comparable, ColumnDelta> colEntry1 : changes1.entrySet())
-            {
-                ColumnDelta delta1 = colEntry1.getValue();
-                if (delta1.axisType == AxisType.RULE)
-                {   // Only RULE axes need to have their columns compared (because they are ID compared)
-                    String colName = delta1.column.getColumnName();
-                    ColumnDelta delta2 = colName == null ? changes2.get(delta1.column.id) : changes2.get(colName);
-
-                    if (delta2 == null)
-                        continue;   // no column changed with same ID, delta1 is OK
-
-                    if (delta2.axisType != delta1.axisType)
-                        return false;   // different axis types
-
-                    if (!delta1.column.getValue().equals(delta2.column.getValue()))
-                        return false;   // value is different for column with same ID
-
-                    if (!delta1.changeType.equals(delta2.changeType))
-                        return false;   // different change type (REMOVE vs ADD, CHANGE vs REMOVE, etc.)
-                }
-            }
-        }
-
-        // Step 2: Do any cell-level updates conflict?
-        Map<Map<String, Object>, Object> delta1 = (Map<Map<String, Object>, Object>) completeDelta1.get(DELTA_CELLS);
-        Map<Map<String, Object>, Object> delta2 = (Map<Map<String, Object>, Object>) completeDelta2.get(DELTA_CELLS);
-        Map<Map<String, Object>, Object> smallerChangeSet;
-        Map<Map<String, Object>, Object> biggerChangeSet;
-
-        // Performance optimization: determine which cell change set is smaller.
-        if (delta1.size() < delta2.size())
-        {
-            smallerChangeSet = delta1;
-            biggerChangeSet = delta2;
-        }
-        else
-        {
-            smallerChangeSet = delta2;
-            biggerChangeSet = delta1;
-        }
-
-        for (Map.Entry<Map<String, Object>, Object> entry : smallerChangeSet.entrySet())
-        {
-            Map<String, Object> deltaCoord = entry.getKey();
-
-            if (biggerChangeSet.containsKey(deltaCoord))
-            {
-                CellInfo info1 = new CellInfo(entry.getValue());
-                CellInfo info2 = new CellInfo(biggerChangeSet.get(deltaCoord));
-
-                if (!info1.equals(info2))
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Merge the passed in cell change-set into this n-cube.  This will apply all of the cell changes
-     * in the passed in change-set to the cells of this n-cube, including adds and removes.
-     * @param deltaSet Map containing cell change-set.  The cell change-set contains cell coordinates
-     * mapped to the associated value to set (or remove) for the given coordinate.
-     */
-    public void mergeDeltaSet(Map<String, Object> deltaSet)
-    {
-        // Step 1: Merge column-level changes
-        Map<String, Map<Long, ColumnDelta>> deltaMap = (Map<String, Map<Long,ColumnDelta>>) deltaSet.get(DELTA_AXES_COLUMNS);
-        for (Map.Entry<String, Map<Long, ColumnDelta>> entry : deltaMap.entrySet())
-        {
-            String axisName = entry.getKey();
-            Map<Long, ColumnDelta> colChanges = entry.getValue();
-
-            for (ColumnDelta colDelta : colChanges.values())
-            {
-                Column column = colDelta.column;
-                if (DELTA_COLUMN_ADD.equals(colDelta.changeType))
-                {
-                    Axis axis = getAxis(axisName);
-                    Column findCol;
-                    if (axis.getType() == AxisType.RULE)
-                    {
-                        if (StringUtilities.hasContent(column.getColumnName()))
-                        {
-                            findCol = axis.findColumnByName(column.getColumnName());
-                        }
-                        else
-                        {
-                            findCol = axis.findColumn(column.id);
-                        }
-                    }
-                    else
-                    {   // If the value is not already on the Axis, add it.
-                        findCol = axis.findColumn(column.getValue());
-                    }
-
-                    if (findCol == null)
-                    {
-                        addColumn(axisName, column.getValue(), column.getColumnName(), column.id);
-                    }
-                }
-                else if (DELTA_COLUMN_REMOVE.equals(colDelta.changeType))
-                {
-                    Axis axis = getAxis(axisName);
-                    if (axis.getType() == AxisType.RULE)
-                    {   // Rule axis - delete by locating column by ID
-                        String name = column.getColumnName();
-                        if (name == null)
-                        {
-                            deleteColumn(axisName, column.id);
-                        }
-                        else
-                        {
-                            deleteColumn(axisName, name);
-                        }
-                    }
-                    else
-                    {   // Non-rule axes, delete column by locating value
-                        deleteColumn(axisName, column.getValue());
-                    }
-                }
-                else if (DELTA_COLUMN_CHANGE.equals(colDelta.changeType))
-                {
-                    updateColumn(column.id, column.getValue());
-                }
-            }
-        }
-
-        // Step 2: Merge cell-level changes
-        Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet.get(DELTA_CELLS);
-        // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
-        for (Map.Entry<Map<String, Object>, T> entry : cellDelta.entrySet())
-        {
-            Set<Long> cols = deltaCoordToSetOfLong(entry.getKey());
-            if (cols != null && cols.size() > 0)
-            {
-                T value = entry.getValue();
-                if (DELTA_CELL_REMOVE.equals(value))
-                {   // Remove cell
-                    cells.remove(cols);
-                }
-                else
-                {   // Add/Update cell
-                    cells.put(cols, value);
-                }
-            }
-        }
-
-        clearSha1();
-    }
-
-    /**
-     * Return a list of Delta objects describing the differences between two n-cubes.
-     * @param other NCube to compare 'this' n-cube to
-     * @return List<Delta> object.  The Delta class contains a Location (loc) which describes the
-     * part of an n-cube that differs (ncube, axis, column, or cell) and the Type (type) of difference
-     * (ADD, UPDATE, or DELETE).  Finally, it includes an English description of the difference as well.
-     */
-    public List<Delta> getDeltaDescription(NCube<T> other)
-    {
-        List<Delta> changes = new ArrayList<>();
-
-        if (!name.equalsIgnoreCase(other.name))
-        {
-            String s = "Name changed from '" + other.name + "' to '" + name + "'";
-            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s));
-        }
-
-        List<Delta> metaChanges = compareMetaProperties(other.getMetaProperties(), getMetaProperties(), Delta.Location.NCUBE_META, "n-cube '" + name + "'");
-        changes.addAll(metaChanges);
-
-        CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
-        CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
-        a1.removeAll(a2);
-
-        boolean axesChanged = false;
-        if (!a1.isEmpty())
-        {
-            String s = "Added axis: " + a1;
-            changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s));
-            axesChanged = true;
-        }
-
-        a1 = new CaseInsensitiveSet<>(axisList.keySet());
-        a2.removeAll(a1);
-        if (!a2.isEmpty())
-        {
-            String s = "Removed axis: " + a2;
-            changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s));
-            axesChanged = true;
-        }
-
-        for (Axis newAxis : axisList.values())
-        {
-            Axis oldAxis = other.getAxis(newAxis.getName());
-            if (oldAxis == null)
-            {
-                continue;
-            }
-            if (!newAxis.areAxisPropsEqual(oldAxis))
-            {
-                String s = "Axis properties changed from " + oldAxis.getAxisPropString() + " to " + newAxis.getAxisPropString();
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s));
-            }
-
-            metaChanges = compareMetaProperties(oldAxis.getMetaProperties(), newAxis.getMetaProperties(), Delta.Location.AXIS_META, "axis: " + newAxis.getName());
-            changes.addAll(metaChanges);
-
-            for (Column newCol : newAxis.getColumns())
-            {
-                Column oldCol = oldAxis.idToCol.get(newCol.id);
-                if (oldCol == null)
-                {
-                    String s = "Column: " + newCol.getValue() + " added to axis: " + newAxis.getName();
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s));
-                }
-                else
-                {   // Check Column meta properties
-                    metaChanges = compareMetaProperties(oldCol.getMetaProperties(), newCol.getMetaProperties(), Delta.Location.COLUMN_META, "column '" + newAxis.getName() + "'");
-                    changes.addAll(metaChanges);
-
-                    if (!DeepEquals.deepEquals(oldCol.getValue(), newCol.getValue()))
-                    {
-                        String s = "Column value changed from: " + oldCol.getValue() + " to: " + newCol.getValue();
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s));
-                    }
-                }
-            }
-
-            for (Column oldCol : oldAxis.getColumns())
-            {
-                Column newCol = newAxis.idToCol.get(oldCol.id);
-                if (newCol == null)
-                {
-                    String s = "Column: " + oldCol.getValue() + " removed";
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s));
-                }
-            }
-        }
-
-        // Different dimensionality, don't compare cells
-        if (axesChanged)
-        {
-            return changes;
-        }
-
-        for (Map.Entry<Set<Long>, T> entry : cells.entrySet())
-        {
-            Collection<Long> newCellKey = entry.getKey();
-            T newCellValue = entry.getValue();
-
-            if (other.cells.containsKey(newCellKey))
-            {
-                Object oldCellValue = other.cells.get(newCellKey);
-                if (!DeepEquals.deepEquals(newCellValue, oldCellValue))
-                {
-                    Map<String, T> properCoord = getCoordinateFromColumnIds(newCellKey);
-                    String s = "Cell changed at location: " + properCoord + ", from: " +
-                            (oldCellValue == null ? null : oldCellValue.toString()) + ", to: " +
-                            (newCellValue == null ? null : newCellValue.toString());
-                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s));
-                }
-            }
-            else
-            {
-                Map<String, T> properCoord = getCoordinateFromColumnIds(newCellKey);
-                String s = "Cell added at location: " + properCoord + ", value: " + (newCellValue == null ? null : newCellValue.toString());
-                changes.add(new Delta(Delta.Location.CELL, Delta.Type.ADD, s));
-            }
-        }
-
-        for (Map.Entry<Set<Long>, T> entry : other.cells.entrySet())
-        {
-            Collection<Long> oldCellKey = entry.getKey();
-            T oldCellValue = entry.getValue();
-
-            if (!cells.containsKey(oldCellKey))
-            {
-                boolean allColsStillExist = true;
-                for (Long colId : oldCellKey)
-                {
-                    Axis axis = getAxisFromColumnId(colId);
-                    if (axis == null)
-                    {
-                        allColsStillExist = false;
-                        break;
-                    }
-                }
-
-                // Make sure all columns for this cell still exist before reporting it as removed.  Otherwise, a
-                // dropped column would report a ton of removed cells.
-                if (allColsStillExist)
-                {
-                    Map<String, T> properCoord = getCoordinateFromColumnIds(oldCellKey);
-                    String s = "Cell removed at location: " + properCoord + ", value: " + (oldCellValue == null ? null : oldCellValue.toString());
-                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s));
-                }
-            }
-        }
-        return changes;
-    }
-
-    static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName)
-    {
-        List<Delta> changes = new ArrayList<>();
-        Set<String> oldKeys = new CaseInsensitiveSet<>(oldMeta.keySet());
-        Set<String> sameKeys = new CaseInsensitiveSet<>(newMeta.keySet());
-        sameKeys.retainAll(oldKeys);
-
-        Set<String> addedKeys  = new CaseInsensitiveSet<>(newMeta.keySet());
-        addedKeys.removeAll(sameKeys);
-        if (!addedKeys.isEmpty())
-        {
-            StringBuilder s = makeMap(newMeta, addedKeys);
-            String entry = addedKeys.size() > 1 ? "meta-entries" : "meta-entry";
-            changes.add(new Delta(location, Delta.Type.ADD, locName + " " + entry + " added: " + s));
-        }
-
-        Set<String> deletedKeys  = new CaseInsensitiveSet<>(oldMeta.keySet());
-        deletedKeys.removeAll(sameKeys);
-        if (!deletedKeys.isEmpty())
-        {
-            StringBuilder s = makeMap(oldMeta, deletedKeys);
-            String entry = deletedKeys.size() > 1 ? "meta-entries" : "meta-entry";
-            changes.add(new Delta(location, Delta.Type.DELETE, locName + " " + entry + " deleted: " + s));
-        }
-
-        int i = 0;
-        StringBuilder s = new StringBuilder();
-        for (String key : sameKeys)
-        {
-            if (!DeepEquals.deepEquals(oldMeta.get(key), newMeta.get(key)))
-            {
-                s.append(key).append("->").append(oldMeta.get(key)).append(" ==> ").append(key).append("->").append(newMeta.get(key)).append(", ");
-                i++;
-            }
-        }
-        if (i > 0)
-        {
-            s.setLength(s.length() - 2);     // remove extra ", " at end
-            String entry = i > 1 ? "meta-entries" : "meta-entry";
-            changes.add(new Delta(location, Delta.Type.UPDATE, locName + " " + entry + " changed: " + s));
-        }
-
-        return changes;
-    }
-
-    private static StringBuilder makeMap(Map<String, Object> newMeta, Set<String> addedKeys)
-    {
-        StringBuilder s = new StringBuilder();
-        Iterator<String> i = addedKeys.iterator();
-        while (i.hasNext())
-        {
-            String key = i.next();
-            s.append(key);
-            s.append("->");
-            s.append(newMeta.get(key));
-            if (i.hasNext())
-            {
-                s.append(", ");
-            }
-        }
-        return s;
-    }
-
-    /**
      * For the given passed in coordinate, create a test coordinate for input with the axis
      * names and an associated value.
      *
      * @throws IllegalArgumentException if not enough IDs are passed in, or an axis
      * cannot bind to any of the passed in IDs.
      */
-    Map<String, CellInfo> getTestInputCoordinateFromIds(final Collection<Long> coordinate)
+    Map<String, CellInfo> getTestInputCoordinateFromIds(final Set<Long> coordinate)
     {
         // Ensure that the specified coordinate matches a column on each axis
         final Set<Axis> axisRef = new HashSet<>();
@@ -3145,45 +2642,64 @@ public class NCube<T>
         }
     }
 
-    public Map<String, T> getCoordinateFromColumnIds(Collection<Long> idCoord)
+    /**
+     * Fetch a 'display' coordinate from the passed in Set of IDs.  The returned coordinate
+     * will have the String 'default column' for column ids that represent default columns.
+     * If any of the columns have a name (like columns on a rule axis), the name will be
+     * included in the String associated to the axis name entry.
+     * @param idCoord Set<Long> column IDs.
+     * @return Map<String, T> where the keys of the Map are axis names, and the values
+     * are the associated values that would bind to the axes, except for default column
+     * and rule axes.  This API is typically used for display purposes.
+     */
+    public Map<String, T> getDisplayCoordinateFromIds(Set<Long> idCoord)
     {
         Map<String, T> properCoord = new CaseInsensitiveMap<>();
         for (Long colId : idCoord)
         {
-            try
+            Axis axis = getAxisFromColumnId(colId);
+            Column column = axis.getColumnById(colId);
+            Object value = column.getValueThatMatches();
+            if (value == null)
             {
-                Axis axis = getAxisFromColumnId(colId);
-                Column column = axis.getColumnById(colId);
-                Object value = column.getValueThatMatches();
-                if (value == null)
-                {
-                    value = "default column";
-                }
-
-                String name = column.getColumnName();
-                if (name != null)
-                {
-                    properCoord.put(axis.getName(), (T) ("(" + name.toString() + "): " + value));
-                }
-                else
-                {
-                    properCoord.put(axis.getName(), (T) value);
-                }
+                value = "default column";
             }
-            catch (Exception ignored) { }
+
+            String name = column.getColumnName();
+            if (name != null)
+            {
+                properCoord.put(axis.getName(), (T) ("(" + name.toString() + "): " + value));
+            }
+            else
+            {
+                properCoord.put(axis.getName(), (T) value);
+            }
         }
         return properCoord;
     }
 
-    private Map<String, Object> getDeltaCoordinate(Collection<Long> idCoord)
+    /**
+     * Turn a Set of column IDs into a 'normal' coordinate that has values that will
+     * bind to axes the 'normal' way.  For RULE axes, the key will be the rule axis name
+     * and the value will be the rule name.  If there is no rule name, then the value will
+     * be the long ID of the column on the rule axis.
+     * @param idCoord Set<Long> ids that describe a binding to a cell
+     * @return Map<String, Object> standard coordinate.  Note that this coordinate has an
+     * entry for a rule axis, which typically would NOT be used for a call to getCell(),
+     * as normally rule axes have no binding (so all conditions on the rule axis execute).
+     * The returned coordinate, however, is useful for setCell(), removeCell(), containsCell(),
+     * and getCellNoExecute() APIs.  To use with getCell(), remove the entry or entries
+     * that have rule axis names.
+     */
+    public Map<String, Object> getCoordinateFromIds(Set<Long> idCoord)
     {
-        Map<String, Object> deltaCoord = new CaseInsensitiveMap<>();
+        Map<String, Object> coord = new CaseInsensitiveMap<>();
         for (Long colId : idCoord)
         {
             Axis axis = getAxisFromColumnId(colId);
             if (axis == null)
             {
-                return deltaCoord;
+                return coord;
             }
             Object value;
             if (axis.getType() == AxisType.RULE)
@@ -3204,12 +2720,17 @@ public class NCube<T>
                 Column column = axis.getColumnById(colId);
                 value = column.getValueThatMatches();
             }
-            deltaCoord.put(axis.getName(), value);
+            coord.put(axis.getName(), value);
         }
-        return deltaCoord;
+        return coord;
     }
 
-    long getMaxAxisId()
+    /**
+     * Determine highest ID used by the axes.  When adding an additional axis, it is recommended to use this value
+     * plus 1 for adding another axis.
+     * @return long the highest ID used by any axis.
+     */
+    public long getMaxAxisId()
     {
         long max = 0;
         for (Axis axis : axisList.values())
@@ -3239,6 +2760,11 @@ public class NCube<T>
         }
     }
 
+    /**
+     * Ensure that the passed in name is a valid n-cube name,
+     * @param cubeName String cube name to test.
+     * @throws IllegalArgumentException if the name is invalid, otherwise it is silent.
+     */
     public static void validateCubeName(String cubeName)
     {
         if (StringUtilities.isEmpty(cubeName))
@@ -3259,7 +2785,7 @@ public class NCube<T>
      * are JSON content representing an n-cube.  Calling ncube.toFormattedJson() is the source
      * of the JSON format used.
      */
-    public static NCube<?> createCubeFromBytes(byte[] bytes)
+    public static <T> NCube<T> createCubeFromBytes(byte[] bytes)
     {
         return createCubeFromStream(new ByteArrayInputStream(bytes));
     }
@@ -3268,7 +2794,7 @@ public class NCube<T>
      * Create an n-cube from a stream of bytes.  The stream can be either a JSON stream
      * of an n-cube or a g-zip JSON stream.
      */
-    public static NCube<?> createCubeFromStream(InputStream stream)
+    public static <T> NCube<T> createCubeFromStream(InputStream stream)
     {
         if (stream == null)
         {

@@ -1,7 +1,14 @@
 package com.cedarsoftware.ncube;
 
 import com.cedarsoftware.ncube.exception.BranchMergeException;
-import com.cedarsoftware.util.*;
+import com.cedarsoftware.util.ArrayUtilities;
+import com.cedarsoftware.util.CaseInsensitiveMap;
+import com.cedarsoftware.util.CaseInsensitiveSet;
+import com.cedarsoftware.util.Converter;
+import com.cedarsoftware.util.IOUtilities;
+import com.cedarsoftware.util.MapUtilities;
+import com.cedarsoftware.util.StringUtilities;
+import com.cedarsoftware.util.SystemUtilities;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
@@ -10,13 +17,24 @@ import ncube.grv.method.NCubeGroovyController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -995,22 +1013,22 @@ public class NCubeManager
                     Map delta1 = baseCube.getDelta(branchCube);
                     Map delta2 = baseCube.getDelta(headCube);
 
-                    if (NCube.areDeltaSetsCompatible(delta1, delta2))
+                    if (DeltaProcessor.areDeltaSetsCompatible(delta1, delta2))
                     {
                         if (reverse)
                         {
-                            headCube.mergeDeltaSet(delta1);
+                            DeltaProcessor.mergeDeltaSet(headCube, delta1);
                             return headCube;
                         }
                         else
                         {
-                            branchCube.mergeDeltaSet(delta2);
+                            DeltaProcessor.mergeDeltaSet(branchCube, delta2);
                             return branchCube;
                         }
                     }
                 }
 
-                List<Delta> diff = branchCube.getDeltaDescription(headCube);
+                List<Delta> diff = DeltaProcessor.getDeltaDescription(branchCube, headCube);
                 if (diff.size() > 0)
                 {
                     map.put("diff", diff);
@@ -1066,13 +1084,13 @@ public class NCubeManager
         Map delta1 = baseCube.getDelta(branchCube);
         Map delta2 = baseCube.getDelta(otherCube);
 
-        if (NCube.areDeltaSetsCompatible(delta1, delta2))
+        if (DeltaProcessor.areDeltaSetsCompatible(delta1, delta2))
         {
-            otherCube.mergeDeltaSet(delta1);
+            DeltaProcessor.mergeDeltaSet(otherCube, delta1);
             return otherCube;
         }
 
-        List<Delta> diff = branchCube.getDeltaDescription(otherCube);
+        List<Delta> diff = DeltaProcessor.getDeltaDescription(branchCube, otherCube);
         if (diff.size() > 0)
         {
             map.put("diff", diff);

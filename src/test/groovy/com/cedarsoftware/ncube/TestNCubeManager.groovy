@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.CommandCellException
+import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
@@ -352,9 +353,9 @@ class TestNCubeManager
             n1.getCell(input)
             fail()
         }
-        catch (Exception e)
+        catch (CoordinateNotFoundException e)
         {
-            assertTrue(e.message.contains("Value 'KY' not found"))
+            assertTrue(e.message.contains("not found"))
         }
     }
 

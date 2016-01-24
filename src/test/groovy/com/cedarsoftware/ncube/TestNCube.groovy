@@ -880,10 +880,10 @@ class TestNCube
             ncube.setCell(9.9, null)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (CoordinateNotFoundException e)
         {
             assertTrue(e.message.contains("null"))
-            assertTrue(e.message.contains("coordinate"))
+            assertTrue(e.message.contains("not found"))
         }
 
         // Empty Map
@@ -893,11 +893,9 @@ class TestNCube
             ncube.setCell(9.9, coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (CoordinateNotFoundException e)
         {
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("contain"))
-            assertTrue(e.message.contains("required"))
+            assertTrue(e.message.contains("not found"))
         }
 
         // Map with not enough dimensions
@@ -907,11 +905,9 @@ class TestNCube
             ncube.setCell(9.9, coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (CoordinateNotFoundException e)
         {
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("contain"))
-            assertTrue(e.message.contains("Age"))
+            assertTrue(e.message.contains("not found"))
         }
     }
 
@@ -950,9 +946,7 @@ class TestNCube
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("contain"))
-            assertTrue(e.message.contains("key"))
+            assertTrue(e.message.contains("required scope"))
         }
 
         try
@@ -1823,9 +1817,7 @@ class TestNCube
         }
         catch (IllegalArgumentException e)
         {
-            assertTrue(e.message.contains("not"))
-            assertTrue(e.message.contains("contain"))
-            assertTrue(e.message.contains("key"))
+            assertTrue(e.message.contains("required scope"))
         }
 
         try
@@ -2942,8 +2934,7 @@ class TestNCube
         }
         catch (IllegalArgumentException e)
         {
-            assert e.message.toLowerCase().contains('does not contain')
-            assert e.message.toLowerCase().contains('required scope keys')
+            assert e.message.toLowerCase().contains('required scope')
         }
         coord.clear()
         coord.put("codE", "ints")
@@ -4175,14 +4166,14 @@ class TestNCube
     {
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
-        List<Delta> delta = cube.getDeltaDescription(cube2)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube, cube2)
         assertEquals(0, delta.size())
 
         def coord = [:]
         coord.put("gender", "male")
         coord.put("age", 48)
         cube2.setCell(2, coord)
-        delta = cube2.getDeltaDescription(cube)
+        delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell changed"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("gender"))
@@ -4197,7 +4188,7 @@ class TestNCube
         coord.put("gender", "male")
         coord.put("age", 84)
         cube2.setCell(3.1, coord)
-        delta = cube2.getDeltaDescription(cube)
+        delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(2, delta.size())
         assertTrue(delta.get(1).toString().toLowerCase().contains("cell changed"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("gender"))
@@ -4216,7 +4207,7 @@ class TestNCube
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.name = "funkey"
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("name changed"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("from"))
@@ -4231,7 +4222,7 @@ class TestNCube
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.setMetaProperty("foo", "bar")
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("meta"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("entry"))
@@ -4245,7 +4236,7 @@ class TestNCube
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.addAxis(NCubeBuilder.statesAxis)
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
@@ -4259,7 +4250,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         Axis age = cube2.getAxis("age")
         age.columnOrder = Axis.SORTED
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("prop"))
@@ -4275,7 +4266,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         Axis age = cube2.getAxis("age")
         age.setMetaProperty("foo", 18)
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("age"))
@@ -4291,7 +4282,7 @@ class TestNCube
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.deleteAxis("gender")
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("removed"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
@@ -4305,7 +4296,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.deleteAxis("gender")
         cube2.addAxis(NCubeBuilder.statesAxis)
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(2, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
@@ -4323,7 +4314,7 @@ class TestNCube
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.addColumn("age", new Range(55, 70))
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
@@ -4338,7 +4329,7 @@ class TestNCube
         NCube cube = NCubeManager.getNCubeFromResource("delta.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.deleteColumn("gender", "male")
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
@@ -4354,7 +4345,7 @@ class TestNCube
         Axis age = cube2.getAxis("age")
         Column column = age.findColumn(48)
         column.setMetaProperty("baz", "qux")
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
@@ -4374,7 +4365,7 @@ class TestNCube
         coord.put("gender", "male")
         cube.removeCell(coord)
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell"))
@@ -4393,7 +4384,7 @@ class TestNCube
         coord.put("gender", "male")
         cube.removeCell(coord)
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
-        List<Delta> delta = cube.getDeltaDescription(cube2)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube, cube2)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell"))
@@ -4415,7 +4406,7 @@ class TestNCube
         cube.updateColumn(col.id, "mule")
 
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
-        List<Delta> delta = cube.getDeltaDescription(cube2)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube, cube2)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
@@ -4434,7 +4425,7 @@ class TestNCube
 
         NCube cube2 = NCubeManager.getNCubeFromResource("delta.json")
         cube2.deleteAxis("agE")
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(2, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("removed"))
@@ -4491,7 +4482,7 @@ class TestNCube
         coord.put("rule", "Init Random")
         cube2.setCell("bogus", coord)
 
-        List<Delta> delta = cube2.getDeltaDescription(cube)
+        List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell"))
@@ -4516,7 +4507,7 @@ class TestNCube
         newMeta.put("bar", "barf")
         newMeta.put("qux", "quxqux")
         newMeta.put("alpha", "bravo")
-        List<Delta> changes = NCube.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
+        List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
         String s = changes.toString()
         assertTrue(s.contains("meta-entry added: qux->quxqux"))
         assertTrue(s.contains("meta-entry deleted: baz->bazinga"))
@@ -4534,7 +4525,7 @@ class TestNCube
 
         newMeta.put("foo", "foot")
         newMeta.put("bar", "bart")
-        List<Delta> changes = NCube.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
+        List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
         String s = changes.toString()
         assertTrue(s.contains("meta-entries added: foo->foot"))
         assertTrue(s.contains("bar->bart"))
@@ -4550,7 +4541,7 @@ class TestNCube
         oldMeta.put("bar", "bart")
         newMeta.put("foo", "fool")
         newMeta.put("bar", "barf")
-        List<Delta> changes = NCube.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
+        List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
         String s = changes.toString()
         assertTrue(s.contains("meta-entries changed: foo->foot"))
         assertTrue(s.contains("foo->fool"))
@@ -4566,7 +4557,7 @@ class TestNCube
 
         oldMeta.put("foo", "foot")
         oldMeta.put("bar", "bart")
-        List<Delta> changes = NCube.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
+        List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'")
         String s = changes.toString()
         assertTrue(s.contains("meta-entries deleted: foo->foot"))
         assertTrue(s.contains("bar->bart"))
@@ -4631,7 +4622,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("2DSimpleJson.json")
         assert cube1.sha1() == cube2.sha1()
         Map delta = cube1.getDelta(cube2)
-        cube1.mergeDeltaSet(delta)
+        DeltaProcessor.mergeDeltaSet(cube1, delta)
         assert cube1.sha1() == cube2.sha1()
     }
 
@@ -4642,7 +4633,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("merge1.json")
         Map cubeDelta = cube1.getDelta(cube2)
         Map delta = cubeDelta[NCube.DELTA_CELLS]
-        cube1.mergeDeltaSet(cubeDelta)
+        DeltaProcessor.mergeDeltaSet(cube1, cubeDelta)
         assert delta.size() == 5
         Map coord = [row:1, column:'A']
         assert "1" == cube1.getCell(coord)
@@ -4670,7 +4661,7 @@ class TestNCube
         Map cubeDelta = cube1.getDelta(cube2)
         Map delta = cubeDelta[NCube.DELTA_CELLS]
         assert delta.size() == 5
-        cube1.mergeDeltaSet(cubeDelta)
+        DeltaProcessor.mergeDeltaSet(cube1, cubeDelta)
         assert cube1.cells.size() == 0
     }
 
@@ -4701,7 +4692,7 @@ class TestNCube
         Map coord = [row:3, column:'C']
         cube1.removeCell(coord);
         Map delta = cube1.getDelta(cube2);
-        cube1.mergeDeltaSet(delta)
+        DeltaProcessor.mergeDeltaSet(cube1, delta)
         Object v = cube1.getCell(coord)
         assert v == 3.14159
     }
@@ -4714,7 +4705,7 @@ class TestNCube
         Map coord = [row:3, column:'C']
         cube1.removeCell(coord);
         Map delta = cube1.getDelta(cube2);
-        cube1.mergeDeltaSet(delta)
+        DeltaProcessor.mergeDeltaSet(cube1, delta)
         Object v = cube1.getCell(coord)
         assert cube1.sha1() == cube2.sha1();
         assert v == 3.14159
@@ -4729,13 +4720,13 @@ class TestNCube
 
         Map changeSet1 = cube2.getDelta(cube1)
         Map changeSet2 = cube2.getDelta(cube3)
-        assertFalse NCube.areDeltaSetsCompatible(changeSet1, changeSet2)
-        assertFalse NCube.areDeltaSetsCompatible(changeSet2, changeSet1)
+        assertFalse DeltaProcessor.areDeltaSetsCompatible(changeSet1, changeSet2)
+        assertFalse DeltaProcessor.areDeltaSetsCompatible(changeSet2, changeSet1)
 
         changeSet1 = cube1.getDelta(cube2)
         changeSet2 = cube3.getDelta(cube2)
-        assert NCube.areDeltaSetsCompatible(changeSet1, changeSet2)
-        assert NCube.areDeltaSetsCompatible(changeSet2, changeSet1)
+        assert DeltaProcessor.areDeltaSetsCompatible(changeSet1, changeSet2)
+        assert DeltaProcessor.areDeltaSetsCompatible(changeSet2, changeSet1)
     }
 
     @Test

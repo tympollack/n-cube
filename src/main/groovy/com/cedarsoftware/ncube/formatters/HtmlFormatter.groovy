@@ -312,7 +312,7 @@ public class HtmlFormatter implements NCubeFormatter
                     // Keep replacing the column ID for the top row portion of the coordinate (Set of IDs)
                     colIds[topAxisName] = topColumns[i].id
                     // Other coordinate values are set above this for-loop
-                    buildCell(ncube, s, colIds.values(), h % 2 == 0L)
+                    buildCell(ncube, s, colIds.values() as Set, h % 2 == 0L)
                 }
 
                 s.append("</tr>\n")
@@ -521,7 +521,7 @@ th.ncube-dead:hover { background: #76A7FF; }
         return "column"
     }
 
-    private static void buildCell(NCube ncube, StringBuilder s, Collection<Long> coord, boolean odd)
+    private static void buildCell(NCube ncube, StringBuilder s, Set<Long> coord, boolean odd)
     {
         final String oddRow = odd ? '' : 'odd-row '
         s.append(' <td data-id="').append(makeCellId(coord)).append('" class="td-ncube ' + oddRow)

@@ -1250,8 +1250,6 @@ class TestAxis
         }
         catch (IllegalArgumentException e)
         {
-            assert e.message.toLowerCase().contains('input')
-            assert e.message.toLowerCase().contains('not contain')
             assert e.message.toLowerCase().contains('required scope')
         }
 
@@ -1265,8 +1263,6 @@ class TestAxis
         }
         catch (IllegalArgumentException e)
         {
-            assert e.message.toLowerCase().contains('input')
-            assert e.message.toLowerCase().contains('not contain')
             assert e.message.toLowerCase().contains('required scope')
         }
     }

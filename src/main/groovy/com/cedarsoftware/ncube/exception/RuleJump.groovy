@@ -37,7 +37,7 @@ public class RuleJump extends RuntimeException
         coord = coordinate
     }
 
-    public Map getCoord()
+    public Map<String, Object> getCoord()
     {
         return coord
     }
