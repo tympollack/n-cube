@@ -31,12 +31,12 @@ import groovy.transform.PackageScope
 @CompileStatic
 class DeltaProcessor
 {
-    public static final String DELTA_CELLS = "~cell-deltas~"
-    public static final String DELTA_AXES_COLUMNS = "~col-deltas~"
-    public static final String DELTA_COLUMN_ADD = "~col-add~"
-    public static final String DELTA_COLUMN_REMOVE = "~col-del~"
-    public static final String DELTA_COLUMN_CHANGE = "~col-upd~"
-    public static final String DELTA_CELL_REMOVE = "~rem-cell~"
+    public static final String DELTA_CELLS = "~cell-delta"
+    public static final String DELTA_AXES_COLUMNS = "~col-delta"
+    public static final String DELTA_COLUMN_ADD = "~col-add"
+    public static final String DELTA_COLUMN_REMOVE = "~col-del"
+    public static final String DELTA_COLUMN_CHANGE = "~col-upd"
+    public static final String DELTA_CELL_REMOVE = "~cell-del"
 
     /**
      * Fetch the difference between this cube and the passed in cube.  The two cubes must have the same number of axes
