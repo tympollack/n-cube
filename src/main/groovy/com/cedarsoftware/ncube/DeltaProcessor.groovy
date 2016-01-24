@@ -31,6 +31,13 @@ import groovy.transform.PackageScope
 @CompileStatic
 class DeltaProcessor
 {
+    public static final String DELTA_CELLS = "~cell-deltas~"
+    public static final String DELTA_AXES_COLUMNS = "~col-deltas~"
+    public static final String DELTA_COLUMN_ADD = "~col-add~"
+    public static final String DELTA_COLUMN_REMOVE = "~col-del~"
+    public static final String DELTA_COLUMN_CHANGE = "~col-upd~"
+    public static final String DELTA_CELL_REMOVE = "~rem-cell~"
+
     /**
      * Fetch the difference between this cube and the passed in cube.  The two cubes must have the same number of axes
      * with the same names.  If those conditions are met, then this method will return a Map with keys for each delta
@@ -62,17 +69,17 @@ class DeltaProcessor
 
         // Step 1: Build axial differences
         Map<String, Map<Comparable, ColumnDelta>> deltaMap = [:] as CaseInsensitiveMap
-        delta[NCube.DELTA_AXES_COLUMNS] = deltaMap
+        delta[DELTA_AXES_COLUMNS] = deltaMap
 
         for (Axis axis : thisCube.getAxes())
         {
             Axis otherAxis = other.getAxis(axis.getName())
-            deltaMap[axis.getName()] = DeltaProcessor.getAxisDelta(axis, otherAxis)
+            deltaMap[axis.getName()] = getAxisDelta(axis, otherAxis)
         }
 
         // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
         // transactionally apply the merge.  We do not want a partial merge.
-        delta[NCube.DELTA_CELLS] = DeltaProcessor.getCellDelta(thisCube, other)
+        delta[DELTA_CELLS] = getCellDelta(thisCube, other)
         return delta
     }
 
@@ -85,7 +92,7 @@ class DeltaProcessor
     static <T> void mergeDeltaSet(NCube<T> target, Map<String, Object> deltaSet)
     {
         // Step 1: Merge column-level changes
-        Map<String, Map<Long, ColumnDelta>> deltaMap = (Map<String, Map<Long,ColumnDelta>>) deltaSet.get(NCube.DELTA_AXES_COLUMNS)
+        Map<String, Map<Long, ColumnDelta>> deltaMap = (Map<String, Map<Long,ColumnDelta>>) deltaSet[DELTA_AXES_COLUMNS]
         for (Map.Entry<String, Map<Long, ColumnDelta>> entry : deltaMap.entrySet())
         {
             String axisName = entry.getKey()
@@ -93,11 +100,11 @@ class DeltaProcessor
 
             for (ColumnDelta colDelta : colChanges.values())
             {
-                Column column = colDelta.column;
-                if (NCube.DELTA_COLUMN_ADD.equals(colDelta.changeType))
+                Column column = colDelta.column
+                if (DELTA_COLUMN_ADD.equals(colDelta.changeType))
                 {
                     Axis axis = target.getAxis(axisName)
-                    Column findCol;
+                    Column findCol
                     if (axis.getType() == AxisType.RULE)
                     {
                         if (StringUtilities.hasContent(column.getColumnName()))
@@ -119,7 +126,7 @@ class DeltaProcessor
                         target.addColumn(axisName, column.getValue(), column.getColumnName(), column.id)
                     }
                 }
-                else if (NCube.DELTA_COLUMN_REMOVE.equals(colDelta.changeType))
+                else if (DELTA_COLUMN_REMOVE.equals(colDelta.changeType))
                 {
                     Axis axis = target.getAxis(axisName)
                     if (axis.getType() == AxisType.RULE)
@@ -139,7 +146,7 @@ class DeltaProcessor
                         target.deleteColumn(axisName, column.getValue())
                     }
                 }
-                else if (NCube.DELTA_COLUMN_CHANGE.equals(colDelta.changeType))
+                else if (DELTA_COLUMN_CHANGE.equals(colDelta.changeType))
                 {
                     target.updateColumn(column.id, column.getValue())
                 }
@@ -147,15 +154,15 @@ class DeltaProcessor
         }
 
         // Step 2: Merge cell-level changes
-        Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet.get(NCube.DELTA_CELLS)
+        Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet[DELTA_CELLS]
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
         for (Map.Entry<Map<String, Object>, T> entry : cellDelta.entrySet())
         {
-            Set<Long> cols = target.deltaCoordToSetOfLong(entry.getKey())
+            Set<Long> cols = deltaCoordToSetOfLong(target, entry.getKey())
             if (cols != null && cols.size() > 0)
             {
                 T value = entry.getValue()
-                if (NCube.DELTA_CELL_REMOVE.equals(value))
+                if (DELTA_CELL_REMOVE.equals(value))
                 {   // Remove cell
                     target.removeCellById(cols)
                 }
@@ -181,14 +188,14 @@ class DeltaProcessor
     {
         if (completeDelta1 == null || completeDelta2 == null)
         {
-            return false;
+            return false
         }
         // Step 1: Do any column-level updates conflict?
-        Map<String, Map<Comparable, ColumnDelta>> deltaMap1 = (Map<String, Map<Comparable, ColumnDelta>>) completeDelta1.get(NCube.DELTA_AXES_COLUMNS)
-        Map<String, Map<Comparable, ColumnDelta>> deltaMap2 = (Map<String, Map<Comparable, ColumnDelta>>) completeDelta2.get(NCube.DELTA_AXES_COLUMNS)
+        Map<String, Map<Comparable, ColumnDelta>> deltaMap1 = (Map<String, Map<Comparable, ColumnDelta>>) completeDelta1[DELTA_AXES_COLUMNS]
+        Map<String, Map<Comparable, ColumnDelta>> deltaMap2 = (Map<String, Map<Comparable, ColumnDelta>>) completeDelta2[DELTA_AXES_COLUMNS]
         if (deltaMap1.size() != deltaMap2.size())
         {   // Must have same number of axis (axis name is the outer Map key).
-            return false;
+            return false
         }
 
         CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(deltaMap1.keySet())
@@ -197,7 +204,7 @@ class DeltaProcessor
 
         if (!a1.isEmpty())
         {   // Axis names must be all be the same (ignoring case)
-            return false;
+            return false
         }
 
         // Column change maps must be compatible (on Rule axes)
@@ -205,7 +212,7 @@ class DeltaProcessor
         {
             String axisName = entry1.getKey()
             Map<Comparable, ColumnDelta> changes1 = entry1.getValue()
-            Map<Comparable, ColumnDelta> changes2 = deltaMap2.get(axisName)
+            Map<Comparable, ColumnDelta> changes2 = deltaMap2[axisName]
 
             for (Map.Entry<Comparable, ColumnDelta> colEntry1 : changes1.entrySet())
             {
@@ -213,28 +220,28 @@ class DeltaProcessor
                 if (delta1.axisType == AxisType.RULE)
                 {   // Only RULE axes need to have their columns compared (because they are ID compared)
                     String colName = delta1.column.getColumnName()
-                    ColumnDelta delta2 = colName == null ? changes2.get(delta1.column.id) : changes2.get(colName)
+                    ColumnDelta delta2 = colName == null ? changes2[delta1.column.id] : changes2[colName]
 
                     if (delta2 == null)
-                        continue;   // no column changed with same ID, delta1 is OK
+                        continue   // no column changed with same ID, delta1 is OK
 
                     if (delta2.axisType != delta1.axisType)
-                        return false;   // different axis types
+                        return false   // different axis types
 
                     if (!delta1.column.getValue().equals(delta2.column.getValue()))
-                        return false;   // value is different for column with same ID
+                        return false   // value is different for column with same ID
 
                     if (!delta1.changeType.equals(delta2.changeType))
-                        return false;   // different change type (REMOVE vs ADD, CHANGE vs REMOVE, etc.)
+                        return false   // different change type (REMOVE vs ADD, CHANGE vs REMOVE, etc.)
                 }
             }
         }
 
         // Step 2: Do any cell-level updates conflict?
-        Map<Map<String, Object>, Object> delta1 = (Map<Map<String, Object>, Object>) completeDelta1.get(NCube.DELTA_CELLS)
-        Map<Map<String, Object>, Object> delta2 = (Map<Map<String, Object>, Object>) completeDelta2.get(NCube.DELTA_CELLS)
-        Map<Map<String, Object>, Object> smallerChangeSet;
-        Map<Map<String, Object>, Object> biggerChangeSet;
+        Map<Map<String, Object>, Object> delta1 = (Map<Map<String, Object>, Object>) completeDelta1[DELTA_CELLS]
+        Map<Map<String, Object>, Object> delta2 = (Map<Map<String, Object>, Object>) completeDelta2[DELTA_CELLS]
+        Map<Map<String, Object>, Object> smallerChangeSet
+        Map<Map<String, Object>, Object> biggerChangeSet
 
         // Performance optimization: determine which cell change set is smaller.
         if (delta1.size() < delta2.size())
@@ -255,7 +262,7 @@ class DeltaProcessor
             if (biggerChangeSet.containsKey(deltaCoord))
             {
                 CellInfo info1 = new CellInfo(entry.getValue())
-                CellInfo info2 = new CellInfo(biggerChangeSet.get(deltaCoord))
+                CellInfo info2 = new CellInfo(biggerChangeSet[deltaCoord])
 
                 if (!info1.equals(info2))
                 {
@@ -266,8 +273,7 @@ class DeltaProcessor
         return true;
     }
 
-    @PackageScope
-    static Map<Comparable, ColumnDelta> getAxisDelta(Axis thisAxis, Axis other)
+    private static Map<Comparable, ColumnDelta> getAxisDelta(Axis thisAxis, Axis other)
     {
         Map<Comparable, ColumnDelta> deltaColumns = new CaseInsensitiveMap<>()
         Map<Comparable, Column> copyColumns = new LinkedHashMap<>()
@@ -279,20 +285,21 @@ class DeltaProcessor
             {
                 String name = column.getColumnName()
                 // Use rule-name if it exists.
-                copyRuleColumns.put(name != null ? name : column.id, column)
+                Comparable key = name != null ? name : column.id
+                copyRuleColumns[key] = column
             }
 
             for (Column otherColumn : other.getColumnsInternal())
             {
                 String name = otherColumn.getColumnName()
-                Column foundCol;
+                Column foundCol
                 if (name == null)
                 {
                     foundCol = thisAxis.getColumnById(otherColumn.id)
 
                     if (foundCol == null)
                     {   // Not found, the 'other' axis has a column 'this' axis does not have
-                        deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, NCube.DELTA_COLUMN_ADD))
+                        deltaColumns[otherColumn.id] = new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_ADD)
                     }
                     else if (otherColumn.getValue() == foundCol.getValue() || otherColumn.getValue().equals(foundCol.getValue()))   // handles default (null) column
                     {   // Matched (id and value same) - this column will not be added to the delta map.  Remove by ID.
@@ -300,7 +307,7 @@ class DeltaProcessor
                     }
                     else
                     {   // Column exists on both (same IDs), but the value is different
-                        deltaColumns.put(otherColumn.id, new ColumnDelta(AxisType.RULE, otherColumn, NCube.DELTA_COLUMN_CHANGE))
+                        deltaColumns[otherColumn.id] = new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_CHANGE)
                         copyRuleColumns.remove(foundCol.getColumnName() != null ? foundCol.getColumnName() : foundCol.id)
                     }
                 }
@@ -310,7 +317,7 @@ class DeltaProcessor
 
                     if (foundCol == null)
                     {   // Not found, the 'other' axis has a column 'this' axis does not have
-                        deltaColumns.put(name, new ColumnDelta(thisAxis.getType(), otherColumn, NCube.DELTA_COLUMN_ADD))
+                        deltaColumns[name] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD)
                     }
                     else
                     {   // Matched name
@@ -320,7 +327,7 @@ class DeltaProcessor
                         }
                         else
                         {   // Value did not match - need to update column
-                            deltaColumns.put(name, new ColumnDelta(thisAxis.getType(), otherColumn, NCube.DELTA_COLUMN_CHANGE))
+                            deltaColumns[name] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_CHANGE)
                             copyRuleColumns.remove(name)    // Since this is a change, don't leave column in 'remove' list.
                         }
                     }
@@ -330,14 +337,15 @@ class DeltaProcessor
             // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
             for (Column column : copyRuleColumns.values())
             {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns.put(column.getColumnName() != null ? column.getColumnName() : column.id, new ColumnDelta(AxisType.RULE, column, NCube.DELTA_COLUMN_REMOVE))
+                Comparable key = column.getColumnName() != null ? column.getColumnName() : column.id
+                deltaColumns[key] = new ColumnDelta(AxisType.RULE, column, DELTA_COLUMN_REMOVE)
             }
         }
         else
         {   // Handle non-rule columns
             for (Column column : thisAxis.getColumnsInternal())
             {
-                copyColumns.put(column.getValue(), column)
+                copyColumns[column.getValue()] = column
             }
 
             for (Column otherColumn : other.getColumnsInternal())
@@ -347,7 +355,7 @@ class DeltaProcessor
 
                 if (foundCol == null || foundCol == other.getDefaultColumn())
                 {   // Not found, the 'other' axis has a column 'this' axis does not have
-                    deltaColumns.put(otherColumn.id, new ColumnDelta(thisAxis.getType(), otherColumn, NCube.DELTA_COLUMN_ADD))
+                    deltaColumns[otherColumn.id] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD)
                 }
                 else
                 {   // Matched - this column will not be added to the delta map.
@@ -358,11 +366,11 @@ class DeltaProcessor
             // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
             for (Column column : copyColumns.values())
             {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns.put(column.id, new ColumnDelta(thisAxis.getType(), column, NCube.DELTA_COLUMN_REMOVE))
+                deltaColumns[column.id] = new ColumnDelta(thisAxis.getType(), column, DELTA_COLUMN_REMOVE)
             }
         }
 
-        return deltaColumns;
+        return deltaColumns
     }
 
     /**
@@ -370,8 +378,7 @@ class DeltaProcessor
      * @param other NCube from which to generate the delta.
      * @return Map containing a Map of cell coordinates [key is Map<String, Object> and value (T)].
      */
-    @PackageScope
-    static <T> Map<Map<String, Object>, T> getCellDelta(NCube<T> thisCube, NCube<T> other)
+    private static <T> Map<Map<String, Object>, T> getCellDelta(NCube<T> thisCube, NCube<T> other)
     {
         Map<Map<String, Object>, T> delta = new HashMap<>()
         Set<Map<String, Object>> copyCells = new HashSet<>()
@@ -387,7 +394,7 @@ class DeltaProcessor
         {
             Set<Long> ids = new LongHashSet(otherEntry.getKey())
             Map<String, Object> deltaCoord = other.getCoordinateFromIds(ids)
-            Set<Long> idKey = other.deltaCoordToSetOfLong(deltaCoord)
+            Set<Long> idKey = deltaCoordToSetOfLong(other, deltaCoord)
             if (idKey != null)
             {   // Was able to bind deltaCoord between cubes
                 T content = thisCube.getCellByIdNoExecute(idKey)
@@ -399,17 +406,17 @@ class DeltaProcessor
 
                 if (!info.equals(otherInfo))
                 {
-                    delta.put(deltaCoord, otherContent)
+                    delta[deltaCoord] = otherContent
                 }
             }
         }
 
         for (Map<String, Object> coord : copyCells)
         {
-            delta.put(coord, (T) NCube.DELTA_CELL_REMOVE)
+            delta[coord] = (T) DELTA_CELL_REMOVE
         }
 
-        return delta;
+        return delta
     }
 
     /**
@@ -425,7 +432,7 @@ class DeltaProcessor
 
         if (!thisCube.name.equalsIgnoreCase(other.name))
         {
-            String s = "Name changed from '" + other.name + "' to '" + thisCube.name + "'";
+            String s = "Name changed from '" + other.name + "' to '" + thisCube.name + "'"
             changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s))
         }
 
@@ -436,21 +443,21 @@ class DeltaProcessor
         Set<String> a2 = other.getAxisNames()
         a1.removeAll(a2)
 
-        boolean axesChanged = false;
+        boolean axesChanged = false
         if (!a1.isEmpty())
         {
-            String s = "Added axis: " + a1;
+            String s = "Added axis: " + a1
             changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s))
-            axesChanged = true;
+            axesChanged = true
         }
 
         a1 = thisCube.getAxisNames()
         a2.removeAll(a1)
         if (!a2.isEmpty())
         {
-            String s = "Removed axis: " + a2;
+            String s = "Removed axis: " + a2
             changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s))
-            axesChanged = true;
+            axesChanged = true
         }
 
         for (Axis newAxis : thisCube.getAxes())
@@ -458,7 +465,7 @@ class DeltaProcessor
             Axis oldAxis = other.getAxis(newAxis.getName())
             if (oldAxis == null)
             {
-                continue;
+                continue
             }
             if (!newAxis.areAxisPropsEqual(oldAxis))
             {
@@ -495,7 +502,7 @@ class DeltaProcessor
                 Column newCol = newAxis.getColumnById(oldCol.id)
                 if (newCol == null)
                 {
-                    String s = "Column: " + oldCol.getValue() + " removed";
+                    String s = "Column: " + oldCol.getValue() + " removed"
                     changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s))
                 }
             }
@@ -504,7 +511,7 @@ class DeltaProcessor
         // Different dimensionality, don't compare cells
         if (axesChanged)
         {
-            return changes;
+            return changes
         }
 
         for (Map.Entry<Set<Long>, Object> entry : thisCube.getCellMap().entrySet())
@@ -514,7 +521,7 @@ class DeltaProcessor
 
             if (other.getCellMap().containsKey(newCellKey))
             {
-                Object oldCellValue = other.getCellMap().get(newCellKey)
+                Object oldCellValue = other.getCellMap()[newCellKey]
                 if (!DeepEquals.deepEquals(newCellValue, oldCellValue))
                 {
                     Map<String, Object> properCoord = thisCube.getDisplayCoordinateFromIds(newCellKey)
@@ -539,14 +546,14 @@ class DeltaProcessor
 
             if (!thisCube.getCellMap().containsKey(oldCellKey))
             {
-                boolean allColsStillExist = true;
+                boolean allColsStillExist = true
                 for (Long colId : oldCellKey)
                 {
                     Axis axis = thisCube.getAxisFromColumnId(colId)
                     if (axis == null)
                     {
-                        allColsStillExist = false;
-                        break;
+                        allColsStillExist = false
+                        break
                     }
                 }
 
@@ -560,7 +567,7 @@ class DeltaProcessor
                 }
             }
         }
-        return changes;
+        return changes
     }
 
     @PackageScope
@@ -576,7 +583,7 @@ class DeltaProcessor
         if (!addedKeys.isEmpty())
         {
             StringBuilder s = makeMap(newMeta, addedKeys)
-            String entry = addedKeys.size() > 1 ? "meta-entries" : "meta-entry";
+            String entry = addedKeys.size() > 1 ? "meta-entries" : "meta-entry"
             changes.add(new Delta(location, Delta.Type.ADD, locName + " " + entry + " added: " + s))
         }
 
@@ -585,7 +592,7 @@ class DeltaProcessor
         if (!deletedKeys.isEmpty())
         {
             StringBuilder s = makeMap(oldMeta, deletedKeys)
-            String entry = deletedKeys.size() > 1 ? "meta-entries" : "meta-entry";
+            String entry = deletedKeys.size() > 1 ? "meta-entries" : "meta-entry"
             changes.add(new Delta(location, Delta.Type.DELETE, locName + " " + entry + " deleted: " + s))
         }
 
@@ -593,20 +600,94 @@ class DeltaProcessor
         StringBuilder s = new StringBuilder()
         for (String key : sameKeys)
         {
-            if (!DeepEquals.deepEquals(oldMeta.get(key), newMeta.get(key)))
+            if (!DeepEquals.deepEquals(oldMeta[key], newMeta[key]))
             {
-                s.append(key).append("->").append(oldMeta.get(key)).append(" ==> ").append(key).append("->").append(newMeta.get(key)).append(", ")
+                s.append(key).append("->").append(oldMeta[key]).append(" ==> ").append(key).append("->").append(newMeta[key]).append(", ")
                 i++
             }
         }
         if (i > 0)
         {
             s.setLength(s.length() - 2)     // remove extra ", " at end
-            String entry = i > 1 ? "meta-entries" : "meta-entry";
+            String entry = i > 1 ? "meta-entries" : "meta-entry"
             changes.add(new Delta(location, Delta.Type.UPDATE, locName + " " + entry + " changed: " + s))
         }
 
         return changes
+    }
+
+    /**
+     * Convert a DeltaCoord to a Set<Long>.  A 'deltaCoord' is a coordinate which has String axis name
+     * keys and associated values (to match against standard axes), but for Rule axes it has the Long ID
+     * for the associated value.  These deltaCoord's are used during cube merging to allow coordinates from
+     * one cube to bind into another cube.
+     * @param deltaCoord Map<String, Object> where the String keys are axis names, and the object is the associated
+     * value to bind to the axis.  For RULE axes, the associated value is a Long ID (or rule name, or null
+     * for default column - note: long ID can be used for default too).
+     * @return Set<Long> that can be used with any n-cube API that binds by ID (getCellById, etc.) or null
+     * if the deltaCoord could not bind to this n-cube.
+     */
+    private static <T> Set<Long> deltaCoordToSetOfLong(NCube<T> target, final Map<String, Object> deltaCoord)
+    {
+        final Set<Long> key = new LongHashSet()
+
+        for (final Axis axis : target.getAxes())
+        {
+            final Object value = deltaCoord[axis.getName()]
+
+            if (axis.getType() == AxisType.RULE)
+            {
+                if (value instanceof Long)
+                {
+                    if (axis.getColumnById((Long) value) != null)
+                    {   // Verify the ID is good
+                        key.add((Long) value)
+                    }
+                    else
+                    {
+                        return null
+                    }
+                }
+                else if (value instanceof String)
+                {
+                    Column column = axis.findColumnByName((String)value)
+                    if (column != null)
+                    {
+                        key.add(column.id)
+                    }
+                    else
+                    {
+                        return null
+                    }
+                }
+                else if (value == null)
+                {   // You can get the Default column by passing in null
+                    Column column = axis.findColumn(null)
+                    if (column != null)
+                    {
+                        key.add(column.id)
+                    }
+                    else
+                    {
+                        return null
+                    }
+                }
+                else
+                {   // error case: only a Long, String, or null can be associated to the name of a rule axis in a deltaCoord.
+                    return null
+                }
+            }
+            else
+            {
+                final Column column = axis.findColumn((Comparable) value)
+                if (column == null)
+                {
+                    return null
+                }
+                key.add(column.id)
+            }
+        }
+        return key
     }
 
     private static StringBuilder makeMap(Map<String, Object> newMeta, Set<String> addedKeys)
@@ -617,11 +698,11 @@ class DeltaProcessor
         {
             String key = i.next()
             s.append(key)
-            s.append("->")
-            s.append(newMeta.get(key))
+            s.append('->')
+            s.append(newMeta[key])
             if (i.hasNext())
             {
-                s.append(", ")
+                s.append(', ')
             }
         }
         return s

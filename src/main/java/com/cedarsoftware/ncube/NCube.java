@@ -79,12 +79,6 @@ public class NCube<T>
     public static final String DEFAULT_CELL_VALUE = "defaultCellValue";
     public static final String DEFAULT_CELL_VALUE_URL = "defaultCellValueUrl";
     public static final String DEFAULT_CELL_VALUE_CACHE = "defaultCellValueCache";
-    public static final String DELTA_CELLS = "~cell-deltas~";
-    public static final String DELTA_AXES_COLUMNS = "~column-deltas~";
-    public static final String DELTA_COLUMN_ADD = "~column-added~";
-    public static final String DELTA_COLUMN_REMOVE = "~column-removed~";
-    public static final String DELTA_COLUMN_CHANGE = "~column-changed~";
-    public static final String DELTA_CELL_REMOVE = "~remove-cell~";
     private String name;
     private String sha1;
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>();
@@ -2257,7 +2251,7 @@ public class NCube<T>
 
             for (Map.Entry<Set<Long>, T> entry : cells.entrySet())
             {
-                String keySha1 = columnValuesToString(entry.getKey());
+                String keySha1 = columnIdsToString(entry.getKey());
                 deepSha1(tempDigest, entry.getValue(), sep);
                 String valueSha1 = StringUtilities.encode(tempDigest.digest());
                 sha1s.add(EncryptionUtilities.calculateSHA1Hash((keySha1 + valueSha1).getBytes()));
@@ -2275,7 +2269,7 @@ public class NCube<T>
         return sha1;
     }
 
-    private String columnValuesToString(Collection<Long> columns)
+    private String columnIdsToString(Set<Long> columns)
     {
         List<String> list = new ArrayList<>();
         for (Long colId : columns)
@@ -2393,81 +2387,6 @@ public class NCube<T>
                 md.update(sep);
             }
         }
-    }
-
-    /**
-     * Convert a DeltaCoord to a Set<Long>.  A 'deltaCoord' is a coordinate which has String axis name
-     * keys and associated values (to match against standard axes), but for Rule axes it has the Long ID
-     * for the associated value.  These deltaCoord's are used during cube merging to allow coordinates from
-     * one cube to bind into another cube.
-     * @param deltaCoord Map<String, Object> where the String keys are axis names, and the object is the associated
-     * value to bind to the axis.  For RULE axes, the associated value is a Long ID (or rule name, or null
-     * for default column - note: long ID can be used for default too).
-     * @return Set<Long> that can be used with any n-cube API that binds by ID (getCellById, etc.) or null
-     * if the deltaCoord could not bind to this n-cube.
-     */
-    Set<Long> deltaCoordToSetOfLong(final Map<String, Object> deltaCoord)
-    {
-        final Set<Long> key = new LongHashSet();
-
-        for (final Map.Entry<String, Axis> entry : axisList.entrySet())
-        {
-            final Axis axis = entry.getValue();
-            final Object value = deltaCoord.get(entry.getKey());
-
-            if (axis.getType() == AxisType.RULE)
-            {
-                if (value instanceof Long)
-                {
-                    if (axis.getColumnById((Long) value) != null)
-                    {   // Verify the ID is good
-                        key.add((Long) value);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-                else if (value instanceof String)
-                {
-                    Column column = axis.findColumnByName((String)value);
-                    if (column != null)
-                    {
-                        key.add(column.id);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-                else if (value == null)
-                {   // You can get the Default column by passing in null
-                    Column column = axis.findColumn(null);
-                    if (column != null)
-                    {
-                        key.add(column.id);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-                else
-                {   // error case: only a Long, String, or null can be associated to the name of a rule axis in a deltaCoord.
-                    return null;
-                }
-            }
-            else
-            {
-                final Column column = axis.findColumn((Comparable) value);
-                if (column == null)
-                {
-                    return null;
-                }
-                key.add(column.id);
-            }
-        }
-        return key;
     }
 
     /**

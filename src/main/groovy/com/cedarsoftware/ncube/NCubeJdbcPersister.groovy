@@ -1511,15 +1511,6 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         return pattern
     }
 
-    static String nameCompareCondition(Connection c)
-    {
-        if (isOracle(c))
-        {
-            return 'LOWER(a.n_cube_nm) = LOWER(b.n_cube_nm)'
-        }
-        return 'a.n_cube_nm = b.n_cube_nm'
-    }
-
     static String buildNameCondition(Connection c, String name)
     {
         if (isOracle(c))

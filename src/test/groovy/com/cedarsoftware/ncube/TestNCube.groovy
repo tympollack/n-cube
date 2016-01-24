@@ -4632,7 +4632,7 @@ class TestNCube
         NCube cube1 = NCubeManager.getNCubeFromResource("empty2D.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("merge1.json")
         Map cubeDelta = DeltaProcessor.getDelta(cube1, cube2)
-        Map delta = cubeDelta[NCube.DELTA_CELLS]
+        Map delta = cubeDelta[DeltaProcessor.DELTA_CELLS]
         DeltaProcessor.mergeDeltaSet(cube1, cubeDelta)
         assert delta.size() == 5
         Map coord = [row:1, column:'A']
@@ -4659,7 +4659,7 @@ class TestNCube
         NCube cube1 = NCubeManager.getNCubeFromResource("merge1.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("empty2D.json")
         Map cubeDelta = DeltaProcessor.getDelta(cube1, cube2)
-        Map delta = cubeDelta[NCube.DELTA_CELLS]
+        Map delta = cubeDelta[DeltaProcessor.DELTA_CELLS]
         assert delta.size() == 5
         DeltaProcessor.mergeDeltaSet(cube1, cubeDelta)
         assert cube1.cells.size() == 0
@@ -4673,11 +4673,11 @@ class TestNCube
         String cube1Sha = cube1.sha1()
         String cube2Sha = cube2.sha1()
         Map cubeDelta1 = DeltaProcessor.getDelta(cube1, cube2)
-        Map delta1 = cubeDelta1[NCube.DELTA_CELLS]
+        Map delta1 = cubeDelta1[DeltaProcessor.DELTA_CELLS]
         assert delta1.size() == 1
         assert delta1.values().iterator().next() == 3.14159
         Map cubeDelta2 = DeltaProcessor.getDelta(cube2, cube1)
-        Map delta2 = cubeDelta2[NCube.DELTA_CELLS]
+        Map delta2 = cubeDelta2[DeltaProcessor.DELTA_CELLS]
         assert delta2.size() == 1
         assert delta2.values().iterator().next() == 3.14
         assert cube1.sha1() == cube1Sha
