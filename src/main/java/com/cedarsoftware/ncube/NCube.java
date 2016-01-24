@@ -2396,51 +2396,6 @@ public class NCube<T>
     }
 
     /**
-     * Fetch the difference between this cube and the passed in cube.  The two cubes must have the same number of axes
-     * with the same names.  If those conditions are met, then this method will return a Map with keys for each delta
-     * type.
-     *
-     * The key DELTA_CELLS, will have an associated value that is a Map<Set<Long>, T> which are the cell contents
-     * that are different.  These cell differences when applied to 'this' will result in this cube's cells matching
-     * the passed in 'other'. If the value is NCUBE.REMOVE_CELL, then that indicates a cell that needs to be removed.
-     * All other cell values are actual cell value changes.
-     *
-     * The key DELTA_AXES_COLUMNS, contains the column differences.  The value associated to this key is a Map, that
-     * maps axis name (case-insensitively) to a Map where the key is a column and the associated value is
-     * either the 'true' (new) or false (if it should be removed).
-     *
-     * In the future, meta-property differences may be reported.
-     *
-     * @param other NCube to compare to this ncube.
-     * @return Map containing the differences as described above.  If different number of axes, or different axis names,
-     * then null is returned.
-     */
-    public Map<String, Object> getDelta(NCube<T> other)
-    {
-        Map<String, Object> delta = new LinkedHashMap<>();
-
-        if (!isComparableCube(other))
-        {
-            return null;
-        }
-
-        // Step 1: Build axial differences
-        Map<String, Map<Comparable, ColumnDelta>> deltaMap = new CaseInsensitiveMap<>();
-        delta.put(DELTA_AXES_COLUMNS, deltaMap);
-
-        for (Axis axis : axisList.values())
-        {
-            Axis otherAxis = other.axisList.get(axis.getName());
-            deltaMap.put(axis.getName(), DeltaProcessor.getAxisDelta(axis, otherAxis));
-        }
-
-        // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
-        // transactionally apply the merge.  We do not want a partial merge.
-        delta.put(DELTA_CELLS, DeltaProcessor.getCellDelta(this, other));
-        return delta;
-    }
-
-    /**
      * Convert a DeltaCoord to a Set<Long>.  A 'deltaCoord' is a coordinate which has String axis name
      * keys and associated values (to match against standard axes), but for Rule axes it has the Long ID
      * for the associated value.  These deltaCoord's are used during cube merging to allow coordinates from

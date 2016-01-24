@@ -81,8 +81,8 @@ class TestDelta
         assert cube2.cellMap.size() == 48
 
         // Compute delta between copy of original cube and the cube with deleted column.
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -134,8 +134,8 @@ class TestDelta
         assert 'foo' == getCellIgnoreRule(cube1, coord)
 
         // Compute delta between copy of original cube and the cube with deleted column.
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)  // Other guy made no changes
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -165,8 +165,8 @@ class TestDelta
         assert cube2.cellMap.size() == 48
 
         // Compute delta between copy of original cube and the cube with deleted column.
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)  // Other guy made no changes
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -206,8 +206,8 @@ class TestDelta
 
         // Compute delta between copy of original cube and the cube with deleted column.
         // Apply this delta to the 2nd cube to force the same changes on it.
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)  // Other guy made no changes
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -236,8 +236,8 @@ class TestDelta
 
         // Compute delta between copy of original cube and the cube with deleted column.
         // Apply this delta to the 2nd cube to force the same changes on it.
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)  // Other guy made no changes
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)  // Other guy made no changes
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -273,8 +273,8 @@ class TestDelta
         assert 'bar' == getCellIgnoreRule(cube2, coord)
 
         // Compute delta between copy of original cube
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube1)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube1)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -312,8 +312,8 @@ class TestDelta
         assert 'bar' == getCellIgnoreRule(cube2, coord2)
 
         // Compute delta between copy of original cube
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube1)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube1)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -340,8 +340,8 @@ class TestDelta
         assert cube2.cellMap.size() == 32
 
         // Compute delta between copy of original cube
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -369,8 +369,8 @@ class TestDelta
         assert cube2.cellMap.size() == 32
 
         // Compute delta between copy of original cube
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -399,8 +399,8 @@ class TestDelta
         coord.rule = 'Finalize'
         cube2.setCell('88', coord)
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -431,8 +431,8 @@ class TestDelta
         coord.rule = 'Finalize'
         cube2.setCell('88', coord)
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -463,8 +463,8 @@ class TestDelta
         coord.rule = 'Summary'
         cube2.setCell('99', coord)
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert !compatibleChange
@@ -480,8 +480,8 @@ class TestDelta
         cube1.deleteColumn('rule', 'init')
         cube2.deleteColumn('rule', 'process')
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -501,8 +501,8 @@ class TestDelta
         cube1.deleteColumn('rule', 'init')
         cube2.deleteColumn('rule', 'init')
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
@@ -526,8 +526,8 @@ class TestDelta
         assert 'love' == getCellIgnoreRule(cube1, coord)
         assert cube1.getNumCells() == 49
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         DeltaProcessor.mergeDeltaSet(cube2, delta1)
@@ -554,8 +554,8 @@ class TestDelta
         cube1.setCell('fear', coord2)
         assert cube1.getNumCells() == 50
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         DeltaProcessor.mergeDeltaSet(cube2, delta1)
@@ -580,8 +580,8 @@ class TestDelta
         cube1.deleteColumn('rule', 'init')
 
         assert 12 == cube1.numCells
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         DeltaProcessor.mergeDeltaSet(cube2, delta1)
@@ -606,8 +606,8 @@ class TestDelta
         Column column = cube1.getAxis('rule').getColumns()[0]
         cube1.deleteColumn('rule', column.id)
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         DeltaProcessor.mergeDeltaSet(cube2, delta1)
@@ -629,8 +629,8 @@ class TestDelta
         cube1.deleteColumn('rule', col1.id)
         assert cube1.numCells == 2
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         assert cube2.numCells == 3
@@ -654,8 +654,8 @@ class TestDelta
         Column col1 = cube1.getAxis('rule').columns[0]
         cube1.updateColumn(col1.id, '1 < 2')
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         Axis rule = cube2.getAxis('rule')
@@ -681,8 +681,8 @@ class TestDelta
         cube1.updateColumn(col.id, '34 < 40')
         assert '7' == getCellIgnoreRule(cube1, coord)
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         rule = (Axis)cube2['rule']
@@ -706,8 +706,8 @@ class TestDelta
         assert state.size() == 3
         cube1.setCell('3', [:])
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         state = (Axis) cube2['state']
@@ -741,8 +741,8 @@ class TestDelta
         }
         assert cube1.numCells == 2
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
 
@@ -774,8 +774,8 @@ class TestDelta
         assert rules.size() == 3
         cube1.setCell('3', [:])
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
         rules = (Axis) cube2['rule']
@@ -807,8 +807,8 @@ class TestDelta
         { }
         assert cube1.numCells == 2
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert compatibleChange
 
@@ -840,8 +840,8 @@ class TestDelta
         rule = (Axis) cube2['rule']
         rule.deleteColumn('process')
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert !compatibleChange
     }
@@ -866,8 +866,8 @@ class TestDelta
         rule = (Axis) cube2['rule']
         rule.deleteColumn(null)
 
-        Map<String, Object> delta1 = orig.getDelta(cube1)
-        Map<String, Object> delta2 = orig.getDelta(cube2)
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
         assert !compatibleChange
     }
@@ -881,7 +881,7 @@ class TestDelta
         ncube1.addAxis(axis1)
         NCube ncube2 = new NCube("two")
         ncube2.addAxis(axis2)
-        assert null == ncube1.getDelta(ncube2)
+        assert null == DeltaProcessor.getDelta(ncube1, ncube2)
     }
 
     @Test
@@ -893,7 +893,7 @@ class TestDelta
         ncube1.addAxis(axis1)
         NCube ncube2 = new NCube("two")
         ncube2.addAxis(axis2)
-        assert null == ncube1.getDelta(ncube2)
+        assert null == DeltaProcessor.getDelta(ncube1, ncube2)
     }
 
     @Test

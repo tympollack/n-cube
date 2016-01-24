@@ -4604,7 +4604,7 @@ class TestNCube
     {
         NCube cube1 = NCubeManager.getNCubeFromResource("debugExp.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("debugExp2D.json")
-        assert null == cube1.getDelta(cube2)
+        assert null == DeltaProcessor.getDelta(cube1, cube2)
     }
 
     @Test
@@ -4612,7 +4612,7 @@ class TestNCube
     {
         NCube cube1 = NCubeManager.getNCubeFromResource("2DSimpleJson.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("debugExp2D.json")
-        assert null == cube1.getDelta(cube2)
+        assert null == DeltaProcessor.getDelta(cube1, cube2)
     }
 
     @Test
@@ -4621,7 +4621,7 @@ class TestNCube
         NCube cube1 = NCubeManager.getNCubeFromResource("2DSimpleJson.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("2DSimpleJson.json")
         assert cube1.sha1() == cube2.sha1()
-        Map delta = cube1.getDelta(cube2)
+        Map delta = DeltaProcessor.getDelta(cube1, cube2)
         DeltaProcessor.mergeDeltaSet(cube1, delta)
         assert cube1.sha1() == cube2.sha1()
     }
@@ -4631,7 +4631,7 @@ class TestNCube
     {
         NCube cube1 = NCubeManager.getNCubeFromResource("empty2D.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("merge1.json")
-        Map cubeDelta = cube1.getDelta(cube2)
+        Map cubeDelta = DeltaProcessor.getDelta(cube1, cube2)
         Map delta = cubeDelta[NCube.DELTA_CELLS]
         DeltaProcessor.mergeDeltaSet(cube1, cubeDelta)
         assert delta.size() == 5
@@ -4658,7 +4658,7 @@ class TestNCube
     {
         NCube cube1 = NCubeManager.getNCubeFromResource("merge1.json")
         NCube cube2 = NCubeManager.getNCubeFromResource("empty2D.json")
-        Map cubeDelta = cube1.getDelta(cube2)
+        Map cubeDelta = DeltaProcessor.getDelta(cube1, cube2)
         Map delta = cubeDelta[NCube.DELTA_CELLS]
         assert delta.size() == 5
         DeltaProcessor.mergeDeltaSet(cube1, cubeDelta)
@@ -4672,11 +4672,11 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("merge2.json")
         String cube1Sha = cube1.sha1()
         String cube2Sha = cube2.sha1()
-        Map cubeDelta1 = cube1.getDelta(cube2)
+        Map cubeDelta1 = DeltaProcessor.getDelta(cube1, cube2)
         Map delta1 = cubeDelta1[NCube.DELTA_CELLS]
         assert delta1.size() == 1
         assert delta1.values().iterator().next() == 3.14159
-        Map cubeDelta2 = cube2.getDelta(cube1)
+        Map cubeDelta2 = DeltaProcessor.getDelta(cube2, cube1)
         Map delta2 = cubeDelta2[NCube.DELTA_CELLS]
         assert delta2.size() == 1
         assert delta2.values().iterator().next() == 3.14
@@ -4691,7 +4691,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("merge2.json")
         Map coord = [row:3, column:'C']
         cube1.removeCell(coord);
-        Map delta = cube1.getDelta(cube2);
+        Map delta = DeltaProcessor.getDelta(cube1, cube2);
         DeltaProcessor.mergeDeltaSet(cube1, delta)
         Object v = cube1.getCell(coord)
         assert v == 3.14159
@@ -4704,7 +4704,7 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("merge2.json")
         Map coord = [row:3, column:'C']
         cube1.removeCell(coord);
-        Map delta = cube1.getDelta(cube2);
+        Map delta = DeltaProcessor.getDelta(cube1, cube2);
         DeltaProcessor.mergeDeltaSet(cube1, delta)
         Object v = cube1.getCell(coord)
         assert cube1.sha1() == cube2.sha1();
@@ -4718,13 +4718,13 @@ class TestNCube
         NCube cube2 = NCubeManager.getNCubeFromResource("merge2.json")
         NCube cube3 = NCubeManager.getNCubeFromResource("merge3.json")
 
-        Map changeSet1 = cube2.getDelta(cube1)
-        Map changeSet2 = cube2.getDelta(cube3)
+        Map changeSet1 = DeltaProcessor.getDelta(cube2, cube1)
+        Map changeSet2 = DeltaProcessor.getDelta(cube2, cube3)
         assertFalse DeltaProcessor.areDeltaSetsCompatible(changeSet1, changeSet2)
         assertFalse DeltaProcessor.areDeltaSetsCompatible(changeSet2, changeSet1)
 
-        changeSet1 = cube1.getDelta(cube2)
-        changeSet2 = cube3.getDelta(cube2)
+        changeSet1 = DeltaProcessor.getDelta(cube1, cube2)
+        changeSet2 = DeltaProcessor.getDelta(cube3, cube2)
         assert DeltaProcessor.areDeltaSetsCompatible(changeSet1, changeSet2)
         assert DeltaProcessor.areDeltaSetsCompatible(changeSet2, changeSet1)
     }

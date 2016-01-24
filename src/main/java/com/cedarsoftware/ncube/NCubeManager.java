@@ -1010,8 +1010,8 @@ public class NCubeManager
                 {
                     NCube baseCube = getPersister().loadCubeBySha1(appId, info.name, info.headSha1);
 
-                    Map delta1 = baseCube.getDelta(branchCube);
-                    Map delta2 = baseCube.getDelta(headCube);
+                    Map delta1 = DeltaProcessor.getDelta(baseCube, branchCube);
+                    Map delta2 = DeltaProcessor.getDelta(baseCube, headCube);
 
                     if (DeltaProcessor.areDeltaSetsCompatible(delta1, delta2))
                     {
@@ -1081,8 +1081,8 @@ public class NCubeManager
             }
         }
 
-        Map delta1 = baseCube.getDelta(branchCube);
-        Map delta2 = baseCube.getDelta(otherCube);
+        Map delta1 = DeltaProcessor.getDelta(baseCube, branchCube);
+        Map delta2 = DeltaProcessor.getDelta(baseCube, otherCube);
 
         if (DeltaProcessor.areDeltaSetsCompatible(delta1, delta2))
         {
