@@ -74,7 +74,7 @@ class DeltaProcessor
         for (Axis axis : thisCube.getAxes())
         {
             Axis otherAxis = other.getAxis(axis.getName())
-            deltaMap[axis.getName()] = getAxisDelta(axis, otherAxis)
+            deltaMap[axis.getName()] = getColumnDelta(axis, otherAxis)
         }
 
         // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
@@ -273,7 +273,7 @@ class DeltaProcessor
         return true;
     }
 
-    private static Map<Comparable, ColumnDelta> getAxisDelta(Axis thisAxis, Axis other)
+    private static Map<Comparable, ColumnDelta> getColumnDelta(Axis thisAxis, Axis other)
     {
         Map<Comparable, ColumnDelta> deltaColumns = new CaseInsensitiveMap<>()
         Map<Comparable, Column> copyColumns = new LinkedHashMap<>()
