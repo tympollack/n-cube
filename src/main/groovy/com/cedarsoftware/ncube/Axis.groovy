@@ -12,10 +12,8 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonReader
 import groovy.transform.CompileStatic
 
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Matcher
-
 /**
  * Implements an Axis of an NCube. When modeling, think of an axis as a 'condition'
  * or decision point.  An input variable (like 'X:1' in a cartesian coordinate system)
@@ -39,23 +37,24 @@ import java.util.regex.Matcher
  *         limitations under the License.
  */
 @CompileStatic
-public class Axis
+class Axis
 {
     public static final int SORTED = 0
     public static final int DISPLAY = 1
     private static final AtomicLong baseAxisIdForTesting = new AtomicLong(1)
     private static final long BASE_AXIS_ID = 1000000000000L
 
+    private String name
+    private AxisType type
+    private AxisValueType valueType
+    final List<Column> columns = new ArrayList<>()
+    protected Map<String, Object> metaProps = null
+    private Column defaultCol
     protected final long id
     private long colIdBase = 0
-    private String name
-    private final AxisType type
-    private final AxisValueType valueType
-    final List<Column> columns = new CopyOnWriteArrayList<>()
-    private Column defaultCol
     private int preferredOrder = SORTED
     private boolean fireAll = true
-    protected Map<String, Object> metaProps = null
+    private final boolean isRef
 
     // used to get O(1) on SET axis for the discrete elements in the Set
     final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
@@ -69,6 +68,14 @@ public class Axis
     // used to get O(1) access to columns by rule-name
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
 
+    /**
+     * Implement to provide data for this Axis
+     */
+    interface AxisRefProvider
+    {
+        void load(Axis axis)
+    }
+
     // for testing
     protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault)
     {
@@ -81,18 +88,35 @@ public class Axis
         this(name, type, valueType, hasDefault, order, baseAxisIdForTesting.getAndIncrement())
     }
 
+    /**
+     * Use this constructor for non-rule Axes.
+     * @param name String Axis name
+     * @param type AxisType (DISCRETE, RANGE, SET, NEAREST, RULE)
+     * @param valueType AxisValueType (STRING, LONG, BIG_DECIMAL, DOUBLE, DATE, EXPRESSION, COMPARABLE)
+     * @param hasDefault boolean set to true to have a Default column that will match when no other columns match
+     * @param order SORTED or DISPLAY (insertion order)
+     * @param id long id of Axis.  Ask n-cube for max ID, then add 1 to it, and use that.
+     */
     Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order, long id)
     {
         this(name, type, valueType, hasDefault, order, id, true)
     }
 
-    Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, long id)
-    {
-        this.name = name
-    }
-
+    /**
+     * Use this constructor for non-rule Axes.
+     * @param name String Axis name
+     * @param type AxisType (DISCRETE, RANGE, SET, NEAREST, RULE)
+     * @param valueType AxisValueType (STRING, LONG, BIG_DECIMAL, DOUBLE, DATE, EXPRESSION, COMPARABLE)
+     * @param hasDefault boolean set to true to have a Default column that will match when no other columns match
+     * @param order SORTED or DISPLAY (insertion order)
+     * @param id long id of Axis.  Ask n-cube for max ID, then add 1 to it, and use that.
+     * @param fireAll boolean if set to true, all conditions that evaluate to true will have their associated
+     * statements executed.  If set to false, the first condition that evaluates to true will be executed, but
+     * then no conditions on the RULE axis will be evaluated.
+     */
     Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order, long id, boolean fireAll)
     {
+        isRef = false
         this.id = id
         this.name = name
         this.type = type
@@ -121,6 +145,49 @@ public class Axis
             columns.add(defaultCol)
             idToCol[defaultCol.id] = defaultCol
         }
+    }
+
+    /**
+     * Use this constructor to create a 'reference' axis.  This allows a single MASTER DATA axis to be referenced
+     * by many other axes without repeating the columnar data.
+     * @param name String Axis name
+     * @param id long id of Axis.  Ask n-cube for max ID, then add 1 to it, and use that.
+     * @param axisRefProvider implementer is expected to load(this), e.g. load this axis completely, setting
+     * all fields, etc.
+     */
+    Axis(String name, long id, AxisRefProvider axisRefProvider)
+    {
+        this.name = name
+        this.id = id
+        isRef = true
+
+        // Finish construction via the provider.
+        axisRefProvider.load(this)
+
+        // Verify that the axis is indeed valid
+        if (!AxisType.values().contains(type))
+        {
+            throw new IllegalStateException('AxisType not set, axis: ' + name)
+        }
+
+        if (!AxisValueType.values().contains(valueType))
+        {
+            throw new IllegalStateException('AxisValueType not set, axis: ' + name)
+        }
+
+        if (preferredOrder != DISPLAY && preferredOrder != SORTED)
+        {
+            throw new IllegalStateException('preferred order not set, axis: ' + name)
+        }
+    }
+
+    /**
+     * @return boolean true if this Axis is a reference to another axis, not a 'real' axis.  A reference axis
+     * cannot be modified.
+     */
+    boolean isReference()
+    {
+        return isRef
     }
 
     protected long getNextColId()
@@ -303,11 +370,17 @@ public class Axis
         }
     }
 
+    /**
+     * @return long id of this Axis
+     */
     long getId()
     {
         return id
     }
 
+    /**
+     * @return String version of axis properties.  Useful for SHA-1 computations.
+     */
     String getAxisPropString()
     {
         StringBuilder s = new StringBuilder()
@@ -514,6 +587,10 @@ public class Axis
 
     protected Column addColumnInternal(Column column)
     {
+        if (isRef)
+        {
+            throw new IllegalStateException('You cannot add columns to a reference Axis, axis: ' + name)
+        }
         ensureUnique(column.getValue())
 
         if (column.getValue() == null)
@@ -572,6 +649,11 @@ public class Axis
 
     protected Column deleteColumnById(long colId)
     {
+        if (isRef)
+        {
+            throw new IllegalStateException('You cannot delete columns from a reference Axis, axis: ' + name)
+        }
+
         Column col = idToCol[colId]
         if (col == null)
         {
@@ -639,6 +721,11 @@ public class Axis
      */
     void updateColumn(long colId, Comparable value)
     {
+        if (isRef)
+        {
+            throw new IllegalStateException('You cannot update columns on a reference Axis, axis: ' + name)
+        }
+
         Column col = idToCol[colId]
         deleteColumnById(colId)
         Column newCol = createColumnFromValue(value, null)
@@ -679,6 +766,11 @@ public class Axis
      */
     Set<Long> updateColumns(final Axis newCols)
     {
+        if (isRef)
+        {
+            throw new IllegalStateException('You cannot update columns on a reference Axis, axis: ' + name)
+        }
+
         Set<Long> colsToDelete = new LongHashSet()
         Map<Long, Column> newColumnMap = new LinkedHashMap<>()
 
@@ -963,6 +1055,9 @@ public class Axis
         })
     }
 
+    /**
+     * @return int total number of columns on this axis.  Default column (if present) counts as 1.
+     */
     int size()
     {
         return columns.size()

@@ -25,6 +25,5 @@ public enum AxisType
     RANGE,          // Deprecated, use SET
     SET,            // Comparable, Comparable, Range, Comparable, etc.
     NEAREST,        // Choose column closest to passed in value (long, date, big decimal, string, comparable + distance)
-    RULE,           // Rule axis, where each column is an expression (condition) and when true, the resolved cell is fired.
-    REFERENCE       // Axis references another Axis (no restatement of values)
+    RULE            // Rule axis, where each column is an expression (condition) and when true, the resolved cell is fired.
 }
