@@ -212,7 +212,7 @@ public abstract class GroovyBase extends UrlCommandCell
         NCube cube = getNCube(ctx)
         String url = getUrl()
         boolean isUrlUsed = StringUtilities.hasContent(url)
-        if (isUrlUsed && url.endsWith(".groovy"))
+        if (isUrlUsed && url.endsWith('.groovy'))
         {
             // If a class exists already with the same name as the groovy file (substituting slashes for dots),
             // then attempt to find and return that class without going through the resource location and parsing
@@ -220,7 +220,7 @@ public abstract class GroovyBase extends UrlCommandCell
             // versions of the classes.
             try
             {
-                String className = url.substring(0, url.indexOf(".groovy"))
+                String className = url.substring(0, url.indexOf('.groovy'))
                 className = className.replace('/', '.')
                 return Class.forName(className)
             }
@@ -249,7 +249,7 @@ public abstract class GroovyBase extends UrlCommandCell
         }
         String groovySource = expandNCubeShortCuts(buildGroovy(ctx, grvSrcCode))
 //        Thread.currentThread().setContextClassLoader(gcLoader)
-        return gcLoader.parseClass(groovySource)
+        return gcLoader.parseClass(groovySource, 'N_' + cmdHash + '.groovy')
     }
 
     static String expandNCubeShortCuts(String groovy)

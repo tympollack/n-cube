@@ -1,7 +1,7 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
 /**
- * This class defines allowable n-cube axis types.
+ * This class defines allowable n-cube axis value types.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -19,11 +19,13 @@ package com.cedarsoftware.ncube;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public enum AxisType
+public enum AxisValueType
 {
-    DISCRETE,       // Single Comparable
-    RANGE,          // Deprecated, use SET
-    SET,            // Comparable, Comparable, Range, Comparable, etc.
-    NEAREST,        // Choose column closest to passed in value (long, date, big decimal, string, comparable + distance)
-    RULE            // Rule axis, where each column is an expression (condition) and when true, the resolved cell is fired.
+    STRING, 		// For Java Strings.  Strings will be compared with .equals()
+    LONG, 			// For any integral java type (byte, short, int, long).  All of those will be promoted to long internally.
+    BIG_DECIMAL, 	// For float, double, or BigDecimal.  All of those will be promoted to BigDecimal internally.
+    DOUBLE, 		// For float or double.  Float will be promoted to double internally.
+    DATE, 			// For Date.  Calendar and Long can be passed in for comparison against.
+    EXPRESSION,     // For when the axis type is RULE
+    COMPARABLE		// For all other objects.  For example, Character, LatLon, or a Class that implements Comparable.
 }

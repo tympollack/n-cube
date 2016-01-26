@@ -642,7 +642,7 @@ class TestAxis
         c.setMetaProperty 'foo', 'bar'
 
         assert 'Axis: foo [DISCRETE, STRING, default-column, sorted]\n' +
-                '  metaProps: {foo=bar}' == c.toString()
+                '  metaProps: [foo:bar]' == c.toString()
     }
 
     @Test

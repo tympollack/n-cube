@@ -234,7 +234,7 @@ public class Column implements Comparable<Comparable>
 	{
         if (that instanceof Column)
         {
-            that = ((Column)that).getValue();
+            that = ((Column)that).value;
         }
 
         if (value == null)

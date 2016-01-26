@@ -101,7 +101,17 @@ public class Range implements Comparable<Range>
 		return !(high.compareTo(that.low) <= 0 || low.compareTo(that.high) >= 0);
 	}
 
-    public Comparable getLow()
+	public void setLow(Comparable lo)
+	{
+		low = lo;
+	}
+
+	public void setHigh(Comparable hi)
+	{
+		high = hi;
+	}
+
+	public Comparable getLow()
     {
         return low;
     }

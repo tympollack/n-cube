@@ -6,8 +6,6 @@ import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
-import groovy.transform.PackageScope
-
 /**
  * This class represents any cell that needs to return content from a URL.
  * For example, String or Binary content.
@@ -570,8 +568,7 @@ class DeltaProcessor
         return changes
     }
 
-    @PackageScope
-    static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName)
+    protected static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName)
     {
         List<Delta> changes = new ArrayList<>()
         Set<String> oldKeys = new CaseInsensitiveSet<>(oldMeta.keySet())
