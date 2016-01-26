@@ -1,11 +1,9 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.proximity.Distance;
-import com.cedarsoftware.util.CaseInsensitiveMap;
-import com.cedarsoftware.util.StringUtilities;
-
-import java.util.Collections;
-import java.util.Map;
+import com.cedarsoftware.ncube.proximity.Distance
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.StringUtilities
+import groovy.transform.CompileStatic
 
 /**
  * Holds the value of a 'column' on an axis.
@@ -22,7 +20,7 @@ import java.util.Map;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -34,40 +32,41 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class Column implements Comparable<Comparable>
+@CompileStatic
+class Column implements Comparable<Comparable>
 {
-	long id;
-	private int displayOrder;
-	private Comparable value;
-    Map<String, Object> metaProps = null;
-    public static final String NAME = "name";
+    public static final String NAME = "name"
+    protected long id
+    private int displayOrder
+    private Comparable value
+    protected Map<String, Object> metaProps = null
 
-	public Column(Comparable value, long id)
-	{
-		this.value = value;
-		this.id = id;
-	}
+    Column(Comparable value, long id)
+    {
+        this.value = value
+        this.id = id
+    }
 
     /**
      * @return Map (case insensitive keys) containing meta (additional) properties for the n-cube.
      */
-    public Map<String, Object> getMetaProperties()
+    Map<String, Object> getMetaProperties()
     {
-        Map ret = metaProps == null ? new CaseInsensitiveMap() : metaProps;
-        return Collections.unmodifiableMap(ret);
+        Map ret = metaProps == null ? new CaseInsensitiveMap() : metaProps
+        return Collections.unmodifiableMap(ret)
     }
 
     /**
      * Fetch the value associated to the passed in Key from the MetaProperties (if any exist).  If
      * none exist, null is returned.
      */
-    public Object getMetaProperty(String key)
+    Object getMetaProperty(String key)
     {
         if (metaProps == null)
         {
-            return null;
+            return null
         }
-        return metaProps.get(key);
+        return metaProps[key]
     }
 
     /**
@@ -76,60 +75,60 @@ public class Column implements Comparable<Comparable>
      * @param metaPropValue Object value to associate to key
      * @return prior value associated to key or null if none was associated prior
      */
-    public Object setMetaProperty(String key, Object metaPropValue)
+    Object setMetaProperty(String key, Object metaPropValue)
     {
         if (metaProps == null)
         {
-            metaProps = new CaseInsensitiveMap<>();
+            metaProps = new CaseInsensitiveMap<>()
         }
-        return metaProps.put(key, metaPropValue);
+        return metaProps[key] = metaPropValue
     }
 
     /**
      * Remove a meta-property entry
      */
-    public Object removeMetaProperty(String key)
+    Object removeMetaProperty(String key)
     {
         if (metaProps == null)
         {
-            return null;
+            return null
         }
-        return metaProps.remove(key);
+        return metaProps.remove(key)
     }
 
     /**
      * Add a Map of meta properties all at once.
      * @param allAtOnce Map of meta properties to add
      */
-    public void addMetaProperties(Map<String, Object> allAtOnce)
+    void addMetaProperties(Map<String, Object> allAtOnce)
     {
         if (metaProps == null)
         {
-            metaProps = new CaseInsensitiveMap<>();
+            metaProps = new CaseInsensitiveMap<>()
         }
-        metaProps.putAll(allAtOnce);
+        metaProps.putAll(allAtOnce)
     }
 
     /**
      * Remove all meta properties associated to this Column.
      */
-    public void clearMetaProperties()
+    void clearMetaProperties()
     {
         if (metaProps != null)
         {
-            metaProps.clear();
-            metaProps = null;
+            metaProps.clear()
+            metaProps = null
         }
     }
 
-    public long getId()
+    long getId()
     {
-        return id;
+        return id
     }
 
-    void setId(long id)
+    protected void setId(long id)
     {
-        this.id = id;
+        this.id = id
     }
 
     /**
@@ -138,14 +137,14 @@ public class Column implements Comparable<Comparable>
      *
      * @return String name of Column if one is set, otherwise return null.
      */
-    public String getColumnName()
+    String getColumnName()
     {
-        Object name = getMetaProperty("name");
+        Object name = getMetaProperty("name")
         if (name instanceof String && StringUtilities.hasContent((String)name))
         {
-            return (String) name;
+            return (String) name
         }
-        return null;
+        return null
     }
 
     /**
@@ -154,45 +153,45 @@ public class Column implements Comparable<Comparable>
      *
      * @param name String name for column.
      */
-    public void setColumnName(String name)
+    void setColumnName(String name)
     {
-        setMetaProperty("name", name);
+        setMetaProperty("name", name)
     }
 
-    public int hashCode()
+    int hashCode()
     {
-        long x = id;
-        x ^= x >> 23;
-        x *= 0x2127599bf4325c37L;
-        x ^= x >> 47;
-        return (int)(x);
+        long x = id
+        x ^= x >> 23
+        x *= 0x2127599bf4325c37L
+        x ^= x >> 47
+        return (int)(x)
     }
 
-    public boolean equals(Object that)
+    boolean equals(Object that)
     {
-        return that instanceof Column && id == ((Column) that).id;
+        return that instanceof Column && id == ((Column) that).id
     }
 
     /**
      * @return Comparable value of the column.
      */
-	public Comparable getValue()
-	{
-		return value;
-	}
+    Comparable getValue()
+    {
+        return value
+    }
 
     /**
      * Set the value of a column.
      * @param v Comparable instance to store as the column value.
      */
-    void setValue(Comparable v)
+    protected void setValue(Comparable v)
     {
-        value = v;
+        value = v
     }
 
-    public boolean isDefault()
+    boolean isDefault()
     {
-        return value == null;
+        return value == null
     }
 
     /**
@@ -204,58 +203,58 @@ public class Column implements Comparable<Comparable>
      * value can be used to match against an axis including this column and the returned
      * value will match this column.
      */
-    public Comparable getValueThatMatches()
+    Comparable getValueThatMatches()
     {
         if (value instanceof Range)
         {
-            return ((Range)value).low;
+            return ((Range)value).low
         }
         else if (value instanceof RangeSet)
         {
-            RangeSet set = (RangeSet) value;
-            Comparable v = set.get(0);
-            return v instanceof Range ? ((Range) v).low : v;
+            RangeSet set = (RangeSet) value
+            Comparable v = set.get(0)
+            return v instanceof Range ? ((Range) v).low : v
         }
 
-        return value;
+        return value
     }
 
-	void setDisplayOrder(int order)
-	{
-		displayOrder = order;
-	}
-
-	public int getDisplayOrder()
-	{
-		return displayOrder;
+    protected void setDisplayOrder(int order)
+    {
+        displayOrder = order
     }
 
-	public int compareTo(Comparable that)
-	{
+    int getDisplayOrder()
+    {
+        return displayOrder
+    }
+
+    int compareTo(Comparable that)
+    {
         if (that instanceof Column)
         {
-            that = ((Column)that).value;
+            that = ((Column)that).value
         }
 
         if (value == null)
         {
-            return that == null ? 0 : 1;
+            return that == null ? 0 : 1
         }
 
         if (that == null)
         {
-            return -1;
+            return -1
         }
 
-		return value.compareTo(that);
-	}
+        return value.compareTo(that)
+    }
 
-	public String toString()
-	{
+    String toString()
+    {
         if (value instanceof Range || value instanceof RangeSet || value instanceof Distance)
         {
-            return value.toString();
+            return value.toString()
         }
-       return CellInfo.formatForDisplay(value);
-	}
+        return CellInfo.formatForDisplay(value)
+    }
 }
