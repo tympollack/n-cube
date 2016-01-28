@@ -7,6 +7,7 @@ import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.io.JsonWriter
+import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -36,6 +37,7 @@ import static org.junit.Assert.fail
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestAxis
 {
     @Before
@@ -83,7 +85,7 @@ class TestAxis
     {
         Axis axis = new Axis('foo', AxisType.DISCRETE, AxisValueType.LONG, false)
 
-        def map = [foo:'bar','bar':'baz']
+        Map map = [foo:'bar','bar':'baz'] as Map
         axis.addMetaProperties map
 
         assert 'bar' == axis.getMetaProperty('foo')
@@ -471,7 +473,7 @@ class TestAxis
             assert expected.message.contains('exists')
         }
 
-        def coord = [gendeR:null]
+        Map coord = [gendeR:null] as Map
         ncube.setCell '1', coord
         assert '1'.equals(ncube.getCell(coord))
 
@@ -618,7 +620,7 @@ class TestAxis
         assertNull c.metaProperties.get('foo')
 
         c.clearMetaProperties()
-        c.addMetaProperties([BaZ:'qux'])
+        c.addMetaProperties([BaZ:'qux'] as Map)
         assert 'qux' == c.metaProperties.get('baz')
     }
 
@@ -671,12 +673,12 @@ class TestAxis
 
         // Doubles
         Axis doubles = new Axis('bigDec', AxisType.DISCRETE, AxisValueType.DOUBLE, false)
-        assertEquals(-1.0, doubles.convertStringToColumnValue('-1'), 0.000001d)
-        assertEquals(0.0, doubles.convertStringToColumnValue('0'), 0.000001d)
-        assertEquals(1.0, doubles.convertStringToColumnValue('1'), 0.00001d)
-        assertEquals(12345678901234.0, doubles.convertStringToColumnValue('12345678901234'), 0.00001d)
-        assertEquals(-12345678901234.0, doubles.convertStringToColumnValue('-12345678901234'), 0.00001d)
-        assertEquals(-12345.678901234d, doubles.convertStringToColumnValue('-12345.678901234'), 0.00001d)
+        assertEquals(-1.0, (double) doubles.convertStringToColumnValue('-1'), 0.000001d)
+        assertEquals(0.0, (double) doubles.convertStringToColumnValue('0'), 0.000001d)
+        assertEquals(1.0, (double) doubles.convertStringToColumnValue('1'), 0.00001d)
+        assertEquals(12345678901234.0, (double) doubles.convertStringToColumnValue('12345678901234'), 0.00001d)
+        assertEquals(-12345678901234.0, (double) doubles.convertStringToColumnValue('-12345678901234'), 0.00001d)
+        assertEquals(-12345.678901234d, (double) doubles.convertStringToColumnValue('-12345.678901234'), 0.00001d)
 
         // Dates
         Axis dates = new Axis('Dates', AxisType.DISCRETE, AxisValueType.DATE, false)
@@ -1155,7 +1157,7 @@ class TestAxis
         Axis genderAxis = NCubeBuilder.getGenderAxis(false)
         ncube.addAxis(genderAxis)
 
-        def coord = [Gender:'Male']
+        Map coord = [Gender:'Male'] as Map
         ncube.setCell(0, coord)
         coord.Gender = 'Female'
         ncube.setCell(1, coord)
@@ -1182,7 +1184,7 @@ class TestAxis
 
         try
         {
-            coord.put("Gender", "Jones")
+            coord.Gender = "Jones"
             ncube.getCell(coord)
             fail()
         }
@@ -1197,7 +1199,7 @@ class TestAxis
         // 'null' value to find on String axis:
         try
         {
-            coord.put("Gender", null)
+            coord.Gender = null
             ncube.getCell(coord)
             fail()
         }
@@ -1210,7 +1212,7 @@ class TestAxis
         // Illegal value to find on String axis:
         try
         {
-            coord.put("Gender", 8)
+            coord.Gender = 8
             ncube.getCell(coord)
             fail()
         }
@@ -1342,7 +1344,7 @@ class TestAxis
         points.addColumn(new Point3D(0.0, 0.0, -1.0))
         ncube.addAxis(points)
 
-        def coord = [Point:new Point3D(0.0, 0.0, 0.0)]
+        Map coord = [Point:new Point3D(0.0, 0.0, 0.0)] as Map
         ncube.setCell("0.0, 0.0, 0.0", coord)
         coord.Point = new Point3D(1.0, 0.0, 0.0)
         ncube.setCell("1.0, 0.0, 0.0", coord)
@@ -1978,7 +1980,7 @@ class TestAxis
         assert set.size() == 4
         assert set.get(0) == Converter.convert("10 Dec 1995", Date.class)
         assert set.get(1) == Converter.convert("25 Dec 1995", Date.class)
-        assert set.get(2) == new Range(Converter.convert("1996 dec 17", Date.class), Converter.convert('2001-01-31', Date.class))
+        assert set.get(2) == new Range((Comparable) Converter.convert("1996 dec 17", Date.class), (Comparable) Converter.convert('2001-01-31', Date.class))
         assert set.get(3) == Converter.convert("Jun 10th 2010", Date.class)
     }
 
@@ -2006,26 +2008,26 @@ class TestAxis
     void testRuleConditionParsing()
     {
         Axis axis = new Axis('rule', AxisType.RULE, AxisValueType.EXPRESSION, true)
-        GroovyExpression exp = axis.convertStringToColumnValue("true")
+        GroovyExpression exp = (GroovyExpression) axis.convertStringToColumnValue("true")
         assert "true".equals(exp.getCmd())
         assert exp.getUrl() == null
 
-        exp = axis.convertStringToColumnValue("cache|true")
+        exp = (GroovyExpression) axis.convertStringToColumnValue("cache|true")
         assert 'true'.equals(exp.getCmd())
         assert  null == exp.getUrl()
         assert exp.isCacheable()
 
         // These values allow a single-line edit widget to feed a GroovyExpression with all capabilities.
-        exp = axis.convertStringToColumnValue("url|http://www.foxnews.com")
+        exp = (GroovyExpression) axis.convertStringToColumnValue("url|http://www.foxnews.com")
         assert "http://www.foxnews.com".equals(exp.getUrl())
         assert !exp.isCacheable()
 
-        exp = axis.convertStringToColumnValue("url|cache|http://www.foxnews.com")
+        exp = (GroovyExpression) axis.convertStringToColumnValue("url|cache|http://www.foxnews.com")
         assert "http://www.foxnews.com".equals(exp.getUrl())
         assert exp.getCmd() == null
         assert exp.isCacheable()
 
-        exp = axis.convertStringToColumnValue("cache|url|http://www.foxnews.com")
+        exp = (GroovyExpression) axis.convertStringToColumnValue("cache|url|http://www.foxnews.com")
         assert "http://www.foxnews.com".equals(exp.getUrl())
         assert exp.getCmd() == null
         assert exp.isCacheable()
