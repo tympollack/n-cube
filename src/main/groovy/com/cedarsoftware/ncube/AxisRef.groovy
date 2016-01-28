@@ -27,13 +27,17 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class AxisRef implements Axis.AxisRefProvider
 {
+    private ApplicationID appId
     private final String cubeName
     private final String axisName
+    private final String transformCube
 
-    AxisRef(String cubeName, String axisName)
+    AxisRef(ApplicationID appId, String cubeName, String axisName, String transformCube)
     {
+        this.appId = appId
         this.cubeName = cubeName
         this.axisName = axisName
+        this.transformCube = transformCube
     }
 
     void load(Axis axis)

@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube.util
 
 import com.cedarsoftware.util.IOUtilities
-import org.junit.Ignore
+import groovy.transform.CompileStatic
 import org.junit.Test
 
 /**
@@ -21,6 +21,7 @@ import org.junit.Test
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestRoutingCapabilities
 {
     @Test

@@ -1,11 +1,10 @@
 package com.cedarsoftware.ncube.util
 
-import org.junit.Ignore
+import groovy.transform.CompileStatic
 import org.junit.Test
 
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -23,6 +22,7 @@ import static org.junit.Assert.assertNull
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestCdnClassLoader
 {
     @Test

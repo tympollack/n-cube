@@ -1077,7 +1077,7 @@ public class NCubeManager
             baseCube.clearCells();
             for (Axis axis : baseCube.getAxes())
             {
-                axis.getColumnsInternal().clear();
+                axis.clear();
             }
         }
 

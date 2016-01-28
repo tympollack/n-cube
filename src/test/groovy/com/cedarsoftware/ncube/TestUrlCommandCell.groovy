@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnRouter
+import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.when
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestUrlCommandCell
 {
     @Test
@@ -155,14 +157,14 @@ class TestUrlCommandCell
 
         assert !cell.equals('String')
 
-        def coord = ['content.type':'view','content.name':'badProtocol']
+        Map coord = ['content.type':'view','content.name':'badProtocol'] as Map
         NCube cube = NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
         try
         {
-            cube.getCell coord
-            fail 'Should not make it here'
+            cube.getCell(coord)
+            fail()
         }
-        catch (Exception e)
+        catch (Throwable e)
         {
             e = e.getCause()
             assert e.message.toLowerCase().contains('invalid url in content cell')
@@ -172,8 +174,8 @@ class TestUrlCommandCell
         coord['content.name'] = 'badRelative'
         try
         {
-            cube.getCell coord
-            fail 'Should not make it here'
+            cube.getCell(coord)
+            fail()
         }
         catch (Exception e)
         {
@@ -195,8 +197,8 @@ class TestUrlCommandCell
         when(ncube.version).thenReturn 'foo-version'
         when(ncube.applicationID).thenReturn(ApplicationID.testAppId)
 
-        def args = [ncube:ncube]
-        def input = [(CdnRouter.HTTP_RESPONSE):response, (CdnRouter.HTTP_REQUEST):request]
+        Map args = [ncube:ncube] as Map
+        Map input = [(CdnRouter.HTTP_RESPONSE):response, (CdnRouter.HTTP_REQUEST):request]
         args.input = input
         cell.proxyFetch args
         verify(response, times(1)).sendError(HttpServletResponse.SC_NOT_FOUND, 'File not found: http://www.cedarsoftware.com')
@@ -216,8 +218,8 @@ class TestUrlCommandCell
         when(ncube.name).thenReturn 'foo-cube'
         when(ncube.version).thenReturn 'foo-version'
 
-        def args = [ncube:ncube]
-        def input = [(CdnRouter.HTTP_REQUEST):request, (CdnRouter.HTTP_RESPONSE):response]
+        Map args = [ncube:ncube] as Map
+        Map input = [(CdnRouter.HTTP_REQUEST):request, (CdnRouter.HTTP_RESPONSE):response]
         args.input = input
         cell.proxyFetch args
     }
@@ -262,13 +264,13 @@ class TestUrlCommandCell
 
         GroovyExpression exp1 = new GroovyExpression("return input.value * 2", null, true)
         GroovyExpression exp2 = new GroovyExpression("return input.value * 3", null, true)
-        Map oh = ['state':'OH']
+        Map oh = ['state':'OH'] as Map
         cube.setCell(exp1, oh)
         Map other = ['state':null]
         cube.setCell(exp2, other)
 
-        Map ohIn = [state:'OH', value:6]
-        Map otherIn = [state:'TX', value:8]
+        Map ohIn = [state:'OH', value:6] as Map
+        Map otherIn = [state:'TX', value:8] as Map
         Number x = cube.getCell(ohIn)
         Number y = cube.getCell(otherIn)
         assert 12 == x

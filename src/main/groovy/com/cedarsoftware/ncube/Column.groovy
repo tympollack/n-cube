@@ -121,6 +121,10 @@ class Column implements Comparable<Comparable>
         }
     }
 
+    /**
+     * @return long ID of this column.  Note that the ID of a column is guaranteed to by unique within
+     * a given n-cube, but not across n-cubes.
+     */
     long getId()
     {
         return id
@@ -189,6 +193,10 @@ class Column implements Comparable<Comparable>
         value = v
     }
 
+    /**
+     * @return boolean true if this is the Default column, false otherwise.  The Default Column's value is always
+     * null.
+     */
     boolean isDefault()
     {
         return value == null

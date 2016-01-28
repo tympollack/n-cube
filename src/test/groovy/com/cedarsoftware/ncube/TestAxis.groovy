@@ -151,16 +151,7 @@ class TestAxis
     void testStandardizeColumnValueErrorHandling()
     {
         Axis states = NCubeBuilder.statesAxis
-        try
-        {
-            states.standardizeColumnValue(null)
-            fail("should not make it here")
-        }
-        catch (IllegalArgumentException e)
-        {
-            assert e.message.toLowerCase().contains('null')
-            assert e.message.toLowerCase().contains('cannot be used')
-        }
+        assert null == states.standardizeColumnValue(null)
     }
 
     @Test
@@ -1468,22 +1459,22 @@ class TestAxis
         axis2.addColumn(new Range(30, 40))
 
         Column newCol = axis.createColumnFromValue(new Range(10, 20), null)
+        newCol = axis.addColumnInternal(newCol)
         newCol.id = -newCol.id
-        axis.columnsInternal.add(newCol)
 
         axis2.updateColumns(axis)
         assert 4 == axis2.columns.size()
 
         newCol = axis.createColumnFromValue(new Range(0, 5), null)
+        newCol = axis.addColumnInternal(newCol)
         newCol.id = -newCol.id
-        axis.columnsInternal.add(newCol)
 
         axis2.updateColumns(axis)
         assert 5 == axis2.columns.size()
 
         newCol = axis.createColumnFromValue(new Range(40, 50), null)
+        axis.addColumnInternal(newCol)
         newCol.id = -newCol.id
-        axis.columnsInternal.add(newCol)
 
         axis2.updateColumns(axis)
         assert 6 == axis2.columns.size()
@@ -1518,21 +1509,18 @@ class TestAxis
         axis2.addColumn new Range('6', '8')
         axis2.addColumn new Range('0', '2')
 
-        Column newCol = axis.createColumnFromValue(new Range('8', '10'), null)
-        newCol.id = -newCol.id
-        axis.columnsInternal.add newCol
+        Column newCol = axis.createColumnFromValue(new Range('8', '10'), null) // String axis
 
         try
         {
-            axis2.updateColumns axis
-            fail()
+            axis.addColumnInternal(newCol)
         }
         catch (AxisOverlapException e)
-        {
-            assert e.message.toLowerCase().contains('overlap')
-            assert e.message.toLowerCase().contains('exist')
-            assert e.message.toLowerCase().contains('axis')
-        }
+        { }
+
+        newCol = axis.createColumnFromValue(new Range('8', '9'), null)      // String axis
+        newCol.id = -newCol.id
+        axis2.updateColumns axis
     }
 
     @Test
@@ -1888,6 +1876,48 @@ class TestAxis
 
         diff = (stop - start) / 1000.0  // usec
 //        println("lookup 10,000 times large number of columns = " + (diff / 1000.0) + " ms")
+    }
+
+    @Test
+    void testLargeNumberOfDiscreteColumns()
+    {
+        NCube ncube = new NCube("BigDaddy")
+        Axis axis = new Axis("numbers", AxisType.DISCRETE, AxisValueType.LONG, true, Axis.DISPLAY)
+        ncube.addAxis(axis)
+        def coord = [:]
+
+        // TODO: Bump to 100,000 once columns are only re-index on fetch, or
+        // columns are no longer kept in arraylist internall in Axis
+        int largeNumber = 10000;
+        long start = System.nanoTime()
+        for (int i = 0; i < largeNumber; i ++)
+        {
+            axis.addColumn(i)
+        }
+
+        for (int i = 0; i < largeNumber; i ++)
+        {
+            coord.put("numbers", i)
+            ncube.setCell(i * 2, coord)
+        }
+
+        long stop = System.nanoTime()
+
+        double diff = (stop - start) / 1000.0  // usec
+        println("build 10,000 columns = " + (diff / 1000.0) + " ms")
+
+        start = System.nanoTime()
+        for (int i = 0; i < largeNumber; i++)
+        {
+            coord.numbers = i
+            axis.findColumn(i)
+            Integer ans = (Integer) ncube.getCell(coord)
+            assertEquals(i * 2, ans.intValue())
+        }
+        stop = System.nanoTime()
+
+        diff = (stop - start) / 1000.0  // usec
+        println("lookup 10,000 times large number of columns = " + (diff / 1000.0) + " ms")
     }
 
     @Test

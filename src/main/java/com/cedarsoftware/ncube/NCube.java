@@ -11,6 +11,7 @@ import com.cedarsoftware.util.ArrayUtilities;
 import com.cedarsoftware.util.ByteUtilities;
 import com.cedarsoftware.util.CaseInsensitiveMap;
 import com.cedarsoftware.util.CaseInsensitiveSet;
+import com.cedarsoftware.util.Converter;
 import com.cedarsoftware.util.EncryptionUtilities;
 import com.cedarsoftware.util.IOUtilities;
 import com.cedarsoftware.util.MapUtilities;
@@ -1974,8 +1975,17 @@ public class NCube<T>
                     Set<Long> colIds = new LongHashSet();
                     for (Object id : (Object[])ids)
                     {
+
                         if (!userIdToUniqueId.containsKey(id))
                         {
+                            if (id instanceof String)
+                            {
+                                Long id2 = (Long) Converter.convert(id, Long.class);
+                                if (!userIdToUniqueId.containsKey(id2))
+                                {
+
+                                }
+                            }
                             throw new IllegalArgumentException("ID specified in cell does not match an ID in the columns, id: " + id + ", cube: " + cubeName);
                         }
                         colIds.add(userIdToUniqueId.get(id));

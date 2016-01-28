@@ -415,12 +415,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 
     void writeId(Long longId, boolean addComma) throws IOException
     {
-        writeObjectKey('id')
-        append(longId)
-        if (addComma)
-        {
-            comma()
-        }
+        writeObjectKeyValue("id", longId, addComma)
     }
 
     void writeIdValue(Long longId, boolean addComma)
@@ -466,12 +461,6 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             BigDecimal d = o as BigDecimal
             builder.append('"')
             builder.append(d.stripTrailingZeros().toPlainString())
-            builder.append('"')
-        }
-        else if (o instanceof Long)
-        {
-            builder.append('"')
-            builder.append(o.toString())
             builder.append('"')
         }
         else if (o instanceof Number)

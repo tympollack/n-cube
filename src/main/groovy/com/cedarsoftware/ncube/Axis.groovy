@@ -55,6 +55,7 @@ class Axis
     private int preferredOrder = SORTED
     private boolean fireAll = true
     private final boolean isRef
+    private boolean needsIndexed = true
 
     // used to get O(1) on SET axis for the discrete elements in the Set
     final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
@@ -161,6 +162,8 @@ class Axis
         this.id = id
         isRef = true
 
+        // TODO: May need to determine if Axis has been initialized.
+        // TODO: Call load outside of constructor?
         // Finish construction via the provider.
         axisRefProvider.load(this)
 
@@ -278,11 +281,18 @@ class Axis
         }
     }
 
+    /**
+     * @return boolean true if this RULE axis is set to fire all conditions that evaluate to true, false otherwise.
+     */
     boolean isFireAll()
     {
         return fireAll
     }
 
+    /**
+     * Set the 'fire-all' mode - true to have all conditions that evaluate to true have the associated cell execute,
+     * false for only the first condition that is true to have it's associated cell execute.
+     */
     void setFireAll(boolean fireAll)
     {
         this.fireAll = fireAll
@@ -296,23 +306,7 @@ class Axis
         return idToCol[colId]
     }
 
-    /**
-     * Scaffolding is extra, indexing structures (transient members) that are not part of
-     * the persistent state, but are created and maintained internally so that searches for
-     * SETs (RANGE_SET)s are O(Log(n)) or better O(1) for the discrete value in a RANGE_SET.
-     * Variables 'discreteToCol' and 'rangeToCol' fall into this category.
-     *
-     * All column ids are mapped to the column instances to support the setCellById(),
-     * getCellByIdNoExecute(), removeCellById(), and containsCellById().  Variable
-     * 'idToCol' is the scaffolding member that maintains this relationship.  This is built-in
-     * scaffolding that ALWAYS must be present.
-     */
-    protected boolean hasScaffolding()
-    {
-        return type == AxisType.SET
-    }
-
-    protected void buildScaffolding()
+    protected void reIndex()
     {
         rangeToCol.clear()
         discreteToCol.clear()
@@ -320,15 +314,18 @@ class Axis
         colNameToCol.clear()
         for (Column column : columns)
         {
-            addScaffolding(column)
+            indexColumn(column)
         }
     }
 
-    private void addScaffolding(Column column)
+    private void indexColumn(Column column)
     {
+        // 1: Index columns by ID
         idToCol[column.id] = column
+
+        // 2: Index columns by name (if they have one) - held in CaseInsensitiveMap
         String colName = column.getColumnName()
-        if (colName != null)
+        if (StringUtilities.hasContent(colName))
         {
             if (colNameToCol.containsKey(colName))
             {
@@ -337,35 +334,40 @@ class Axis
             colNameToCol[colName] = column
         }
 
-        if (!hasScaffolding())
-        {   // This check is required because this API may be called from other than buildScaffolding() (e.g., addColumn)
-            return
-        }
-
-        RangeSet set = (RangeSet)column.getValue()
-        if (set == null)
-        {   // Default column being processed
-            return
-        }
-
-        final int len = set.size()
-        for (int i=0; i < len; i++)
+        if (type == AxisType.DISCRETE)
         {
-            Comparable elem = set.get(i)
-            if (elem instanceof Range)
+            if (column.value != null)
             {
-                Range range = (Range) elem
-                RangeToColumn rc = new RangeToColumn(range, column)
-                int where = Collections.binarySearch(rangeToCol, rc)
-                if (where < 0)
-                {
-                    where = Math.abs(where + 1)
-                }
-                rangeToCol.add(where, rc)
+                discreteToCol[standardizeColumnValue(column.value)] = column
             }
-            else
+        }
+        else if (type == AxisType.SET)
+        {
+            RangeSet set = (RangeSet)column.getValue()
+            if (set == null)
+            {   // Default column being processed
+                return
+            }
+
+            final int len = set.size()
+            for (int i=0; i < len; i++)
             {
-                discreteToCol[elem] = column
+                Comparable elem = set.get(i)
+                if (elem instanceof Range)
+                {
+                    Range range = (Range) elem
+                    RangeToColumn rc = new RangeToColumn(range, column)
+                    int where = Collections.binarySearch(rangeToCol, rc)
+                    if (where < 0)
+                    {
+                        where = Math.abs(where + 1)
+                    }
+                    rangeToCol.add(where, rc)
+                }
+                else
+                {
+                    discreteToCol[elem] = column
+                }
             }
         }
     }
@@ -408,6 +410,10 @@ class Axis
         return s.toString()
     }
 
+    /**
+     * @return String Axis name.  The name is the value that String keys match (bind to) on the input.  Although
+     * the case of the name is maintained, it is compared case-insensitively.
+     */
     String getName()
     {
         return name
@@ -418,32 +424,83 @@ class Axis
         this.name = name
     }
 
+    /**
+     * @return AxisType of this Axis, which is one of: DISCRETE, RANGE, SET, NEAREST, RULE
+     */
     AxisType getType()
     {
         return type
     }
 
+    /**
+     * @return AxisValueType of this Axis, which is one of: STRING, LONG, BIG_DECIMAL, DOUBLE, DATE, EXPRESSION, COMPARABLE
+     */
     AxisValueType getValueType()
     {
         return valueType
     }
 
+    /**
+     * @return List<Column> representing all of the Columns on this list.  This is a copy, so operations
+     * on the List will not affect the Axis columns.  However, the Column instances inside the List are
+     * not 'deep copied' so no modifications to them should be made, as it would violate the internal
+     * Map structures maintaining the column indexing. The Columms are in SORTED or DISPLAY order
+     * depending on the 'preferredOrder' setting. If you want to obtain the columns more quickly,
+     * you can use getColumnsWithoutDefault() - they will always be in sorted order and will not
+     * contain the default.
+     */
     List<Column> getColumns()
     {
-        List<Column> cols = new ArrayList<>(columns)
-        if (type != AxisType.RULE)
-        {
-            if (preferredOrder == SORTED)
+        if (type == AxisType.DISCRETE)
+        {   // return 'view' of Columns that matches the desired order (sorted or display)
+            List<Column> cols = getColumnsWithoutDefault()
+            if (preferredOrder == DISPLAY)
             {
-                return cols	// Return a copy of the columns, not our internal values list.
+                sortColumnsByDisplayOrder(cols)
             }
-            sortColumnsByDisplayOrder(cols)
+            if (defaultCol != null)
+            {
+                cols.add(defaultCol)
+            }
+            return cols
         }
-        return cols
+        else
+        {
+            List<Column> cols = new ArrayList<>(columns)
+            if (type != AxisType.RULE)
+            {
+                if (preferredOrder == SORTED)
+                {
+                    return cols    // Return a copy of the columns, not our internal values list.
+                }
+                sortColumnsByDisplayOrder(cols)
+            }
+            return cols
+        }
+    }
+
+    protected void clear()
+    {
+        rangeToCol.clear()
+        discreteToCol.clear()
+        idToCol.clear()
+        colNameToCol.clear()
+        columns.clear()
     }
 
     protected List<Column> getColumnsInternal()
     {
+        if (type == AxisType.DISCRETE)
+        {
+            List<Column> cols = new ArrayList<>(size())
+            cols.addAll(discreteToCol.values())
+            if (defaultCol != null)
+            {
+                cols.add(defaultCol)
+            }
+            return cols
+        }
+
         return columns
     }
 
@@ -599,6 +656,7 @@ class Axis
             defaultCol = column
         }
 
+        // TODO: Discrete column - do not add to columns
         // New columns are always added at the end in terms of displayOrder, but internally they are added
         // in the correct sort order location.  The sort order of the list is required because binary searches
         // are done against it.
@@ -615,7 +673,7 @@ class Axis
                 columns.add(column)
             }
         }
-        else
+        else //if (type != AxisType.DISCRETE)
         {
             int where = Collections.binarySearch(columns, column.getValue())
             if (where < 0)
@@ -624,7 +682,7 @@ class Axis
             }
             columns.add(where, column)
         }
-        addScaffolding(column)
+        indexColumn(column)
         return column
     }
 
@@ -660,6 +718,7 @@ class Axis
             return null
         }
 
+        // TODO: skip if DISCRETE
         columns.remove(col)
         if (col.isDefault())
         {
@@ -673,41 +732,61 @@ class Axis
 
     private void removeColumnFromScaffolding(Column col)
     {
-        if (!hasScaffolding())
-        {
-            idToCol.remove(col.id)
-            colNameToCol.remove(col.getColumnName())
-            return
-        }
-
-        if (discreteToCol != null)
-        {
-            Iterator<Column> j = discreteToCol.values().iterator()
-            while (j.hasNext())
-            {
-                Column column = j.next()
-                if (col.equals(column))
-                {   // Multiple discrete values may have pointed to the passed in column, so we must loop through all
-                    j.remove()
-                }
-            }
-        }
-
-        if (rangeToCol != null)
-        {
-            Iterator<RangeToColumn> i = rangeToCol.iterator()
-            while (i.hasNext())
-            {
-                Axis.RangeToColumn rangeToColumn = i.next()
-                if (rangeToColumn.column.equals(col))
-                {   // Multiple ranges may have pointed to the passed in column, so we must loop through all
-                    i.remove()
-                }
-            }
-        }
-
         // Remove from col id to column map
         idToCol.remove(col.id)
+        colNameToCol.remove(col.getColumnName())
+
+        if (type == AxisType.DISCRETE)
+        {
+            if (col.value != null)
+            {
+                discreteToCol.remove(standardizeColumnValue(col.value))
+            }
+        }
+        else if (type == AxisType.RANGE)
+        {
+
+        }
+        else if (type == AxisType.SET)
+        {
+            if (discreteToCol != null)
+            {
+                Iterator<Column> j = discreteToCol.values().iterator()
+                while (j.hasNext())
+                {
+                    Column column = j.next()
+                    if (col.equals(column))
+                    {   // Multiple discrete values may have pointed to the passed in column, so we must loop through all
+                        j.remove()
+                    }
+                }
+            }
+
+            if (rangeToCol != null)
+            {
+                Iterator<RangeToColumn> i = rangeToCol.iterator()
+                while (i.hasNext())
+                {
+                    Axis.RangeToColumn rangeToColumn = i.next()
+                    if (rangeToColumn.column.equals(col))
+                    {   // Multiple ranges may have pointed to the passed in column, so we must loop through all
+                        i.remove()
+                    }
+                }
+            }
+        }
+        else if (type == AxisType.NEAREST)
+        {
+
+        }
+        else if (type == AxisType.RULE)
+        {
+
+        }
+        else
+        {
+            throw new IllegalStateException("Unsupported axis type (" + type + ") for axis '" + name + "', trying to remove column from internal index")
+        }
     }
 
     /**
@@ -749,8 +828,9 @@ class Axis
         {
             where = Math.abs(where + 1)
         }
+        // TODO: skip if discrete
         columns.add(where, newCol)
-        addScaffolding(newCol)
+        indexColumn(newCol)
     }
 
     /**
@@ -813,11 +893,7 @@ class Axis
             }
         }
 
-        columns.clear()
-        colNameToCol.clear()
-        idToCol.clear()
-        rangeToCol.clear()
-        discreteToCol.clear()
+        clear()
         for (Column column : tempCol)
         {
             addColumnInternal(column)
@@ -866,9 +942,43 @@ class Axis
         }
 
         // index
-        buildScaffolding()
+        reIndex()
         return colsToDelete
     }
+
+//    private Set<Long> mergeDiscreteColumns(final Axis axisTomerge)
+//    {
+//        Set<Long> colsToDelete = new LongHashSet()
+//        colsToDelete.addAll(idToCol.keySet())
+//        Map<Long, Column> newColumnMap = new LinkedHashMap<>()
+//        int displayOrder = 0
+//
+//        // Step 1. Map all columns coming in from "DTO" Axis by ID
+//        for (Column col : axisTomerge.getColumns())
+//        {
+//            if (idToCol.containsKey(col.id))
+//            {   // Update
+//                Column column = idToCol[col.id]
+//                column.setValue(col.getValue())
+//
+//                Map<String, Object> metaProperties = col.getMetaProperties()
+//                for (Map.Entry<String, Object> entry : metaProperties.entrySet())
+//                {
+//                    column.setMetaProperty(entry.getKey(), entry.getValue())
+//                }
+//
+//                colsToDelete.remove(col.id) // remove from delete list
+//            }
+//            else
+//            {
+//
+//            }
+//            column.setDisplayOrder(displayOrder++)
+//        }
+//
+//
+//        return colsToDelete
+//    }
 
     /**
      * Sorted this way to allow for CopyOnWriteArrayList or regular ArrayLists to be sorted.
@@ -1060,7 +1170,7 @@ class Axis
      */
     int size()
     {
-        return columns.size()
+        return idToCol.size()
     }
 
     /**
@@ -1074,7 +1184,7 @@ class Axis
     {
         if (value == null)
         {
-            throw new IllegalArgumentException("'null' cannot be used as an axis value, axis: " + name)
+            return null
         }
 
         if (type == AxisType.DISCRETE)
@@ -1325,7 +1435,12 @@ class Axis
         final Comparable promotedValue = promoteValue(valueType, value)
         int pos
 
-        if (type == AxisType.DISCRETE || type == AxisType.RANGE)
+        if (type == AxisType.DISCRETE)
+        {
+            Column colToFind = discreteToCol[promotedValue]
+            return colToFind == null ? defaultCol : colToFind
+        }
+        else if (type == AxisType.RANGE)
         {	// DISCRETE and RANGE axis searched in O(Log n) time using a binary search
             pos = binarySearchAxis(promotedValue)
         }
@@ -1393,7 +1508,7 @@ class Axis
             return rangeToCol[pos].column
         }
 
-        return getDefaultColumn()
+        return defaultCol
     }
 
     private int binarySearchRanges(final Comparable promotedValue)
@@ -1528,8 +1643,21 @@ class Axis
         }
     }
 
+    /**
+     * @return List<Column> that contains all Columns on this axis (excluding the Default Column if it exists).  The
+     * Columns will be returned in sorted order.  It is a copy of the internal list, therefore operations on the
+     * returned List are safe, however, no changes should be made to the contained Column instances, as it would
+     * violate internal indexing structures of the Axis.
+     */
     List<Column> getColumnsWithoutDefault()
     {
+        if (type == AxisType.DISCRETE)
+        {
+            List<Column> cols = new ArrayList<>(size())
+            cols.addAll(discreteToCol.values())
+            return cols
+        }
+
         if (columns.size() == 0)
         {
             return columns
