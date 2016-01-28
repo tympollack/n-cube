@@ -3272,7 +3272,7 @@ class TestNCube
             column.id = id
         }
         // 1,3,5 deleted
-        ncube.updateColumns(axisDto)
+        ncube.updateColumns(axisDto.getName(), axisDto.getColumns())
         assertEquals(15, ncube.getCellMap().size())
 
         // Delete 1st, middle, last on state axis
@@ -3291,7 +3291,7 @@ class TestNCube
             column.id = id
         }
 
-        ncube.updateColumns(axisDto)
+        ncube.updateColumns(axisDto.getName(), axisDto.getColumns())
         assertEquals(6, ncube.getCellMap().size())
 
         ncube.deleteColumn("code", null)
@@ -3299,8 +3299,8 @@ class TestNCube
 
         try
         {
-            ncube.updateColumns(null)
-            fail("should not make it here")
+            ncube.updateColumns('code', null)
+            fail()
         }
         catch (IllegalArgumentException e)
         {
@@ -3310,8 +3310,8 @@ class TestNCube
         try
         {
             Axis fake = new Axis("fake", AxisType.DISCRETE, AxisValueType.DOUBLE, false)
-            ncube.updateColumns(fake)
-            fail("should not make it here")
+            ncube.updateColumns(fake.getName(), fake.getColumns())
+            fail()
         }
         catch (IllegalArgumentException e)
         {

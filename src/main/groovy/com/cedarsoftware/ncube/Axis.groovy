@@ -308,6 +308,7 @@ class Axis
 
     protected void reIndex()
     {
+        // Need to do per-index
         rangeToCol.clear()
         discreteToCol.clear()
         idToCol.clear()
@@ -726,11 +727,11 @@ class Axis
         }
 
         // Remove column from scaffolding
-        removeColumnFromScaffolding(col)
+        removeColumnFromIndex(col)
         return col
     }
 
-    private void removeColumnFromScaffolding(Column col)
+    private void removeColumnFromIndex(Column col)
     {
         // Remove from col id to column map
         idToCol.remove(col.id)
@@ -844,7 +845,7 @@ class Axis
      * Axis is used as a Data-Transfer-Object (DTO) in this case, not the normal way it is typically used
      * where the columns would always be sorted for quick access.
      */
-    Set<Long> updateColumns(final Axis newCols)
+    Set<Long> updateColumns(Collection<Column> newCols)
     {
         if (isRef)
         {
@@ -855,7 +856,7 @@ class Axis
         Map<Long, Column> newColumnMap = new LinkedHashMap<>()
 
         // Step 1. Map all columns coming in from "DTO" Axis by ID
-        for (Column col : newCols.columns)
+        for (Column col : newCols)
         {
             Column newColumn = createColumnFromValue(col.getValue(), null)
             Map<String, Object> metaProperties = col.getMetaProperties()
@@ -909,7 +910,7 @@ class Axis
 
         // Step 4. Add new columns (they exist in the passed in Axis, but not in this Axis) and
         // set display order to match the columns coming in from the DTO axis (argument).
-        for (Column col : newCols.getColumns())
+        for (Column col : newCols)
         {
             if (col.getValue() == null)
             {   // Skip Default column
@@ -1313,7 +1314,7 @@ class Axis
                     {   // Try as JSON
                         return (Comparable) JsonReader.jsonToJava((String) value)
                     }
-                    catch (Exception e)
+                    catch (Exception ignored)
                     {
                         return value
                     }
@@ -1342,7 +1343,7 @@ class Axis
         {
             return findColumn(value) != null
         }
-        catch (Exception e)
+        catch (Exception ignored)
         {
             return false
         }

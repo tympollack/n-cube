@@ -186,7 +186,7 @@ class TestUrlCommandCell
     @Test
     void testProxyFetchSocketTimeout()
     {
-        UrlCommandCell cell = new StringUrlCmd('http://www.cedarsoftware.com', false)
+        UrlCommandCell cell = new StringUrlCmd('http://www.google.com', false)
 
         NCube ncube = mock(NCube.class)
         HttpServletResponse response = mock HttpServletResponse.class
@@ -201,20 +201,20 @@ class TestUrlCommandCell
         Map input = [(CdnRouter.HTTP_RESPONSE):response, (CdnRouter.HTTP_REQUEST):request]
         args.input = input
         cell.proxyFetch args
-        verify(response, times(1)).sendError(HttpServletResponse.SC_NOT_FOUND, 'File not found: http://www.cedarsoftware.com')
+        verify(response, times(1)).sendError(HttpServletResponse.SC_NOT_FOUND, 'File not found: http://www.google.com')
     }
 
     @Test
     void testProxyFetchSocketTimeoutWithResponseSendErrorIssue()
     {
-        UrlCommandCell cell = new StringUrlCmd('http://www.cedarsoftware.com', false)
+        UrlCommandCell cell = new StringUrlCmd('http://www.google.com', false)
 
         NCube ncube = mock NCube.class
         HttpServletResponse response = mock HttpServletResponse.class
         HttpServletRequest request = mock HttpServletRequest.class
 
         when(request.headerNames).thenThrow SocketTimeoutException.class
-        doThrow(IOException.class).when(response).sendError HttpServletResponse.SC_NOT_FOUND, 'File not found: http://www.cedarsoftware.com'
+        doThrow(IOException.class).when(response).sendError HttpServletResponse.SC_NOT_FOUND, 'File not found: http://www.google.com'
         when(ncube.name).thenReturn 'foo-cube'
         when(ncube.version).thenReturn 'foo-version'
 

@@ -915,7 +915,7 @@ class TestAxis
         Axis axis2 = new Axis('loc', AxisType.SET, AxisValueType.LONG, false)
         Column colAdded = axis2.addColumn('[1, 2]')
         colAdded.id = -1
-        axis.updateColumns axis2
+        axis.updateColumns(axis2.getColumns())
 
         assert 2 == axis.columns.size()
         Column col = axis.columnsWithoutDefault.get(0)
@@ -934,7 +934,7 @@ class TestAxis
         cols.get(0).id = axis1.columnsWithoutDefault.get(0).id
         cols.get(0).setMetaProperty('name', 'cheese')
         cols.get(0).setMetaProperty('foo', 'bar')
-        axis1.updateColumns(axis2)
+        axis1.updateColumns(axis2.getColumns())
 
         assert 2 == axis1.columns.size()
         Column col = axis1.columnsWithoutDefault.get(0)
@@ -986,7 +986,7 @@ class TestAxis
         axis2.addColumn '[1, 2]'
         try
         {
-            axis.updateColumns(axis2)
+            axis.updateColumns(axis2.getColumns())
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1464,21 +1464,21 @@ class TestAxis
         newCol = axis.addColumnInternal(newCol)
         newCol.id = -newCol.id
 
-        axis2.updateColumns(axis)
+        axis2.updateColumns(axis.getColumns())
         assert 4 == axis2.columns.size()
 
         newCol = axis.createColumnFromValue(new Range(0, 5), null)
         newCol = axis.addColumnInternal(newCol)
         newCol.id = -newCol.id
 
-        axis2.updateColumns(axis)
+        axis2.updateColumns(axis.getColumns())
         assert 5 == axis2.columns.size()
 
         newCol = axis.createColumnFromValue(new Range(40, 50), null)
         axis.addColumnInternal(newCol)
         newCol.id = -newCol.id
 
-        axis2.updateColumns(axis)
+        axis2.updateColumns(axis.getColumns())
         assert 6 == axis2.columns.size()
 
         for (Column column : axis2.columns)
@@ -1492,7 +1492,7 @@ class TestAxis
         axis.addColumn(new Range(20, 30))
         axis.addColumn(new Range(30, 40))
 
-        axis2.updateColumns(axis)
+        axis2.updateColumns(axis.getColumns())
         assert 3 == axis2.size()
     }
 
@@ -1522,7 +1522,7 @@ class TestAxis
 
         newCol = axis.createColumnFromValue(new Range('8', '9'), null)      // String axis
         newCol.id = -newCol.id
-        axis2.updateColumns axis
+        axis2.updateColumns(axis.getColumns())
     }
 
     @Test
@@ -1553,7 +1553,7 @@ class TestAxis
         axis2.addColumn 'Whoops'
         axis2.deleteColumn 'Wed'
 
-        axis2.updateColumns axis
+        axis2.updateColumns(axis.getColumns())
         assert 7 == axis2.size()
         assert 'Mon' == axis2.columns[0].value
         assert 'Tue' == axis2.columns[1].value
@@ -1592,7 +1592,7 @@ class TestAxis
         axis2.addColumn 'Whoops'
         axis2.deleteColumn 'Wed'
 
-        axis2.updateColumns axis
+        axis2.updateColumns(axis.getColumns())
         assert 8 == axis2.size()
         assert 'Mon' == axis2.columns[0].value
         assert 'Tue' == axis2.columns[1].value
@@ -1633,7 +1633,7 @@ class TestAxis
         axis2.addColumn 'Whoops'
         axis2.deleteColumn 'Wed'
 
-        axis2.updateColumns(axis)
+        axis2.updateColumns(axis.getColumns())
         assert 7 == axis2.size()
         assert 'Mon' == axis2.columns[0].value
         assert 'Tue' == axis2.columns[1].value

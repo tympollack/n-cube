@@ -1388,22 +1388,23 @@ public class NCube<T>
     /**
      * Update all of the columns along an axis at once.  Any cell referencing a column that
      * is deleted, will also be deleted from the internal sparse matrix (Map) of cells.
-     * @param newCols Axis used only as a Column holder, such the columns within this
-     * Axis are in display order as would come in from a UI, for example.
+     * @param axisName String axis name to update
+     * @param newCols  List<Column> display ordered list of columns.  An n-cube editor program,
+     *             for example, would call this API with an axisName and set of new columns.
      * @return Set<Long> column ids, indicating which columns were deleted.
      */
-    public Set<Long> updateColumns(final Axis newCols)
+    public Set<Long> updateColumns(final String axisName, final Collection<Column> newCols)
     {
         if (newCols == null)
         {
-            throw new IllegalArgumentException("Cannot pass in null Axis for updating columns, cube: " + name);
+            throw new IllegalArgumentException("Cannot pass in null for list of columns when updating columns, cube: " + name);
         }
-        if (!axisList.containsKey(newCols.getName()))
+        if (!axisList.containsKey(axisName))
         {
-            throw new IllegalArgumentException("No axis exists with the name: " + newCols.getName() + ", cube: " + name);
+            throw new IllegalArgumentException("No axis exists with the name: " + axisName + ", cube: " + name);
         }
 
-        final Axis axisToUpdate = axisList.get(newCols.getName());
+        final Axis axisToUpdate = axisList.get(axisName);
         final Set<Long> colsToDel = axisToUpdate.updateColumns(newCols);
         Iterator<Set<Long>> i = cells.keySet().iterator();
 
