@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.17</version>
+  <version>3.4.18</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,9 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.18
+ * NCube.updateColumns() now takes a String Axis Name as a Collection of Columns, rather than accepting an Axis which was not expected to be in proper order.  Simimlarly, the Axis.updateColumns() API now takes a Collection of Columns.
+ * Continued work on Axis in support of a Reference Axis option.
 * 3.4.17
  * Delta processing methods moved from NCube to DeltaProcessor class.  Use the static public methods on DeltaProcessor like this: DeltaProcessor.getDelta(ncube1, ncube2), etc. 
 * 3.4.16

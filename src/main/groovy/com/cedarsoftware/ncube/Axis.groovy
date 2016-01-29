@@ -55,7 +55,7 @@ class Axis
     private int preferredOrder = SORTED
     private boolean fireAll = true
     private final boolean isRef
-    private boolean needsIndexed = true
+//    private InternalAxis axis = null
 
     // used to get O(1) on SET axis for the discrete elements in the Set
     final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
@@ -146,6 +146,27 @@ class Axis
             columns.add(defaultCol)
             idToCol[defaultCol.id] = defaultCol
         }
+
+//        if (type == AxisType.DISCRETE)
+//        {
+//            axis = new DiscreteAxis()
+//        }
+//        else if (type == AxisType.RANGE)
+//        {
+//            axis = new RangeAxis()
+//        }
+//        else if (type == AxisType.SET)
+//        {
+//            axis = new SetAxis()
+//        }
+//        else if (type == AxisType.NEAREST)
+//        {
+//            axis = new NearestAxis()
+//        }
+//        else if (type == AxisType.RULE)
+//        {
+//            axis = new RuleAxis()
+//        }
     }
 
     /**
@@ -308,7 +329,7 @@ class Axis
 
     protected void reIndex()
     {
-        // Need to do per-index
+        // TODO: Need to do per-index
         rangeToCol.clear()
         discreteToCol.clear()
         idToCol.clear()
@@ -335,7 +356,7 @@ class Axis
             colNameToCol[colName] = column
         }
 
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             if (column.value != null)
             {
@@ -526,7 +547,7 @@ class Axis
         }
         else
         {
-            if (type == AxisType.DISCRETE)
+            if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
             {
                 v = standardizeColumnValue(value)
             }
@@ -537,10 +558,6 @@ class Axis
             else if (type == AxisType.RULE)
             {
                 v = value instanceof String ? convertStringToColumnValue((String) value) : value
-            }
-            else if (type == AxisType.NEAREST)
-            {
-                v = standardizeColumnValue(value)
             }
             else
             {
@@ -569,7 +586,7 @@ class Axis
     /**
      * Will throw IllegalArgumentException if passed in value duplicates a value on this axis.
      */
-    protected void ensureUnique(Comparable value)
+    private void ensureUnique(Comparable value)
     {
         if (value == null)
         {  // Attempting to add Default column to axis
@@ -584,9 +601,12 @@ class Axis
         }
         else
         {
-            if (type == AxisType.DISCRETE)
+            if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
             {
-                doesMatchExistingValue(value)
+                if (discreteToCol.containsKey(value))
+                {
+                    throw new AxisOverlapException("Passed in value '" + value + "' matches a value already on axis '" + name + "'")
+                }
             }
             else if (type == AxisType.RANGE)
             {
@@ -610,10 +630,6 @@ class Axis
                 {
                     throw new IllegalArgumentException("Columns for RULE axis must be a CommandCell, axis: " + name + ", value: " + value)
                 }
-            }
-            else if (type == AxisType.NEAREST)
-            {
-                doesMatchNearestValue(value)
             }
             else
             {
@@ -657,7 +673,6 @@ class Axis
             defaultCol = column
         }
 
-        // TODO: Discrete column - do not add to columns
         // New columns are always added at the end in terms of displayOrder, but internally they are added
         // in the correct sort order location.  The sort order of the list is required because binary searches
         // are done against it.
@@ -674,7 +689,12 @@ class Axis
                 columns.add(column)
             }
         }
-        else //if (type != AxisType.DISCRETE)
+//        else if (type == AxisType.DISCRETE)
+//        {
+//            while (displayOrderToColumn.containsKey(dispOrder++))
+//            displayOrderToColumn.put(dispOrder, column)
+//        }
+        else
         {
             int where = Collections.binarySearch(columns, column.getValue())
             if (where < 0)
@@ -946,40 +966,6 @@ class Axis
         reIndex()
         return colsToDelete
     }
-
-//    private Set<Long> mergeDiscreteColumns(final Axis axisTomerge)
-//    {
-//        Set<Long> colsToDelete = new LongHashSet()
-//        colsToDelete.addAll(idToCol.keySet())
-//        Map<Long, Column> newColumnMap = new LinkedHashMap<>()
-//        int displayOrder = 0
-//
-//        // Step 1. Map all columns coming in from "DTO" Axis by ID
-//        for (Column col : axisTomerge.getColumns())
-//        {
-//            if (idToCol.containsKey(col.id))
-//            {   // Update
-//                Column column = idToCol[col.id]
-//                column.setValue(col.getValue())
-//
-//                Map<String, Object> metaProperties = col.getMetaProperties()
-//                for (Map.Entry<String, Object> entry : metaProperties.entrySet())
-//                {
-//                    column.setMetaProperty(entry.getKey(), entry.getValue())
-//                }
-//
-//                colsToDelete.remove(col.id) // remove from delete list
-//            }
-//            else
-//            {
-//
-//            }
-//            column.setDisplayOrder(displayOrder++)
-//        }
-//
-//
-//        return colsToDelete
-//    }
 
     /**
      * Sorted this way to allow for CopyOnWriteArrayList or regular ArrayLists to be sorted.
@@ -1624,26 +1610,6 @@ class Axis
         return false
     }
 
-    private void doesMatchExistingValue(Comparable v)
-    {
-        if (binarySearchAxis(v) >= 0)
-        {
-            throw new AxisOverlapException("Passed in value '" + v + "' matches a value already on axis '" + name + "'")
-        }
-    }
-
-    private void doesMatchNearestValue(Comparable v)
-    {
-        for (Column col : columns)
-        {
-            Object val = col.getValue()
-            if (v.equals(val))
-            {
-                throw new AxisOverlapException("Passed in value '" + v + "' matches a value already on axis '" + name + "'")
-            }
-        }
-    }
-
     /**
      * @return List<Column> that contains all Columns on this axis (excluding the Default Column if it exists).  The
      * Columns will be returned in sorted order.  It is a copy of the internal list, therefore operations on the
@@ -1731,4 +1697,60 @@ class Axis
         }
         return fireAll == axis.fireAll
     }
+
+//    interface InternalAxis
+//    {
+//        Column find(Comparable value)
+//    }
+//
+//    static class DiscreteAxis implements InternalAxis
+//    {
+//        // used to get O(1) on SET axis for the discrete elements in the Set
+//        final transient Map<Comparable, Column> displayOrderToColumn = new HashMap<>()
+//
+//        Column find(Comparable value)
+//        {
+//            return null
+//        }
+//    }
+//    static class RangeAxis implements InternalAxis
+//    {
+//        // used to get O(1) on SET axis for the discrete elements in the Set
+//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
+//
+//        Column find(Comparable value)
+//        {
+//            return null
+//        }
+//    }
+//    static class SetAxis implements InternalAxis
+//    {
+//        // used to get O(1) on SET axis for the discrete elements in the Set
+//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
+//
+//        Column find(Comparable value)
+//        {
+//            return null
+//        }
+//    }
+//    static class NearestAxis implements InternalAxis
+//    {
+//        // used to get O(1) on SET axis for the discrete elements in the Set
+//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
+//
+//        Column find(Comparable value)
+//        {
+//            return null
+//        }
+//    }
+//    static class RuleAxis implements InternalAxis
+//    {
+//        // used to get O(1) on SET axis for the discrete elements in the Set
+//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
+//
+//        Column find(Comparable value)
+//        {
+//            return null
+//        }
+//    }
 }
