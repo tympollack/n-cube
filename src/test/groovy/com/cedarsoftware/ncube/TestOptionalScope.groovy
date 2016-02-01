@@ -41,9 +41,9 @@ class TestOptionalScope
     void testOptionalScopeInDefaultCell()
     {
         NCube n1 = NCubeManager.getNCubeFromResource('optionalScope.json')
-        Set<String> optionalScope = n1.getOptionalScope()
+        Set<String> optionalScope = n1.getOptionalScope([:], [:])
         assert optionalScope.contains('teST')
         assert optionalScope.size() == 1
-        assert n1.getRequiredScope().isEmpty()
+        assert n1.getRequiredScope([:], [:]).isEmpty()
     }
 }

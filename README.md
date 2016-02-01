@@ -95,6 +95,10 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.19
+ * Enhancement: getCell() now takes an optional parameter of defaultValue.  This is an additional way to provide a default value for when there is not cell at the passed in coordinate.
+ * getRequiredScope() updated to take input and output Maps.  Because required scope can be an expression, this allows additional scope to be supplied to the expression.
+ * getOptionalScope() updated to take input and output Maps.  Because optional scope can be an expression, this allows additional scope to be supplied to the expression.
 * 3.4.18
  * NCube.updateColumns() now takes a String Axis Name as a Collection of Columns, rather than accepting an Axis which was not expected to be in proper order.  Simimlarly, the Axis.updateColumns() API now takes a Collection of Columns.
  * Continued work on Axis in support of a Reference Axis option.

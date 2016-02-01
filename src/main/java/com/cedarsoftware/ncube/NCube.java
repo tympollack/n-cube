@@ -140,10 +140,20 @@ public class NCube<T>
      */
     public Object extractMetaPropertyValue(Object value)
     {
+        return extractMetaPropertyValue(value, new HashMap<String, Object>(), new HashMap());
+    }
+
+    /**
+     * If a meta property value is fetched from an Axis or a Column, the value should be extracted
+     * using this API, so as to allow executable values to be retrieved.
+     * @param value Object value to be extracted.
+     */
+    public Object extractMetaPropertyValue(Object value, Map<String, Object> input, Map output)
+    {
         if (value instanceof CommandCell)
         {
             CommandCell cmd = (CommandCell) value;
-            value = executeExpression(prepareExecutionContext(new HashMap<String, Object>(), new HashMap()), cmd);
+            value = executeExpression(prepareExecutionContext(input, output), cmd);
         }
         return value;
     }
@@ -285,6 +295,15 @@ public class NCube<T>
         return appId.getVersion();
     }
 
+    /**
+     * @return ApplicationID for this n-cube.  This contains the app name, version, etc. that this
+     * n-cube is part of.
+     */
+    public ApplicationID getApplicationID()
+    {
+        return appId;
+    }
+
     public void setApplicationID(ApplicationID appId)
     {
         this.appId = appId;
@@ -300,15 +319,6 @@ public class NCube<T>
     void setSha1(String sha1)
     {
         this.sha1 = sha1;
-    }
-
-    /**
-     * @return ApplicationID for this n-cube.  This contains the app name, version, etc. that this
-     * n-cube is part of.
-     */
-    public ApplicationID getApplicationID()
-    {
-        return appId;
     }
 
     /**
@@ -471,11 +481,13 @@ public class NCube<T>
      * Be aware that if you have any rule cubes in the execution path, they can execute
      * more than one cell.  The cell value returned is the value of the last cell executed.
      * @param coordinate Map of String keys to values meant to bind to each axis of the n-cube.
-     * @return Cell pinpointed by the input coordinate.
+     * @return Cell pinpointed by the input coordinate.  If there is nothing stored at this
+     * location, then the n-cube's default value will be returned (which is null if not set,
+     * but can be set to any value, including a GroovyExpression).
      */
     public T getCell(final Map<String, Object> coordinate)
     {
-        return getCell(coordinate, new HashMap<String, Object>());
+        return getCell(coordinate, new HashMap<String, Object>(), null);
     }
 
     /**
@@ -488,17 +500,41 @@ public class NCube<T>
      * @param coordinate Map of String keys to values meant to bind to each axis of the n-cube.
      * @param output Map that can be written to by the code within the the n-cubes (for example,
      *               GroovyExpressions.
-     * @return Cell pinpointed by the input coordinate.
+     * @return Cell pinpointed by the input coordinate.  If there is nothing stored at this
+     * location, then the n-cube's default value will be returned.
      */
     public T getCell(final Map<String, Object> coordinate, final Map<String, Object> output)
     {
+        return getCell(coordinate, output, null);
+    }
+
+    /**
+     * Fetch the contents of the cell at the location specified by the coordinate argument.
+     * Be aware that if you have any rule cubes in the execution path, they can execute
+     * more than one cell.  The cell value returned is the value of the last cell executed.
+     * Typically, in a rule cube, you are writing to specific keys within the rule cube, and
+     * the calling code then accesses the 'output' Map to fetch the values at these specific
+     * keys.
+     * @param coordinate Map of String keys to values meant to bind to each axis of the n-cube.
+     * @param output Map that can be written to by the code within the the n-cubes (for example,
+     *               GroovyExpressions.
+     * @param defaultValue Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.
+     * @return Cell pinpointed by the input coordinate. If there is nothing stored at this location,
+     * then the passed in defaultValue will be returned if it is not-null.  If defaultValue is null,
+     * then then n-cube defaultValue will be returned.
+     */
+    public T getCell(final Map<String, Object> coordinate, final Map<String, Object> output, Object defaultValue)
+    {
         final RuleInfo ruleInfo = getRuleInfo(output);
-        Map<String, Object> input = validateCoordinate(coordinate);
+        Map<String, Object> input = validateCoordinate(coordinate, output);
         T lastStatementValue = null;
 
         if (!hasRuleAxis())
         {   // Perform fast bind and execute.
-            lastStatementValue = getCellById(getCoordinateKey(input), input, output);
+            lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue);
             ruleInfo.setLastExecutedStatementValue(lastStatementValue);
             output.put("return", lastStatementValue);
             return lastStatementValue;
@@ -727,6 +763,24 @@ public class NCube<T>
      */
     T getCellById(final Set<Long> idCoord, final Map<String, Object> coordinate, final Map output)
     {
+        return getCellById(idCoord, coordinate, output, null);
+    }
+
+    /**
+     * The lowest level cell fetch.  This method uses the Set<Long> to fetch an
+     * exact cell, while maintaining the original input coordinate that the location
+     * was derived from (required because a given input coordinate could map to more
+     * than one cell).  Once the cell is located, it is executed and the value from
+     * the executed cell is returned. In the case of Command Cells, it is the return
+     * value of the execution, otherwise the return is the value stored in the cell,
+     * and if there is no cell, the defaultCellValue from NCube is returned, if one
+     * is set.
+     * REQUIRED: The coordinate passed to this method must have already been run
+     * through validateCoordinate(), which duplicates the coordinate and ensures the
+     * coordinate has at least an entry for each axis.
+     */
+    T getCellById(final Set<Long> idCoord, final Map<String, Object> coordinate, final Map output, Object defaultValue)
+    {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = executionStack.get();
         boolean pushed = false;
@@ -737,7 +791,15 @@ public class NCube<T>
             final StackEntry entry = new StackEntry(name, coordinate);
             stackFrame.push(entry);
             pushed = true;
-            T cellValue = cells.containsKey(idCoord) ? cells.get(idCoord) : defaultCellValue;
+            T cellValue;
+            if (cells.containsKey(idCoord))
+            {   // If there is content at the given coordinate...
+                cellValue = cells.get(idCoord);
+            }
+            else
+            {   // Choose the correct default
+                cellValue = defaultValue != null ? (T) defaultValue : defaultCellValue;
+            }
 
             if (cellValue instanceof CommandCell)
             {
@@ -759,7 +821,7 @@ public class NCube<T>
     /**
      * Prepare the execution context by providing it with references to
      * important items like the input coordinate, output map, stack,
-     * this (ncube), and the NCubeManager.
+     * and this (ncube).
      */
     public Map<String, Object> prepareExecutionContext(final Map<String, Object> coord, final Map output)
     {
@@ -786,7 +848,7 @@ public class NCube<T>
      */
     public Map<Object, T> getMap(final Map<String, Object> coordinate)
     {
-        final Map<String, Object> coord = validateCoordinate(coordinate);
+        final Map<String, Object> coord = validateCoordinate(coordinate, new HashMap());
         final Axis wildcardAxis = getWildcardAxis(coord);
         final List<Column> columns = getWildcardColumns(wildcardAxis, coord);
         final Map<Object, T> result = new LinkedHashMap<>();
@@ -1160,7 +1222,7 @@ public class NCube<T>
      * @param coordinate Map input coordinate
      *
      */
-    private Map<String, Object> validateCoordinate(final Map<String, Object> coordinate)
+    private Map<String, Object> validateCoordinate(final Map<String, Object> coordinate, final Map output)
     {
         if (coordinate == null)
         {
@@ -1171,7 +1233,7 @@ public class NCube<T>
         final Map<String, Object> copy = new CaseInsensitiveMap<>(coordinate);
 
         // Ensure required scope is supplied within the input coordinate
-        Set<String> requiredScope = getRequiredScope();
+        Set<String> requiredScope = getRequiredScope(coordinate, output);
 
         for (String scopeKey : requiredScope)
         {
@@ -1574,19 +1636,19 @@ public class NCube<T>
      *
      * @return Set of String scope key names that are optional.
      */
-    public Set<String> getOptionalScope()
+    public Set<String> getOptionalScope(Map<String, Object> input, Map output)
     {
         final Set<String> optionalScope = new CaseInsensitiveSet<>();
 
         for (final Axis axis : axisList.values())
         {   // Use original axis name (not .toLowerCase() version)
-            if (axis.hasDefaultColumn())
-            {
+            if (axis.hasDefaultColumn() || axis.getType() == AxisType.RULE)
+            {   // Rule axis is always optional scope - it does not need a axisName to value binding like the other axis types.
                 optionalScope.add(axis.getName());
             }
         }
 
-        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("optionalScopeKeys"));
+        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("optionalScopeKeys"), input, output);
         optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope));
         return optionalScope;
     }
@@ -1603,25 +1665,38 @@ public class NCube<T>
      * @return Set<String> names of axes that will need to be in an input coordinate
      * in order to use all cells within this NCube.
      */
-    public Set<String> getRequiredScope()
+    public Set<String> getRequiredScope(Map<String, Object> input, Map output)
     {
-        final Set<String> requiredScope = new CaseInsensitiveSet<>();
+        final Set<String> requiredScope = getRequiredAxes();
+        requiredScope.addAll(getDeclaredScope(input, output));
+        return requiredScope;
+    }
+
+    /**
+     * @return Set<String> Axis names that do not have default columns.  Note, a RULE axis name will never be included
+     * as a required Axis, even if it does not have a default column.  This is because you typically do not bind a
+     * value to a rule axis name, but instead the columns on the rule axis execute in order.
+     */
+    Set<String> getRequiredAxes()
+    {
+        final Set<String> required = new CaseInsensitiveSet<>();
 
         for (final Axis axis : axisList.values())
         {   // Use original axis name (not .toLowerCase() version)
             if (!axis.hasDefaultColumn() && !(axis.getType() == AxisType.RULE))
             {
-                requiredScope.add(axis.getName());
+                required.add(axis.getName());
             }
         }
-
-        requiredScope.addAll(getDeclaredScope());
-        return requiredScope;
+        return required;
     }
 
-    Set<String> getDeclaredScope()
+    // TODO:
+    // Should we have another API, getDeclaredScopeFromCube() which reads a meta-property key that lists
+    // the name of an n-cube that will be asked for requiredScope?
+    Set<String> getDeclaredScope(Map<String, Object> input, Map output)
     {
-        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"));
+        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"), input, output);
         return declaredRequiredScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredRequiredScope);
     }
 
@@ -2088,7 +2163,7 @@ public class NCube<T>
      */
     public List<NCubeTest> generateNCubeTests()
     {
-        List<NCubeTest> coordinates = new ArrayList<>();
+        List<NCubeTest> tests = new ArrayList<>();
         Set<Long> colIds = new LongHashSet();
         int i=1;
         for (Collection<Long> pt : cells.keySet())
@@ -2101,11 +2176,10 @@ public class NCube<T>
             Map<String, CellInfo> coord = getTestInputCoordinateFromIds(colIds);
             String testName = String.format("test-%03d", i);
             CellInfo[] result = {new CellInfo("exp", "output.return", false, false)};
-            coordinates.add(new NCubeTest(testName, convertCoordToList(coord), result));
+            tests.add(new NCubeTest(testName, convertCoordToList(coord), result));
             i++;
         }
-
-        return coordinates;
+        return tests;
     }
 
     private static StringValuePair<CellInfo>[] convertCoordToList(Map<String, CellInfo> coord)
@@ -2495,7 +2569,17 @@ public class NCube<T>
         }
 
         // Add in all required scope keys to the [optional] passed in coord
-        for (String scopeKey : getRequiredScope())
+        Set<String> requiredScope;
+        try
+        {
+            requiredScope = getRequiredScope(new HashMap<String, Object>(), new HashMap());
+        }
+        catch (CoordinateNotFoundException e)
+        {
+            requiredScope = getRequiredAxes();
+        }
+
+        for (String scopeKey : requiredScope)
         {
             if (!coord.containsKey(scopeKey))
             {

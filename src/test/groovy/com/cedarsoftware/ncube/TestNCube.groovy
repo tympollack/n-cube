@@ -174,20 +174,20 @@ class TestNCube
         String riskType = (String) ncube.getCell(coord)
         assertTrue("AUTOPS".equals(riskType))
 
-        Set<String> optionalScope = ncube.optionalScope
-        optionalScope = ncube.optionalScope   // 2nd time to force fetch from cache
+        Set<String> optionalScope = ncube.getOptionalScope([:], [:])
+        optionalScope = ncube.getOptionalScope([:], [:])   // 2nd time to force fetch from cache
         assertEquals(1, optionalScope.size())
         assertTrue(optionalScope.contains("bu"))
 
-        Set<String> requiredScope = ncube.requiredScope
+        Set<String> requiredScope = ncube.getRequiredScope([:], [:])
         println("requiredScope 2 cubes = " + requiredScope)
         assertTrue(requiredScope.size() == 1)
         assertTrue(requiredScope.contains("PROD_LINE"))
 
-        requiredScope = commAuto.requiredScope
+        requiredScope = commAuto.getRequiredScope([:], [:])
         assertEquals(1, requiredScope.size())
         assertTrue(requiredScope.contains("attribute"))
-        optionalScope = commAuto.optionalScope
+        optionalScope = commAuto.getOptionalScope([:], [:])
         assertEquals(0, optionalScope.size())
 
         coord.clear()
@@ -195,7 +195,7 @@ class TestNCube
         coord.put("PROD_LINE", "CommGL")
         coord.put("Attribute", "riskType")
 
-        requiredScope = ncube.requiredScope
+        requiredScope = ncube.getRequiredScope([:], [:])
         println("requiredScope 2 cubes = " + requiredScope)
         assertTrue(requiredScope.size() == 1)
         assertTrue(requiredScope.contains("PROD_LINE"))
@@ -349,6 +349,19 @@ class TestNCube
         x = ncube.getCell(coord)
         assertTrue(x == 3.0)
         assertTrue(countMatches(ncube.toHtml(), "<tr") == 5)
+    }
+
+    @Test
+    void testDefaultValueForGetCell()
+    {
+        NCube ncube = NCubeBuilder.getTestNCube2D(true)
+        Map coord = [Gender:'Male', Age:18] as Map
+        ncube.setCell(21.0, coord)
+        Double x = ncube.getCell(coord, [:], -1)
+        assertTrue(x == 21.0)
+        coord.Age = 65
+        x = ncube.getCell(coord, [:], -1)
+        assertTrue(x == -1)
     }
 
     @Test
@@ -2757,10 +2770,10 @@ class TestNCube
             assert e.message.toLowerCase().contains('error occurred')
         }
 
-        Set<String> names = ncube.requiredScope
+        Set<String> names = ncube.getRequiredScope([:], [:])
         assertTrue(names.size() == 1)
         assertTrue(names.contains("type"))
-        names = ncube.optionalScope
+        names = ncube.getOptionalScope([:], [:])
         assertTrue(names.size() == 0)
     }
 
@@ -2970,7 +2983,7 @@ class TestNCube
         x = (String) ncube.getCell(coord)
         assertEquals("1", x)
 
-        Set<String> scope = ncube.requiredScope
+        Set<String> scope = ncube.getRequiredScope([:], [:])
         assertTrue(scope.size() == 2)
     }
 
@@ -3168,16 +3181,16 @@ class TestNCube
     {
         NCubeManager.getNCubeFromResource("stringIds.json")
         NCube<String> ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        Set<String> scope = ncube.requiredScope
+        Set<String> scope = ncube.getRequiredScope([:], [:])
         assertEquals(1, scope.size())
         assertTrue(scope.contains("CODe"))
 
-        scope = ncube.optionalScope
+        scope = ncube.getOptionalScope([:], [:])
         assertEquals(0, scope.size())
 
         NCubeManager.getNCubeFromResource("template2.json")   // Get it loaded
         ncube = NCubeManager.getNCubeFromResource("template1.json")
-        scope = ncube.requiredScope
+        scope = ncube.getRequiredScope([:], [:])
         assertEquals(2, scope.size())
         assertTrue(scope.contains("coDe"))
         assertTrue(scope.contains("staTe"))
@@ -3911,7 +3924,7 @@ class TestNCube
     void testRequiredScope()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("requiredScopeKeys.json")
-        Set<String> scope = ncube.requiredScope
+        Set<String> scope = ncube.getRequiredScope([:], [:])
         assertEquals(3, scope.size())
         assertTrue(scope.contains("codE"))
         assertTrue(scope.contains("bU"))
@@ -3995,7 +4008,7 @@ class TestNCube
     void testNoRequiredScope()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("noRequiredScope.json")
-        Set<String> scope = ncube.requiredScope
+        Set<String> scope = ncube.getRequiredScope([:], [:])
         assertEquals(0, scope.size())
 
         Object value = ncube.getCell(new HashMap())
