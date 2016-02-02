@@ -1,13 +1,14 @@
-package ncube.grv.exp;
+package ncube.grv.exp
 
-import com.cedarsoftware.ncube.*;
-import com.cedarsoftware.ncube.exception.RuleJump;
-import com.cedarsoftware.ncube.exception.RuleStop;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.Column
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeInfoDto
+import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.exception.RuleJump
+import com.cedarsoftware.ncube.exception.RuleStop
+import groovy.transform.CompileStatic
 
 /**
  * Base class for all GroovyExpression and GroovyMethod's within n-cube CommandCells.
@@ -17,7 +18,7 @@ import java.util.Set;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -29,11 +30,12 @@ import java.util.Set;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class NCubeGroovyExpression
+@CompileStatic
+class NCubeGroovyExpression
 {
-    public Map input;
-    public Map output;
-    public NCube ncube;
+    public Map input
+    public Map output
+    public NCube ncube
 
     /**
      * Fetch the named n-cube from the NCubeManager.  It looks at the same
@@ -41,86 +43,51 @@ public class NCubeGroovyExpression
      * @param name String n-cube name.
      * @return NCube with the given name.
      */
-    public NCube getCube(String name)
+    NCube getCube(String name)
     {
-        NCube cube = NCubeManager.getCube(ncube.getApplicationID(), name);
+        NCube cube = NCubeManager.getCube(ncube.applicationID, name)
         if (cube == null)
         {
-            throw new IllegalArgumentException("n-cube: " + name + " not loaded into NCubeManager, make sure to load all n-cubes first.");
+            throw new IllegalArgumentException('n-cube: ' + name + ' not loaded into NCubeManager, make sure to load all n-cubes first.')
         }
-        return cube;
+        return cube
     }
 
     /**
      * Short-cut to fetch ApplicationID for current cell.
      */
-    public ApplicationID getApplicationID()
+    ApplicationID getApplicationID()
     {
-        return ncube.getApplicationID();
+        return ncube.applicationID
     }
 
     /**
      * Fetch all cube names in the current application.
      * @return Set<String> cube names>
      */
-    public Set<String> getCubeNames()
+    Set<String> getCubeNames()
     {
-        return NCubeManager.getCubeNames(ncube.getApplicationID());
+        return NCubeManager.getCubeNames(ncube.applicationID)
     }
 
     /**
      * Fetch cube records that match the given pattern.
      * @return Object[] of NCubeInfoDto instances.
      */
-    public List<NCubeInfoDto> getCubeRecords(String pattern)
+    List<NCubeInfoDto> getCubeRecords(String pattern)
     {
-        Map options = new HashMap();
-        options.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true);
-        return search(pattern, null, options);
+        Map options = new HashMap()
+        options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY] = true
+        return search(pattern, null, options)
     }
 
     /**
      * Fetch cube records that match the given pattern.
      * @return Object[] of NCubeInfoDto instances.
      */
-    public List<NCubeInfoDto> search(String namePattern, String textPattern, Map options)
+    List<NCubeInfoDto> search(String namePattern, String textPattern, Map options)
     {
-        return NCubeManager.search(ncube.getApplicationID(), namePattern, textPattern, options);
-    }
-
-    /**
-     * Using the input Map passed in, fetch the coordinate at that location.
-     * @param coord Input Map with the required scope keys.
-     * @return executed cell contents at the given coordinate.
-     */
-    public Object getFixedCell(Map coord)
-    {
-        return ncube.getCell(coord, output);
-    }
-
-    /**
-     * Fetch the contents at the given coordinate specified, within the named
-     * n-cube specified.  The input map is used as-is.
-     * @param cubeName String n-cube name.
-     * @param coord Input Map with the required scope keys.
-     * @return executed cell contents at the given coordinate within the given n-cube.
-     */
-    public Object getFixedCubeCell(String cubeName, Map coord)
-    {
-        return getCube(cubeName).getCell(coord, output);
-    }
-
-    /**
-     * Fetch the cell contents using the current input coordinate, but first apply
-     * any updates from the passed in coordinate.
-     * @param coord Map containing 'updates' to the current input coordinate.
-     * @return executed cell contents at the current input location, but first apply
-     * updates to the current input coordinate from the passed in coord.
-     */
-    public Object getRelativeCell(Map coord)
-    {
-        input.putAll(coord);
-        return ncube.getCell(input, output);
+        return NCubeManager.search(ncube.applicationID, namePattern, textPattern, options)
     }
 
     /**
@@ -131,10 +98,45 @@ public class NCubeGroovyExpression
      * @return executed cell contents at the current input location and specified n-cube,
      * but first apply updates to the current input coordinate from the passed in coord.
      */
-    public Object getRelativeCubeCell(String cubeName, Map coord)
+    def getRelativeCubeCell(String cubeName, Map coord, def defaultValue = null)
     {
-        input.putAll(coord);
-        return getCube(cubeName).getCell(input, output);
+        return getCell(coord, cubeName, defaultValue)
+    }
+
+    /**
+     * Run another rule cube
+     * @param cubeName String name of the other rule cube
+     * @param coord Map input coordinate
+     * @return is the return Map from the other rule cube
+     */
+    def runRuleCube(String cubeName, Map coord, def defaultValue = null)
+    {
+        input.putAll(coord)
+        return getCube(cubeName).getCell(input, output, defaultValue)
+    }
+
+    /**
+     * Using the input Map passed in, fetch the coordinate at that location.
+     * @param coord Input Map with the required scope keys.
+     * @return executed cell contents at the given coordinate.
+     */
+    def getFixedCell(Map coord, String cubeName = ncube.name, def defaultValue = null)
+    {
+        return getCube(cubeName).getCell(coord, output, defaultValue)
+    }
+
+    /**
+     * Fetch the cell contents using the current input coordinate and specified n-cube,
+     * but first apply any updates from the passed in coordinate.
+     * @param coord Map containing 'updates' to the current input coordinate.
+     * @param cubeName String n-cube name.
+     * @return executed cell contents at the current input location and specified n-cube,
+     * but first apply updates to the current input coordinate from the passed in coord.
+     */
+    def getCell(Map coord, String cubeName = ncube.name, def defaultValue = null)
+    {
+        input.putAll(coord)
+        return getCube(cubeName).getCell(input, output, defaultValue)
     }
 
     /**
@@ -144,30 +146,18 @@ public class NCubeGroovyExpression
      * @param coord Map of rule axis names, to rule names.  If the map is empty, it is the same as calling
      * jump() with no args.
      */
-    public void jump(Map coord)
+    void jump(Map coord)
     {
-        input.putAll(coord);
-        throw new RuleJump(input);
+        input.putAll(coord)
+        throw new RuleJump(input)
     }
 
     /**
      * Stop rule execution from going any further.
      */
-    public void ruleStop()
+    void ruleStop()
     {
-        throw new RuleStop();
-    }
-
-    /**
-     * Run another rule cube
-     * @param cubeName String name of the other rule cube
-     * @param coord Map input coordinate
-     * @return is the return Map from the other rule cube
-     */
-    public Object runRuleCube(String cubeName, Map coord)
-    {
-        input.putAll(coord);
-        return getCube(cubeName).getCell(input, output);
+        throw new RuleStop()
     }
 
     /**
@@ -176,10 +166,10 @@ public class NCubeGroovyExpression
      * @param value Comparable value to bind to the axis.
      * @return Column instance at the specified location (value) along the specified axis (axisName).
      */
-    public Column getColumn(String axisName, Comparable value)
+    Column getColumn(String axisName, Comparable value)
     {
-        Axis axis = getAxis(axisName);
-        return axis.findColumn(value);
+        Axis axis = getAxis(axisName)
+        return axis.findColumn(value)
     }
 
     /**
@@ -191,10 +181,10 @@ public class NCubeGroovyExpression
      * @return Column instance at the specified location (value) within the specified cube (cubeName)
      * along the specified axis (axisName).
      */
-    public Column getColumn(String cubeName, String axisName, Comparable value)
+    Column getColumn(String cubeName, String axisName, Comparable value)
     {
-        Axis axis = getAxis(cubeName, axisName);
-        return axis.findColumn(value);
+        Axis axis = getAxis(cubeName, axisName)
+        return axis.findColumn(value)
     }
 
     /**
@@ -202,15 +192,15 @@ public class NCubeGroovyExpression
      * @param axisName String axis name.
      * @return Axis instance from the current n-cube that has the specified (axisName) name.
      */
-    public Axis getAxis(String axisName)
+    Axis getAxis(String axisName)
     {
-        Axis axis = ncube.getAxis(axisName);
+        Axis axis = (Axis) ncube[axisName]
         if (axis == null)
         {
-            throw new IllegalArgumentException("Axis '" + axisName + "' does not exist on n-cube: " + ncube.getName());
+            throw new IllegalArgumentException("Axis '" + axisName + "' does not exist on n-cube: " + ncube.getName())
         }
 
-        return axis;
+        return axis
     }
 
     /**
@@ -220,23 +210,23 @@ public class NCubeGroovyExpression
      * @return Axis instance from the specified n-cube (cubeName) that has the
      * specified (axisName) name.
      */
-    public Axis getAxis(String cubeName, String axisName)
+    Axis getAxis(String cubeName, String axisName)
     {
-        Axis axis = getCube(cubeName).getAxis(axisName);
+        Axis axis = (Axis) getCube(cubeName)[axisName]
         if (axis == null)
         {
-            throw new IllegalArgumentException("Axis '" + axisName + "' does not exist on n-cube: " + cubeName);
+            throw new IllegalArgumentException("Axis '" + axisName + "' does not exist on n-cube: " + cubeName)
         }
 
-        return axis;
+        return axis
     }
 
     /**
      * @return long Current time in nano seconds (used to compute how long something takes to execute)
      */
-    public long now()
+    long now()
     {
-        return System.nanoTime();
+        return System.nanoTime()
     }
 
     /**
@@ -245,13 +235,13 @@ public class NCubeGroovyExpression
      * @param end long value from call to now()
      * @return double elapsed time in milliseconds.
      */
-    public double elapsedMillis(long begin, long end)
+    double elapsedMillis(long begin, long end)
     {
-        return (end - begin) / 1000000.0;
+        return (double) (end - begin) / 1000000.0d
     }
 
-    public Object run()
+    def run()
     {
-        throw new IllegalStateException("Should never be called.");
+        throw new IllegalStateException('run() should never be called on ' + getClass().getName())
     }
 }

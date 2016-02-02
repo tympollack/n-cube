@@ -1,17 +1,15 @@
-package ncube.grv.method;
+package ncube.grv.method
 
-import com.cedarsoftware.ncube.Advice;
-import com.cedarsoftware.ncube.ApplicationID;
-import ncube.grv.exp.NCubeGroovyExpression;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.cedarsoftware.ncube.Advice
+import com.cedarsoftware.ncube.ApplicationID
+import groovy.transform.CompileStatic
+import ncube.grv.exp.NCubeGroovyExpression
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
+import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 /**
  * Base class for all GroovyExpression and GroovyMethod's within n-cube CommandCells.
  *
@@ -19,7 +17,7 @@ import java.util.concurrent.ConcurrentMap;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -32,17 +30,18 @@ import java.util.concurrent.ConcurrentMap;
  *         limitations under the License.
  * @see com.cedarsoftware.ncube.GroovyBase
  */
-public class NCubeGroovyController extends NCubeGroovyExpression
+@CompileStatic
+class NCubeGroovyController extends NCubeGroovyExpression
 {
-    protected static final Logger LOG = LogManager.getLogger(NCubeGroovyController.class);
+    protected static final Logger LOG = LogManager.getLogger(NCubeGroovyController.class)
 
     // Cache reflective method look ups
-    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Method>> methodCache = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Method>> methodCache = new ConcurrentHashMap<>()
 
-    public static void clearCache(ApplicationID appId)
+    static void clearCache(ApplicationID appId)
     {
-        Map<String, Method> methodMap = getMethodCache(appId);
-        methodMap.clear();
+        Map<String, Method> methodMap = getMethodCache(appId)
+        methodMap.clear()
     }
 
     /**
@@ -51,18 +50,18 @@ public class NCubeGroovyController extends NCubeGroovyExpression
      */
     private static Map<String, Method> getMethodCache(ApplicationID appId)
     {
-        ConcurrentMap<String, Method> methodMap = methodCache.get(appId);
+        ConcurrentMap<String, Method> methodMap = methodCache[appId]
 
         if (methodMap == null)
         {
-            methodMap = new ConcurrentHashMap<>();
-            ConcurrentMap ref = methodCache.putIfAbsent(appId, methodMap);
+            methodMap = new ConcurrentHashMap<>()
+            ConcurrentMap ref = methodCache.putIfAbsent(appId, methodMap)
             if (ref != null)
             {
-                methodMap = ref;
+                methodMap = ref
             }
         }
-        return methodMap;
+        return methodMap
     }
 
     /**
@@ -73,70 +72,70 @@ public class NCubeGroovyController extends NCubeGroovyExpression
      *                  package and class name for two classes, but their source is different,
      *                  their methods will be keyed uniquely in the cache.
      */
-    public Object run(String signature) throws Throwable
+    def run(String signature) throws Throwable
     {
-        final String methodName = (String) input.get("method");
-        final String methodKey = methodName + '.' + signature;
-        final Map<String, Method> methodMap = getMethodCache(ncube.getApplicationID());
-        Method method = methodMap.get(methodKey);
+        final String methodName = (String) input.method
+        final String methodKey = methodName + '.' + signature
+        final Map<String, Method> methodMap = getMethodCache(ncube.getApplicationID())
+        Method method = methodMap[methodKey]
 
         if (method == null)
         {
-            method = getClass().getMethod(methodName);
-            methodMap.put(methodKey, method);
+            method = getClass().getMethod(methodName)
+            methodMap[methodKey] = method
         }
 
         // If 'around' Advice has been added to n-cube, invoke it before calling Groovy method
         // or expression
-        final List<Advice> advices = ncube.getAdvices(methodName);
+        final List<Advice> advices = ncube.getAdvices(methodName)
         for (Advice advice : advices)
         {
             if (!advice.before(method, ncube, input, output))
             {
-                return null;
+                return null
             }
         }
 
         // Invoke the Groovy method named in the input Map at the key 'method'.
-        Throwable t = null;
-        Object ret = null;
+        Throwable t = null
+        Object ret = null
 
         try
         {
-            ret = method.invoke(this);
+            ret = method.invoke(this)
         }
         catch (ThreadDeath e)
         {
-            throw e;
+            throw e
         }
         catch (Throwable e)
         {
-            t = e;  // Save exception thrown by method call
+            t = e  // Save exception thrown by method call
         }
 
         // If 'around' Advice has been added to n-cube, invoke it after calling Groovy method
         // or expression
-        final int len = advices.size();
+        final int len = advices.size()
         for (int i = len - 1; i >= 0; i--)
         {
-            final Advice advice = advices.get(i);
+            final Advice advice = advices[i]
             try
             {
-                advice.after(method, ncube, input, output, ret, t);  // pass exception (t) to advice (or null)
+                advice.after(method, ncube, input, output, ret, t)  // pass exception (t) to advice (or null)
             }
             catch (ThreadDeath e)
             {
-                throw e;
+                throw e
             }
             catch (Throwable e)
             {
-                LOG.error("An exception occurred calling 'after' advice: " + advice.getName() + " on method: " + method.getName(), e);
+                LOG.error("An exception occurred calling 'after' advice: " + advice.getName() + " on method: " + method.getName(), e)
             }
         }
         if (t == null)
         {
-            return ret;
+            return ret
         }
-        throw t;
+        throw t
     }
 }
