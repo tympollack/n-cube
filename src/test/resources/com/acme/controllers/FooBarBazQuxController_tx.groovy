@@ -22,16 +22,16 @@ class FooBarBazQuxController_TX extends NCubeGroovyController
     def bar()
     {
 //        @[method:'foo'] * 3;   // the call below is identical to this call, however, it does not cause IDE complaints
-        return getCell([method: 'foo']) * 3
+        return at([method: 'foo']) * 3
     }
 
     def baz()
     {
-        return getFixedCell([method:'bar',state:'TX']) * 3
+        return atCoord([method:'bar',state:'TX']) * 3
     }
 
     def qux()
     {
-        return getCell([method:'baz'], "TestCube") * 3
+        return at([method:'baz'], "TestCube") * 3
     }
 }

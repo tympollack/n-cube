@@ -777,7 +777,8 @@ public class NCube<T>
      * is set.
      * REQUIRED: The coordinate passed to this method must have already been run
      * through validateCoordinate(), which duplicates the coordinate and ensures the
-     * coordinate has at least an entry for each axis.
+     * coordinate has at least an entry for each axis (entry not needed for axes with
+     * default column or rule axes).
      */
     T getCellById(final Set<Long> idCoord, final Map<String, Object> coordinate, final Map output, Object defaultValue)
     {
@@ -798,7 +799,7 @@ public class NCube<T>
             }
             else
             {   // Choose the correct default
-                cellValue = defaultValue != null ? (T) defaultValue : defaultCellValue;
+                cellValue = defaultCellValue == null ? (T) defaultValue : defaultCellValue;
             }
 
             if (cellValue instanceof CommandCell)

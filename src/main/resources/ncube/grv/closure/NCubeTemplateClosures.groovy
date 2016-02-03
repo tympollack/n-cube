@@ -34,13 +34,13 @@ Column getColumn(Comparable value, String axisName, String cubeName = ncube.name
     return getAxis(axisName, cubeName).findColumn(value)
 }
 
-def getCell(Map coord, String cubeName = ncube.name, def defaultValue = null)
+def at(Map coord, String cubeName = ncube.name, def defaultValue = null)
 {
     input.putAll(coord)
     return getCube(cubeName).getCell(input, output, defaultValue)
 }
 
-def getFixedCell(Map coord, String cubeName = ncube.name, def defaultValue = null)
+def atCoord(Map coord, String cubeName = ncube.name, def defaultValue = null)
 {
     return getCube(cubeName).getCell(coord, output, defaultValue)
 }

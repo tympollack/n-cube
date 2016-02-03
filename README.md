@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.19</version>
+  <version>3.4.20</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,9 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.20
+ * Within an n-cube GroovyExpression cell, at(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use at() as runRuleCube(), getRelativeCubeCell(), and getRelativeCell() will be deprecated.
+ * Within an n-cube GroovyExpression cell, atCoord(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use atCoord() as getFixedCell() and getFixedCubeCell() will be deprecated.
 * 3.4.19
  * Enhancement: getCell() now takes an optional parameter of defaultValue.  This is an additional way to provide a default value for when there is not cell at the passed in coordinate.
  * getRequiredScope() updated to take input and output Maps.  Because required scope can be an expression, this allows additional scope to be supplied to the expression.

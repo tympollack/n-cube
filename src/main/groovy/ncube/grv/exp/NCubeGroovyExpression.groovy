@@ -8,6 +8,7 @@ import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 
 /**
@@ -45,6 +46,10 @@ class NCubeGroovyExpression
      */
     NCube getCube(String name)
     {
+        if (StringUtilities.equalsIgnoreCase(ncube.name, name))
+        {
+            return ncube
+        }
         NCube cube = NCubeManager.getCube(ncube.applicationID, name)
         if (cube == null)
         {
@@ -71,7 +76,8 @@ class NCubeGroovyExpression
     }
 
     /**
-     * Fetch cube records that match the given pattern.
+     * Fetch active cube records that match the given pattern.
+     * @param pattern String text pattern or exact file name used to filter cube name(s)
      * @return Object[] of NCubeInfoDto instances.
      */
     List<NCubeInfoDto> getCubeRecords(String pattern)
@@ -83,6 +89,10 @@ class NCubeGroovyExpression
 
     /**
      * Fetch cube records that match the given pattern.
+     * @param namePattern String text pattern or exact file name used to filter cube name(s)
+     * @param textPattern String text pattern filter cubes returned.  This is matched
+     * against the JSON content (contains() search).
+     * @param options Map of NCubeManager.SEARCH_* options.
      * @return Object[] of NCubeInfoDto instances.
      */
     List<NCubeInfoDto> search(String namePattern, String textPattern, Map options)
@@ -100,7 +110,8 @@ class NCubeGroovyExpression
      */
     def getRelativeCubeCell(String cubeName, Map coord, def defaultValue = null)
     {
-        return getCell(coord, cubeName, defaultValue)
+        input.putAll(coord)
+        return getCube(cubeName).getCell(input, output, defaultValue)
     }
 
     /**
@@ -117,10 +128,11 @@ class NCubeGroovyExpression
 
     /**
      * Using the input Map passed in, fetch the coordinate at that location.
-     * @param coord Input Map with the required scope keys.
+     * @param coord Input Map with the coordinate to fetch.  This coordinate is used as-is, no
+     * content from the input map passed into this cube is included in the passed in coord.
      * @return executed cell contents at the given coordinate.
      */
-    def getFixedCell(Map coord, String cubeName = ncube.name, def defaultValue = null)
+    def atCoord(Map coord, String cubeName = ncube.name, def defaultValue = null)
     {
         return getCube(cubeName).getCell(coord, output, defaultValue)
     }
@@ -133,7 +145,7 @@ class NCubeGroovyExpression
      * @return executed cell contents at the current input location and specified n-cube,
      * but first apply updates to the current input coordinate from the passed in coord.
      */
-    def getCell(Map coord, String cubeName = ncube.name, def defaultValue = null)
+    def at(Map coord, String cubeName = ncube.name, def defaultValue = null)
     {
         input.putAll(coord)
         return getCube(cubeName).getCell(input, output, defaultValue)
