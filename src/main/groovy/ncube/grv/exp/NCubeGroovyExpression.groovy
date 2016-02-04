@@ -132,7 +132,7 @@ class NCubeGroovyExpression
      * content from the input map passed into this cube is included in the passed in coord.
      * @return executed cell contents at the given coordinate.
      */
-    def atCoord(Map coord, String cubeName = ncube.name, def defaultValue = null)
+    def goNew(Map coord, String cubeName = ncube.name, def defaultValue = null)
     {
         return getCube(cubeName).getCell(coord, output, defaultValue)
     }
@@ -145,7 +145,7 @@ class NCubeGroovyExpression
      * @return executed cell contents at the current input location and specified n-cube,
      * but first apply updates to the current input coordinate from the passed in coord.
      */
-    def at(Map coord, String cubeName = ncube.name, def defaultValue = null)
+    def go(Map coord, String cubeName = ncube.name, def defaultValue = null)
     {
         input.putAll(coord)
         return getCube(cubeName).getCell(input, output, defaultValue)
