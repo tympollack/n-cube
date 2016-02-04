@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.20</version>
+  <version>3.4.21</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,6 +95,8 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.21
+ * Renamed APIs added in 3.4.20 from 'at' to 'go'.
 * 3.4.20
  * Within an n-cube GroovyExpression cell, at(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use at() as runRuleCube(), getRelativeCubeCell(), and getRelativeCell() will be deprecated.
  * Within an n-cube GroovyExpression cell, atCoord(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use atCoord() as getFixedCell() and getFixedCubeCell() will be deprecated.
