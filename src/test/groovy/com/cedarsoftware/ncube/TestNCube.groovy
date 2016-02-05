@@ -180,7 +180,6 @@ class TestNCube
         assertTrue(optionalScope.contains("bu"))
 
         Set<String> requiredScope = ncube.getRequiredScope([:], [:])
-        println("requiredScope 2 cubes = " + requiredScope)
         assertTrue(requiredScope.size() == 1)
         assertTrue(requiredScope.contains("PROD_LINE"))
 
@@ -196,7 +195,6 @@ class TestNCube
         coord.put("Attribute", "riskType")
 
         requiredScope = ncube.getRequiredScope([:], [:])
-        println("requiredScope 2 cubes = " + requiredScope)
         assertTrue(requiredScope.size() == 1)
         assertTrue(requiredScope.contains("PROD_LINE"))
     }

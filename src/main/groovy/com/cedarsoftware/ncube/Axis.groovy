@@ -140,9 +140,10 @@ class Axis
             idToCol[defaultCol.id] = defaultCol
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             columns = null
+            rangeToCol = null
         }
     }
 
@@ -306,7 +307,7 @@ class Axis
 
     protected void reIndex()
     {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             return
         }
@@ -334,7 +335,7 @@ class Axis
             colNameToCol[colName] = column
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             if (column.value != null)
             {
@@ -452,7 +453,7 @@ class Axis
      */
     List<Column> getColumns()
     {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {   // return 'view' of Columns that matches the desired order (sorted or display)
             List<Column> cols = getColumnsWithoutDefault()
             if (defaultCol != null)
@@ -478,7 +479,7 @@ class Axis
 
     protected void clear()
     {
-        rangeToCol.clear()
+        rangeToCol?.clear()
         discreteToCol.clear()
         idToCol.clear()
         colNameToCol.clear()
@@ -488,9 +489,8 @@ class Axis
 
     protected List<Column> getColumnsInternal()
     {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
-            // TODO: Can I return them directly from the .values() of the respective Maps?
             return getColumns()
         }
 
@@ -649,18 +649,7 @@ class Axis
         // are done against it.
         int dispOrder = hasDefaultColumn() ? size() - 1 : size()
         column.setDisplayOrder(column.getValue() == null ? Integer.MAX_VALUE : dispOrder)
-        if (type == AxisType.RULE)
-        {   // Rule columns are added in 'occurrence' order
-            if (column != defaultCol && hasDefaultColumn())
-            {   // Insert right before default column at the end
-                columns.add(Math.max(columns.size() - 1, 0), column)
-            }
-            else
-            {
-                columns.add(column)
-            }
-        }
-        else if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
             column.setDisplayOrder(order)
@@ -711,7 +700,7 @@ class Axis
             return null
         }
 
-        if (type != AxisType.DISCRETE && type != AxisType.NEAREST)
+        if (type != AxisType.DISCRETE && type != AxisType.NEAREST && type != AxisType.RULE)
         {
             columns.remove(col)
         }
@@ -731,7 +720,7 @@ class Axis
         idToCol.remove(col.id)
         colNameToCol.remove(col.getColumnName())
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             if (col.value != null)
             {
@@ -770,10 +759,6 @@ class Axis
                     }
                 }
             }
-        }
-        else if (type == AxisType.RULE)
-        {
-
         }
         else
         {
@@ -815,7 +800,7 @@ class Axis
         // find where it should go (updating Fune to June, for example (fixing a misspelling), will
         // result in the column being sorted to a different location (while maintaining its display
         // order, because displayOrder is stored on the column).
-        if (type != AxisType.DISCRETE && type != AxisType.NEAREST)
+        if (type != AxisType.DISCRETE && type != AxisType.NEAREST && type != AxisType.RULE)
         {
             int where = Collections.binarySearch(columns, newCol.getValue())
             if (where < 0)
@@ -924,7 +909,7 @@ class Axis
             realColumn.setDisplayOrder(dispOrder++)
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             clear()
             for (Column col : realColumnMap.values())
@@ -942,13 +927,9 @@ class Axis
                 discreteToCol[col.getValue()] = col
             }
         }
-        else if (type == AxisType.RULE)
-        {   // required because RULE columns are stored in execution order
-            sortColumnsByDisplayOrder(columns)
-        }
 
         // Put default column back if it was already there.
-        if (hasDefaultColumn() && (type != AxisType.DISCRETE && type != AxisType.NEAREST))
+        if (hasDefaultColumn() && columns != null)
         {
             columns.add(defaultCol)
         }
@@ -1169,6 +1150,14 @@ class Axis
         {
             return promoteValue(valueType, value)
         }
+        else if (type == AxisType.RULE)
+        {
+            if (!(value instanceof CommandCell))
+            {
+                throw new IllegalArgumentException("Must only add CommandCell values to " + type + " axis '" + name + "' - attempted to add: " + value.getClass().getName())
+            }
+            return value
+        }
         else if (type == AxisType.RANGE)
         {
             if (!(value instanceof Range))
@@ -1350,13 +1339,12 @@ class Axis
             return cols
         }
 
-        int pos = firstRule.getDisplayOrder()
-        final List<Column> allColumns = getColumns()
-        final int len = allColumns.size()
-
-        for (int i=pos; i < len; i++)
+        // tailMap() efficiently snags everything matching and later
+        Map result = displayOrder.tailMap(firstRule.displayOrder)
+        cols.addAll(result.values())
+        if (hasDefaultColumn())
         {
-            cols.add(allColumns[i])
+            cols.add(defaultCol)
         }
         return cols
     }
@@ -1621,6 +1609,12 @@ class Axis
             {
                 cols.addAll(displayOrder.values())
             }
+            return cols
+        }
+        else if (type == AxisType.RULE)
+        {
+            List<Column> cols = new ArrayList<>(size())
+            cols.addAll(displayOrder.values())
             return cols
         }
 
