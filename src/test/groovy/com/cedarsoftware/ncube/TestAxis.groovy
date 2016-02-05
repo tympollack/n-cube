@@ -1440,9 +1440,9 @@ class TestAxis
         assertEquals(sun.value, "aSun")
 
         List<Column> cols = dow.columnsWithoutDefault
-        assertEquals(cols.get(4).value, "aMon")
-        assertEquals(cols.get(5).value, "aSun")
-        assertEquals(cols.get(6).value, "aWed")
+        assertEquals(cols.get(0).value, "aMon")
+        assertEquals(cols.get(2).value, "aWed")
+        assertEquals(cols.get(6).value, "aSun")
 
         assertEquals(-1, cols.get(4).compareTo(new Column(null, dow.nextColId)))
     }

@@ -1236,12 +1236,12 @@ class TestNCube
         assertTrue(cols2.get(5).value.equals("Sun"))
 
         // Ensure no gaps left in display order after column is removed
-        assertTrue(cols2.get(0).displayOrder == 0)
-        assertTrue(cols2.get(1).displayOrder == 1)
-        assertTrue(cols2.get(2).displayOrder == 3)
-        assertTrue(cols2.get(3).displayOrder == 4)
-        assertTrue(cols2.get(4).displayOrder == 5)
-        assertTrue(cols2.get(5).displayOrder == 6)
+        assertTrue(cols2.get(0).displayOrder == 1)
+        assertTrue(cols2.get(1).displayOrder == 2)
+        assertTrue(cols2.get(2).displayOrder == 4)
+        assertTrue(cols2.get(3).displayOrder == 5)
+        assertTrue(cols2.get(4).displayOrder == 6)
+        assertTrue(cols2.get(5).displayOrder == 7)
 
         // Delete First
         ncube.deleteColumn("Days", "Mon")
@@ -1253,11 +1253,11 @@ class TestNCube
         assertTrue(cols2.get(4).value.equals("Sun"))
 
         // Ensure no gaps left in display order after column is removed
-        assertTrue(cols2.get(0).displayOrder == 1)
-        assertTrue(cols2.get(1).displayOrder == 3)
-        assertTrue(cols2.get(2).displayOrder == 4)
-        assertTrue(cols2.get(3).displayOrder == 5)
-        assertTrue(cols2.get(4).displayOrder == 6)
+        assertTrue(cols2.get(0).displayOrder == 2)
+        assertTrue(cols2.get(1).displayOrder == 4)
+        assertTrue(cols2.get(2).displayOrder == 5)
+        assertTrue(cols2.get(3).displayOrder == 6)
+        assertTrue(cols2.get(4).displayOrder == 7)
 
         // Delete Last
         ncube.deleteColumn("Days", "Sun")
@@ -1268,10 +1268,48 @@ class TestNCube
         assertTrue(cols2.get(3).value.equals("Sat"))
 
         // Ensure no gaps left in display order after column is removed
-        assertTrue(cols2.get(0).displayOrder == 1)
-        assertTrue(cols2.get(1).displayOrder == 3)
-        assertTrue(cols2.get(2).displayOrder == 4)
-        assertTrue(cols2.get(3).displayOrder == 5)
+        assertTrue(cols2.get(0).displayOrder == 2)
+        assertTrue(cols2.get(1).displayOrder == 4)
+        assertTrue(cols2.get(2).displayOrder == 5)
+        assertTrue(cols2.get(3).displayOrder == 6)
+    }
+
+    @Test
+    void testColumnOrder2()
+    {
+        Axis axis = NCubeBuilder.shortDaysOfWeekAxis
+        List<Column> cols = axis.columns
+
+        // Alphabetical
+        assertTrue(cols.get(0).value.equals("Mon"))
+        assertTrue(cols.get(1).value.equals("Tue"))
+        assertTrue(cols.get(2).value.equals("Wed"))
+        assertTrue(cols.get(3).value.equals("Thu"))
+        assertTrue(cols.get(4).value.equals("Fri"))
+        assertTrue(cols.get(5).value.equals("Sat"))
+        assertTrue(cols.get(6).value.equals("Sun"))
+
+        assertTrue(cols.get(0).displayOrder == 1)
+        assertTrue(cols.get(1).displayOrder == 2)
+        assertTrue(cols.get(2).displayOrder == 3)
+        assertTrue(cols.get(3).displayOrder == 4)
+        assertTrue(cols.get(4).displayOrder == 5)
+        assertTrue(cols.get(5).displayOrder == 6)
+        assertTrue(cols.get(6).displayOrder == 7)
+
+        axis.deleteColumn("Mon")
+        axis.deleteColumn("Tue")
+        axis.deleteColumn("Wed")
+        axis.deleteColumn("Thu")
+        cols = axis.columns
+        assertTrue(cols.get(0).displayOrder == 5)
+        assertTrue(cols.get(1).displayOrder == 6)
+        assertTrue(cols.get(2).displayOrder == 7)
+
+        axis.addColumn("Zee")
+        cols = axis.columns
+        assertTrue(cols.get(3).value.equals('Zee'))
+        assertTrue(cols.get(3).displayOrder == 8)
     }
 
     @Test

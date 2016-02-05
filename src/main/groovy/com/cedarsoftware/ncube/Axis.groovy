@@ -57,17 +57,11 @@ class Axis
     private final boolean isRef
 //    private InternalAxis axis = null
 
-    // used to get O(1) on SET axis for the discrete elements in the Set
-    final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
-
-    // used to get O(1) on Ranges for SET access
-    final transient List<RangeToColumn> rangeToCol = new ArrayList<>()
-
-    // used to get O(1) access to columns by ID
     protected final transient Map<Long, Column> idToCol = new HashMap<>()
-
-    // used to get O(1) access to columns by rule-name
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
+    private final transient SortedMap<Comparable, Column> discreteToCol = new TreeMap<>()
+    private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
+    private final transient List<RangeToColumn> rangeToCol = new ArrayList<>()
 
     /**
      * Implement to provide data for this Axis
@@ -146,27 +140,6 @@ class Axis
             columns.add(defaultCol)
             idToCol[defaultCol.id] = defaultCol
         }
-
-//        if (type == AxisType.DISCRETE)
-//        {
-//            axis = new DiscreteAxis()
-//        }
-//        else if (type == AxisType.RANGE)
-//        {
-//            axis = new RangeAxis()
-//        }
-//        else if (type == AxisType.SET)
-//        {
-//            axis = new SetAxis()
-//        }
-//        else if (type == AxisType.NEAREST)
-//        {
-//            axis = new NearestAxis()
-//        }
-//        else if (type == AxisType.RULE)
-//        {
-//            axis = new RuleAxis()
-//        }
     }
 
     /**
@@ -329,11 +302,16 @@ class Axis
 
     protected void reIndex()
     {
+        if (type == AxisType.DISCRETE)
+        {
+            return
+        }
         // TODO: Need to do per-index
         rangeToCol.clear()
         discreteToCol.clear()
         idToCol.clear()
         colNameToCol.clear()
+        displayOrder.clear()
         for (Column column : columns)
         {
             indexColumn(column)
@@ -351,7 +329,7 @@ class Axis
         {
             if (colNameToCol.containsKey(colName))
             {
-                throw new IllegalArgumentException("Column with name '" + colName + "' alread exists on axis: " + name)
+                throw new IllegalArgumentException("Column with name '" + colName + "' already exists on axis: " + name)
             }
             colNameToCol[colName] = column
         }
@@ -361,6 +339,7 @@ class Axis
             if (column.value != null)
             {
                 discreteToCol[standardizeColumnValue(column.value)] = column
+                displayOrder[column.displayOrder] = column
             }
         }
         else if (type == AxisType.SET)
@@ -476,12 +455,8 @@ class Axis
         if (type == AxisType.DISCRETE)
         {   // return 'view' of Columns that matches the desired order (sorted or display)
             List<Column> cols = getColumnsWithoutDefault()
-            if (preferredOrder == DISPLAY)
-            {
-                sortColumnsByDisplayOrder(cols)
-            }
             if (defaultCol != null)
-            {
+            {   // Add in optional Default Column
                 cols.add(defaultCol)
             }
             return cols
@@ -508,6 +483,7 @@ class Axis
         idToCol.clear()
         colNameToCol.clear()
         columns.clear()
+        displayOrder.clear()
     }
 
     protected List<Column> getColumnsInternal()
@@ -689,11 +665,12 @@ class Axis
                 columns.add(column)
             }
         }
-//        else if (type == AxisType.DISCRETE)
-//        {
-//            while (displayOrderToColumn.containsKey(dispOrder++))
-//            displayOrderToColumn.put(dispOrder, column)
-//        }
+        else if (type == AxisType.DISCRETE)
+        {
+            int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
+            column.setDisplayOrder(order)
+            displayOrder[order] = column
+        }
         else
         {
             int where = Collections.binarySearch(columns, column.getValue())
@@ -762,6 +739,7 @@ class Axis
             if (col.value != null)
             {
                 discreteToCol.remove(standardizeColumnValue(col.value))
+                displayOrder.remove(col.displayOrder)
             }
         }
         else if (type == AxisType.RANGE)
@@ -875,7 +853,7 @@ class Axis
         Set<Long> colsToDelete = new LongHashSet()
         Map<Long, Column> newColumnMap = new LinkedHashMap<>()
 
-        // Step 1. Map all columns coming in from "DTO" Axis by ID
+        // Step 1. Map all columns from passed in Collection by ID
         for (Column col : newCols)
         {
             Column newColumn = createColumnFromValue(col.getValue(), null)
@@ -920,13 +898,13 @@ class Axis
             addColumnInternal(column)
         }
 
-        Map<Long, Column> realColumnMap = new LinkedHashMap<>()
+        Map<Long, Column> realColumnMap = [:]
 
-        for (Column column : columns)
+        for (Column column : getColumns())
         {
             realColumnMap[column.id] = column
         }
-        int displayOrder = 0
+        int dispOrder = 0
 
         // Step 4. Add new columns (they exist in the passed in Axis, but not in this Axis) and
         // set display order to match the columns coming in from the DTO axis (argument).
@@ -948,10 +926,28 @@ class Axis
             {
                 throw new IllegalArgumentException("Columns to be added should have negative ID values.")
             }
-            realColumn.setDisplayOrder(displayOrder++)
+            realColumn.setDisplayOrder(dispOrder++)
         }
 
-        if (type == AxisType.RULE)
+        if (type == AxisType.DISCRETE)
+        {
+            clear()
+            for (Column col : realColumnMap.values())
+            {
+                idToCol[col.id] = col
+                displayOrder[col.displayOrder] = col
+                if (col.getValue() == null)
+                {
+                    continue
+                }
+                if (StringUtilities.hasContent(col.getColumnName()))
+                {
+                    colNameToCol[col.getColumnName()] = col
+                }
+                discreteToCol[col.getValue()] = col
+            }
+        }
+        else if (type == AxisType.RULE)
         {   // required because RULE columns are stored in execution order
             sortColumnsByDisplayOrder(columns)
         }
@@ -1407,7 +1403,7 @@ class Axis
             {
                 throw new IllegalArgumentException("Attempt to search non-Set axis to match a Set")
             }
-            RangeSet thatSet = (RangeSet) value
+            RangeSet thatSet = value as RangeSet
             for (Column column : columns)
             {
                 RangeSet thisSet = (RangeSet)column.getValue()
@@ -1621,7 +1617,14 @@ class Axis
         if (type == AxisType.DISCRETE)
         {
             List<Column> cols = new ArrayList<>(size())
-            cols.addAll(discreteToCol.values())
+            if (preferredOrder == SORTED)
+            {
+                cols.addAll(discreteToCol.values())
+            }
+            else
+            {
+                cols.addAll(displayOrder.values())
+            }
             return cols
         }
 
@@ -1697,60 +1700,4 @@ class Axis
         }
         return fireAll == axis.fireAll
     }
-
-//    interface InternalAxis
-//    {
-//        Column find(Comparable value)
-//    }
-//
-//    static class DiscreteAxis implements InternalAxis
-//    {
-//        // used to get O(1) on SET axis for the discrete elements in the Set
-//        final transient Map<Comparable, Column> displayOrderToColumn = new HashMap<>()
-//
-//        Column find(Comparable value)
-//        {
-//            return null
-//        }
-//    }
-//    static class RangeAxis implements InternalAxis
-//    {
-//        // used to get O(1) on SET axis for the discrete elements in the Set
-//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
-//
-//        Column find(Comparable value)
-//        {
-//            return null
-//        }
-//    }
-//    static class SetAxis implements InternalAxis
-//    {
-//        // used to get O(1) on SET axis for the discrete elements in the Set
-//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
-//
-//        Column find(Comparable value)
-//        {
-//            return null
-//        }
-//    }
-//    static class NearestAxis implements InternalAxis
-//    {
-//        // used to get O(1) on SET axis for the discrete elements in the Set
-//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
-//
-//        Column find(Comparable value)
-//        {
-//            return null
-//        }
-//    }
-//    static class RuleAxis implements InternalAxis
-//    {
-//        // used to get O(1) on SET axis for the discrete elements in the Set
-//        final transient Map<Comparable, Column> discreteToCol = new TreeMap<>()
-//
-//        Column find(Comparable value)
-//        {
-//            return null
-//        }
-//    }
 }
