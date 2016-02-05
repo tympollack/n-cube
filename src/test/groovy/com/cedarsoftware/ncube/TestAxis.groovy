@@ -565,9 +565,9 @@ class TestAxis
     @Test
     void testDeleteColumnFromRangeSetAxis()
     {
-        NCube ncube = NCubeManager.getNCubeFromResource 'testCube4.json'
-        ncube.deleteColumn 'code', 'b'
-        Axis axis = ncube.getAxis 'code'
+        NCube ncube = NCubeManager.getNCubeFromResource('testCube4.json')
+        ncube.deleteColumn('code', 'b')
+        Axis axis = ncube['code'] as Axis
         assert axis.id != 0
         assert axis.columns.size() == 2
         axis.deleteColumn('o')
@@ -972,9 +972,9 @@ class TestAxis
         rs.add 50
         axis.addColumn rs
         assert 2 == axis.columns.size()
-        assert 3 == axis.discreteToCol.size()
+        assert 3 == axis.valueToCol.size()
         axis.deleteColumn 30
-        assert 1 == axis.discreteToCol.size()
+        assert 1 == axis.valueToCol.size()
         assert 1 == axis.columns.size()
     }
 
