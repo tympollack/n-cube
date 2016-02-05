@@ -47,7 +47,6 @@ class Axis
     private String name
     private AxisType type
     private AxisValueType valueType
-    final List<Column> columns = new ArrayList<>()
     protected Map<String, Object> metaProps = null
     private Column defaultCol
     protected final long id
@@ -55,8 +54,8 @@ class Axis
     private int preferredOrder = SORTED
     private boolean fireAll = true
     private final boolean isRef
-//    private InternalAxis axis = null
 
+    private final List<Column> columns = new ArrayList<>()
     protected final transient Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Comparable, Column> discreteToCol = new TreeMap<>()
@@ -139,6 +138,11 @@ class Axis
             defaultCol.setDisplayOrder(Integer.MAX_VALUE)  // Always at the end
             columns.add(defaultCol)
             idToCol[defaultCol.id] = defaultCol
+        }
+
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        {
+            columns = null
         }
     }
 
@@ -302,7 +306,7 @@ class Axis
 
     protected void reIndex()
     {
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             return
         }
@@ -327,10 +331,6 @@ class Axis
         String colName = column.getColumnName()
         if (StringUtilities.hasContent(colName))
         {
-            if (colNameToCol.containsKey(colName))
-            {
-                throw new IllegalArgumentException("Column with name '" + colName + "' already exists on axis: " + name)
-            }
             colNameToCol[colName] = column
         }
 
@@ -452,7 +452,7 @@ class Axis
      */
     List<Column> getColumns()
     {
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {   // return 'view' of Columns that matches the desired order (sorted or display)
             List<Column> cols = getColumnsWithoutDefault()
             if (defaultCol != null)
@@ -482,21 +482,16 @@ class Axis
         discreteToCol.clear()
         idToCol.clear()
         colNameToCol.clear()
-        columns.clear()
+        columns?.clear()
         displayOrder.clear()
     }
 
     protected List<Column> getColumnsInternal()
     {
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
-            List<Column> cols = new ArrayList<>(size())
-            cols.addAll(discreteToCol.values())
-            if (defaultCol != null)
-            {
-                cols.add(defaultCol)
-            }
-            return cols
+            // TODO: Can I return them directly from the .values() of the respective Maps?
+            return getColumns()
         }
 
         return columns
@@ -665,7 +660,7 @@ class Axis
                 columns.add(column)
             }
         }
-        else if (type == AxisType.DISCRETE)
+        else if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
             column.setDisplayOrder(order)
@@ -716,8 +711,10 @@ class Axis
             return null
         }
 
-        // TODO: skip if DISCRETE
-        columns.remove(col)
+        if (type != AxisType.DISCRETE && type != AxisType.NEAREST)
+        {
+            columns.remove(col)
+        }
         if (col.isDefault())
         {
             defaultCol = null
@@ -734,7 +731,7 @@ class Axis
         idToCol.remove(col.id)
         colNameToCol.remove(col.getColumnName())
 
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             if (col.value != null)
             {
@@ -773,10 +770,6 @@ class Axis
                     }
                 }
             }
-        }
-        else if (type == AxisType.NEAREST)
-        {
-
         }
         else if (type == AxisType.RULE)
         {
@@ -822,13 +815,15 @@ class Axis
         // find where it should go (updating Fune to June, for example (fixing a misspelling), will
         // result in the column being sorted to a different location (while maintaining its display
         // order, because displayOrder is stored on the column).
-        int where = Collections.binarySearch(columns, newCol.getValue())
-        if (where < 0)
+        if (type != AxisType.DISCRETE && type != AxisType.NEAREST)
         {
-            where = Math.abs(where + 1)
+            int where = Collections.binarySearch(columns, newCol.getValue())
+            if (where < 0)
+            {
+                where = Math.abs(where + 1)
+            }
+            columns.add(where, newCol)
         }
-        // TODO: skip if discrete
-        columns.add(where, newCol)
         indexColumn(newCol)
     }
 
@@ -929,7 +924,7 @@ class Axis
             realColumn.setDisplayOrder(dispOrder++)
         }
 
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             clear()
             for (Column col : realColumnMap.values())
@@ -953,7 +948,7 @@ class Axis
         }
 
         // Put default column back if it was already there.
-        if (hasDefaultColumn())
+        if (hasDefaultColumn() && (type != AxisType.DISCRETE && type != AxisType.NEAREST))
         {
             columns.add(defaultCol)
         }
@@ -1210,7 +1205,7 @@ class Axis
             value = promoteValue(valueType, value)
             if (!getColumnsWithoutDefault().isEmpty())
             {
-                Column col = columns[0]
+                Column col = idToCol.values()[0]
                 if (value.getClass() != col.getValue().getClass())
                 {
                     throw new IllegalArgumentException("Value '" + value.getClass().getName() + "' cannot be added to axis '" + name + "' where the values are of type: " + col.getValue().getClass().getName())
@@ -1434,6 +1429,11 @@ class Axis
         else if (type == AxisType.NEAREST)
         {   // The NEAREST axis type must be searched linearly O(n)
             pos = findNearest(promotedValue)
+            if (pos >= 0)
+            {
+                return discreteToCol.values()[pos]
+            }
+            return defaultCol
         }
         else if (type == AxisType.RULE)
         {
@@ -1516,11 +1516,7 @@ class Axis
             {   // key not used as promoteValue, already of type Comparable, is the exact same thing, and already final
                 Column column = (Column) o1
 
-                if (type == AxisType.DISCRETE)
-                {
-                    return column.compareTo(promotedValue)
-                }
-                else if (type == AxisType.RANGE)
+                if (type == AxisType.RANGE)
                 {
                     Range range = (Range)column.getValue()
                     return -1 * range.isWithin(promotedValue)
@@ -1614,7 +1610,7 @@ class Axis
      */
     List<Column> getColumnsWithoutDefault()
     {
-        if (type == AxisType.DISCRETE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)
