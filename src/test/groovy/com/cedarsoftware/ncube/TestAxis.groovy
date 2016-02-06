@@ -544,19 +544,6 @@ class TestAxis
             assert expected.message.toLowerCase().contains('unsupported value type')
         }
 
-        try
-        {
-            Range range = new Range(0, 10)
-            age.addColumn range
-            fail 'should throw exception'
-        }
-        catch (IllegalArgumentException expected)
-        {
-            assert expected.message.contains('only')
-            assert expected.message.contains('add')
-            assert expected.message.contains('RangeSet')
-        }
-
         RangeSet a = new RangeSet()
         RangeSet b = new RangeSet()
         assert a.compareTo(b) == 0
@@ -954,9 +941,9 @@ class TestAxis
         rs.add(new Range(50, 60))
         axis.addColumn(rs)
         assert 2 == axis.columns.size()
-        assert 3 == axis.rangeToCol.size()
+//        assert 3 == axis.rangeToCol.size()
         axis.deleteColumn(15)
-        assert 1 == axis.rangeToCol.size()
+//        assert 1 == axis.rangeToCol.size()
         assert 1 == axis.columns.size()
     }
 
@@ -1844,15 +1831,140 @@ class TestAxis
     }
 
     @Test
-    void testLargeNumberOfColumns()
+    void testRangeOverlap2()
+    {
+        Axis axis = new Axis("numbers", AxisType.RANGE, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(new Range(10, 20))
+        axis.addColumn(new Range(30, 40))
+        axis.addColumn(new Range(50, 60))
+        axis.addColumn(new Range(70, 80))
+        axis.addColumn(new Range(90, 100))
+
+        try
+        {
+            axis.addColumn(new Range(0, 11))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(45, 65))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(41, 51))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(0, 100))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(99, 101))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        axis.addColumn(new Range(0, 10))
+        axis.addColumn(new Range(41, 50))
+        axis.addColumn(new Range(100, 200))
+    }
+
+    @Test
+    void testRangeSetOverlap3()
+    {
+        Axis axis = new Axis("numbers", AxisType.SET, AxisValueType.LONG, true, Axis.DISPLAY)
+        RangeSet one = new RangeSet(10)
+        one.add(new Range(13, 20))
+
+        RangeSet two = new RangeSet(30)
+        two.add(new Range(33, 40))
+
+        RangeSet three = new RangeSet(50)
+        three.add(new Range(53, 60))
+
+        RangeSet four = new RangeSet(70)
+        four.add(new Range(73, 80))
+
+        RangeSet five = new RangeSet(90)
+        five.add(new Range(93, 100))
+
+        axis.addColumn(one)
+        axis.addColumn(two)
+        axis.addColumn(three)
+        axis.addColumn(four)
+        axis.addColumn(five)
+        try
+        {
+            axis.addColumn(new Range(0, 11))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(45, 65))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(41, 51))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(0, 100))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(99, 101))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        axis.addColumn(new Range(0, 10))
+        axis.addColumn(new Range(41, 50))
+        axis.addColumn(new Range(100, 200))
+    }
+
+    @Test
+    void testLargeNumberOfRangeSetColumns()
     {
         NCube ncube = new NCube("BigDaddy")
         Axis axis = new Axis("numbers", AxisType.SET, AxisValueType.LONG, true, Axis.DISPLAY)
         ncube.addAxis(axis)
         def coord = [:]
 
+        int largeNumber = 100000
         long start = System.nanoTime()
-        for (int i = 0; i < 10000; i += 10)
+        for (int i = 0; i < largeNumber; i += 10)
         {
             RangeSet set = new RangeSet(i)
             Range range = new Range(i + 1, i + 4)
@@ -1865,10 +1977,10 @@ class TestAxis
         long stop = System.nanoTime()
 
         double diff = (stop - start) / 1000.0  // usec
-        println("build 10,000 columns = " + (diff / 1000.0) + " ms")
+        println("build " + (largeNumber / 10) + " columns = " + (diff / 1000.0) + " ms")
 
         start = System.nanoTime()
-        for (int i = 0; i < 10000; i += 10)
+        for (int i = 0; i < largeNumber; i += 10)
         {
             coord.numbers = i
             Integer ans = (Integer) ncube.getCell(coord)
@@ -1877,7 +1989,7 @@ class TestAxis
         stop = System.nanoTime()
 
         diff = (stop - start) / 1000.0  // usec
-        println("lookup 10,000 times large number of columns = " + (diff / 1000.0) + " ms")
+        println("lookup " + (largeNumber / 10) + " times large number of columns = " + (diff / 1000.0) + " ms")
     }
 
     @Test
@@ -1904,7 +2016,7 @@ class TestAxis
         long stop = System.nanoTime()
 
         double diff = (stop - start) / 1000.0  // usec
-        println("build 100,000 columns = " + (diff / 1000.0) + " ms")
+        println("build " + largeNumber + " columns = " + (diff / 1000.0) + " ms")
 
         start = System.nanoTime()
         for (int i = 0; i < largeNumber; i++)
@@ -1917,7 +2029,7 @@ class TestAxis
         stop = System.nanoTime()
 
         diff = (stop - start) / 1000.0  // usec
-        println("lookup 100,000 times large number of columns = " + (diff / 1000.0) + " ms")
+        println("lookup " + largeNumber + " times large number of columns = " + (diff / 1000.0) + " ms")
     }
 
     @Test

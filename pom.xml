@@ -50,6 +50,7 @@
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.5</version.groovy>
         <version.jgit>3.6.1.201501031845-r</version.jgit>
+        <version.guava>19.0</version.guava>
         <version.commons.math>3.5</version.commons.math>
         <version.encog.core>3.3.0</version.encog.core>
         <version.concurrent.linked.hashmap.lru>1.4.2</version.concurrent.linked.hashmap.lru>
@@ -261,6 +262,12 @@
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
             <artifactId>concurrentlinkedhashmap-lru</artifactId>
             <version>${version.concurrent.linked.hashmap.lru}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${version.guava}</version>
         </dependency>
 
         <dependency>

@@ -10,6 +10,8 @@ import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonReader
+import com.google.common.collect.RangeMap
+import com.google.common.collect.TreeRangeMap
 import groovy.transform.CompileStatic
 
 import java.util.concurrent.atomic.AtomicLong
@@ -57,9 +59,15 @@ class Axis
 
     protected final transient Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
-    protected final transient SortedMap<Comparable, Column> valueToCol = new TreeMap<>()
+    protected final transient SortedMap<Comparable, Column> valueToCol
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    protected final transient List<RangeToColumn> rangeToCol = new ArrayList<>()
+    protected final transient RangeMap<Comparable, Column> rangeToCol
+
+    // TODO: How to maintain Set order? (Store all in a Map, only use the valueToCol for getting Discrete keys, but .values() for everything?
+    // TODO: Write template test (have template reference code that is based on URL)
+    // TODO: Set up access to dynamis.jar and see if you can make that work by passing on UrlClassLoader.
+    // TODO: Debug the dead-lock!
+    // TODO: 'at' instead of 'go'
 
     /**
      * Implement to provide data for this Axis
@@ -138,13 +146,14 @@ class Axis
             idToCol[defaultCol.id] = defaultCol
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE || type == AxisType.SET)
         {
-            rangeToCol = null
+            valueToCol = new TreeMap<>()
         }
-        else if (type == AxisType.RANGE)
+
+        if (type == AxisType.RANGE || type == AxisType.SET)
         {
-            valueToCol = null
+            rangeToCol = TreeRangeMap.create()
         }
     }
 
@@ -181,6 +190,15 @@ class Axis
         if (preferredOrder != DISPLAY && preferredOrder != SORTED)
         {
             throw new IllegalStateException('preferred order not set, axis: ' + name)
+        }
+
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE || type == AxisType.SET)
+        {
+            valueToCol = new TreeMap<>()
+        }
+        if (type == AxisType.RANGE || type == AxisType.SET)
+        {
+            rangeToCol = TreeRangeMap.create()
         }
     }
 
@@ -372,13 +390,8 @@ class Axis
 
     private void insertRange(Range range, Column column)
     {
-        RangeToColumn rc = new RangeToColumn(range, column)
-        int where = Collections.binarySearch(rangeToCol, rc)
-        if (where < 0)
-        {
-            where = Math.abs(where + 1)
-        }
-        rangeToCol.add(where, rc)
+        com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
+        rangeToCol.put(range1, column)
     }
 
     /**
@@ -402,7 +415,7 @@ class Axis
         s.append(", ")
         s.append(valueType)
         s.append(hasDefaultColumn() ? ", default-column" : ", no-default-column")
-        s.append(Axis.SORTED == preferredOrder ? ", sorted" : ", unsorted")
+        s.append(SORTED == preferredOrder ? ", sorted" : ", unsorted")
         s.append(']')
         return s.toString()
     }
@@ -447,26 +460,6 @@ class Axis
     AxisValueType getValueType()
     {
         return valueType
-    }
-
-    /**
-     * @return List<Column> representing all of the Columns on this list.  This is a copy, so operations
-     * on the List will not affect the Axis columns.  However, the Column instances inside the List are
-     * not 'deep copied' so no modifications to them should be made, as it would violate the internal
-     * Map structures maintaining the column indexing. The Columms are in SORTED or DISPLAY order
-     * depending on the 'preferredOrder' setting. If you want to obtain the columns more quickly,
-     * you can use getColumnsWithoutDefault() - they will always be in sorted order and will not
-     * contain the default.
-     */
-    List<Column> getColumns()
-    {
-        // return 'view' of Columns that matches the desired order (sorted or display)
-        List<Column> cols = getColumnsWithoutDefault()
-        if (defaultCol != null)
-        {   // Add in optional Default Column
-            cols.add(defaultCol)
-        }
-        return cols
     }
 
     protected void clear()
@@ -590,16 +583,41 @@ class Axis
         }
     }
 
+    /**
+     * Add a new Column to this axis.  It will be added at the end in terms of display order.  If the
+     * axis is SORTED, it will be returned in sorted order if getColumns() or getColumnsWithoutDefault()
+     * are called.
+     * @param value Comparable value to add to this Axis.
+     * @return Column instanced created from the passed in value.
+     */
     Column addColumn(Comparable value)
     {
         return addColumn(value, null)
     }
 
+    /**
+     * Add a new Column to this axis.  It will be added at the end in terms of display order.  If the
+     * axis is SORTED, it will be returned in sorted order if getColumns() or getColumnsWithoutDefault()
+     * are called.
+     * @param value Comparable value to add to this Axis.
+     * @param colName The name of the column (useful for Rule axes.  Any column can be given a name).
+     * @return Column instanced created from the passed in value.
+     */
     Column addColumn(Comparable value, String colName)
     {
         return addColumn(value, colName, null)
     }
 
+    /**
+     * Add a new Column to this axis.  It will be added at the end in terms of display order.  If the
+     * axis is SORTED, it will be returned in sorted order if getColumns() or getColumnsWithoutDefault()
+     * are called.
+     * @param value Comparable value to add to this Axis.
+     * @param colName The name of the column (useful for Rule axes.  Any column can be given a name).
+     * @param suggestedId Long use the suggested ID if possible.  This allows an axis to be recreated
+     * from persistent storage and have the same IDs.
+     * @return Column instanced created from the passed in value.
+     */
     Column addColumn(Comparable value, String colName, Long suggestedId)
     {
         final Column column = createColumnFromValue(value, suggestedId)
@@ -709,11 +727,12 @@ class Axis
 
             if (rangeToCol != null)
             {
-                Iterator<RangeToColumn> i = rangeToCol.iterator()
+                Map ranges = rangeToCol.asMapOfRanges()
+                Iterator<Column> i = ranges.values().iterator()
                 while (i.hasNext())
                 {
-                    RangeToColumn rangeToColumn = i.next()
-                    if (rangeToColumn.column.equals(col))
+                    Column column = i.next()
+                    if (column.equals(col))
                     {   // Multiple ranges may have pointed to the passed in column (same as above concern)
                         i.remove()
                     }
@@ -930,7 +949,7 @@ class Axis
         }
     }
 
-    private GroovyExpression createExpressionFromValue(String value)
+    private static GroovyExpression createExpressionFromValue(String value)
     {
         value = value.trim()
         boolean isUrl = false
@@ -971,8 +990,8 @@ class Axis
     {
         value = value.trim()
         if (value.startsWith("[") && value.endsWith("]"))
-        {   // Remove surrounding brackets
-            value = value.substring(1, value.length() - 1)
+        {   // Remove surrounding brackets (1st and last characters)
+            value = value[1..-2]
         }
         Matcher matcher = Regexes.rangePattern.matcher(value)
         if (matcher.matches())
@@ -991,20 +1010,29 @@ class Axis
     {
         if (value.startsWith("\"") && value.endsWith("\""))
         {
-            return value.substring(1, value.length() - 1)
+            return value[1..-2]
         }
         if (value.startsWith("'") && value.endsWith("'"))
         {
-            return value.substring(1, value.length() - 1)
+            return value[1..-2]
         }
         return value.trim()
     }
 
+    /**
+     * @return SORTED (0) or DISPLAY (1) which indcates whether the getColumns() and
+     * getColumnsWithoutDefault() methods will return the columns in sorted order
+     * or display order (user order).
+     */
     int getColumnOrder()
     {
         return preferredOrder
     }
 
+    /**
+     * Set the ordering for the axis.
+     * @param order int SORTED (0) or DISPLAY (1).
+     */
     void setColumnOrder(int order)
     {
         preferredOrder = order
@@ -1054,9 +1082,13 @@ class Axis
         }
         else if (type == AxisType.SET)
         {
-            if (!(value instanceof RangeSet))
+            if (value instanceof Range)
             {
-                throw new IllegalArgumentException("Must only add RangeSet values to " + type + " axis '" + name + "' - attempted to add: " + value.getClass().getName())
+                value = new RangeSet(value)
+            }
+            else if (!(value instanceof RangeSet))
+            {
+                value = new RangeSet(promoteValue(valueType, value))
             }
             RangeSet set = new RangeSet()
             Iterator<Comparable> i = ((RangeSet)value).iterator()
@@ -1096,7 +1128,7 @@ class Axis
 
     /**
      * Promote passed in range's low and high values to the largest
-     * data type of their 'kinds' (e.g., byte to long).
+     * data type of their 'kinds' (e.g., byte to long, float to double).
      * @param range Range to be promoted
      * @return Range with the low and high values promoted and in proper order (low < high)
      */
@@ -1104,23 +1136,19 @@ class Axis
     {
         final Comparable low = promoteValue(valueType, range.low)
         final Comparable high = promoteValue(valueType, range.high)
-        ensureOrder(range, low, high)
-        return range
-    }
-
-    private static void ensureOrder(Range range, final Comparable lo, final Comparable hi)
-    {
-        if (lo.compareTo(hi) > 0)
+        if (low.compareTo(high) > 0)
         {
-            range.low = hi
-            range.high = lo
+            range.low = high
+            range.high = low
         }
         else
         {
-            range.low = lo
-            range.high = hi
+            range.low = low
+            range.high = high
         }
+        return range
     }
+
 
     /**
      * Convert passed in value to a similar value of the highest type.  If the
@@ -1179,9 +1207,20 @@ class Axis
         }
     }
 
+    /**
+     * @return boolean true if this Axis has a default column, false otherwise.
+     */
     boolean hasDefaultColumn()
     {
         return defaultCol != null
+    }
+
+    /**
+     * @return Column (the default Column instance whose column.value is null) or null if there is no default column.
+     */
+    Column getDefaultColumn()
+    {
+        return defaultCol
     }
 
     /**
@@ -1199,11 +1238,6 @@ class Axis
         {
             return false
         }
-    }
-
-    Column getDefaultColumn()
-    {
-        return defaultCol
     }
 
     protected List<Column> getRuleColumnsStartingAt(String ruleName)
@@ -1236,7 +1270,7 @@ class Axis
     }
 
     /**
-     * Locate the column (AvisValue) along an axis.
+     * Locate the column (value) along an axis.
      * @param value Comparable - A value that can be checked against the axis
      * @return Column that 'matches' the passed in value, or null if no column
      * found.  'Matches' because matches depends on AxisType.
@@ -1348,40 +1382,8 @@ class Axis
             return valueToCol[promotedValue]
         }
 
-        int pos = binarySearchRanges(promotedValue)
-        if (pos >= 0)
-        {
-            return rangeToCol[pos].column
-        }
-
-        return defaultCol
-    }
-
-    private int binarySearchRanges(final Comparable promotedValue)
-    {
-        return Collections.binarySearch(rangeToCol, promotedValue, new Comparator()
-        {
-            int compare(Object r1, Object key)
-            {   // key not used as promoteValue, already of type Comparable, is the exact same thing, and already final
-                RangeToColumn rc = (RangeToColumn) r1
-                Range range = rc.range
-                return -1 * range.isWithin(promotedValue)
-            }
-        })
-    }
-
-    private int binarySearchAxis(final Comparable promotedValue)
-    {
-        List<Column> cols = getColumnsWithoutDefault()
-        return Collections.binarySearch(cols, promotedValue, new Comparator()
-        {
-            int compare(Object o1, Object key)
-            {   // key not used as promoteValue, already of type Comparable, is the exact same thing, and already final
-                Column column = (Column) o1
-                Range range = (Range)column.getValue()
-                return -1 * range.isWithin(promotedValue)
-            }
-        })
+        Column column = rangeToCol.get(promotedValue)
+        return column == null ? defaultCol : column
     }
 
     private int findNearest(final Comparable promotedValue)
@@ -1410,32 +1412,11 @@ class Axis
      * @param value Range (value) that is intended to be a new low range limit.
      * @return true if the Range overlaps this axis, false otherwise.
      */
-    private boolean doesOverlap(Range value)
+    private boolean doesOverlap(Range range)
     {
-        // Start just before where this range would be inserted.
-        int where = binarySearchAxis(value.low)
-        if (where < 0)
-        {
-            where = Math.abs(where + 1)
-        }
-        where = Math.max(0, where - 1)
-        int size = getColumnsWithoutDefault().size()
-
-        for (int i = where; i < size; i++)
-        {
-            Column column = getColumnsWithoutDefault()[i]
-            Range range = (Range) column.getValue()
-            if (value.overlap(range))
-            {
-                return true
-            }
-
-            if (value.low.compareTo(range.low) <= 0)
-            {   // No need to continue, once the passed in low is less or equals to the low of the next column
-                break
-            }
-        }
-        return false
+        com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
+        RangeMap result = rangeToCol.subRangeMap(range1)
+        return result.asMapOfRanges().size() > 0
     }
 
     /**
@@ -1455,6 +1436,26 @@ class Axis
             }
         }
         return false
+    }
+
+    /**
+     * @return List<Column> representing all of the Columns on this list.  This is a copy, so operations
+     * on the List will not affect the Axis columns.  However, the Column instances inside the List are
+     * not 'deep copied' so no modifications to them should not be made, as it would violate the internal
+     * Map structures maintaining the column indexing. The Columms are in SORTED or DISPLAY order
+     * depending on the 'preferredOrder' setting. If you want to obtain the columns more quickly,
+     * you can use getColumnsWithoutDefault() - they will always be in sorted order and will not
+     * contain the default.
+     */
+    List<Column> getColumns()
+    {
+        // return 'view' of Columns that matches the desired order (sorted or display)
+        List<Column> cols = getColumnsWithoutDefault()
+        if (defaultCol != null)
+        {   // Add in optional Default Column
+            cols.add(defaultCol)
+        }
+        return cols
     }
 
     /**
@@ -1486,19 +1487,24 @@ class Axis
         }
         else if (type == AxisType.RANGE)
         {
-            Set<Column> rangeCols = new LinkedHashSet<>()
-            for (RangeToColumn rangeToColumn : rangeToCol)
-            {
-                rangeCols.add(rangeToColumn.column)
-            }
-            List<Column> cols = new ArrayList<>(rangeCols.size())
-            cols.addAll(rangeCols)
+            List<Column> cols = new ArrayList<>(size())
+            cols.addAll(rangeToCol.asMapOfRanges().values())
             return cols
         }
         else if (type == AxisType.SET)
         {
-            List<Column> cols = new ArrayList<>()
-            cols.addAll(displayOrder.values())
+            List<Column> cols = new ArrayList<>(size())
+            if (preferredOrder == SORTED)
+            {
+                Set<Column> sortedSet = new TreeSet<>()
+                sortedSet.addAll(valueToCol.values())
+                sortedSet.addAll(rangeToCol.asMapOfRanges().values())
+                cols.addAll(sortedSet)
+            }
+            else
+            {
+                cols.addAll(displayOrder.values())
+            }
             return cols
         }
         else
@@ -1507,23 +1513,10 @@ class Axis
         }
     }
 
-    private static final class RangeToColumn implements Comparable<RangeToColumn>
-    {
-        protected final Range range
-        protected final Column column
-
-        protected RangeToColumn(Range range, Column column)
-        {
-            this.range = range
-            this.column = column
-        }
-
-        int compareTo(RangeToColumn rc)
-        {
-            return range.compareTo(rc.range)
-        }
-    }
-
+    /**
+     * @return true if all the properties on the passed in object are the same as this Axis.  If the passed in
+     * object is not an Axis, false is returned.
+     */
     boolean areAxisPropsEqual(Object o)
     {
         if (this == o)
