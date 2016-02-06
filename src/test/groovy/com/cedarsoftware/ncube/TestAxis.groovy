@@ -941,9 +941,9 @@ class TestAxis
         rs.add(new Range(50, 60))
         axis.addColumn(rs)
         assert 2 == axis.columns.size()
-//        assert 3 == axis.rangeToCol.size()
+        assert 3 == axis.rangeToCol.asMapOfRanges().size()
         axis.deleteColumn(15)
-//        assert 1 == axis.rangeToCol.size()
+        assert 1 == axis.rangeToCol.asMapOfRanges().size()
         assert 1 == axis.columns.size()
     }
 
@@ -959,9 +959,7 @@ class TestAxis
         rs.add 50
         axis.addColumn rs
         assert 2 == axis.columns.size()
-        assert 3 == axis.valueToCol.size()
         axis.deleteColumn 30
-        assert 1 == axis.valueToCol.size()
         assert 1 == axis.columns.size()
     }
 
@@ -1962,7 +1960,7 @@ class TestAxis
         ncube.addAxis(axis)
         def coord = [:]
 
-        int largeNumber = 100000
+        int largeNumber = 1000000
         long start = System.nanoTime()
         for (int i = 0; i < largeNumber; i += 10)
         {
@@ -1977,7 +1975,7 @@ class TestAxis
         long stop = System.nanoTime()
 
         double diff = (stop - start) / 1000.0  // usec
-        println("build " + (largeNumber / 10) + " columns = " + (diff / 1000.0) + " ms")
+        println("build " + (largeNumber / 10) + " SET columns = " + (diff / 1000.0) + " ms")
 
         start = System.nanoTime()
         for (int i = 0; i < largeNumber; i += 10)
@@ -1989,7 +1987,7 @@ class TestAxis
         stop = System.nanoTime()
 
         diff = (stop - start) / 1000.0  // usec
-        println("lookup " + (largeNumber / 10) + " times large number of columns = " + (diff / 1000.0) + " ms")
+        println("lookup " + (largeNumber / 10) + " times large number of SET columns = " + (diff / 1000.0) + " ms")
     }
 
     @Test
@@ -2016,7 +2014,7 @@ class TestAxis
         long stop = System.nanoTime()
 
         double diff = (stop - start) / 1000.0  // usec
-        println("build " + largeNumber + " columns = " + (diff / 1000.0) + " ms")
+        println("build " + largeNumber + " DISCRETE columns = " + (diff / 1000.0) + " ms")
 
         start = System.nanoTime()
         for (int i = 0; i < largeNumber; i++)
@@ -2029,7 +2027,7 @@ class TestAxis
         stop = System.nanoTime()
 
         diff = (stop - start) / 1000.0  // usec
-        println("lookup " + largeNumber + " times large number of columns = " + (diff / 1000.0) + " ms")
+        println("lookup " + largeNumber + " times large number of DISCRETE columns = " + (diff / 1000.0) + " ms")
     }
 
     @Test

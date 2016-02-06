@@ -57,13 +57,12 @@ class Axis
     private boolean fireAll = true
     private final boolean isRef
 
-    protected final transient Map<Long, Column> idToCol = new HashMap<>()
+    protected final Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
-    protected final transient SortedMap<Comparable, Column> valueToCol
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
+    protected final transient SortedMap<Comparable, Column> valueToCol
     protected final transient RangeMap<Comparable, Column> rangeToCol
 
-    // TODO: How to maintain Set order? (Store all in a Map, only use the valueToCol for getting Discrete keys, but .values() for everything?
     // TODO: Write template test (have template reference code that is based on URL)
     // TODO: Set up access to dynamis.jar and see if you can make that work by passing on UrlClassLoader.
     // TODO: Debug the dead-lock!
@@ -146,7 +145,7 @@ class Axis
             idToCol[defaultCol.id] = defaultCol
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE || type == AxisType.SET)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             valueToCol = new TreeMap<>()
         }
@@ -192,7 +191,7 @@ class Axis
             throw new IllegalStateException('preferred order not set, axis: ' + name)
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE || type == AxisType.SET)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             valueToCol = new TreeMap<>()
         }
@@ -382,7 +381,8 @@ class Axis
                 }
                 else
                 {
-                    valueToCol[elem] = column
+                    com.google.common.collect.Range range1 = com.google.common.collect.Range.closed(elem, elem)
+                    rangeToCol.put(range1, column)
                 }
             }
         }
@@ -697,45 +697,26 @@ class Axis
         // Remove from col id to column map
         idToCol.remove(col.id)
         colNameToCol.remove(col.getColumnName())
-        if (col.value != null)
+        displayOrder.remove(col.displayOrder)
+        if (col.value == null)
         {
-            displayOrder.remove(col.displayOrder)
+            return
         }
 
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
-            if (col.value != null)
-            {
-                valueToCol.remove(standardizeColumnValue(col.value))
-            }
+            valueToCol.remove(standardizeColumnValue(col.value))
         }
         else if (type == AxisType.SET || type == AxisType.RANGE)
         {
-            if (valueToCol != null)
+            Map ranges = rangeToCol.asMapOfRanges()
+            Iterator<Column> i = ranges.values().iterator()
+            while (i.hasNext())
             {
-                Iterator<Column> j = valueToCol.values().iterator()
-                while (j.hasNext())
-                {
-                    Column column = j.next()
-                    if (col.equals(column))
-                    {   // Multiple discrete values may have pointed to the passed in column so we must
-                        // remove all.  Example: 7, 8, [10-20], 23 (7, 8, 23 all point to same column)
-                        j.remove()
-                    }
-                }
-            }
-
-            if (rangeToCol != null)
-            {
-                Map ranges = rangeToCol.asMapOfRanges()
-                Iterator<Column> i = ranges.values().iterator()
-                while (i.hasNext())
-                {
-                    Column column = i.next()
-                    if (column.equals(col))
-                    {   // Multiple ranges may have pointed to the passed in column (same as above concern)
-                        i.remove()
-                    }
+                Column column = i.next()
+                if (column.equals(col))
+                {   // Multiple ranges may have pointed to the passed in column (same as above concern)
+                    i.remove()
                 }
             }
         }
@@ -777,10 +758,10 @@ class Axis
     }
 
     /**
-     * Update columns on this Axis, from the passed in Axis.  Columns that exist on both axes,
-     * will have their values updated.  Columns that exist on this axis, but not exist in the
-     * 'newCols' will be deleted (and returned as a Set of deleted Columns).  Columns that
-     * exist in newCols but not on this are new columns.
+     * Update (merge)} columns on this Axis from the passed in Collection.  Columns that exist on both axes,
+     * will have their values updated.  Columns that exist on this axis, but not exist in the 'newCols'
+     * will be deleted (and returned as a Set of deleted Columns).  Columns that exist in newCols but not
+     * on this are new columns.
      *
      * NOTE: The columns field within the newCols axis are NOT in sorted order as they normally are
      * within the Axis class.  Instead, they are in display order (this order is typically set forth by a UI).
@@ -1377,11 +1358,6 @@ class Axis
 
     private Column findOnSetAxis(final Comparable promotedValue)
     {
-        if (valueToCol?.containsKey(promotedValue))
-        {
-            return valueToCol[promotedValue]
-        }
-
         Column column = rangeToCol.get(promotedValue)
         return column == null ? defaultCol : column
     }
@@ -1415,8 +1391,8 @@ class Axis
     private boolean doesOverlap(Range range)
     {
         com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
-        RangeMap result = rangeToCol.subRangeMap(range1)
-        return result.asMapOfRanges().size() > 0
+        RangeMap ranges = rangeToCol.subRangeMap(range1)
+        return ranges.asMapOfRanges().size() > 0
     }
 
     /**
@@ -1425,14 +1401,29 @@ class Axis
      * @param value RangeSet (value) to be checked
      * @return true if the RangeSet overlaps this axis, false otherwise.
      */
-    private boolean doesOverlap(RangeSet value)
+    private boolean doesOverlap(RangeSet set)
     {
-        for (Column column : getColumnsWithoutDefault())
+        Iterator<Comparable> i = set.iterator()
+        while (i.hasNext())
         {
-            RangeSet set = (RangeSet) column.getValue()
-            if (value.overlap(set))
+            Comparable item = i.next()
+            if (item instanceof Range)
             {
-                return true
+                Range range = (Range)item
+                com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
+                RangeMap ranges = rangeToCol.subRangeMap(range1)
+                if (ranges.asMapOfRanges().size() > 0)
+                {
+                    return true
+                }
+            }
+            else
+            {
+                Column column = rangeToCol.get(item)
+                if (column != null)
+                {
+                    return true
+                }
             }
         }
         return false
@@ -1497,7 +1488,6 @@ class Axis
             if (preferredOrder == SORTED)
             {
                 Set<Column> sortedSet = new TreeSet<>()
-                sortedSet.addAll(valueToCol.values())
                 sortedSet.addAll(rangeToCol.asMapOfRanges().values())
                 cols.addAll(sortedSet)
             }

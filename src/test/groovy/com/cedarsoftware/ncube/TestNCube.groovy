@@ -2506,12 +2506,12 @@ class TestNCube
         coord.put("age", 25)
         long start = System.currentTimeMillis()
         Object o = null
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < 100000; i++)
         {
             o = ncube.getCell(coord, output)
         }
         long stop = System.currentTimeMillis()
-        println("execute GroovyMethod 10,000 times = " + (stop - start))
+        println("execute GroovyMethod 100,000 times = " + (stop - start))
         assertEquals(o, 500)
     }
 
@@ -2548,13 +2548,13 @@ class TestNCube
         coord.put("method", "doIt")
         long start = System.currentTimeMillis()
         Object o = null
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 100000; i++)
         {
             o = ncube.getCell(coord, output)
             assertEquals(o, -500)
         }
         long stop = System.currentTimeMillis()
-        println("execute GroovyMethod 1000 times = " + (stop - start))
+        println("execute GroovyMethod 100,000 times = " + (stop - start))
         assertEquals(o, -500)
     }
 
@@ -2618,7 +2618,7 @@ class TestNCube
         coord.age = 25
         coord.method = "oldify"
         ncube.setCell(new GroovyMethod(
-                "import ncube.grv.method.NCubeGroovyController; " +
+                "import ncube.grv.method.NCubeGroovyController;" +
                         "class Chicken extends NCubeGroovyController" +
                         "{" +
                         "def oldify() " +
@@ -2631,13 +2631,13 @@ class TestNCube
         coord.method = "oldify"
         long start = System.currentTimeMillis()
         Object o = null
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 100000; i++)
         {
             o = ncube.getCell(coord, output)
             assertEquals(o, 250)
         }
         long stop = System.currentTimeMillis()
-        println("execute GroovyMethod 1,000 times = " + (stop - start))
+        println("execute GroovyMethod 100,000 times = " + (stop - start))
         assertEquals(o, 250)
     }
 
