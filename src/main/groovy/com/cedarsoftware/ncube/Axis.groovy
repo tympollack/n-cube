@@ -55,12 +55,11 @@ class Axis
     private boolean fireAll = true
     private final boolean isRef
 
-    private final List<Column> columns = new ArrayList<>()
     protected final transient Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
-    private final transient SortedMap<Comparable, Column> discreteToCol = new TreeMap<>()
+    protected final transient SortedMap<Comparable, Column> valueToCol = new TreeMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    private final transient List<RangeToColumn> rangeToCol = new ArrayList<>()
+    protected final transient List<RangeToColumn> rangeToCol = new ArrayList<>()
 
     /**
      * Implement to provide data for this Axis
@@ -136,14 +135,16 @@ class Axis
         {
             defaultCol = new Column(null, getDefaultColId())
             defaultCol.setDisplayOrder(Integer.MAX_VALUE)  // Always at the end
-            columns.add(defaultCol)
             idToCol[defaultCol.id] = defaultCol
         }
 
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
-            columns = null
             rangeToCol = null
+        }
+        else if (type == AxisType.RANGE)
+        {
+            valueToCol = null
         }
     }
 
@@ -305,24 +306,10 @@ class Axis
         return idToCol[colId]
     }
 
-    protected void reIndex()
-    {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {
-            return
-        }
-        // TODO: Need to do per-index
-        rangeToCol.clear()
-        discreteToCol.clear()
-        idToCol.clear()
-        colNameToCol.clear()
-        displayOrder.clear()
-        for (Column column : columns)
-        {
-            indexColumn(column)
-        }
-    }
-
+    /**
+     * Index the passed in column.  It is expected the Column value, id, name (optional), and display ID are
+     * already established.
+     */
     private void indexColumn(Column column)
     {
         // 1: Index columns by ID
@@ -335,13 +322,28 @@ class Axis
             colNameToCol[colName] = column
         }
 
+        // 3. Index columns by display order (if not the default column)
+        if (column.value != null)
+        {
+            displayOrder[column.displayOrder] = column
+        }
+
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             if (column.value != null)
             {
-                discreteToCol[standardizeColumnValue(column.value)] = column
-                displayOrder[column.displayOrder] = column
+                valueToCol[standardizeColumnValue(column.value)] = column
             }
+        }
+        else if (type == AxisType.RANGE)
+        {
+            Range range = column.getValue() as Range
+            if (range == null)
+            {   // Default column being processed
+                return
+            }
+
+            insertRange(range, column)
         }
         else if (type == AxisType.SET)
         {
@@ -358,20 +360,25 @@ class Axis
                 if (elem instanceof Range)
                 {
                     Range range = (Range) elem
-                    RangeToColumn rc = new RangeToColumn(range, column)
-                    int where = Collections.binarySearch(rangeToCol, rc)
-                    if (where < 0)
-                    {
-                        where = Math.abs(where + 1)
-                    }
-                    rangeToCol.add(where, rc)
+                    insertRange(range, column)
                 }
                 else
                 {
-                    discreteToCol[elem] = column
+                    valueToCol[elem] = column
                 }
             }
         }
+    }
+
+    private void insertRange(Range range, Column column)
+    {
+        RangeToColumn rc = new RangeToColumn(range, column)
+        int where = Collections.binarySearch(rangeToCol, rc)
+        if (where < 0)
+        {
+            where = Math.abs(where + 1)
+        }
+        rangeToCol.add(where, rc)
     }
 
     /**
@@ -453,48 +460,22 @@ class Axis
      */
     List<Column> getColumns()
     {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {   // return 'view' of Columns that matches the desired order (sorted or display)
-            List<Column> cols = getColumnsWithoutDefault()
-            if (defaultCol != null)
-            {   // Add in optional Default Column
-                cols.add(defaultCol)
-            }
-            return cols
+        // return 'view' of Columns that matches the desired order (sorted or display)
+        List<Column> cols = getColumnsWithoutDefault()
+        if (defaultCol != null)
+        {   // Add in optional Default Column
+            cols.add(defaultCol)
         }
-        else
-        {
-            List<Column> cols = new ArrayList<>(columns)
-            if (type != AxisType.RULE)
-            {
-                if (preferredOrder == SORTED)
-                {
-                    return cols    // Return a copy of the columns, not our internal values list.
-                }
-                sortColumnsByDisplayOrder(cols)
-            }
-            return cols
-        }
+        return cols
     }
 
     protected void clear()
     {
-        rangeToCol?.clear()
-        discreteToCol.clear()
         idToCol.clear()
         colNameToCol.clear()
-        columns?.clear()
         displayOrder.clear()
-    }
-
-    protected List<Column> getColumnsInternal()
-    {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {
-            return getColumns()
-        }
-
-        return columns
+        valueToCol?.clear()
+        rangeToCol?.clear()
     }
 
     /**
@@ -524,11 +505,11 @@ class Axis
             }
             else if (type == AxisType.RANGE || type == AxisType.SET)
             {
-                v = value instanceof String ? convertStringToColumnValue((String) value) : standardizeColumnValue(value)
+                v = value instanceof String ? convertStringToColumnValue(value as String) : standardizeColumnValue(value)
             }
             else if (type == AxisType.RULE)
             {
-                v = value instanceof String ? convertStringToColumnValue((String) value) : value
+                v = value instanceof String ? convertStringToColumnValue(value as String) : value
             }
             else
             {
@@ -574,7 +555,7 @@ class Axis
         {
             if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
             {
-                if (discreteToCol.containsKey(value))
+                if (valueToCol.containsKey(value))
                 {
                     throw new AxisOverlapException("Passed in value '" + value + "' matches a value already on axis '" + name + "'")
                 }
@@ -644,26 +625,9 @@ class Axis
             defaultCol = column
         }
 
-        // New columns are always added at the end in terms of displayOrder, but internally they are added
-        // in the correct sort order location.  The sort order of the list is required because binary searches
-        // are done against it.
-        int dispOrder = hasDefaultColumn() ? size() - 1 : size()
-        column.setDisplayOrder(column.getValue() == null ? Integer.MAX_VALUE : dispOrder)
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {
-            int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
-            column.setDisplayOrder(order)
-            displayOrder[order] = column
-        }
-        else
-        {
-            int where = Collections.binarySearch(columns, column.getValue())
-            if (where < 0)
-            {
-                where = Math.abs(where + 1)
-            }
-            columns.add(where, column)
-        }
+        // New columns are always added at the end in terms of displayOrder.
+        int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
+        column.setDisplayOrder(order)
         indexColumn(column)
         return column
     }
@@ -700,10 +664,6 @@ class Axis
             return null
         }
 
-        if (type != AxisType.DISCRETE && type != AxisType.NEAREST && type != AxisType.RULE)
-        {
-            columns.remove(col)
-        }
         if (col.isDefault())
         {
             defaultCol = null
@@ -719,29 +679,29 @@ class Axis
         // Remove from col id to column map
         idToCol.remove(col.id)
         colNameToCol.remove(col.getColumnName())
+        if (col.value != null)
+        {
+            displayOrder.remove(col.displayOrder)
+        }
 
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             if (col.value != null)
             {
-                discreteToCol.remove(standardizeColumnValue(col.value))
-                displayOrder.remove(col.displayOrder)
+                valueToCol.remove(standardizeColumnValue(col.value))
             }
         }
-        else if (type == AxisType.RANGE)
+        else if (type == AxisType.SET || type == AxisType.RANGE)
         {
-
-        }
-        else if (type == AxisType.SET)
-        {
-            if (discreteToCol != null)
+            if (valueToCol != null)
             {
-                Iterator<Column> j = discreteToCol.values().iterator()
+                Iterator<Column> j = valueToCol.values().iterator()
                 while (j.hasNext())
                 {
                     Column column = j.next()
                     if (col.equals(column))
-                    {   // Multiple discrete values may have pointed to the passed in column, so we must loop through all
+                    {   // Multiple discrete values may have pointed to the passed in column so we must
+                        // remove all.  Example: 7, 8, [10-20], 23 (7, 8, 23 all point to same column)
                         j.remove()
                     }
                 }
@@ -752,9 +712,9 @@ class Axis
                 Iterator<RangeToColumn> i = rangeToCol.iterator()
                 while (i.hasNext())
                 {
-                    Axis.RangeToColumn rangeToColumn = i.next()
+                    RangeToColumn rangeToColumn = i.next()
                     if (rangeToColumn.column.equals(col))
-                    {   // Multiple ranges may have pointed to the passed in column, so we must loop through all
+                    {   // Multiple ranges may have pointed to the passed in column (same as above concern)
                         i.remove()
                     }
                 }
@@ -784,31 +744,16 @@ class Axis
 
         Column col = idToCol[colId]
         deleteColumnById(colId)
-        Column newCol = createColumnFromValue(value, null)
+        Column newCol = createColumnFromValue(value, colId)     // re-use ID
         ensureUnique(newCol.getValue())
-        newCol.setId(colId)
-        newCol.setDisplayOrder(col.getDisplayOrder())
+        newCol.setDisplayOrder(col.getDisplayOrder())           // re-use displayOrder
         String colName = col.getColumnName()
+
         if (StringUtilities.hasContent(colName))
         {
-            newCol.setColumnName(col.getColumnName())
+            newCol.setColumnName(col.getColumnName())           // re-use name
         }
 
-        // Updated column is added in the same 'displayOrder' location.  For example, the months are a
-        // displayOrder Axis type.  Updating 'Jun' to 'June' will use the same displayOrder value.
-        // However, the columns are stored internally in sorted order (for fast lookup), so we need to
-        // find where it should go (updating Fune to June, for example (fixing a misspelling), will
-        // result in the column being sorted to a different location (while maintaining its display
-        // order, because displayOrder is stored on the column).
-        if (type != AxisType.DISCRETE && type != AxisType.NEAREST && type != AxisType.RULE)
-        {
-            int where = Collections.binarySearch(columns, newCol.getValue())
-            if (where < 0)
-            {
-                where = Math.abs(where + 1)
-            }
-            columns.add(where, newCol)
-        }
         indexColumn(newCol)
     }
 
@@ -848,7 +793,7 @@ class Axis
 
         // Step 2.  Build list of columns that no longer exist (add to deleted list)
         // AND update existing columns that match by ID columns from the passed in DTO.
-        List<Column> tempCol = new ArrayList<>(getColumnsWithoutDefault())
+        List<Column> tempCol = getColumns()
         Iterator<Column> i = tempCol.iterator()
 
         while (i.hasNext())
@@ -872,21 +817,17 @@ class Axis
             }
         }
 
-        clear()
+        // Step 3. Save existing before clearing all columns
+        Map<Long, Column> existingColumns = [:]
+
         for (Column column : tempCol)
         {
-            addColumnInternal(column)
+            existingColumns[column.id] = column
         }
+        clear()
+        int dispOrder = 1
 
-        Map<Long, Column> realColumnMap = [:]
-
-        for (Column column : getColumns())
-        {
-            realColumnMap[column.id] = column
-        }
-        int dispOrder = 0
-
-        // Step 4. Add new columns (they exist in the passed in Axis, but not in this Axis) and
+        // Step 4. Add new columns (they exist in the passed in newCols, but not in this Axis) and
         // set display order to match the columns coming in from the DTO axis (argument).
         for (Column col : newCols)
         {
@@ -894,14 +835,14 @@ class Axis
             {   // Skip Default column
                 continue
             }
-            long realId = col.id
+            long existingId = col.id
             if (col.id < 0)
             {   // Add case - negative id, add new column to 'columns' List.
                 Column newCol = addColumnInternal(newColumnMap[col.id])
-                realId = newCol.id
-                realColumnMap[realId] = newCol
+                existingId = newCol.id
+                existingColumns[existingId] = newCol
             }
-            Column realColumn = realColumnMap[realId]
+            Column realColumn = existingColumns[existingId]
             if (realColumn == null)
             {
                 throw new IllegalArgumentException("Columns to be added should have negative ID values.")
@@ -909,52 +850,13 @@ class Axis
             realColumn.setDisplayOrder(dispOrder++)
         }
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
+        clear()
+        for (Column col : existingColumns.values())
         {
-            clear()
-            for (Column col : realColumnMap.values())
-            {
-                idToCol[col.id] = col
-                displayOrder[col.displayOrder] = col
-                if (col.getValue() == null)
-                {
-                    continue
-                }
-                if (StringUtilities.hasContent(col.getColumnName()))
-                {
-                    colNameToCol[col.getColumnName()] = col
-                }
-                discreteToCol[col.getValue()] = col
-            }
+            indexColumn(col)
         }
 
-        // Put default column back if it was already there.
-        if (hasDefaultColumn() && columns != null)
-        {
-            columns.add(defaultCol)
-        }
-
-        // index
-        reIndex()
         return colsToDelete
-    }
-
-    /**
-     * Sorted this way to allow for CopyOnWriteArrayList or regular ArrayLists to be sorted.
-     * CopyOnWriteArrayList does not support iterator operations .set() for example, which
-     * would be called by Collections.sort()
-     * @param cols List of Columns to sort
-     */
-    private static void sortColumns(List cols, Comparator comparator)
-    {
-        Object[] colArray = cols.toArray()
-        Arrays.sort(colArray, comparator)
-
-        final int len = colArray.length
-        for (int i=0; i < len; i++)
-        {
-            cols.set(i, colArray[i])
-        }
     }
 
     // Take the passed in value, and prepare it to be allowed on a given axis type.
@@ -969,6 +871,7 @@ class Axis
         switch(type)
         {
             case AxisType.DISCRETE:
+            case AxisType.NEAREST:
                 return standardizeColumnValue(value)
 
             case AxisType.RANGE:
@@ -976,7 +879,7 @@ class Axis
 
             case AxisType.SET:
                 try
-                {   // input we always be comma delimited list of items and ranges (we add the final array brackets)
+                {   // input will always be comma delimited list of items and ranges (we add the final array brackets)
                     value = '[' + value + ']'
                     Map options = new HashMap()
                     options[JsonReader.USE_MAPS] = true
@@ -1018,9 +921,6 @@ class Axis
                 {
                     throw new IllegalArgumentException("Value: " + value + " cannot be parsed as a Set.  Use v1, v2, [low, high], v3, ... , axis: " + name, e)
                 }
-
-            case AxisType.NEAREST:
-                return standardizeColumnValue(value)
 
             case AxisType.RULE:
                 return createExpressionFromValue(value)
@@ -1108,20 +1008,6 @@ class Axis
     void setColumnOrder(int order)
     {
         preferredOrder = order
-    }
-
-    /**
-     * @param cols List of Column instances to be sorted.
-     */
-    private static void sortColumnsByDisplayOrder(List<Column> cols)
-    {
-        sortColumns(cols, new Comparator<Column>()
-        {
-            int compare(Column c1, Column c2)
-            {
-                return c1.getDisplayOrder() - c2.getDisplayOrder()
-            }
-        })
     }
 
     /**
@@ -1368,10 +1254,10 @@ class Axis
             {
                 throw new IllegalArgumentException("Attempt to search non-Range axis to match a Range")
             }
-            Range thatRange = (Range) value
-            for (Column column : columns)
+            Range thatRange = value as Range
+            for (Column column : getColumns())
             {
-                Range thisRange = (Range)column.getValue()
+                Range thisRange = column.getValue() as Range
                 if (thisRange.equals(thatRange))
                 {
                     return column
@@ -1387,9 +1273,9 @@ class Axis
                 throw new IllegalArgumentException("Attempt to search non-Set axis to match a Set")
             }
             RangeSet thatSet = value as RangeSet
-            for (Column column : columns)
+            for (Column column : getColumns())
             {
-                RangeSet thisSet = (RangeSet)column.getValue()
+                RangeSet thisSet = column.getValue() as RangeSet
                 if (thisSet.equals(thatSet))
                 {
                     return column
@@ -1403,15 +1289,11 @@ class Axis
 
         if (type == AxisType.DISCRETE)
         {
-            Column colToFind = discreteToCol[promotedValue]
+            Column colToFind = valueToCol[promotedValue]
             return colToFind == null ? defaultCol : colToFind
         }
-        else if (type == AxisType.RANGE)
-        {	// DISCRETE and RANGE axis searched in O(Log n) time using a binary search
-            pos = binarySearchAxis(promotedValue)
-        }
-        else if (type == AxisType.SET)
-        {	// The SET axis searched in O(Log n)
+        else if (type == AxisType.RANGE || type == AxisType.SET)
+        {	// RANGE axis searched in O(Log n) time using a binary search
             return findOnSetAxis(promotedValue)
         }
         else if (type == AxisType.NEAREST)
@@ -1419,7 +1301,7 @@ class Axis
             pos = findNearest(promotedValue)
             if (pos >= 0)
             {
-                return discreteToCol.values()[pos]
+                return valueToCol.values()[pos]
             }
             return defaultCol
         }
@@ -1442,13 +1324,6 @@ class Axis
         {
             throw new IllegalArgumentException("Axis type '" + type + "' added but no code supporting it.")
         }
-
-        if (pos >= 0)
-        {
-            return columns[pos]
-        }
-
-        return defaultCol
     }
 
     /**
@@ -1468,9 +1343,9 @@ class Axis
 
     private Column findOnSetAxis(final Comparable promotedValue)
     {
-        if (discreteToCol.containsKey(promotedValue))
+        if (valueToCol?.containsKey(promotedValue))
         {
-            return discreteToCol[promotedValue]
+            return valueToCol[promotedValue]
         }
 
         int pos = binarySearchRanges(promotedValue)
@@ -1489,7 +1364,7 @@ class Axis
             int compare(Object r1, Object key)
             {   // key not used as promoteValue, already of type Comparable, is the exact same thing, and already final
                 RangeToColumn rc = (RangeToColumn) r1
-                Range range = rc.getRange()
+                Range range = rc.range
                 return -1 * range.isWithin(promotedValue)
             }
         })
@@ -1497,22 +1372,14 @@ class Axis
 
     private int binarySearchAxis(final Comparable promotedValue)
     {
-        List cols = getColumnsWithoutDefault()
+        List<Column> cols = getColumnsWithoutDefault()
         return Collections.binarySearch(cols, promotedValue, new Comparator()
         {
             int compare(Object o1, Object key)
             {   // key not used as promoteValue, already of type Comparable, is the exact same thing, and already final
                 Column column = (Column) o1
-
-                if (type == AxisType.RANGE)
-                {
-                    Range range = (Range)column.getValue()
-                    return -1 * range.isWithin(promotedValue)
-                }
-                else
-                {
-                    throw new IllegalStateException("Cannot binary search axis type: '" + type + "'")
-                }
+                Range range = (Range)column.getValue()
+                return -1 * range.isWithin(promotedValue)
             }
         })
     }
@@ -1603,7 +1470,7 @@ class Axis
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)
             {
-                cols.addAll(discreteToCol.values())
+                cols.addAll(valueToCol.values())
             }
             else
             {
@@ -1617,36 +1484,38 @@ class Axis
             cols.addAll(displayOrder.values())
             return cols
         }
-
-        if (columns.size() == 0)
+        else if (type == AxisType.RANGE)
         {
-            return columns
-        }
-        if (hasDefaultColumn())
-        {
-            if (columns.size() == 1)
+            Set<Column> rangeCols = new LinkedHashSet<>()
+            for (RangeToColumn rangeToColumn : rangeToCol)
             {
-                return new ArrayList<>()
+                rangeCols.add(rangeToColumn.column)
             }
-            return columns.subList(0, columns.size() - 1)
+            List<Column> cols = new ArrayList<>(rangeCols.size())
+            cols.addAll(rangeCols)
+            return cols
         }
-        return columns
+        else if (type == AxisType.SET)
+        {
+            List<Column> cols = new ArrayList<>()
+            cols.addAll(displayOrder.values())
+            return cols
+        }
+        else
+        {
+            throw new IllegalStateException("AxisValueType '" + type + "' added but no code to support it.")
+        }
     }
 
     private static final class RangeToColumn implements Comparable<RangeToColumn>
     {
-        private final Range range
-        private final Column column
+        protected final Range range
+        protected final Column column
 
         protected RangeToColumn(Range range, Column column)
         {
             this.range = range
             this.column = column
-        }
-
-        private Range getRange()
-        {
-            return range
         }
 
         int compareTo(RangeToColumn rc)

@@ -279,7 +279,7 @@ class DeltaProcessor
 
         if (thisAxis.getType() == AxisType.RULE)
         {   // Have to look up RULE columns by name (if set) or ID if not (no choice, they could all have the value 'true' for example.)
-            for (Column column : thisAxis.getColumnsInternal())
+            for (Column column : thisAxis.getColumns())
             {
                 String name = column.getColumnName()
                 // Use rule-name if it exists.
@@ -287,7 +287,7 @@ class DeltaProcessor
                 copyRuleColumns[key] = column
             }
 
-            for (Column otherColumn : other.getColumnsInternal())
+            for (Column otherColumn : other.getColumns())
             {
                 String name = otherColumn.getColumnName()
                 Column foundCol
@@ -341,12 +341,12 @@ class DeltaProcessor
         }
         else
         {   // Handle non-rule columns
-            for (Column column : thisAxis.getColumnsInternal())
+            for (Column column : thisAxis.getColumns())
             {
                 copyColumns[column.getValue()] = column
             }
 
-            for (Column otherColumn : other.getColumnsInternal())
+            for (Column otherColumn : other.getColumns())
             {
                 final Comparable otherColumnValue = otherColumn.getValue()
                 Column foundCol = thisAxis.findColumn(otherColumnValue)
