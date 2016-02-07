@@ -4,7 +4,6 @@ import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.DeepEquals
-import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 /**
  * This class represents any cell that needs to return content from a URL.
@@ -98,18 +97,11 @@ class DeltaProcessor
             for (ColumnDelta colDelta : colChanges.values())
             {
                 Column column = colDelta.column
+                Axis axis = target.getAxis(axisName)
+
                 if (DELTA_COLUMN_ADD.equals(colDelta.changeType))
                 {
-                    Axis axis = target.getAxis(axisName)
-                    Comparable value
-                    if (axis.getType() == AxisType.RULE)
-                    {
-                        value = StringUtilities.hasContent(column.columnName) ? column.columnName : column.id
-                    }
-                    else
-                    {   // If the value is not already on the Axis, add it.
-                        value = column.getValueThatMatches()
-                    }
+                    Comparable value = axis.getValueToLocateColumn(column)
                     Column findCol = axis.findColumn(value)
 
                     if (findCol == null)
@@ -119,16 +111,7 @@ class DeltaProcessor
                 }
                 else if (DELTA_COLUMN_REMOVE.equals(colDelta.changeType))
                 {
-                    Axis axis = target.getAxis(axisName)
-                    Comparable value
-                    if (axis.getType() == AxisType.RULE)
-                    {   // Rule axis - delete by locating column by ID
-                        value = column.columnName == null ? column.id : column.columnName
-                    }
-                    else
-                    {   // Non-rule axes, delete column by locating value
-                        value = column.getValueThatMatches()
-                    }
+                    Comparable value = axis.getValueToLocateColumn(column)
                     target.deleteColumn(axisName, value)
                 }
                 else if (DELTA_COLUMN_CHANGE.equals(colDelta.changeType))
@@ -212,10 +195,10 @@ class DeltaProcessor
                     if (delta2.axisType != delta1.axisType)
                         return false   // different axis types
 
-                    if (!delta1.column.value.equals(delta2.column.value))
+                    if (delta1.column.value != delta2.column.value)
                         return false   // value is different for column with same ID
 
-                    if (!delta1.changeType.equals(delta2.changeType))
+                    if (delta1.changeType != delta2.changeType)
                         return false   // different change type (REMOVE vs ADD, CHANGE vs REMOVE, etc.)
                 }
             }
@@ -230,13 +213,13 @@ class DeltaProcessor
         // Performance optimization: determine which cell change set is smaller.
         if (delta1.size() < delta2.size())
         {
-            smallerChangeSet = delta1;
-            biggerChangeSet = delta2;
+            smallerChangeSet = delta1
+            biggerChangeSet = delta2
         }
         else
         {
-            smallerChangeSet = delta2;
-            biggerChangeSet = delta1;
+            smallerChangeSet = delta2
+            biggerChangeSet = delta1
         }
 
         for (Map.Entry<Map<String, Object>, Object> entry : smallerChangeSet.entrySet())
@@ -248,109 +231,54 @@ class DeltaProcessor
                 CellInfo info1 = new CellInfo(entry.value)
                 CellInfo info2 = new CellInfo(biggerChangeSet[deltaCoord])
 
-                if (!info1.equals(info2))
+                if (info1 != info2)
                 {
-                    return false;
+                    return false
                 }
             }
         }
-        return true;
+        return true
     }
 
     private static Map<Comparable, ColumnDelta> getColumnDelta(Axis thisAxis, Axis other)
     {
         Map<Comparable, ColumnDelta> deltaColumns = new CaseInsensitiveMap<>()
         Map<Comparable, Column> copyColumns = new LinkedHashMap<>()
-        Map<Comparable, Column> copyRuleColumns = new LinkedHashMap<>()
 
-        if (thisAxis.getType() == AxisType.RULE)
-        {   // Have to look up RULE columns by name (if set) or ID if not (no choice, they could all have the value 'true' for example.)
-            for (Column column : thisAxis.columns)
+        for (Column column : thisAxis.columns)
+        {
+            Comparable colHandle = thisAxis.getValueToLocateColumn(column)
+            copyColumns[colHandle] = column
+        }
+
+        for (Column otherColumn : other.columns)
+        {
+            Comparable colHandle = other.getValueToLocateColumn(otherColumn)
+            Column foundCol = thisAxis.findColumn(colHandle)
+
+            Comparable key = thisAxis.getType() == AxisType.RULE ? colHandle : otherColumn.id
+
+            if (foundCol == null)
             {
-                String name = column.columnName
-                // Use rule-name if it exists.
-                Comparable key = name != null ? name : column.id
-                copyRuleColumns[key] = column
+                deltaColumns[key] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD)
             }
-
-            for (Column otherColumn : other.columns)
+            else if (foundCol.value != otherColumn.value)
             {
-                String name = otherColumn.columnName
-                Column foundCol
-                if (name == null)
-                {
-                    foundCol = thisAxis.getColumnById(otherColumn.id)
-
-                    if (foundCol == null)
-                    {   // Not found, the 'other' axis has a column 'this' axis does not have
-                        deltaColumns[otherColumn.id] = new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_ADD)
-                    }
-                    else if (otherColumn.value == foundCol.value || otherColumn.value.equals(foundCol.value))   // handles default (null) column
-                    {   // Matched (id and value same) - this column will not be added to the delta map.  Remove by ID.
-                        copyRuleColumns.remove(foundCol.columnName != null ? foundCol.columnName : foundCol.id)
-                    }
-                    else
-                    {   // Column exists on both (same IDs), but the value is different
-                        deltaColumns[otherColumn.id] = new ColumnDelta(AxisType.RULE, otherColumn, DELTA_COLUMN_CHANGE)
-                        copyRuleColumns.remove(foundCol.columnName != null ? foundCol.columnName : foundCol.id)
-                    }
-                }
-                else
-                {
-                    foundCol = thisAxis.findColumnByName(name)
-
-                    if (foundCol == null)
-                    {   // Not found, the 'other' axis has a column 'this' axis does not have
-                        deltaColumns[name] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD)
-                    }
-                    else
-                    {   // Matched name
-                        if (otherColumn.value == foundCol.value || otherColumn.value.equals(foundCol.value))
-                        {   // Matched value - this column will not be added to the delta map.  Remove by name.
-                            copyRuleColumns.remove(name)
-                        }
-                        else
-                        {   // Value did not match - need to update column
-                            deltaColumns[name] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_CHANGE)
-                            copyRuleColumns.remove(name)    // Since this is a change, don't leave column in 'remove' list.
-                        }
-                    }
-                }
+                deltaColumns[key] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_CHANGE)
+                copyColumns.remove(colHandle)
             }
-
-            // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
-            for (Column column : copyRuleColumns.values())
-            {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                Comparable key = column.columnName != null ? column.columnName : column.id
-                deltaColumns[key] = new ColumnDelta(AxisType.RULE, column, DELTA_COLUMN_REMOVE)
+            else
+            {   // Matched - this column will not be added to the delta map.
+                copyColumns.remove(colHandle)
             }
         }
-        else
-        {   // Handle non-rule columns
-            for (Column column : thisAxis.columns)
-            {
-                copyColumns[column.value] = column
-            }
 
-            for (Column otherColumn : other.columns)
-            {
-                Column foundCol = thisAxis.findColumn(otherColumn.getValueThatMatches())
-
-                if (foundCol == null || foundCol == other.defaultColumn)
-                {   // Not found, the 'other' axis has a column 'this' axis does not have
-                    deltaColumns[otherColumn.id] = new ColumnDelta(thisAxis.getType(), otherColumn, DELTA_COLUMN_ADD)
-                }
-                else
-                {   // Matched - this column will not be added to the delta map.
-                    copyColumns.remove(otherColumn.value)
-                }
-            }
-
-            // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
-            for (Column column : copyColumns.values())
-            {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
-                deltaColumns[column.id] = new ColumnDelta(thisAxis.getType(), column, DELTA_COLUMN_REMOVE)
-            }
+        // Columns left over - these are columns 'this' axis has that the 'other' axis does not have.
+        for (Column column : copyColumns.values())
+        {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
+            Comparable value = other.getValueToLocateColumn(column)
+            Comparable key = thisAxis.getType() == AxisType.RULE ? value : column.id
+            deltaColumns[key] = new ColumnDelta(thisAxis.getType(), column, DELTA_COLUMN_REMOVE)
         }
 
         return deltaColumns

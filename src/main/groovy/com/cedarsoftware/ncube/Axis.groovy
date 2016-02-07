@@ -1235,6 +1235,22 @@ class Axis
     }
 
     /**
+     * Get a Comparable value that can be used to locate a Column on this axis.  The passed in column may be
+     * from another Axis (as in merging an axis from another cube).  This API will return the name or ID if
+     * this Axis is a RULE axis, otherwise it will return getValueThatMatches() API.
+     * @param column Column source
+     * @return Comparable value that can be passed to the findColumn() or deleteColumn() APIs.
+     */
+    protected Comparable getValueToLocateColumn(Column column)
+    {
+        if (type == AxisType.RULE)
+        {
+            return StringUtilities.hasContent(column.columnName) ? column.columnName : column.id
+        }
+        return column.getValueThatMatches()
+    }
+
+    /**
      * Locate the column (value) along an axis.
      * @param value Comparable - A value that can be checked against the axis
      * @return Column that 'matches' the passed in value, or null if no column
