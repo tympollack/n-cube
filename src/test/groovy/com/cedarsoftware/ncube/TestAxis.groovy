@@ -1591,6 +1591,59 @@ class TestAxis
     }
 
     @Test
+    void testNearestLogarithmic()
+    {
+        Axis points = new Axis("Point", AxisType.NEAREST, AxisValueType.LONG, false)
+        points.addColumn(0)
+        points.addColumn(10)
+        points.addColumn(100)
+        points.addColumn(1000)
+        points.addColumn(10000)
+
+        Column col = points.findColumn(-123456789012345678L)
+        assert col.value == 0L
+
+        col = points.findColumn(-1)
+        assert col.value == 0L
+
+        col = points.findColumn(0)
+        assert col.value == 0L
+
+        col = points.findColumn(1)
+        assert col.value == 0L
+
+        col = points.findColumn(4)
+        assert col.value == 0L
+
+        col = points.findColumn(5)
+        assert col.value == 0L
+
+        col = points.findColumn(6)
+        assert col.value == 10L
+
+        col = points.findColumn(9)
+        assert col.value == 10L
+
+        col = points.findColumn(10)
+        assert col.value == 10L
+
+        col = points.findColumn(11)
+        assert col.value == 10L
+
+        col = points.findColumn(9999)
+        assert col.value == 10000L
+
+        col = points.findColumn(10000)
+        assert col.value == 10000L
+
+        col = points.findColumn(10001)
+        assert col.value == 10000L
+
+        col = points.findColumn(123456789012345678L)
+        assert col.value == 10000L
+    }
+
+    @Test
     void testNearestAxisTypePoint3D()
     {
         NCube<String> ncube = new NCube<String>("Nearest3D")

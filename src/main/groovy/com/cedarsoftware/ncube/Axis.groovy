@@ -67,7 +67,7 @@ class Axis
     private final Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    private final transient SortedMap<Comparable, Column> valueToCol
+    private final transient NavigableMap<Comparable, Column> valueToCol
     protected final transient RangeMap<Comparable, Column> rangeToCol
 
     // TODO: Write template test (have template reference code that is based on URL)
@@ -1272,16 +1272,12 @@ class Axis
         }
         else if (type == AxisType.RANGE || type == AxisType.SET)
         {	// RANGE axis searched in O(Log n) time using a binary search
-            return findOnSetAxis(promotedValue)
+            Column column = rangeToCol.get(promotedValue)
+            return column == null ? defaultCol : column
         }
         else if (type == AxisType.NEAREST)
         {   // The NEAREST axis type must be searched linearly O(n)
-            int pos = findNearest(promotedValue)
-            if (pos >= 0)
-            {
-                return valueToCol.values()[pos]
-            }
-            return defaultCol
+            return findNearest(promotedValue)
         }
         else if (type == AxisType.RULE)
         {
@@ -1309,6 +1305,8 @@ class Axis
      * Locate a column on an axis using the 'name' meta property.  If the value passed in matches no names, then
      * null will be returned.
      * Note: This is a case-insensitive match.
+     * @param colName String name of column to locate
+     * @return Column instance with the given name, otherwise null.
      */
     Column findColumnByName(String colName)
     {
@@ -1320,29 +1318,57 @@ class Axis
         return null
     }
 
-    private Column findOnSetAxis(final Comparable promotedValue)
+    private Column findNearest(final Comparable promotedValue)
     {
-        Column column = rangeToCol.get(promotedValue)
-        return column == null ? defaultCol : column
-    }
-
-    private int findNearest(final Comparable promotedValue)
-    {
-        double min = Double.MAX_VALUE
-        int savePos = -1
-        int pos = 0
-
-        for (Column column : getColumnsWithoutDefault())
+        if (valueToCol.isEmpty())
         {
-            double d = Proximity.distance(promotedValue, column.getValue())
-            if (d < min)
-            {	// Record column that set's new minimum record
-                min = d
-                savePos = pos
-            }
-            pos++
+            return null
         }
-        return savePos
+
+        if (valueToCol.size() == 1)
+        {
+            return valueToCol.firstEntry().value
+        }
+
+        if (promotedValue instanceof Number)
+        {   // Provide O(Log n) access when Number (any Number derivative) used on a NEAREST axis
+            Map.Entry<Comparable, Column> entry1 = valueToCol.floorEntry(promotedValue as Comparable)
+            Map.Entry<Comparable, Column> entry2 = valueToCol.higherEntry(promotedValue as Comparable)
+            if (entry1 == null)
+            {
+                return entry2.value
+            }
+            if (entry2 == null || entry1.key == entry2.key)
+            {
+                return entry1.value
+            }
+            Number low = entry1.key as Number
+            Number high = entry2.key as Number
+            Number value = promotedValue as Number
+            Number delta1 = value - low
+            Number delta2 = value - high
+            if (delta1.abs() <= delta2.abs())
+            {
+                return entry1.value
+            }
+            return entry2.value
+        }
+        else
+        {   // Handle String, Point2D, Point3D, LatLon, etc. anything that implements the Distance interface
+            double min = Double.MAX_VALUE
+            Column saveCol = null
+
+            for (Column column : getColumnsWithoutDefault())
+            {
+                double d = Proximity.distance(promotedValue, column.getValue())
+                if (d < min)
+                {    // Record column that set's new minimum record
+                    min = d
+                    saveCol = column
+                }
+            }
+            return saveCol
+        }
     }
 
     /**

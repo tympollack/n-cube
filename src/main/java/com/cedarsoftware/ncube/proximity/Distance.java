@@ -20,7 +20,7 @@ package com.cedarsoftware.ncube.proximity;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public interface Distance<T>
+public interface Distance<T> extends Comparable<T>
 {
     double distance(T other);
 }

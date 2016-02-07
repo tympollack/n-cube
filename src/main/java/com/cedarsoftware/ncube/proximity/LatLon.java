@@ -28,7 +28,7 @@ import static java.lang.Math.toRadians;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class LatLon implements Comparable<LatLon>, Distance<LatLon>
+public class LatLon implements Distance<LatLon>
 {
 	public static final double EARTH_RADIUS = 6371.00; // Radius in Kilometers default
     private final double lat;

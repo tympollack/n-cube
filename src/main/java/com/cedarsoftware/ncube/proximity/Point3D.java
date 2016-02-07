@@ -23,7 +23,7 @@ import com.cedarsoftware.ncube.CellInfo;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class Point3D implements Comparable<Point3D>, Distance<Point3D>
+public class Point3D implements Distance<Point3D>
 {
 	private final double x;
 	private final double y;
