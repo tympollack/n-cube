@@ -22,16 +22,16 @@ class FooBarBazQuxController_TX extends NCubeGroovyController
     def bar()
     {
 //        @[method:'foo'] * 3;   // the call below is identical to this call, however, it does not cause IDE complaints
-        return go([method: 'foo']) * 3
+        return at([method: 'foo']) * 3
     }
 
     def baz()
     {
-        return goNew([method:'bar',state:'TX']) * 3
+        return go([method:'bar',state:'TX']) * 3
     }
 
     def qux()
     {
-        return go([method:'baz'], "TestCube") * 3
+        return at([method:'baz'], "TestCube") * 3
     }
 }

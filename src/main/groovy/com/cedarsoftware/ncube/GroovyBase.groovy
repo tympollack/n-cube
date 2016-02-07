@@ -255,28 +255,28 @@ public abstract class GroovyBase extends UrlCommandCell
     static String expandNCubeShortCuts(String groovy)
     {
         Matcher m = Regexes.groovyAbsRefCubeCellPattern.matcher(groovy)
-        String exp = m.replaceAll('$1goNew($3, \'$2\')')
+        String exp = m.replaceAll('$1go($3, \'$2\')')
 
         m = Regexes.groovyAbsRefCubeCellPatternA.matcher(exp)
-        exp = m.replaceAll('$1goNew($3, \'$2\')')
-
-        m = Regexes.groovyAbsRefCellPattern.matcher(exp)
-        exp = m.replaceAll('$1goNew($2)')
-
-        m = Regexes.groovyAbsRefCellPatternA.matcher(exp)
-        exp = m.replaceAll('$1goNew($2)')
-
-        m = Regexes.groovyRelRefCubeCellPattern.matcher(exp)
-        exp = m.replaceAll('$1go($3,\'$2\')')
-
-        m = Regexes.groovyRelRefCubeCellPatternA.matcher(exp)
         exp = m.replaceAll('$1go($3, \'$2\')')
 
-        m = Regexes.groovyRelRefCellPattern.matcher(exp)
+        m = Regexes.groovyAbsRefCellPattern.matcher(exp)
         exp = m.replaceAll('$1go($2)')
 
-        m = Regexes.groovyRelRefCellPatternA.matcher(exp)
+        m = Regexes.groovyAbsRefCellPatternA.matcher(exp)
         exp = m.replaceAll('$1go($2)')
+
+        m = Regexes.groovyRelRefCubeCellPattern.matcher(exp)
+        exp = m.replaceAll('$1at($3,\'$2\')')
+
+        m = Regexes.groovyRelRefCubeCellPatternA.matcher(exp)
+        exp = m.replaceAll('$1at($3, \'$2\')')
+
+        m = Regexes.groovyRelRefCellPattern.matcher(exp)
+        exp = m.replaceAll('$1at($2)')
+
+        m = Regexes.groovyRelRefCellPatternA.matcher(exp)
+        exp = m.replaceAll('$1at($2)')
         return exp
     }
 

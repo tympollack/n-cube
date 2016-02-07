@@ -66,7 +66,7 @@ class Axis
     // TODO: Write template test (have template reference code that is based on URL)
     // TODO: Set up access to dynamis.jar and see if you can make that work by passing on UrlClassLoader.
     // TODO: Debug the dead-lock!
-    // TODO: 'at' instead of 'go'
+    // TODO: Finish Ref Axis impl
 
     /**
      * Implement to provide data for this Axis
