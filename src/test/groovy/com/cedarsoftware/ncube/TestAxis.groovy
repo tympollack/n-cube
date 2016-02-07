@@ -835,7 +835,7 @@ class TestAxis
         assert axis.columns.size() == 2
         axis.deleteColumn('o')
         assert axis.columns.size() == 1
-        assert axis.idToCol.size() == 1
+        assert axis.size() == 1
         assertNull axis.deleteColumnById(9)
     }
 

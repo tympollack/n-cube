@@ -20,7 +20,14 @@ import java.util.regex.Matcher
  * Implements an Axis of an NCube. When modeling, think of an axis as a 'condition'
  * or decision point.  An input variable (like 'X:1' in a cartesian coordinate system)
  * is passed in, and the Axis's job is to locate the column that best matches the input,
- * as quickly as possible.
+ * as quickly as possible.<pre>
+ *
+ * Five types of axes are supported, DISCRETE, RANGE, SET, NEAREST, and RULE.
+ * DISCRETE matches discrete values with .equals().  Locates items in O(1)
+ * RANGE matches [low, high) values in O(Log N) time.
+ * SET matches repeating DISCRETE and RANGE values in O(Log N) time.
+ * NEAREST finds the column matching the closest value to the input.  Runs in O(N).
+ * RULE fires all conditions that evaluate to true.  Runs in O(N).</pre>
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -57,10 +64,10 @@ class Axis
     private boolean fireAll = true
     private final boolean isRef
 
-    protected final Map<Long, Column> idToCol = new HashMap<>()
+    private final Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    protected final transient SortedMap<Comparable, Column> valueToCol
+    private final transient SortedMap<Comparable, Column> valueToCol
     protected final transient RangeMap<Comparable, Column> rangeToCol
 
     // TODO: Write template test (have template reference code that is based on URL)
@@ -342,14 +349,14 @@ class Axis
             colNameToCol[colName] = column
         }
 
-        // 3. Index columns by display order (if not the default column)
-        displayOrder[column.displayOrder] = column
-
-        // 4. Index column by value
+        // 3. Index column by value
         if (column.value == null)
-        {   // No value to index (default column)
+        {   // No value to index (default column) AND do not add to displayOrder below
             return
         }
+
+        // 4. Index columns by display order
+        displayOrder[column.displayOrder] = column
 
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
@@ -623,7 +630,7 @@ class Axis
 
         // New columns are always added at the end in terms of displayOrder.
         int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
-        column.setDisplayOrder(order)
+        column == defaultCol ? column.setDisplayOrder(Integer.MAX_VALUE) : column.setDisplayOrder(order)
         indexColumn(column)
         return column
     }
@@ -677,7 +684,7 @@ class Axis
         colNameToCol.remove(col.getColumnName())
         displayOrder.remove(col.displayOrder)
         if (col.value == null)
-        {   // Default Column is not index by value/range (null)
+        {   // Default Column is not indexed by value/range (null), so we are done.
             return
         }
 
@@ -861,9 +868,7 @@ class Axis
                 try
                 {   // input will always be comma delimited list of items and ranges (we add the final array brackets)
                     value = '[' + value + ']'
-                    Map options = new HashMap()
-                    options[JsonReader.USE_MAPS] = true
-                    Object[] list = (Object[]) JsonReader.jsonToJava(value, options)
+                    Object[] list = (Object[]) JsonReader.jsonToJava(value, [(JsonReader.USE_MAPS):true] as Map)
                     final RangeSet set = new RangeSet()
 
                     for (Object item : list)
@@ -969,7 +974,7 @@ class Axis
 
     private static String trimQuotes(String value)
     {
-        if (value.startsWith("\"") && value.endsWith("\""))
+        if (value.startsWith('"') && value.endsWith('"'))
         {
             return value[1..-2]
         }
@@ -1110,7 +1115,6 @@ class Axis
         return range
     }
 
-
     /**
      * Convert passed in value to a similar value of the highest type.  If the
      * valueType is not the same basic type as the value passed in, intelligent
@@ -1244,7 +1248,7 @@ class Axis
         }
 
         if (value instanceof Range)
-        {   // Linearly locate - used when finding by column during delta processing.
+        {
             if (type != AxisType.RANGE)
             {
                 throw new IllegalArgumentException("Attempt to search non-Range axis to match a Range")
@@ -1256,7 +1260,7 @@ class Axis
                 return matches.values().first()
             }
             else
-            {
+            {   // Not found fast way, try scanning all
                 Range thatRange = value as Range
                 for (Column column : getColumns())
                 {
@@ -1313,11 +1317,12 @@ class Axis
         {
             if (promotedValue instanceof Long)
             {
-                return idToCol[(Long)promotedValue]
+                return idToCol[promotedValue as Long]
             }
             else if (promotedValue instanceof String)
             {
-                return findColumnByName((String)promotedValue)
+                Column colToFind = findColumnByName(promotedValue as String)
+                return colToFind == null ? defaultCol : colToFind
             }
             else
             {

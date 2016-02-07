@@ -1502,7 +1502,7 @@ public class NCube<T>
     {
         for (final Axis axis : axisList.values())
         {
-            if (axis.idToCol.containsKey(id))
+            if (axis.getColumnById(id) != null)
             {
                 return axis;
             }

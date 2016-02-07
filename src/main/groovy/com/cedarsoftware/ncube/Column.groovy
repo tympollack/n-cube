@@ -45,6 +45,10 @@ class Column implements Comparable<Comparable>
     {
         this.value = value
         this.id = id
+        if (value == null)
+        {
+            displayOrder = Integer.MAX_VALUE
+        }
     }
 
     /**

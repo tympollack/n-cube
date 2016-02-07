@@ -799,14 +799,9 @@ class TestRuleEngine
 
         input = [state:'OH', rule:'MatchesNoRuleName']
         output = [:]
-        try
-        {
-            ncube.getCell(input, output)
-            fail();
-        }
-        catch (CoordinateNotFoundException ignored)
-        {
-        }
+        ncube.getCell(input, output)
+        assert ret == 'nope'
+        assert output.text == 'nope'
     }
 
     @Test
