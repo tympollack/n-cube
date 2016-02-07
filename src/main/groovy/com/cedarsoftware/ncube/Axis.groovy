@@ -1247,53 +1247,7 @@ class Axis
             return defaultCol
         }
 
-        if (value instanceof Range)
-        {
-            if (type != AxisType.RANGE)
-            {
-                throw new IllegalArgumentException("Attempt to search non-Range axis to match a Range")
-            }
-            RangeMap rangeMap = rangeToCol.subRangeMap(valueToRange(value))
-            Map matches = rangeMap.asMapOfRanges()
-            if (matches.size() == 1)
-            {
-                return matches.values().first()
-            }
-            else
-            {   // Not found fast way, try scanning all
-                Range thatRange = value as Range
-                for (Column column : getColumns())
-                {
-                    Range thisRange = column.value as Range
-                    if (thisRange.equals(thatRange))
-                    {
-                        return column
-                    }
-                }
-                return null
-            }
-        }
-
-        if (value instanceof RangeSet)
-        {   // Linearly locate - used when finding by column during delta processing.
-            if (type != AxisType.SET)
-            {
-                throw new IllegalArgumentException("Attempt to search non-Set axis to match a Set")
-            }
-            RangeSet thatSet = value as RangeSet
-            for (Column column : getColumns())
-            {
-                RangeSet thisSet = column.value as RangeSet
-                if (thisSet.equals(thatSet))
-                {
-                    return column
-                }
-            }
-            return null
-        }
-
         final Comparable promotedValue = promoteValue(valueType, value)
-        int pos
 
         if (type == AxisType.DISCRETE)
         {
@@ -1306,7 +1260,7 @@ class Axis
         }
         else if (type == AxisType.NEAREST)
         {   // The NEAREST axis type must be searched linearly O(n)
-            pos = findNearest(promotedValue)
+            int pos = findNearest(promotedValue)
             if (pos >= 0)
             {
                 return valueToCol.values()[pos]

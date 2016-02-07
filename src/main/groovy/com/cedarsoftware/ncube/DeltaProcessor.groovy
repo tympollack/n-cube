@@ -101,22 +101,16 @@ class DeltaProcessor
                 if (DELTA_COLUMN_ADD.equals(colDelta.changeType))
                 {
                     Axis axis = target.getAxis(axisName)
-                    Column findCol
+                    Comparable value
                     if (axis.getType() == AxisType.RULE)
                     {
-                        if (StringUtilities.hasContent(column.columnName))
-                        {
-                            findCol = axis.findColumnByName(column.columnName)
-                        }
-                        else
-                        {
-                            findCol = axis.findColumn(column.id)
-                        }
+                        value = StringUtilities.hasContent(column.columnName) ? column.columnName : column.id
                     }
                     else
                     {   // If the value is not already on the Axis, add it.
-                        findCol = axis.findColumn(column.value)
+                        value = column.getValueThatMatches()
                     }
+                    Column findCol = axis.findColumn(value)
 
                     if (findCol == null)
                     {
@@ -126,22 +120,16 @@ class DeltaProcessor
                 else if (DELTA_COLUMN_REMOVE.equals(colDelta.changeType))
                 {
                     Axis axis = target.getAxis(axisName)
+                    Comparable value
                     if (axis.getType() == AxisType.RULE)
                     {   // Rule axis - delete by locating column by ID
-                        String name = column.columnName
-                        if (name == null)
-                        {
-                            target.deleteColumn(axisName, column.id)
-                        }
-                        else
-                        {
-                            target.deleteColumn(axisName, name)
-                        }
+                        value = column.columnName == null ? column.id : column.columnName
                     }
                     else
                     {   // Non-rule axes, delete column by locating value
-                        target.deleteColumn(axisName, column.value)
+                        value = column.getValueThatMatches()
                     }
+                    target.deleteColumn(axisName, value)
                 }
                 else if (DELTA_COLUMN_CHANGE.equals(colDelta.changeType))
                 {
@@ -346,8 +334,7 @@ class DeltaProcessor
 
             for (Column otherColumn : other.columns)
             {
-                final Comparable otherColumnValue = otherColumn.value
-                Column foundCol = thisAxis.findColumn(otherColumnValue)
+                Column foundCol = thisAxis.findColumn(otherColumn.getValueThatMatches())
 
                 if (foundCol == null || foundCol == other.defaultColumn)
                 {   // Not found, the 'other' axis has a column 'this' axis does not have
@@ -355,7 +342,7 @@ class DeltaProcessor
                 }
                 else
                 {   // Matched - this column will not be added to the delta map.
-                    copyColumns.remove(otherColumnValue)
+                    copyColumns.remove(otherColumn.value)
                 }
             }
 
