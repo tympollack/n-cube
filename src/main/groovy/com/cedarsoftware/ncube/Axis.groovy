@@ -357,44 +357,18 @@ class Axis
         }
         else if (type == AxisType.RANGE)
         {
-            Range range = column.getValue() as Range
-            if (range == null)
-            {   // Default column being processed
-                return
-            }
-
-            insertRange(range, column)
+            rangeToCol.put(valueToRange(column.value), column)
         }
         else if (type == AxisType.SET)
         {
-            RangeSet set = (RangeSet)column.getValue()
-            if (set == null)
-            {   // Default column being processed
-                return
-            }
-
+            RangeSet set = (RangeSet)column.value
             final int len = set.size()
             for (int i=0; i < len; i++)
             {
                 Comparable elem = set.get(i)
-                if (elem instanceof Range)
-                {
-                    Range range = (Range) elem
-                    insertRange(range, column)
-                }
-                else
-                {
-                    com.google.common.collect.Range range1 = com.google.common.collect.Range.closed(elem, elem)
-                    rangeToCol.put(range1, column)
-                }
+                rangeToCol.put(valueToRange(elem), column)
             }
         }
-    }
-
-    private void insertRange(Range range, Column column)
-    {
-        com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
-        rangeToCol.put(range1, column)
     }
 
     /**
@@ -641,7 +615,7 @@ class Axis
         }
         ensureUnique(column.getValue())
 
-        if (column.getValue() == null)
+        if (column.value == null)
         {
             column.setId(getDefaultColId())    // Safety check - should never happen
             defaultCol = column
@@ -714,9 +688,7 @@ class Axis
         }
         else if (type == AxisType.RANGE)
         {   // O(Log n) remove
-            Range range = (Range) col.value
-            com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
-            rangeToCol.remove(range1)
+            rangeToCol.remove(valueToRange(col.value))
         }
         else if (type == AxisType.SET)
         {   // O(Log n) remove
@@ -725,17 +697,7 @@ class Axis
             while (i.hasNext())
             {
                 Comparable item = i.next()
-                com.google.common.collect.Range range1
-                if (item instanceof Range)
-                {
-                    Range range = (Range) item
-                    range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
-                }
-                else
-                {
-                    range1 = com.google.common.collect.Range.closed(item, item)
-                }
-                rangeToCol.remove(range1)
+                rangeToCol.remove(valueToRange(item))
             }
         }
         else
@@ -799,7 +761,7 @@ class Axis
         // Step 1. Map all columns from passed in Collection by ID
         for (Column col : newCols)
         {
-            Column newColumn = createColumnFromValue(col.getValue(), null)
+            Column newColumn = createColumnFromValue(col.value, null)
             Map<String, Object> metaProperties = col.getMetaProperties()
             for (Map.Entry<String, Object> entry : metaProperties.entrySet())
             {
@@ -849,7 +811,7 @@ class Axis
         // set display order to match the columns coming in from the DTO axis (argument).
         for (Column col : newCols)
         {
-            if (col.getValue() == null)
+            if (col.value == null)
             {   // Skip Default column
                 continue
             }
@@ -1112,7 +1074,7 @@ class Axis
             if (!getColumnsWithoutDefault().isEmpty())
             {
                 Column col = idToCol.values()[0]
-                if (value.getClass() != col.getValue().getClass())
+                if (value.getClass() != col.value.getClass())
                 {
                     throw new IllegalArgumentException("Value '" + value.getClass().getName() + "' cannot be added to axis '" + name + "' where the values are of type: " + col.getValue().getClass().getName())
                 }
@@ -1287,16 +1249,25 @@ class Axis
             {
                 throw new IllegalArgumentException("Attempt to search non-Range axis to match a Range")
             }
-            Range thatRange = value as Range
-            for (Column column : getColumns())
+            RangeMap rangeMap = rangeToCol.subRangeMap(valueToRange(value))
+            Map matches = rangeMap.asMapOfRanges()
+            if (matches.size() == 1)
             {
-                Range thisRange = column.getValue() as Range
-                if (thisRange.equals(thatRange))
-                {
-                    return column
-                }
+                return matches.values().first()
             }
-            return null
+            else
+            {
+                Range thatRange = value as Range
+                for (Column column : getColumns())
+                {
+                    Range thisRange = column.value as Range
+                    if (thisRange.equals(thatRange))
+                    {
+                        return column
+                    }
+                }
+                return null
+            }
         }
 
         if (value instanceof RangeSet)
@@ -1308,7 +1279,7 @@ class Axis
             RangeSet thatSet = value as RangeSet
             for (Column column : getColumns())
             {
-                RangeSet thisSet = column.getValue() as RangeSet
+                RangeSet thisSet = column.value as RangeSet
                 if (thisSet.equals(thatSet))
                 {
                     return column
@@ -1400,6 +1371,24 @@ class Axis
     }
 
     /**
+     * Convert the passed in Comparable to a Gauva Range
+     * @param value Comparable, typically a DISCRETE or Range value
+     * @return Guava Range instance - Range will be closedOpen [ ) for RANGE, and closed [ ] for DISCRETE value
+     */
+    private static com.google.common.collect.Range valueToRange(Comparable value)
+    {
+        if (value instanceof Range)
+        {
+            Range range = (Range) value
+            return com.google.common.collect.Range.closedOpen(range.low, range.high)
+        }
+        else
+        {
+            return com.google.common.collect.Range.closed(value, value)
+        }
+    }
+
+    /**
      * Ensure that the passed in range does not overlap an existing Range on this
      * 'Range-type' axis.  Test low range limit to see if it is valid.
      * Axis is already a RANGE type before this method is called.
@@ -1408,8 +1397,7 @@ class Axis
      */
     private boolean doesOverlap(Range range)
     {
-        com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
-        RangeMap ranges = rangeToCol.subRangeMap(range1)
+        RangeMap ranges = rangeToCol.subRangeMap(valueToRange(range))
         return ranges.asMapOfRanges().size() > 0
     }
 
@@ -1425,23 +1413,10 @@ class Axis
         while (i.hasNext())
         {
             Comparable item = i.next()
-            if (item instanceof Range)
+            RangeMap rangeMap = rangeToCol.subRangeMap(valueToRange(item))
+            if (rangeMap.asMapOfRanges().size() > 0)
             {
-                Range range = (Range)item
-                com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
-                RangeMap ranges = rangeToCol.subRangeMap(range1)
-                if (ranges.asMapOfRanges().size() > 0)
-                {
-                    return true
-                }
-            }
-            else
-            {
-                Column column = rangeToCol.get(item)
-                if (column != null)
-                {
-                    return true
-                }
+                return true
             }
         }
         return false
@@ -1498,10 +1473,10 @@ class Axis
         {
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)
-            {
-                Set<Column> sortedSet = new TreeSet<>()
-                sortedSet.addAll(rangeToCol.asMapOfRanges().values())
-                cols.addAll(sortedSet)
+            {   // Consolidate Columns on the value side of the Map (multiple ranges can point to the same Column)
+                Set<Column> set = new LinkedHashSet<>() // maintain order
+                set.addAll(rangeToCol.asMapOfRanges().values())
+                cols.addAll(set)
             }
             else
             {
