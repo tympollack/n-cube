@@ -1,7 +1,8 @@
-package com.cedarsoftware.ncube.proximity;
+package com.cedarsoftware.ncube.proximity
 
 
-import com.cedarsoftware.ncube.CellInfo;
+import com.cedarsoftware.ncube.CellInfo
+import groovy.transform.CompileStatic
 
 /**
  * This class is used to represent a 2D point.
@@ -22,61 +23,62 @@ import com.cedarsoftware.ncube.CellInfo;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class Point2D implements Distance<Point2D>
+@CompileStatic
+class Point2D implements Distance<Point2D>
 {
-	private final double x;
-	private final double y;
+	private final double x
+	private final double y
 
-	public Point2D(double x, double y)
+	Point2D(double x, double y)
 	{
-		this.x = x;
-		this.y = y;
+		this.x = x
+		this.y = y
 	}
 
-	public boolean equals(Object obj)
+	boolean equals(Object obj)
 	{
 		if (!(obj instanceof Point2D))
 		{
-			return false;
+			return false
 		}
 
 		Point2D that = (Point2D) obj;
-		return x == that.x && y == that.y;
+		return x == that.x && y == that.y
 	}
 
-	public double distance(Point2D that)
+	double distance(Point2D that)
 	{
-		double dx = that.x - x;
-		double dy = that.y - y;
-		return Math.sqrt(dx * dx + dy * dy);
+		double dx = that.x - x
+		double dy = that.y - y
+		return Math.sqrt(dx * dx + dy * dy)
 	}
 
-	public String toString()
+	String toString()
 	{
-        return String.format("%s, %s", CellInfo.formatForEditing(x), CellInfo.formatForEditing(y));
+        return String.format("%s, %s", CellInfo.formatForEditing(x), CellInfo.formatForEditing(y))
 	}
 
-	public int compareTo(Point2D that)
+	int compareTo(Point2D that)
 	{
 		if (x < that.x)
 		{
-			return -1;
+			return -1
 		}
 		if (x > that.x)
 		{
-			return 1;
+			return 1
 		}
 		if (y < that.y)
 		{
-			return -1;
+			return -1
 		}
 		if (y > that.y)
 		{
-			return 1;
+			return 1
 		}
-		return 0;
+		return 0
 	}
 
-    public double getX() { return x; }
-    public double getY() { return y; }
+    double getX() { return x }
+    double getY() { return y }
 }

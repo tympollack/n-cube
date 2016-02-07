@@ -1,4 +1,6 @@
-package com.cedarsoftware.ncube.proximity;
+package com.cedarsoftware.ncube.proximity
+
+import groovy.transform.CompileStatic
 
 /**
  * Implement this interface so that your class can be used on a NEAREST AxisType
@@ -20,7 +22,8 @@ package com.cedarsoftware.ncube.proximity;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public interface Distance<T> extends Comparable<T>
+@CompileStatic
+interface Distance<T> extends Comparable<T>
 {
-    double distance(T other);
+    double distance(T other)
 }

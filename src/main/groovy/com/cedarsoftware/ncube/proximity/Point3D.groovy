@@ -1,6 +1,9 @@
-package com.cedarsoftware.ncube.proximity;
+package com.cedarsoftware.ncube.proximity
 
-import com.cedarsoftware.ncube.CellInfo;
+import com.cedarsoftware.ncube.CellInfo
+import groovy.transform.CompileStatic
+
+import static java.lang.Math.sqrt
 
 /**
  * This class is used to represent a 3D point.  This
@@ -11,7 +14,7 @@ import com.cedarsoftware.ncube.CellInfo;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -23,89 +26,89 @@ import com.cedarsoftware.ncube.CellInfo;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class Point3D implements Distance<Point3D>
+@CompileStatic
+class Point3D implements Distance<Point3D>
 {
-	private final double x;
-	private final double y;
-	private final double z;
+	private final double x
+	private final double y
+	private final double z
 
-	public Point3D(double x, double y, double z)
+	Point3D(double x, double y, double z)
 	{
-		this.x = x;
-		this.y = y;
-		this.z = z;
+		this.x = x
+		this.y = y
+		this.z = z
 	}
 
-	public boolean equals(Object obj)
+	boolean equals(Object obj)
 	{
 		if (!(obj instanceof Point3D))
 		{
-			return false;
+			return false
 		}
 
 		Point3D that = (Point3D) obj;
-		return x == that.x && y == that.y && z == that.z;
+		return x == that.x && y == that.y && z == that.z
 	}
 
-	public int compareTo(Point3D that)
+	int compareTo(Point3D that)
 	{
 		if (x < that.x)
 		{
-			return -1;
+			return -1
 		}
 		if (x > that.x)
 		{
-			return 1;
+			return 1
 		}
 		if (y < that.y)
 		{
-			return -1;
+			return -1
 		}
 		if (y > that.y)
 		{
-			return 1;
+			return 1
 		}
 		if (z < that.z)
 		{
-			return -1;
+			return -1
 		}
 		if (z > that.z)
 		{
-			return 1;
+			return 1
 		}
-		return 0;
+		return 0
 	}
 
-	public double distance(Point3D that)
+	double distance(Point3D that)
 	{
-		double dx = that.x - x;
-		double dy = that.y - y;
-		double dz = that.z - z;
+		double dx = that.x - x
+		double dy = that.y - y
+		double dz = that.z - z
 
-		return Math.sqrt(dx * dx + dy * dy + dz * dz);
+		sqrt(dx * dx + dy * dy + dz * dz)
 	}
 
-	public String toString()
+	String toString()
 	{
         return String.format("%s, %s, %s",
                 CellInfo.formatForEditing(x),
                 CellInfo.formatForEditing(y),
-                CellInfo.formatForEditing(z));
+                CellInfo.formatForEditing(z))
 	}
 
-    public double getX()
+    double getX()
     {
-        return x;
+        return x
     }
 
-    public double getY()
+    double getY()
     {
-        return y;
+        return y
     }
 
-    public double getZ()
+    double getZ()
     {
-        return z;
+        return z
     }
-
 }
