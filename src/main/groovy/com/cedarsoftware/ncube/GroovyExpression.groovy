@@ -42,7 +42,7 @@ import java.util.regex.Matcher
  * Copyright (c) 2012-2015, John DeRegnaucourt.  All rights reserved.
  */
 @CompileStatic
-public class GroovyExpression extends GroovyBase
+class GroovyExpression extends GroovyBase
 {
     public static final String EXP_IMPORTS = "exp.imports"
     public static final String EXP_CLASS = "exp.class"
@@ -51,12 +51,12 @@ public class GroovyExpression extends GroovyBase
 
     //  Private constructor only for serialization.
     private GroovyExpression() { }
-    public GroovyExpression(String cmd, String url, boolean cache)
+    GroovyExpression(String cmd, String url, boolean cache)
     {
         super(cmd, url, cache)
     }
 
-    public String buildGroovy(Map<String, Object> ctx, String theirGroovy)
+    String buildGroovy(Map<String, Object> ctx, String theirGroovy)
     {
         Matcher m = Regexes.hasClassDefPattern.matcher(theirGroovy)
         if (m.find())
@@ -206,7 +206,7 @@ import com.cedarsoftware.util.io.*
 
         try
         {
-            ret = instance.run();
+            ret = instance.run()
         }
         catch (ThreadDeath e)
         {

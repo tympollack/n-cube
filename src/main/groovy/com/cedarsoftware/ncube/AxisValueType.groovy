@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
+
 /**
  * This class defines allowable n-cube axis value types.
  *
@@ -19,7 +21,8 @@ package com.cedarsoftware.ncube
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public enum AxisValueType
+@CompileStatic
+enum AxisValueType
 {
     STRING, 		// For Java Strings.  Strings will be compared with .equals()
     LONG, 			// For any integral java type (byte, short, int, long).  All of those will be promoted to long internally.

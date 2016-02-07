@@ -32,7 +32,7 @@ import java.util.regex.Matcher
  *         limitations under the License.
  */
 @CompileStatic
-public abstract class GroovyBase extends UrlCommandCell
+abstract class GroovyBase extends UrlCommandCell
 {
     private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
     protected transient String cmdHash
@@ -42,17 +42,17 @@ public abstract class GroovyBase extends UrlCommandCell
     //  Private constructor only for serialization.
     protected GroovyBase() {}
 
-    public GroovyBase(String cmd, String url, boolean cache)
+    GroovyBase(String cmd, String url, boolean cache)
     {
         super(cmd, url, cache)
     }
 
-    public Class getRunnableCode()
+    Class getRunnableCode()
     {
         return runnableCode
     }
 
-    public void setRunnableCode(Class runnableCode)
+    void setRunnableCode(Class runnableCode)
     {
         this.runnableCode = runnableCode
     }
@@ -98,7 +98,7 @@ public abstract class GroovyBase extends UrlCommandCell
 
     protected abstract String buildGroovy(Map<String, Object> ctx, String theirGroovy)
 
-    static void clearCache(ApplicationID appId)
+    protected static void clearCache(ApplicationID appId)
     {
         Map<String, Class> compiledMap = getCache(appId, compiledClasses)
         compiledMap.clear()
@@ -145,7 +145,7 @@ public abstract class GroovyBase extends UrlCommandCell
      * Conditionally compile the passed in command.  If it is already compiled, this method
      * immediately returns.  Insta-check because it is just a ref == null check.
      */
-    public void prepare(Object data, Map<String, Object> ctx)
+    void prepare(Object data, Map<String, Object> ctx)
     {
         if (getRunnableCode() != null)
         {   // If the code for the cell has already been compiled, return the compiled class.
@@ -252,7 +252,7 @@ public abstract class GroovyBase extends UrlCommandCell
         return gcLoader.parseClass(groovySource, 'N_' + cmdHash + '.groovy')
     }
 
-    static String expandNCubeShortCuts(String groovy)
+    protected static String expandNCubeShortCuts(String groovy)
     {
         Matcher m = Regexes.groovyAbsRefCubeCellPattern.matcher(groovy)
         String exp = m.replaceAll('$1go($3, \'$2\')')
@@ -280,12 +280,12 @@ public abstract class GroovyBase extends UrlCommandCell
         return exp
     }
 
-    public void getCubeNamesFromCommandText(final Set<String> cubeNames)
+    void getCubeNamesFromCommandText(final Set<String> cubeNames)
     {
         getCubeNamesFromText(cubeNames, getCmd())
     }
 
-    static void getCubeNamesFromText(final Set<String> cubeNames, final String text)
+    protected static void getCubeNamesFromText(final Set<String> cubeNames, final String text)
     {
         if (StringUtilities.isEmpty(text))
         {
@@ -340,7 +340,7 @@ public abstract class GroovyBase extends UrlCommandCell
      * and add the variableName as a scope (key).
      * @param scopeKeys Set to add required scope keys to.
      */
-    public void getScopeKeys(Set<String> scopeKeys)
+    void getScopeKeys(Set<String> scopeKeys)
     {
         Matcher m = Regexes.inputVar.matcher(getCmd())
         while (m.find())
@@ -349,7 +349,7 @@ public abstract class GroovyBase extends UrlCommandCell
         }
     }
 
-    public static Set<String> getImports(String text, StringBuilder newGroovy)
+    static Set<String> getImports(String text, StringBuilder newGroovy)
     {
         Matcher m = Regexes.importPattern.matcher(text)
         Set<String> importNames = new LinkedHashSet<>()

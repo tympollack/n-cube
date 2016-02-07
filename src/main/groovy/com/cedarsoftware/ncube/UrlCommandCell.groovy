@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * limitations under the License.
  */
 @CompileStatic
-public abstract class UrlCommandCell implements CommandCell
+abstract class UrlCommandCell implements CommandCell
 {
     private String cmd
     private volatile transient String errorMsg = null
@@ -36,7 +36,7 @@ public abstract class UrlCommandCell implements CommandCell
     //  Private constructor only for serialization.
     protected UrlCommandCell() { }
 
-    public UrlCommandCell(String cmd, String url, boolean cacheable)
+    UrlCommandCell(String cmd, String url, boolean cacheable)
     {
         if (cmd == null && url == null)
         {
@@ -54,17 +54,17 @@ public abstract class UrlCommandCell implements CommandCell
         this.hash = cmd == null ? url.hashCode() : cmd.hashCode()
     }
 
-    public String getUrl()
+    String getUrl()
     {
         return url
     }
 
-    public boolean isCacheable()
+    boolean isCacheable()
     {
         return cacheable
     }
 
-    public void clearClassLoaderCache()
+    void clearClassLoaderCache()
     {
         if (!hasBeenCached.get())
         {
@@ -117,22 +117,22 @@ public abstract class UrlCommandCell implements CommandCell
         return actualUrl
     }
 
-    public static NCube getNCube(Map<String, Object> ctx)
+    static NCube getNCube(Map<String, Object> ctx)
     {
         return (NCube) ctx.ncube
     }
 
-    public static Map getInput(Map<String, Object> ctx)
+    static Map getInput(Map<String, Object> ctx)
     {
         return (Map) ctx.input
     }
 
-    public static Map getOutput(Map<String, Object> ctx)
+    static Map getOutput(Map<String, Object> ctx)
     {
         return (Map) ctx.output
     }
 
-    public boolean equals(Object other)
+    boolean equals(Object other)
     {
         if (!(other instanceof UrlCommandCell))
         {
@@ -149,22 +149,22 @@ public abstract class UrlCommandCell implements CommandCell
         return url.equals(that.getUrl())
     }
 
-    public int hashCode()
+    int hashCode()
     {
         return this.hash
     }
 
-    public String getCmd()
+    String getCmd()
     {
         return cmd
     }
 
-    public String toString()
+    String toString()
     {
         return url == null ? cmd : url
     }
 
-    public void failOnErrors()
+    void failOnErrors()
     {
         if (errorMsg != null)
         {
@@ -172,17 +172,17 @@ public abstract class UrlCommandCell implements CommandCell
         }
     }
 
-    public void setErrorMessage(String msg)
+    void setErrorMessage(String msg)
     {
         errorMsg = msg
     }
 
-    public String getErrorMessage()
+    String getErrorMessage()
     {
         return errorMsg
     }
 
-    public int compareTo(CommandCell cmdCell)
+    int compareTo(CommandCell cmdCell)
     {
         String cmd1 = cmd == null ? '' : cmd
         String cmd2 = cmdCell.getCmd() == null ? '' : cmdCell.getCmd()
@@ -199,15 +199,15 @@ public abstract class UrlCommandCell implements CommandCell
         return comp
     }
 
-    public void getCubeNamesFromCommandText(Set<String> cubeNames)
+    void getCubeNamesFromCommandText(Set<String> cubeNames)
     {
     }
 
-    public void getScopeKeys(Set<String> scopeKeys)
+    void getScopeKeys(Set<String> scopeKeys)
     {
     }
 
-    public Object execute(Map<String, Object> ctx)
+    Object execute(Map<String, Object> ctx)
     {
         failOnErrors()
 

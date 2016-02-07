@@ -46,11 +46,11 @@ class ApplicationID
     // For serialization support only
     private ApplicationID()
     {
-        tenant = DEFAULT_TENANT;
-        app = DEFAULT_APP;
-        version = DEFAULT_VERSION;
+        tenant = DEFAULT_TENANT
+        app = DEFAULT_APP
+        version = DEFAULT_VERSION
         status = ReleaseStatus.SNAPSHOT.name()
-        branch = HEAD;
+        branch = HEAD
     }
 
     ApplicationID(String tenant, String app, String version, String status, String branch)

@@ -32,19 +32,19 @@ import java.util.regex.Pattern
  *         limitations under the License.
  */
 @CompileStatic
-public class GroovyTemplate extends ContentCmdCell
+class GroovyTemplate extends ContentCmdCell
 {
     private Template resolvedTemplate
 
     //  Private constructor only for serialization.
     private GroovyTemplate() { }
 
-    public GroovyTemplate(String cmd, String url, boolean cache)
+    GroovyTemplate(String cmd, String url, boolean cache)
     {
         super(cmd, url, cache)
     }
 
-    public void getCubeNamesFromCommandText(final Set<String> cubeNames)
+    void getCubeNamesFromCommandText(final Set<String> cubeNames)
     {
         String cmd = getCmd()
         if (cmd == null)
@@ -73,7 +73,7 @@ public class GroovyTemplate extends ContentCmdCell
      * the passed in Set.
      * @param scopeKeys Set to add required scope (key) elements to.
      */
-    public void getScopeKeys(Set<String> scopeKeys)
+    void getScopeKeys(Set<String> scopeKeys)
     {
         Matcher m = Regexes.scripletPattern.matcher(getCmd())  // <%  %>
 

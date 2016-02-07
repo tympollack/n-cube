@@ -1,13 +1,10 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.proximity.Distance;
-import com.cedarsoftware.util.StringUtilities;
+import com.cedarsoftware.ncube.proximity.Distance
+import com.cedarsoftware.util.StringUtilities
+import groovy.transform.CompileStatic
 
-import java.math.BigDecimal;
-import java.util.Date;
-
-import static java.lang.Math.abs;
-
+import static java.lang.Math.abs
 /**
  * Class used to compute distance (proximity) for many different
  * data types.  For basic data types like ints, longs, Dates, etc.,
@@ -19,7 +16,7 @@ import static java.lang.Math.abs;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -31,57 +28,57 @@ import static java.lang.Math.abs;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public final class Proximity
+@CompileStatic
+final class Proximity
 {
-    private Proximity() {
-    }
+    private Proximity() { }
 
-	public static double distance(Comparable source, Comparable target)
+	static double distance(Comparable source, Comparable target)
 	{
         if (source == null || target == null)
         {
             throw new IllegalArgumentException("Neither source nor target can be null for NEAREST axis comparison." +
-            "\nSource: " + source + ", Target: " + target);
+            "\nSource: " + source + ", Target: " + target)
         }
 
         if (source.getClass() != target.getClass())
         {
             throw new IllegalArgumentException("Source and Target data types must be the same for a NEAREST axis comparison." +
-            "\nSource: " + source + ", Target: " + target);
+            "\nSource: " + source + ", Target: " + target)
         }
 
 		if (source instanceof Long)
 		{   // This covers byte, short, int, and long (data type promotion has already occurred).
-			return abs((Long)source - (Long) target);
+			return abs((source as Long) - (target as Long))
 		}
         else if (source instanceof Date)
         {
-            long v = ((Date)source).getTime();
-            long thatValue = ((Date)target).getTime();
-            return abs(v - thatValue);
+            long v = (source as Date).getTime()
+            long thatValue = (target as Date).getTime()
+            return abs(v - thatValue)
         }
         else if (source instanceof Double)
         {   // Covers float and double
-            double v = (Double) source;
-            double thatValue = (Double) target;
-            return abs(v - thatValue);
+            double v = source as Double
+            double thatValue = target as Double
+            return abs(v - thatValue)
         }
         else if (source instanceof BigDecimal)
         {
-            BigDecimal v = (BigDecimal) source;
-            BigDecimal thatValue = (BigDecimal) target;
-            return v.subtract(thatValue).abs().doubleValue();
+            BigDecimal v = source as BigDecimal
+            BigDecimal thatValue = (BigDecimal) target
+            return v.subtract(thatValue).abs().doubleValue()
         }
         else if (source instanceof String)
         {
-            return StringUtilities.levenshteinDistance((String) source, (String) target);
+            return StringUtilities.levenshteinDistance(source as String, (String) target)
         }
         else if (source instanceof Distance)
         {
-            return ((Distance) source).distance(target);
+            return (source as Distance).distance(target)
         }
         throw new IllegalArgumentException("Unsupported datatype for NEAREST axis." +
         "\nSource: " + source.getClass().getName() + ", Source Value: " + source +
-        "\nTarget Value: " + target);
+        "\nTarget Value: " + target)
 	}
 }

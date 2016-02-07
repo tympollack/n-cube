@@ -27,7 +27,7 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-public class Binding
+class Binding
 {
     private final String cubeName
     private final int depth
@@ -36,59 +36,59 @@ public class Binding
     private Object value
     private static final String newLine = "\n"
 
-    public Binding(String cubeName, int stackDepth)
+    Binding(String cubeName, int stackDepth)
     {
         this.cubeName = cubeName
         this.depth = stackDepth
     }
 
-    public String getCubeName()
+    String getCubeName()
     {
         return cubeName
     }
 
-    public void bind(String axisName, Column column)
+    void bind(String axisName, Column column)
     {
         coord[axisName] = column
         idCoord.add(column.id)
     }
 
-    public Object getValue()
+    Object getValue()
     {
         return value
     }
 
-    public int getDepth()
+    int getDepth()
     {
         return depth
     }
 
-    public void setValue(Object value)
+    void setValue(Object value)
     {
         this.value = value
     }
 
-    public int getNumBoundAxes()
+    int getNumBoundAxes()
     {
         return idCoord.size()
     }
 
-    public Set<Long> getIdCoordinate()
+    Set<Long> getIdCoordinate()
     {
         return idCoord
     }
 
-    public Map<String, Column> getCoordinate()
+    Map<String, Column> getCoordinate()
     {
         return coord
     }
 
-    public String toString()
+    String toString()
     {
         return toHtml(false)
     }
 
-    public String toHtml()
+    String toHtml()
     {
         return toHtml(true)
     }
@@ -133,7 +133,7 @@ public class Binding
         return s.toString()
     }
 
-    public static String padString(String string, int length)
+    static String padString(String string, int length)
     {
         StringBuilder s = new StringBuilder()
         for (int i=0; i < length; i++)

@@ -25,13 +25,13 @@ import org.apache.logging.log4j.Logger
  *         limitations under the License.
  */
 @CompileStatic
-public class BinaryUrlCmd extends ContentCmdCell
+class BinaryUrlCmd extends ContentCmdCell
 {
     private static final Logger LOG = LogManager.getLogger(BinaryUrlCmd.class)
     //  Private constructor only for serialization.
     private BinaryUrlCmd() {}
 
-    public BinaryUrlCmd(String url, boolean cache)
+    BinaryUrlCmd(String url, boolean cache)
     {
         super(null, url, cache)
     }

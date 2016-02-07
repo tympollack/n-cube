@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
+
 /**
  * This class defines allowable n-cube axis types.
  *
@@ -19,7 +21,8 @@ package com.cedarsoftware.ncube
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public enum AxisType
+@CompileStatic
+enum AxisType
 {
     DISCRETE,       // Single Comparable
     RANGE,          // Deprecated, use SET

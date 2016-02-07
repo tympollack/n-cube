@@ -34,7 +34,7 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-public interface CommandCell extends Comparable<CommandCell>
+interface CommandCell extends Comparable<CommandCell>
 {
     String getCmd()
     String getUrl()

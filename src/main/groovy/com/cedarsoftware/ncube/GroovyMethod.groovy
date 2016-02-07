@@ -52,18 +52,18 @@ import ncube.grv.method.NCubeGroovyController
  *         limitations under the License.
  */
 @CompileStatic
-public class GroovyMethod extends GroovyBase
+class GroovyMethod extends GroovyBase
 {
     //  Private constructor only for serialization.
 
     private GroovyMethod() {}
 
-    public GroovyMethod(String cmd, String url, boolean cacheable)
+    GroovyMethod(String cmd, String url, boolean cacheable)
     {
         super(cmd, url, cacheable)
     }
 
-    public String buildGroovy(Map<String, Object> ctx, String theirGroovy)
+    String buildGroovy(Map<String, Object> ctx, String theirGroovy)
     {
         return theirGroovy
     }
