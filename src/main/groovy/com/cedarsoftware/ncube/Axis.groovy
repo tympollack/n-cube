@@ -148,11 +148,12 @@ class Axis
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             valueToCol = new TreeMap<>()
+            rangeToCol = null
         }
-
-        if (type == AxisType.RANGE || type == AxisType.SET)
+        else if (type == AxisType.RANGE || type == AxisType.SET)
         {
             rangeToCol = TreeRangeMap.create()
+            valueToCol = null
         }
     }
 
@@ -194,10 +195,12 @@ class Axis
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
             valueToCol = new TreeMap<>()
+            rangeToCol = null
         }
-        if (type == AxisType.RANGE || type == AxisType.SET)
+        else if (type == AxisType.RANGE || type == AxisType.SET)
         {
             rangeToCol = TreeRangeMap.create()
+            valueToCol = null
         }
     }
 
@@ -340,17 +343,17 @@ class Axis
         }
 
         // 3. Index columns by display order (if not the default column)
-        if (column.value != null)
-        {
-            displayOrder[column.displayOrder] = column
+        displayOrder[column.displayOrder] = column
+
+        // 4. Index column by value
+        if (column.value == null)
+        {   // No value to index (default column)
+            return
         }
 
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
-            if (column.value != null)
-            {
-                valueToCol[standardizeColumnValue(column.value)] = column
-            }
+            valueToCol[standardizeColumnValue(column.value)] = column
         }
         else if (type == AxisType.RANGE)
         {
@@ -469,6 +472,7 @@ class Axis
         displayOrder.clear()
         valueToCol?.clear()
         rangeToCol?.clear()
+        colIdBase = 0
     }
 
     /**
@@ -699,25 +703,39 @@ class Axis
         colNameToCol.remove(col.getColumnName())
         displayOrder.remove(col.displayOrder)
         if (col.value == null)
-        {
+        {   // Default Column is not index by value/range (null)
             return
         }
 
+        // Remove from 'value' storage
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {
+        {   // O(1) remove
             valueToCol.remove(standardizeColumnValue(col.value))
         }
-        else if (type == AxisType.SET || type == AxisType.RANGE)
-        {
-            Map ranges = rangeToCol.asMapOfRanges()
-            Iterator<Column> i = ranges.values().iterator()
+        else if (type == AxisType.RANGE)
+        {   // O(Log n) remove
+            Range range = (Range) col.value
+            com.google.common.collect.Range range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
+            rangeToCol.remove(range1)
+        }
+        else if (type == AxisType.SET)
+        {   // O(Log n) remove
+            RangeSet set = (RangeSet) col.value
+            Iterator<Comparable> i = set.iterator()
             while (i.hasNext())
             {
-                Column column = i.next()
-                if (column.equals(col))
-                {   // Multiple ranges may have pointed to the passed in column (same as above concern)
-                    i.remove()
+                Comparable item = i.next()
+                com.google.common.collect.Range range1
+                if (item instanceof Range)
+                {
+                    Range range = (Range) item
+                    range1 = com.google.common.collect.Range.closedOpen(range.low, range.high)
                 }
+                else
+                {
+                    range1 = com.google.common.collect.Range.closed(item, item)
+                }
+                rangeToCol.remove(range1)
             }
         }
         else
