@@ -1494,13 +1494,7 @@ class Axis
             cols.addAll(displayOrder.values())
             return cols
         }
-        else if (type == AxisType.RANGE)
-        {
-            List<Column> cols = new ArrayList<>(size())
-            cols.addAll(rangeToCol.asMapOfRanges().values())
-            return cols
-        }
-        else if (type == AxisType.SET)
+        else if (type == AxisType.RANGE || type == AxisType.SET)
         {
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)

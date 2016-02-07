@@ -59,7 +59,7 @@ class TestAxis
             axis.addColumn value
             return true
         }
-        catch (AxisOverlapException e)
+        catch (AxisOverlapException ignored)
         {
             return false
         }
@@ -227,6 +227,282 @@ class TestAxis
         {
             expected.message.toLowerCase().contains("unsupported value type")
         }
+    }
+
+    @Test
+    void testRangeOrderSorted()
+    {
+        Axis axis = new Axis("Age", AxisType.RANGE, AxisValueType.LONG, false, Axis.SORTED)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(new Range(18, 30))
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new Range(0L, 18L)
+        assert cols[1].value == new Range(18L, 30L)
+        assert cols[2].value == new Range(65L, 80L)
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeOrderDisplay()
+    {
+        Axis axis = new Axis("Age", AxisType.RANGE, AxisValueType.LONG, false, Axis.DISPLAY)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(new Range(18, 30))
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new Range(65L, 80L)
+        assert cols[1].value == new Range(18L, 30L)
+        assert cols[2].value == new Range(0L, 18L)
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeOrderSortedDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.RANGE, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(new Range(18, 30))
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new Range(0L, 18L)
+        assert cols[1].value == new Range(18L, 30L)
+        assert cols[2].value == new Range(65L, 80L)
+        assert cols[3].value == null
+        assert cols.size() == 4
+    }
+
+    @Test
+    void testRangeOrderDisplayDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.RANGE, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(new Range(18, 30))
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new Range(65L, 80L)
+        assert cols[1].value == new Range(18L, 30L)
+        assert cols[2].value == new Range(0L, 18L)
+        assert cols[3].value == null
+        assert cols.size() == 4
+    }
+
+    @Test
+    void testRangeOrderSortedWithoutDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.RANGE, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(new Range(18, 30))
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumnsWithoutDefault()
+        assert cols[0].value == new Range(0L, 18L)
+        assert cols[1].value == new Range(18L, 30L)
+        assert cols[2].value == new Range(65L, 80L)
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeOrderDisplayWithoutDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.RANGE, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(new Range(18, 30))
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumnsWithoutDefault()
+        assert cols[0].value == new Range(65L, 80L)
+        assert cols[1].value == new Range(18L, 30L)
+        assert cols[2].value == new Range(0L, 18L)
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeSetOrderSorted()
+    {
+        Axis axis = new Axis("Age", AxisType.SET, AxisValueType.LONG, false, Axis.SORTED)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(18)
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new RangeSet(new Range(0L, 18L))
+        assert cols[1].value == new RangeSet(18L)
+        assert cols[2].value == new RangeSet(new Range(65L, 80L))
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeSetOrderDisplay()
+    {
+        Axis axis = new Axis("Age", AxisType.SET, AxisValueType.LONG, false, Axis.DISPLAY)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(18)
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new RangeSet(new Range(65L, 80L))
+        assert cols[1].value == new RangeSet(18L)
+        assert cols[2].value == new RangeSet(new Range(0L, 18L))
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeSetOrderSortedDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.SET, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(18)
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new RangeSet(new Range(0L, 18L))
+        assert cols[1].value == new RangeSet(18L)
+        assert cols[2].value == new RangeSet(new Range(65L, 80L))
+        assert cols[3].value == null
+        assert cols.size() == 4
+    }
+
+    @Test
+    void testRangeSetOrderDisplayDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.SET, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(18)
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == new RangeSet(new Range(65L, 80L))
+        assert cols[1].value == new RangeSet(18L)
+        assert cols[2].value == new RangeSet(new Range(0L, 18L))
+        assert cols[3].value == null
+        assert cols.size() == 4
+    }
+
+    @Test
+    void testRangeSetOrderSortedWithoutDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.SET, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(18)
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumnsWithoutDefault()
+        assert cols[0].value == new RangeSet(new Range(0L, 18L))
+        assert cols[1].value == new RangeSet(18L)
+        assert cols[2].value == new RangeSet(new Range(65L, 80L))
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testRangeSetOrderDisplayWithoutDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.SET, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(new Range(65, 80))
+        axis.addColumn(18)
+        axis.addColumn(new Range(0, 18))
+
+        List<Column> cols = axis.getColumnsWithoutDefault()
+        assert cols[0].value == new RangeSet(new Range(65L, 80L))
+        assert cols[1].value == new RangeSet(18L)
+        assert cols[2].value == new RangeSet(new Range(0L, 18L))
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testDiscreteOrderSorted()
+    {
+        Axis axis = new Axis("Age", AxisType.DISCRETE, AxisValueType.LONG, false, Axis.SORTED)
+        axis.addColumn(65)
+        axis.addColumn(18)
+        axis.addColumn(0)
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == 0L
+        assert cols[1].value == 18L
+        assert cols[2].value == 65L
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testDiscreteOrderDisplay()
+    {
+        Axis axis = new Axis("Age", AxisType.DISCRETE, AxisValueType.LONG, false, Axis.DISPLAY)
+        axis.addColumn(65)
+        axis.addColumn(18)
+        axis.addColumn(0)
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == 65L
+        assert cols[1].value == 18L
+        assert cols[2].value == 0L
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testDiscreteOrderSortedDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.DISCRETE, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(65)
+        axis.addColumn(18)
+        axis.addColumn(0)
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == 0L
+        assert cols[1].value == 18L
+        assert cols[2].value == 65L
+        assert cols[3].value == null
+        assert cols.size() == 4
+    }
+
+    @Test
+    void testDiscreteOrderDisplayDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.DISCRETE, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(65)
+        axis.addColumn(18)
+        axis.addColumn(0)
+
+        List<Column> cols = axis.getColumns()
+        assert cols[0].value == 65L
+        assert cols[1].value == 18L
+        assert cols[2].value == 0L
+        assert cols[3].value == null
+        assert cols.size() == 4
+    }
+
+    @Test
+    void testDiscreteOrderSortedWithoutDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.DISCRETE, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(65)
+        axis.addColumn(18)
+        axis.addColumn(0)
+
+        List<Column> cols = axis.getColumnsWithoutDefault()
+        assert cols[0].value == 0L
+        assert cols[1].value == 18L
+        assert cols[2].value == 65L
+        assert cols.size() == 3
+    }
+
+    @Test
+    void testDiscreteOrderDisplayWithoutDefault()
+    {
+        Axis axis = new Axis("Age", AxisType.DISCRETE, AxisValueType.LONG, true, Axis.DISPLAY)
+        axis.addColumn(65)
+        axis.addColumn(18)
+        axis.addColumn(0)
+
+        List<Column> cols = axis.getColumnsWithoutDefault()
+        assert cols[0].value == 65L
+        assert cols[1].value == 18L
+        assert cols[2].value == 0L
+        assert cols.size() == 3
     }
 
     @Test
@@ -1917,7 +2193,7 @@ class TestAxis
 
         try
         {
-            axis.addColumn(new Range(45, 65))
+            axis.addColumn(new Range(12, 21))
             fail()
         }
         catch (AxisOverlapException ignore)
@@ -1933,7 +2209,15 @@ class TestAxis
 
         try
         {
-            axis.addColumn(new Range(0, 100))
+            axis.addColumn(new Range(0, 110))
+            fail()
+        }
+        catch (AxisOverlapException ignore)
+        { }
+
+        try
+        {
+            axis.addColumn(new Range(89, 92))
             fail()
         }
         catch (AxisOverlapException ignore)
@@ -1948,7 +2232,9 @@ class TestAxis
         { }
 
         axis.addColumn(new Range(0, 10))
+        axis.addColumn(new Range(11, 12))
         axis.addColumn(new Range(41, 50))
+        axis.addColumn(new Range(91, 93))
         axis.addColumn(new Range(100, 200))
     }
 
