@@ -116,6 +116,76 @@ class TestDelta
     }
 
     @Test
+    void testDiscreteChangeSameColumnDifferently()
+    {
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+        assert cube1 == cube2
+
+        Axis state1 = cube1.getAxis('state')
+        Axis state2 = cube2.getAxis('state')
+
+        Column oh1 = state1.findColumn("OH")
+        Column oh2 = state2.findColumn("OH")
+        cube1.updateColumn(oh1.id, 'GA')
+        cube2.updateColumn(oh2.id, 'AZ')
+
+        assert cube1.getNumCells() == 2
+        assert cube2.getNumCells() == 2
+
+        assert cube1 != cube2
+
+        NCube<String> orig1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> orig2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig1, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig2, cube2)  // Other guy made no changes
+
+        boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        DeltaProcessor.mergeDeltaSet(cube2, delta1)
+
+        state2 = cube2.getAxis('state')
+        assert cube2.getNumCells() == 2
+        assert state2.getColumns().size() == 3
+        assert state2.findColumn('AZ')
+        assert state2.findColumn('TX')
+        assert state2.findColumn('GA')
+    }
+
+    @Test
+    void testDiscreteRemoveSameColumnDifferently()
+    {
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+        assert cube1 == cube2
+
+        Axis state1 = cube1.getAxis('state')
+        Axis state2 = cube2.getAxis('state')
+
+        Column oh1 = state1.findColumn("OH")
+        cube1.updateColumn(oh1.id, 'GA')
+        cube2.deleteColumn('state', 'OH')
+
+        assert cube1 != cube2
+
+        NCube<String> orig1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> orig2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig1, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig2, cube2)  // Other guy made no changes
+
+        boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        DeltaProcessor.mergeDeltaSet(cube2, delta1)
+
+        state2 = cube2.getAxis('state')
+        assert state2.getColumns().size() == 2
+        assert state2.findColumn('TX')
+        assert state2.findColumn('GA')
+    }
+
+    @Test
     void testDiscreteMergeAddCol()
     {
         NCube<String> cube1 = (NCube<String>) NCubeBuilder.get5DTestCube()
@@ -899,7 +969,7 @@ class TestDelta
     @Test
     void testColumnDeltaToString()
     {
-        ColumnDelta delta = new ColumnDelta(AxisType.DISCRETE, new Column('OH', 1), DeltaProcessor.DELTA_COLUMN_ADD)
+        ColumnDelta delta = new ColumnDelta(AxisType.DISCRETE, new Column('OH', 1), 'OH', DeltaProcessor.DELTA_COLUMN_ADD)
         assert delta.toString().contains('DISCRETE')
         assert delta.toString().contains('OH')
         assert delta.toString().contains('add')

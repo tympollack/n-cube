@@ -24,19 +24,21 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ColumnDelta
 {
-    ColumnDelta(AxisType axisType, Column column, String changeType)
-    {
-        this.axisType = axisType
-        this.column = column
-        this.changeType = changeType
-    }
-
     public AxisType axisType
     public Column column
     public String changeType
+    public Comparable locatorKey
 
-    public String toString()
+    ColumnDelta(AxisType axisType, Column column, Comparable locatorKey, String changeType)
     {
-        return '' + axisType + '/' + changeType + '/' + column.toString()
+        this.axisType = axisType
+        this.column = column
+        this.locatorKey = locatorKey
+        this.changeType = changeType
+    }
+
+    String toString()
+    {
+        return '' + axisType + '/' + changeType + '/' + column.toString() + '/' + locatorKey
     }
 }

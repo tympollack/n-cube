@@ -412,6 +412,49 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube getDiscrete1DAlt()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "SimpleDiscrete",
+  "axes": [
+    {
+      "name": "state",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000011,
+          "value": "OH"
+        },
+        {
+          "id": 1000000000012,
+          "value": "TX"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000011
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000012
+      ],
+      "type": "string",
+      "value": "2"
+    }
+  ]
+}''')
+    }
+
     static NCube getDiscrete1DEmpty()
     {
         return NCube.fromSimpleJson('''\
