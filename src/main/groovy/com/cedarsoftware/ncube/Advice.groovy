@@ -1,8 +1,8 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
 
-import java.lang.reflect.Method;
-import java.util.Map;
+import groovy.transform.CompileStatic
 
+import java.lang.reflect.Method
 /**
  * Implement this interface and pass a reference of this implementation to n-cube's
  * adviceHandler() API, and n-cube will call the handler before and after each
@@ -12,7 +12,7 @@ import java.util.Map;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -24,13 +24,14 @@ import java.util.Map;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public interface Advice
+@CompileStatic
+interface Advice
 {
     /**
      * What is the name of this advice?  "log", "perf", etc.  Names can be
      * whatever you want.
      */
-    String getName();
+    String getName()
 
     /**
      * This method is called before an n-cube expression or controller method is called.  This is only
@@ -42,7 +43,7 @@ public interface Advice
      * @return true if you want the method to be called (continue) false if you want execute to not go further (don't
      * call the method).
      */
-    boolean before(Method method, NCube ncube, Map input, Map output);
+    boolean before(Method method, NCube ncube, Map input, Map output)
 
     /**
      * This method is called after a n-cube expression or controller method is called.  This is
@@ -53,5 +54,5 @@ public interface Advice
      * @param output Map containing the 'output' coordinate to getCell() type APIs
      * @param returnValue Object return value of the method that was called.
      */
-    void after(Method method, NCube ncube, Map input, Map output, Object returnValue, Throwable t);
+    void after(Method method, NCube ncube, Map input, Map output, Object returnValue, Throwable t)
 }

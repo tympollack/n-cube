@@ -1,4 +1,6 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
+
+import groovy.transform.CompileStatic;
 
 /**
  * This class records information about the delta (difference) between
@@ -9,7 +11,7 @@ package com.cedarsoftware.ncube;
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br><br>
@@ -21,13 +23,14 @@ package com.cedarsoftware.ncube;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class Delta
+@CompileStatic
+class Delta
 {
-    private final String desc;
-    private final Location loc;
-    private final Type type;
+    private final String desc
+    private final Location loc
+    private final Type type
 
-    public enum Location
+    enum Location
     {
         NCUBE,
         NCUBE_META,
@@ -39,37 +42,37 @@ public class Delta
         CELL_META
     }
 
-    public enum Type
+    enum Type
     {
         ADD,
         DELETE,
         UPDATE
     }
 
-    public Delta(Location location, Type type, String description)
+    Delta(Location location, Type type, String description)
     {
-        desc = description;
-        loc = location;
-        this.type = type;
+        desc = description
+        loc = location
+        this.type = type
     }
 
-    public String getDescription()
+    String getDescription()
     {
-        return desc;
+        return desc
     }
 
-    public Location getLocation()
+    Location getLocation()
     {
-        return loc;
+        return loc
     }
 
-    public Type getType()
+    Type getType()
     {
-        return type;
+        return type
     }
 
-    public String toString()
+    String toString()
     {
-        return desc;
+        return desc
     }
 }

@@ -1,7 +1,12 @@
-package com.cedarsoftware.ncube;
+package com.cedarsoftware.ncube
+
+import groovy.transform.CompileStatic
 
 /**
- * Release States that a persistent NCube can be in.
+ package com.cedarsoftware.ncube;
+
+ /**
+ * This class defines allowable n-cube axis types.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -19,8 +24,14 @@ package com.cedarsoftware.ncube;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public enum ReleaseStatus
+@CompileStatic
+enum RuleMetaKeys
 {
-	SNAPSHOT,
-	RELEASE
+    RULE_STOP,                  // RuleStop forcefully called (within condition or cell)
+    RULES_EXECUTED,             // Map of condition names (or IDs if no name for conditions) to associated statements return value
+    SYSTEM_ERR,                 // System.err contents
+    SYSTEM_OUT,                 // System.out contents
+    ASSERTION_FAILURES,         // Assertion failures
+    LAST_EXECUTED_STATEMENT,    // Value of last executed statement
+    AXIS_BINDINGS               // Value of last executed binding
 }
