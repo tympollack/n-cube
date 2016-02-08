@@ -1,11 +1,11 @@
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeManager
-import com.cedarsoftware.ncube.exception.RuleJump
-import com.cedarsoftware.ncube.exception.RuleStop
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.exception.*
+import com.cedarsoftware.ncube.formatters.*
+import com.cedarsoftware.ncube.proximity.*
+import com.cedarsoftware.ncube.util.*
+import com.cedarsoftware.util.*
+import com.cedarsoftware.util.io.*
+
 
 NCube getCube(cubeName = ncube.name)
 {
@@ -47,7 +47,7 @@ def go(Map coord, String cubeName = ncube.name, def defaultValue = null)
     return getCube(cubeName).getCell(coord, output, defaultValue)
 }
 
-def getStringFromUrl(String url)
+String getStringFromUrl(String url)
 {
     byte[] bytes = getBytesFromUrl(url)
     if (bytes == null)
@@ -57,7 +57,7 @@ def getStringFromUrl(String url)
     return StringUtilities.createUtf8String(bytes)
 }
 
-def getBytesFromUrl(String url)
+byte[] getBytesFromUrl(String url)
 {
     InputStream inStream = getClass().getResourceAsStream(url)
     byte[] bytes = IOUtilities.inputStreamToBytes(inStream)

@@ -46,11 +46,9 @@ class TestGroovyTemplate
         String text = template.getCell([loc:'web'])
         assert text.contains('from the web')
         assert text.contains('Hello, world."')
-        println text
 
         text = template.getCell([loc:'file system'])
         assert text.contains('from the file system')
         assert text.contains('Hello, world."')
-        println text
     }
 }
