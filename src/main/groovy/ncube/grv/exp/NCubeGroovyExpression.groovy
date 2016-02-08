@@ -234,6 +234,13 @@ class NCubeGroovyExpression
         return axis
     }
 
+    /**
+     * Fetch content from the passed in URL.  The URL can be relative or absolute.  If it is
+     * relative, then the sys.classpath cube in the same ApplicationID space will be used
+     * to anchor it.
+     * @param url String URL
+     * @return String content fetched from the passed in URL.
+     */
     String getStringFromUrl(String url)
     {
         byte[] bytes = getBytesFromUrl(url)
@@ -244,6 +251,13 @@ class NCubeGroovyExpression
         return StringUtilities.createUtf8String(bytes)
     }
 
+    /**
+     * Fetch content from the passed in URL.  The URL can be relative or absolute.  If it is
+     * relative, then the sys.classpath cube in the same ApplicationID space will be used
+     * to anchor it.
+     * @param url String URL
+     * @return byte[] content fetched from the passed in URL.
+     */
     byte[] getBytesFromUrl(String url)
     {
         InputStream inStream = getClass().getResourceAsStream(url)

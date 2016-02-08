@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.21</version>
+  <version>3.4.22</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,22 +95,29 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.22
+ * Enhancement: All axis types now load, delete, and update in `O(1)` or `O(Log n)`. They find within `O(1)` or `(O Log n)` excluding RULE cubes, where the conditions are linearly executed.  `Date` and `Number` axisValueTypes on `NEAREST` access in `O(Log n)`, the others are linear.
+ * Enhancement: The n-cube merge process (`DeltaProcessor`) now handles more cases by locating columns by value, not ID (except with a RULE column that has no name).
+ * For code executing in a 'exp' cell, use `at()` to pass on the current input and `go()` to start with a new map.  Both take a `Map`, but `at()` starts with the current input, whereas `go()` requires it to be fully built-up. `at()` is normally the API you want to fetch content from (at) another cell.
+ * bug fix: When using a `GroovyTemplate`, if your code running within the template attempted to access a relative URL, it was not using the classpath from `sys.classpath` to anchor it.  Now, it uses the sys.classpath defined `CdnClassLoader` to anchor it.
+ * `NCubeGroovyExpression` and `NCubeTemplateClosures.groovy` have two new APIs on them to allow quick and easy access to fetching content from a URL.  The `sys.classpath` entries will be used if these are relative.
+ * Guava added as a dependency to the pom.xml file.
 * 3.4.21
  * Renamed APIs added in 3.4.20 from 'at' to 'go'.
 * 3.4.20
- * Within an n-cube GroovyExpression cell, at(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use at() as runRuleCube(), getRelativeCubeCell(), and getRelativeCell() will be deprecated.
- * Within an n-cube GroovyExpression cell, atCoord(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use atCoord() as getFixedCell() and getFixedCubeCell() will be deprecated.
+ * Within an n-cube `GroovyExpression` cell, at(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use `at()` as `runRuleCube()`, `getRelativeCubeCell()`, and `getRelativeCell()` will be deprecated.
+ * Within an n-cube `GroovyExpression` cell, atCoord(Map coord, String cubeName [default this cube], Object defaultValue [default null]) can be used to reference another cell in same or another cube.  Use `atCoord()` as `getFixedCell()` and `getFixedCubeCell()` will be deprecated.
 * 3.4.19
- * Enhancement: getCell() now takes an optional parameter of defaultValue.  This is an additional way to provide a default value for when there is not cell at the passed in coordinate.
- * getRequiredScope() updated to take input and output Maps.  Because required scope can be an expression, this allows additional scope to be supplied to the expression.
- * getOptionalScope() updated to take input and output Maps.  Because optional scope can be an expression, this allows additional scope to be supplied to the expression.
+ * Enhancement: `getCell()` now takes an optional parameter of defaultValue.  This is an additional way to provide a default value for when there is not cell at the passed in coordinate.
+ * `getRequiredScope()` updated to take input and output Maps.  Because required scope can be an expression, this allows additional scope to be supplied to the expression.
+ * `getOptionalScope()` updated to take input and output Maps.  Because optional scope can be an expression, this allows additional scope to be supplied to the expression.
 * 3.4.18
- * NCube.updateColumns() now takes a String Axis Name as a Collection of Columns, rather than accepting an Axis which was not expected to be in proper order.  Simimlarly, the Axis.updateColumns() API now takes a Collection of Columns.
+ * `NCube.updateColumns()` now takes a String Axis Name as a `Collection` of Columns, rather than accepting an `Axis` which was not expected to be in proper order.  Simimlarly, the `Axis.updateColumns()` API now takes a `Collection` of `Columns`.
  * Continued work on Axis in support of a Reference Axis option.
 * 3.4.17
- * Delta processing methods moved from NCube to DeltaProcessor class.  Use the static public methods on DeltaProcessor like this: DeltaProcessor.getDelta(ncube1, ncube2), etc. 
+ * Delta processing methods moved from `NCube` to `DeltaProcessor` class.  Use the static public methods on `DeltaProcessor` like this: `DeltaProcessor.getDelta(ncube1, ncube2)`, etc. 
 * 3.4.16
- * Bug fix: getTestDate() failing.  Need to use JDBC-style API to access test_data_bin instead of pure Groovy approach of acecss (row.getBytes() not row['test_data_bin']) 
+ * Bug fix: `getTestDate()` failing.  Need to use JDBC-style API to access test_data_bin instead of pure Groovy approach of acecss (row.getBytes() not row['test_data_bin']) 
 * 3.4.15
  * Enhancement: Cubes can now be merged from one branch to another (before merges were only between HEAD and branch).
  * Changed persister to use 'sub-select' statements instead of 'left outer joins' when locating highest revision number cube.  Seeing which of the two approaches is faster in a product environment.
@@ -120,14 +127,14 @@ ___
 * 3.4.13
  * The rest of the column merge tests added.
  * Added check to ensure that an axis with a duplicate ID cannot be added to the same n-cube.
- * Removed deprecated 4-argument ApplicationID constructor (it existed before there was branch support).
+ * Removed deprecated 4-argument `ApplicationID` constructor (it existed before there was branch support).
  * Bug fix: When merging rule axis and there was a column update (condition changed), it was merging it as a remove.
 * 3.4.12
  * Bug fix: Merging columns between two cubes where they both added the same column value and had non-conflicting cell changes was getting reported as a merge conflict.  This is fixed.
  * More merge tests added, still more to come.
 * 3.4.11
  * All SQL queries now include the originating method name in a SQL comment before the query text.  Helpful for performance monitoring.
- * NCubeJdbcPersisterAdaptor moved to Groovy and updated to use lambda function.  This removed all the boiler plate code and makes the Adaptor code much smaller.
+ * `NCubeJdbcPersisterAdaptor` moved to Groovy and updated to use lambda function.  This removed all the boiler plate code and makes the Adaptor code much smaller.
  * Binding class updated to provide public API access to ALL of its fields including depth and value.
  * Added another test for merging columns.  Many more tests to come.
 * 3.4.10
@@ -140,69 +147,69 @@ ___
  * Bug fix: When many threads accessed an expression cell at the same time, each thread was compiling the same code after it had its 'turn', rather than the first one getting it compiled, and then later threads picking up the compiled code.
  * Bug fix: When an expression cell is executed, the constructor and 'run()' method objects were being cached.  By changing the code not to cache these reflective objects, it eliminated an issue where a class cast exception was occurring on the same class (but loaded by different class loaders).  This was caused by a combination of different threads compiling a class, and the 'inflation-based' accessors that Java creates for reflective methods after 15 calls. 
 * 3.4.7
- * Bug fix: updateNotes() and updateTestData() used SQL supported by HyperSonic and Oracle, but not MySQL.  Reverted to prior technique (2 queries - one to find max, one to update).
+ * Bug fix: `updateNotes()` and `updateTestData()` used SQL supported by HyperSonic and Oracle, but not MySQL.  Reverted to prior technique (2 queries - one to find max, one to update).
 * 3.4.6
- * Added retry logic to URL resolution (tries twice - logs warning on each failed attempt).  If fails both times, an error is marked in the cell and it will not be tried again (Malformed URL, sys.classpath issue, etc).  
+ * Added retry logic to URL resolution (tries twice - logs warning on each failed attempt).  If fails both times, an error is marked in the cell and it will not be tried again (Malformed URL, `sys.classpath` issue, etc).  
  * Added retry logic to URL content fetching (tries twice - logs warning on each failed attempt).  If it fails both times, future attempts at fetching will still be tried.
- * Added new JSON format that places the axes, columns, and cells in the JSON in a way that axes, columns, and cells are directly accessible as String keys in a Map - O(1).  Useful for sending to Javascript clients for quick access to the n-cube content.
+ * Added new JSON format that places the axes, columns, and cells in the JSON in a way that axes, columns, and cells are directly accessible as String keys in a `Map` - O(1).  Useful for sending to Javascript clients for quick access to the n-cube content.
  * Bug fix: Upating axis URL was not causing cube to be updated in database as SHA-1 was not being cleared.
- * Bug fix: Column order changes were not included in the SHA-1, causing no save to happen when only columns were re-ordered.
- * Bug fix: Parsing SET columns was failing in many cases.  JSON Format is used for SET columns as it is robust.  Requires String and Date variables to be quoted.  Instructions in NCE have been updated.
+ * Bug fix: `Column` order changes were not included in the SHA-1, causing no save to happen when only columns were re-ordered.
+ * Bug fix: Parsing SET columns was failing in many cases.  JSON Format is used for `SET` columns as it is robust.  Requires `String` and `Date` variables to be quoted.  Instructions in NCE have been updated.
 * 3.4.5
  * Bug fix on regex that parses import statements.  Import statements that were on the same line as code (code after the import statement) did not work.
 * 3.4.4
- * NCubeJdbcPersister now supports batching for many APIs, including using batching via prefetch as well as SQL Update batching.  Completely re-written in Groovy to take advantage of Groovy's marvelous SQL support.  No checked exceptions reduces need for all the explicit SQL Exception handlers.  These are caught as runtime exceptions later.
- * NCubeJdbcPersister now works entirely with Lists of items instead of single items, where it makes sense.  This allowed batching support to be added for Delete, Restore, and Rollback.  Batching support added elsewhere in terms of SQL prefetch.
+ * `NCubeJdbcPersister` now supports batching for many APIs, including using batching via prefetch as well as SQL Update batching.  Completely re-written in Groovy to take advantage of Groovy's marvelous SQL support.  No checked exceptions reduces need for all the explicit SQL Exception handlers.  These are caught as runtime exceptions later.
+ * `NCubeJdbcPersister` now works entirely with Lists of items instead of single items, where it makes sense.  This allowed batching support to be added for Delete, Restore, and Rollback.  Batching support added elsewhere in terms of SQL prefetch.
 * 3.4.3
- * The NCubeJdbcPersister now allows for a ConnectionProvider that returns a null connection.  This can happen in a simple file-based persister, for example.
- * NCubeManager.loadCube(NCubeInfoDto) loaded the cube by id (parameter overkill).  The API is now NCubeManager.loadCubeById(long id).  Useful for getting a specific revision of a cube.  User picks from revision list, code then loads the revision cube by ID.
+ * The `NCubeJdbcPersister` now allows for a `ConnectionProvider` that returns a null connection.  This can happen in a simple file-based persister, for example.
+ * `NCubeManager.loadCube(NCubeInfoDto)` loaded the cube by id (parameter overkill).  The API is now `NCubeManager.loadCubeById(long id)`.  Useful for getting a specific revision of a cube.  User picks from revision list, code then loads the revision cube by ID.
 * 3.4.2
  * Removed use of JDK 1.8 specific API to maintain 1.7 compatibility.  
  * Removed redundant API from NCubeManager (getCubeRecordsFromDatabase - use search() instead).
  * Fixed issue where cast of ClassLoad to GroovyClassLoader needed to be instanceof checked to prevent ClassCastException.
 * 3.4.1
- * Improved exception handling of n-cube. When an exception is known (e.g. CoordinateNotFound) it is thrown as is. All unknown exceptions are caught, the n-cube call stack is added, and then it is rethrown in CommandCellException.  Call .getCause() on this exception to determine underlying exception.
- * All CommandCell related code and CellInfo converted from Java to Groovy.
- * Moved recreate() and getType() methods from CellTypes to CellInfo, and remove the CellTypes enumeration.
+ * Improved exception handling of n-cube. When an exception is known (e.g. `CoordinateNotFound`) it is thrown as is. All unknown exceptions are caught, the n-cube call stack is added, and then it is rethrown in `CommandCellException`.  Call `.getCause()` on this exception to determine underlying exception.
+ * All `CommandCell` related code and `CellInfo` converted from Java to Groovy.
+ * Moved `recreate()` and `getType()` methods from `CellTypes` to `CellInfo`, and remove the CellTypes enumeration.
 * 3.4.0
  * Added ability for n-cube Applications to define import list to make available to expression 'exp' cells / columns.  Add desired import classes to sys.prototype cube.  The cube has at least one axis (sys.property) and the column sys.imports.  The cell at this location returns a List of import classes or pacakges (do not include the 'import' keyword) and these packages will be added to the source of the compiled cell.
  * Added ability for n-cube Applications to define the class that expression cells inherit from (currently must be subclass of NCubeGroovyExpression).  Methods added to this class can be called in your source, allowing reduced source code size.  Add desired class name to sys.prototype cube.  On the sys.property axis, add a column sys.class and in the associated cell, place the String name of the class.  You can fully qualify the name, or use the shorter class name and add the package name to the import list (above bullet point).  NOTE: The class must be defined in the sys.classpath.
- * Added NCubeManager.loadCube(appId, cubeName) API which loads the cube from the persister (bypassing the cache).  It will cache the cube, but all calls to loadCube() will always use the persister to load.
- * Fixed issue where NCubeManager.updateBranch() was not skipped classes that you updated, but where not updated in the HEAD branch.  Nuisance issue, as it created additional revision of your modified cubes each time you ran update branch.
+ * Added `NCubeManager.loadCube(appId, cubeName)` API which loads the cube from the persister (bypassing the cache).  It will cache the cube, but all calls to `loadCube()` will always use the persister to load.
+ * Fixed issue where `NCubeManager.updateBranch()` was not skipped classes that you updated, but where not updated in the HEAD branch.  Nuisance issue, as it created additional revision of your modified cubes each time you ran update branch.
 * 3.3.13
  * Update the 'UpdateBranch' code so that it handles the situation where the branch cube's SHA-1 matches the HEAD cube's SHA-1, yet the branch cube has a HEAD SHA-1 that no longer matches the HEAD.  This case can happen cubes are inserted into a branch directly in the database without going through the NCubeManager, leaving the headSha1 field null on that branch.  UpdateBranch detects this and Fast-Forwards the branch by simply updating the HEAD SHA-1 on the branch to be the same as the HEAD SHA-1.
  * Restore cube now adds the restored cube to the cache.  This may change in the future, as the n-cube-editor should not really be using the NCubeManager's cache, only a runtime n-cube instance should. 
 * 3.3.12 
  * Removed looping-style APIs from persister (it should be focused on atomic changes) and moved that logic to the Manager so that all persisters leverage that code. These were the updateBranch (now updateCube), commitBranch (commitCube), rollbackCube (now rollbackCube).
  * Simplified coordinate names for columns that have a 'name' meta-property as they appear in a 'delta' difference description.
- * Made NCube.getCoordinateFromColumnIds() public.
- * Made some read-only getter APIs on ApplicationID public.
+ * Made `NCube.getCoordinateFromColumnIds()` public.
+ * Made some read-only getter APIs on `ApplicationID` public.
 * 3.3.11
  * Bug fix: NPE was occurring when attempting to check two n-cubes for conflicts and the delta was null (non-comparable cubes).
 * 3.3.10
  * Bug fix: Created, deleted and then restored cubes were incorrectly showing as conflicts, when there was no original head cube.
  * Bug fix: When choosing 'Accept Mine' in merge conflict resolution, the code was incorrectly pushing the branch cube to head.  Instead, it should have copied the head SHA1 to the branch so that it was updated for commit-overwrite on future commit.
- * Bug fix: NPE occurring when Groovy Templates (with empty content) were being scanned for cube-name references.  This happened during searching the cell content for cube references. Fixed.
+ * Bug fix: NPE occurring when `Groovy Templates` (with empty content) were being scanned for cube-name references.  This happened during searching the cell content for cube references. Fixed.
  * Bug fix: NPE when computing SHA1 of column that had null value.  Granted, only the Default column should ever have a null, but to prevent NPE, null is converted to "" before .toString() for SHA1.
 * 3.3.9
- * Bug fix: HtmlFormatter could throw an NPE when encoding the content of a cell.
+ * Bug fix: `HtmlFormatter` could throw an NPE when encoding the content of a cell.
 * 3.3.8
  * Enhancement: Update Branch - no longer throws a BranchMergeException when there is a conflict.  Instead a Map is returned with keys of 'updates', 'merges', and 'conflicts'.  The 'updates' and 'merges' are now committed.  The conflicts are not committed and will therefore show up each time you run Update Branch until each one is resolved.
  * Enhancement: Rule condition parsing improved so that a condition on an 'expression' Axis can be passed in with the notation url|http://foo.bar.baxz.  The 'url' prefix is recognized and used to indicate that the subsequent text is a URL, not expression code.  Similarly, the prefix 'cache' can be used, which will indicate that the expression should be marked as cached.  Both 'url' and 'cache' can be combined --> url|cache|com/foo/bar/baz.groovy.  The order of 'url' or 'cache' prefix does not matter, and 0, 1, or both can be used. 
  * Bug fix: In the HTML view of an n-cube, rule condition formatting fixed when a rule condition was specified with a URL.  The anchor tag was including both the rule name and the URL (rule name should not have been included in the anchor tag).
  * The rule name in the HTML view is now highlighted in a such a way that the 'name:' text is no longer needed, making the condition look nicer as their is less text.  The rule name is set off from the page with a different background color.
 * 3.3.7
- * GroovyExpression clears compiled class when cache=true (as it will only be used once).  Useful for cells containing expressions that returns Lists or Maps of data.
+ * `GroovyExpression` clears compiled class when cache=true (as it will only be used once).  Useful for cells containing expressions that returns Lists or Maps of data.
  * Added a small amount of padding to left and right side of column headers in the generated HTML.
- * Template API - increased APIs available to code running in Groovy Template replacement sections, e.g. ${ code } and <% code %>.  APIs for getCube(), getAxis(), getColumn() as well as all Cedar Software APIs are imported so they do not need to be imported or qualified in your code. 
+ * Template API - increased APIs available to code running in `GroovyTemplate` replacement sections, e.g. `${ code }` and `<% code %>`.  APIs for `getCube()`, `getAxis()`, `getColumn()` as well as all Cedar Software APIs are imported so they do not need to be imported or qualified in your code. 
  * Bug fix: When an expression ended with '@foo[:]' and had another line of code below it, the preprocessor code dropped the newline causing this code not to compile.  The only work around was to add a semi-colon for the line.  This has been fixed.
- * Bug fix: ContentCommandCell now sets followRedirects flag (honors HTTP 301 / HTTP 302 redirect requests).
+ * Bug fix: `ContentCommandCell` now sets followRedirects flag (honors HTTP 301 / HTTP 302 redirect requests).
 * 3.3.6
  * Restored Oracle specific code to allow for case-insensivity when comparing n-cube names.
 * 3.3.5
  * Restore Oracle to it's default (case-sensitive) state.  This is temporary until the session-based case-insensitivity is introduced.
 * 3.3.4
- * Fixed Oracle bug where name wasn't getting lowered correctly inside NCubeJdbcPersister
+ * Fixed Oracle bug where name wasn't getting lowered correctly inside `NCubeJdbcPersister`
 * 3.3.3
  * Default n-cube (table) level value - the default value can be a Groovy lookup expression, specified by URL or value, cache / not cached, etc.  The same value types as a cell are supported. 
  * Consolidated persister APIs to use search.

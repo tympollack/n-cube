@@ -2,20 +2,29 @@
   "ncube": "templateUsesClassPath",
   "axes": [
     {
-      "name": "state",
+      "name": "testType",
       "type": "DISCRETE",
       "valueType": "STRING",
       "preferredOrder": 1,
-      "hasDefault": true,
-      "columns": []
+      "hasDefault": false,
+      "columns": [
+        { "id": "templateTest" },
+        { "id": "expressionTest" }
+      ]
     }
   ],
   "cells": [
     {
-      "id": [],
+      "id": ["templateTest"],
       "type": "template",
       "cache": false,
       "value": "This is from the ${input.loc}: <%=return getStringFromUrl('/tests/ncube/hello.groovy')%>"
+    },
+    {
+      "id": ["expressionTest"],
+      "type": "exp",
+      "cache": false,
+      "value": "return getStringFromUrl('/tests/ncube/hello.groovy')"
     }
   ]
 }
