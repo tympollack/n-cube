@@ -1,0 +1,21 @@
+{
+  "ncube": "templateUsesClassPath",
+  "axes": [
+    {
+      "name": "state",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": true,
+      "columns": []
+    }
+  ],
+  "cells": [
+    {
+      "id": [],
+      "type": "template",
+      "cache": false,
+      "value": "This is from the ${input.loc}: <%=return getStringFromUrl('/tests/ncube/hello.groovy')%>"
+    }
+  ]
+}

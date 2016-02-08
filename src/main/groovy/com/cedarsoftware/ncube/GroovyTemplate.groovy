@@ -119,7 +119,7 @@ class GroovyTemplate extends ContentCmdCell
             cmd = '<% ' + groovyClosures + ' %>' + cmd
 
             // Create Groovy Standard Template
-            SimpleTemplateEngine engine = new SimpleTemplateEngine()
+            SimpleTemplateEngine engine = new SimpleTemplateEngine(urlLoader)
             resolvedTemplate = engine.createTemplate(cmd)
         }
 

@@ -37,4 +37,20 @@ class TestGroovyTemplate
         assertNotNull con.newInstance()
     }
 
+    @Test
+    void testTemplateThatUsesClasspath()
+    {
+        NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.cedar.json')
+        NCube template = NCubeManager.getNCubeFromResource('templateUsesClassPath.json')
+        NCubeManager.addCube(ApplicationID.testAppId, template)
+        String text = template.getCell([loc:'web'])
+        assert text.contains('from the web')
+        assert text.contains('Hello, world."')
+        println text
+
+        text = template.getCell([loc:'file system'])
+        assert text.contains('from the file system')
+        assert text.contains('Hello, world."')
+        println text
+    }
 }

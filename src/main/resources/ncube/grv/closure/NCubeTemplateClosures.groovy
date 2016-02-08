@@ -4,6 +4,8 @@ import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.util.IOUtilities
+import com.cedarsoftware.util.StringUtilities
 
 NCube getCube(cubeName = ncube.name)
 {
@@ -43,6 +45,24 @@ def at(Map coord, String cubeName = ncube.name, def defaultValue = null)
 def go(Map coord, String cubeName = ncube.name, def defaultValue = null)
 {
     return getCube(cubeName).getCell(coord, output, defaultValue)
+}
+
+def getStringFromUrl(String url)
+{
+    byte[] bytes = getBytesFromUrl(url)
+    if (bytes == null)
+    {
+        return null
+    }
+    return StringUtilities.createUtf8String(bytes)
+}
+
+def getBytesFromUrl(String url)
+{
+    InputStream inStream = getClass().getResourceAsStream(url)
+    byte[] bytes = IOUtilities.inputStreamToBytes(inStream)
+    IOUtilities.close(inStream as Closeable)
+    return bytes
 }
 
 def ruleStop()
