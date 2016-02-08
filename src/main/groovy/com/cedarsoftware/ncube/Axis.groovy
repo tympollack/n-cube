@@ -16,6 +16,8 @@ import groovy.transform.CompileStatic
 
 import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Matcher
+
+import static java.lang.Math.abs
 /**
  * Implements an Axis of an NCube. When modeling, think of an axis as a 'condition'
  * or decision point.  An input variable (like 'X:1' in a cartesian coordinate system)
@@ -26,7 +28,8 @@ import java.util.regex.Matcher
  * DISCRETE matches discrete values with .equals().  Locates items in O(1)
  * RANGE matches [low, high) values in O(Log N) time.
  * SET matches repeating DISCRETE and RANGE values in O(Log N) time.
- * NEAREST finds the column matching the closest value to the input.  Runs in O(N).
+ * NEAREST finds the column matching the closest value to the input.  Runs in O(Log n) for
+ * Number and Date types, O(n) for String, Point2D, Point3D, LatLon.
  * RULE fires all conditions that evaluate to true.  Runs in O(N).</pre>
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -1348,6 +1351,29 @@ class Axis
             Number delta1 = value - low
             Number delta2 = value - high
             if (delta1.abs() <= delta2.abs())
+            {
+                return entry1.value
+            }
+            return entry2.value
+        }
+        else if (promotedValue instanceof Date)
+        {   // Provide O(Log n) access when Date (any Date derivative) used on a NEAREST axis
+            Map.Entry<Comparable, Column> entry1 = valueToCol.floorEntry(promotedValue as Comparable)
+            Map.Entry<Comparable, Column> entry2 = valueToCol.higherEntry(promotedValue as Comparable)
+            if (entry1 == null)
+            {
+                return entry2.value
+            }
+            if (entry2 == null || entry1.key == entry2.key)
+            {
+                return entry1.value
+            }
+            Date low = entry1.key as Date
+            Date high = entry2.key as Date
+            Date value = promotedValue as Date
+            long delta1 = abs(value.getTime() - low.getTime())
+            long delta2 = abs(value.getTime() - high.getTime())
+            if (delta1 <= delta2)
             {
                 return entry1.value
             }

@@ -51,6 +51,31 @@ class Point3D implements Distance<Point3D>
 		return x == that.x && y == that.y && z == that.z
 	}
 
+	int hashCode()
+	{
+		int h = 0
+		long lx = Double.doubleToRawLongBits(x)
+		long ly = Double.doubleToRawLongBits(y)
+		long lz = Double.doubleToRawLongBits(z)
+
+		lx ^= lx >> 23
+		lx *= 0x2127599bf4325c37L
+		lx ^= lx >> 47
+		h += (int) lx
+
+		ly ^= ly >> 23
+		ly *= 0x2127599bf4325c37L
+		ly ^= ly >> 47
+		h += (int) ly
+
+		lz ^= lz >> 23
+		lz *= 0x2127599bf4325c37L
+		lz ^= lz >> 47
+		h += (int) lz
+
+		return h
+	}
+
 	int compareTo(Point3D that)
 	{
 		if (x < that.x)

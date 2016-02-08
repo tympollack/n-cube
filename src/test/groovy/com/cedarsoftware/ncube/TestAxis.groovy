@@ -1591,56 +1591,109 @@ class TestAxis
     }
 
     @Test
+    void testNearestDate()
+    {
+        Axis points = new Axis("Date", AxisType.NEAREST, AxisValueType.DATE, false)
+        points.addColumn(Converter.convert("2000/01/01", Date.class) as Date)
+        points.addColumn(Converter.convert("2016/06/06", Date.class) as Date)
+        points.addColumn(Converter.convert("1970/01/01", Date.class) as Date)
+        points.addColumn(Converter.convert("2005/05/31", Date.class) as Date)
+        points.addColumn(Converter.convert("1991/10/05", Date.class) as Date)
+
+        Column col = points.findColumn(Converter.convert("1930/07/09", Date.class) as Date)
+        assert col.toString() == '1970-01-01'
+
+        col = points.findColumn(Converter.convert("1969/12/31", Date.class) as Date)
+        assert col.toString() == '1970-01-01'
+
+        col = points.findColumn(Converter.convert("1970/01/01", Date.class) as Date)
+        assert col.toString() == '1970-01-01'
+
+        col = points.findColumn(Converter.convert("1970/01/02", Date.class) as Date)
+        assert col.toString() == '1970-01-01'
+
+        col = points.findColumn(Converter.convert("1980/11/17", Date.class) as Date)
+        assert col.toString() == '1970-01-01'
+
+        col = points.findColumn(Converter.convert("1980/11/18", Date.class) as Date)
+        assert col.toString() == '1991-10-05'
+
+        col = points.findColumn(Converter.convert("2010/08/10", Date.class) as Date)
+        assert col.toString() == '2005-05-31'
+
+        col = points.findColumn(Converter.convert("2016/06/05", Date.class) as Date)
+        assert col.toString() == '2016-06-06'
+
+        col = points.findColumn(Converter.convert("2016/06/06", Date.class) as Date)
+        assert col.toString() == '2016-06-06'
+
+        col = points.findColumn(Converter.convert("2016/06/07", Date.class) as Date)
+        assert col.toString() == '2016-06-06'
+
+        col = points.findColumn(Converter.convert("2316/12/25", Date.class) as Date)
+        assert col.toString() == '2016-06-06'
+    }
+
+    @Test
     void testNearestLogarithmic()
     {
-        Axis points = new Axis("Point", AxisType.NEAREST, AxisValueType.LONG, false)
-        points.addColumn(0)
-        points.addColumn(10)
-        points.addColumn(100)
-        points.addColumn(1000)
-        points.addColumn(10000)
+        Axis points = new Axis("Point", AxisType.NEAREST, AxisValueType.DOUBLE, false)
+        points.addColumn(100d)
+        points.addColumn(10000d)
+        points.addColumn(10d)
+        points.addColumn(1000d)
+        points.addColumn(0d)
 
         Column col = points.findColumn(-123456789012345678L)
-        assert col.value == 0L
+        assert col.value == 0d
 
         col = points.findColumn(-1)
-        assert col.value == 0L
+        assert col.value == 0d
+
+        col = points.findColumn(-0.000001)
+        assert col.value == 0d
 
         col = points.findColumn(0)
-        assert col.value == 0L
+        assert col.value == 0d
+
+        col = points.findColumn(0.000001)
+        assert col.value == 0d
 
         col = points.findColumn(1)
-        assert col.value == 0L
+        assert col.value == 0d
 
         col = points.findColumn(4)
-        assert col.value == 0L
+        assert col.value == 0d
 
         col = points.findColumn(5)
-        assert col.value == 0L
+        assert col.value == 0d
+
+        col = points.findColumn(5.00001d)
+        assert col.value == 10d
 
         col = points.findColumn(6)
-        assert col.value == 10L
+        assert col.value == 10d
 
         col = points.findColumn(9)
-        assert col.value == 10L
+        assert col.value == 10d
 
         col = points.findColumn(10)
-        assert col.value == 10L
+        assert col.value == 10d
 
         col = points.findColumn(11)
-        assert col.value == 10L
+        assert col.value == 10d
 
-        col = points.findColumn(9999)
-        assert col.value == 10000L
+        col = points.findColumn(9999.99999d)
+        assert col.value == 10000d
 
         col = points.findColumn(10000)
-        assert col.value == 10000L
+        assert col.value == 10000d
 
-        col = points.findColumn(10001)
-        assert col.value == 10000L
+        col = points.findColumn(10000.0000001d)
+        assert col.value == 10000d
 
         col = points.findColumn(123456789012345678L)
-        assert col.value == 10000L
+        assert col.value == 10000d
     }
 
     @Test
