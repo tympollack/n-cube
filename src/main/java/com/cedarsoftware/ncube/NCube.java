@@ -1835,12 +1835,12 @@ public class NCube<T>
 
     private static <T> NCube<T> hydrateCube(Map<String, Object> jsonNCube)
     {
-        String cubeName = getString(jsonNCube, "ncube");  // new cubes always have ncube as they key in JSON storage
+        final String cubeName = getString(jsonNCube, "ncube");  // new cubes always have ncube as they key in JSON storage
         if (StringUtilities.isEmpty(cubeName))
         {
             throw new IllegalArgumentException("JSON format must have a root 'ncube' field containing the String name of the cube.");
         }
-        NCube ncube = new NCube(cubeName);
+        final NCube ncube = new NCube(cubeName);
         ncube.metaProps = new CaseInsensitiveMap();
         ncube.metaProps.putAll(jsonNCube);
         ncube.metaProps.remove("ncube");
@@ -1879,12 +1879,12 @@ public class NCube<T>
         for (Object item : axes)
         {
             final Map<String, Object> jsonAxis = (Map) item;
-            String name = getString(jsonAxis, "name");
-            boolean hasDefault = getBoolean(jsonAxis, "hasDefault");
+            final String axisName = getString(jsonAxis, "name");
+            final boolean hasDefault = getBoolean(jsonAxis, "hasDefault");
             boolean isRef = getBoolean(jsonAxis, "isRef");
             if (isRef)
             {
-                Axis axis = new Axis(name, idBase++, hasDefault, new Axis.AxisRefProvider() {
+                Axis newAxis = new Axis(axisName, idBase++, hasDefault, new Axis.AxisRefProvider() {
                     public void load(Axis axis)
                     {
                         String srcTenant = getString(jsonAxis, "sourceTenant");
@@ -1904,14 +1904,101 @@ public class NCube<T>
                         String transformStatus = getString(jsonAxis, "transformStatus");
                         String transformBranch = getString(jsonAxis, "transformBranch");
                         String transformCubeName = getString(jsonAxis, "transformCubeName");
-                        String transformMethoddName = getString(jsonAxis, "transformMethodName");
+                        String transformMethodName = getString(jsonAxis, "transformMethodName");
 
-                        axis.setTransformAppId(new ApplicationID(srcTenant, transformApp, transformVer, transformStatus, transformBranch));
-                        axis.setTransformCubeName(transformCubeName);
-                        axis.setTransformMethodName(transformMethoddName);
+                        boolean hasTransformer = StringUtilities.hasContent(transformApp) &&
+                                StringUtilities.hasContent(transformVer) &&
+                                StringUtilities.hasContent(transformStatus) &&
+                                StringUtilities.hasContent(transformBranch);
+
+                        if (hasTransformer)
+                        {
+                            axis.setTransformAppId(new ApplicationID(srcTenant, transformApp, transformVer, transformStatus, transformBranch));
+                            axis.setTransformCubeName(transformCubeName);
+                            axis.setTransformMethodName(transformMethodName);
+                        }
+
+                        Map<String, Object> metaProps = new CaseInsensitiveMap<>();
+                        metaProps.putAll(jsonAxis);
+                        metaProps.remove("isRef");
+                        metaProps.remove("hasDefault");
+                        metaProps.remove("sourceTenant");
+                        metaProps.remove("sourceApp");
+                        metaProps.remove("sourceVersion");
+                        metaProps.remove("sourceStatus");
+                        metaProps.remove("sourceBranch");
+                        metaProps.remove("sourceCubeName");
+                        metaProps.remove("sourceAxisName");
+                        metaProps.remove("transformApp");
+                        metaProps.remove("transformVersion");
+                        metaProps.remove("transformStatus");
+                        metaProps.remove("transformBranch");
+                        metaProps.remove("transformCubeName");
+                        metaProps.remove("transformMethodName");
+
+                        NCube sourceCube = NCubeManager.getCube(axis.getSourceAppId(), axis.getSourceCubeName());
+                        if (sourceCube == null)
+                        {
+                            throw new IllegalStateException("Unable to load cube: " + cubeName +
+                                    " which has a reference axis, failed to load referenced cube: " + srcCubeName + ", axis: " + srcAxisName +
+                                    ", source app: " + axis.getSourceAppId());
+                        }
+
+                        NCube transformCube = null;
+                        if (hasTransformer)
+                        {
+                            transformCube = NCubeManager.getCube(axis.getTransformAppId(), axis.getTransformCubeName());
+                            if (transformCube == null)
+                            {
+                                throw new IllegalStateException("Unable to load cube: " + ncube.getName() +
+                                        " which has a reference axis, failed to load transform cube: " + transformCubeName + ", method: " +
+                                        transformMethodName + ", source app: " + axis.getTransformAppId());
+                            }
+                        }
+
+                        Axis refAxis = sourceCube.getAxis(srcAxisName);
+                        if (refAxis == null)
+                        {
+                            throw new IllegalStateException("Unable to load cube: " + ncube.getName() +
+                                    ", The reference axis: " + srcAxisName + " was not found on the referenced cube: " +
+                                    srcCubeName + ", in app: " + axis.getSourceAppId());
+                        }
+
+                        Map<String, Object> input = new CaseInsensitiveMap<>();
+                        input.put("columns", refAxis.getColumns());
+                        Map<String, Object> output = new CaseInsensitiveMap<>();
+                        if (transformCube != null)
+                        {   // Allow this cube to manipulate the passed in Axis.
+                            transformCube.getCell(input, output);
+                        }
+                        else
+                        {
+                            output.put("columns", input.get("columns"));
+                        }
+
+                        axis.setName(axisName);
+                        axis.type = refAxis.type;
+                        axis.valueType = refAxis.valueType;
+
+
+                        // Bring over referenced axis meta properties
+                        for (Map.Entry<String, Object> entry : refAxis.getMetaProperties().entrySet())
+                        {
+                            axis.setMetaProperty(entry.getKey(), entry.getValue());
+                        }
+
+                        // Allow meta properties for reference axis - these take priority (override)
+                        // any meta-properties on the referenced axis.
+                        for (Map.Entry<String, Object> entry : metaProps.entrySet())
+                        {
+                            axis.setMetaProperty(entry.getKey(), entry.getValue());
+                        }
+
+                        // Set up default
+                        // Load columns
                     }
                 });
-                ncube.addAxis(axis);
+                ncube.addAxis(newAxis);
             }
             else
             {
@@ -1923,12 +2010,13 @@ public class NCube<T>
                 {
                     fireAll = getBoolean(jsonAxis, "fireAll");
                 }
-                Axis axis = new Axis(name, type, valueType, hasDefault, preferredOrder, idBase++, fireAll);
+                Axis axis = new Axis(axisName, type, valueType, hasDefault, preferredOrder, idBase++, fireAll);
                 ncube.addAxis(axis);
                 axis.metaProps = new CaseInsensitiveMap<>();
                 axis.metaProps.putAll(jsonAxis);
 
                 axis.metaProps.remove("name");
+                axis.metaProps.remove("isRef");
                 axis.metaProps.remove("type");
                 axis.metaProps.remove("hasDefault");
                 axis.metaProps.remove("valueType");
@@ -1948,7 +2036,7 @@ public class NCube<T>
 
                 if (!jsonAxis.containsKey("columns"))
                 {
-                    throw new IllegalArgumentException("'columns' must be specified, axis: " + name + ", cube: " + cubeName);
+                    throw new IllegalArgumentException("'columns' must be specified, axis: " + axisName + ", cube: " + cubeName);
                 }
 
                 // Read columns
@@ -1966,7 +2054,7 @@ public class NCube<T>
                     {
                         if (id == null)
                         {
-                            throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: " + name + ", cube: " + cubeName);
+                            throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: " + axisName + ", cube: " + cubeName);
                         }
                         else
                         {   // Allows you to skip setting both id and value to the same value.
@@ -1992,7 +2080,7 @@ public class NCube<T>
                         Object[] rangeItems = (Object[])value;
                         if (rangeItems.length != 2)
                         {
-                            throw new IllegalArgumentException("Range must have exactly two items, axis: " + name +", cube: " + cubeName);
+                            throw new IllegalArgumentException("Range must have exactly two items, axis: " + axisName +", cube: " + cubeName);
                         }
                         Comparable low = (Comparable) CellInfo.parseJsonValue(rangeItems[0], null, colType, false);
                         Comparable high = (Comparable) CellInfo.parseJsonValue(rangeItems[1], null, colType, false);
@@ -2009,7 +2097,7 @@ public class NCube<T>
                                 Object[] rangeValues = (Object[]) pt;
                                 if (rangeValues.length != 2)
                                 {
-                                    throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis: " + name + ", cube: " + cubeName);
+                                    throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis: " + axisName + ", cube: " + cubeName);
                                 }
                                 Comparable low = (Comparable) CellInfo.parseJsonValue(rangeValues[0], null, colType, false);
                                 Comparable high = (Comparable) CellInfo.parseJsonValue(rangeValues[1], null, colType, false);
@@ -2034,7 +2122,7 @@ public class NCube<T>
                     }
                     else
                     {
-                        throw new IllegalArgumentException("Unsupported Axis Type '" + type + "' for simple JSON input, axis: " + name + ", cube: " + cubeName);
+                        throw new IllegalArgumentException("Unsupported Axis Type '" + type + "' for simple JSON input, axis: " + axisName + ", cube: " + cubeName);
                     }
 
                     if (id != null)

@@ -57,8 +57,8 @@ class Axis
     private static final long BASE_AXIS_ID = 1000000000000L
 
     private String name
-    private AxisType type
-    private AxisValueType valueType
+    protected AxisType type
+    protected AxisValueType valueType
     protected Map<String, Object> metaProps = null
     private Column defaultCol
     protected final long id
