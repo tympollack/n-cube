@@ -1884,7 +1884,8 @@ public class NCube<T>
             boolean isRef = getBoolean(jsonAxis, "isRef");
             if (isRef)
             {
-                Axis newAxis = new Axis(axisName, idBase++, hasDefault, new Axis.AxisRefProvider() {
+                Axis newAxis = new Axis(axisName, idBase++, hasDefault, new Axis.AxisRefProvider()
+                {
                     public void load(Axis axis)
                     {
                         String srcTenant = getString(jsonAxis, "sourceTenant");
@@ -1979,7 +1980,7 @@ public class NCube<T>
                         axis.setName(axisName);
                         axis.type = refAxis.type;
                         axis.valueType = refAxis.valueType;
-
+                        axis.fireAll = refAxis.fireAll;
 
                         // Bring over referenced axis meta properties
                         for (Map.Entry<String, Object> entry : refAxis.getMetaProperties().entrySet())
@@ -1994,8 +1995,11 @@ public class NCube<T>
                             axis.setMetaProperty(entry.getKey(), entry.getValue());
                         }
 
-                        // Set up default
-                        // Load columns
+                        List<Column> columns = (List<Column>) output.get("columns");
+                        for (Column column : columns)
+                        {
+                            axis.addColumn(column.getValue(), column.getColumnName(), column.id);
+                        }
                     }
                 });
                 ncube.addAxis(newAxis);

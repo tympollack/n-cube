@@ -64,7 +64,7 @@ class Axis
     protected final long id
     private long colIdBase = 0
     private int preferredOrder = SORTED
-    private boolean fireAll = true
+    protected boolean fireAll = true
     private final boolean isRef
 
     // Reference Axis fields
