@@ -66,17 +66,19 @@ class Axis
     private int preferredOrder = SORTED
     private boolean fireAll = true
     private final boolean isRef
+    // Reference Axis fields
+    private ApplicationID sourceAppId = null
+    private String sourceCubeName = null
+    private String sourceAxisName = null
+    private ApplicationID txAppId = null
+    private String txCubeName = null
+    private String txMethodName = null
 
     private final Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
     private final transient NavigableMap<Comparable, Column> valueToCol
     protected final transient RangeMap<Comparable, Column> rangeToCol
-
-    // TODO: Write template test (have template reference code that is based on URL)
-    // TODO: Set up access to dynamis.jar and see if you can make that work by passing on UrlClassLoader.
-    // TODO: Debug the dead-lock!
-    // TODO: Finish Ref Axis impl
 
     /**
      * Implement to provide data for this Axis
@@ -165,6 +167,10 @@ class Axis
             rangeToCol = TreeRangeMap.create()
             valueToCol = null
         }
+        else
+        {
+            throw new IllegalArgumentException('Unknown axis type: ' + type + " set")
+        }
     }
 
     /**
@@ -175,16 +181,21 @@ class Axis
      * @param axisRefProvider implementer is expected to load(this), e.g. load this axis completely, setting
      * all fields, etc.
      */
-    Axis(String name, long id, AxisRefProvider axisRefProvider)
+    Axis(String name, long id, boolean hasDefault, AxisRefProvider axisRefProvider)
     {
         this.name = name
         this.id = id
         isRef = true
 
-        // TODO: May need to determine if Axis has been initialized.
-        // TODO: Call load outside of constructor?
-        // Finish construction via the provider.
+        // Ask the provider to load this axis up.
         axisRefProvider.load(this)
+
+        if (hasDefault && type != AxisType.NEAREST)
+        {
+            defaultCol = new Column(null, getDefaultColId())
+            defaultCol.setDisplayOrder(Integer.MAX_VALUE)  // Always at the end
+            idToCol[defaultCol.id] = defaultCol
+        }
 
         // Verify that the axis is indeed valid
         if (!AxisType.values().contains(type))
@@ -201,17 +212,6 @@ class Axis
         {
             throw new IllegalStateException('preferred order not set, axis: ' + name)
         }
-
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {
-            valueToCol = new TreeMap<>()
-            rangeToCol = null
-        }
-        else if (type == AxisType.RANGE || type == AxisType.SET)
-        {
-            rangeToCol = TreeRangeMap.create()
-            valueToCol = null
-        }
     }
 
     /**
@@ -221,6 +221,36 @@ class Axis
     boolean isReference()
     {
         return isRef
+    }
+
+    void setSourceAppId(ApplicationID sourceAppId)
+    {
+        this.sourceAppId = sourceAppId
+    }
+
+    void setSourceCubeName(String sourceCubeName)
+    {
+        this.sourceCubeName = sourceCubeName
+    }
+
+    void setSourceAxisName(String sourceAxisName)
+    {
+        this.sourceAxisName = sourceAxisName
+    }
+
+    void setTxAppId(ApplicationID txAppId)
+    {
+        this.txAppId = txAppId
+    }
+
+    void setTxCubeName(String txCubeName)
+    {
+        this.txCubeName = txCubeName
+    }
+
+    void setTxMethodName(String txMethodName)
+    {
+        this.txMethodName = txMethodName
     }
 
     protected long getNextColId()
