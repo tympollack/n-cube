@@ -71,9 +71,9 @@ class Axis
     ApplicationID sourceAppId = null
     String sourceCubeName = null
     String sourceAxisName = null
-    ApplicationID txAppId = null
-    String txCubeName = null
-    String txMethodName = null
+    ApplicationID transformAppId = null
+    String transformCubeName = null
+    String transformMethodName = null
 
     // Internal indexes
     private final Map<Long, Column> idToCol = new HashMap<>()
@@ -85,7 +85,7 @@ class Axis
     /**
      * Implement to provide data for this Axis
      */
-    interface AxisRefProvider
+    public static interface AxisRefProvider
     {
         void load(Axis axis)
     }

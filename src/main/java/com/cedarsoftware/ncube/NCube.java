@@ -1878,151 +1878,186 @@ public class NCube<T>
         // Read axes
         for (Object item : axes)
         {
-            Map<String, Object> jsonAxis = (Map) item;
+            final Map<String, Object> jsonAxis = (Map) item;
             String name = getString(jsonAxis, "name");
-            AxisType type = AxisType.valueOf(getString(jsonAxis, "type"));
             boolean hasDefault = getBoolean(jsonAxis, "hasDefault");
-            AxisValueType valueType = AxisValueType.valueOf(getString(jsonAxis, "valueType"));
-            final int preferredOrder = getLong(jsonAxis, "preferredOrder").intValue();
-            boolean fireAll = true;
-            if (jsonAxis.containsKey("fireAll"))
+            boolean isRef = getBoolean(jsonAxis, "isRef");
+            if (isRef)
             {
-                fireAll = getBoolean(jsonAxis, "fireAll");
-            }
-            Axis axis = new Axis(name, type, valueType, hasDefault, preferredOrder, idBase++, fireAll);
-            ncube.addAxis(axis);
-            axis.metaProps = new CaseInsensitiveMap<>();
-            axis.metaProps.putAll(jsonAxis);
+                Axis axis = new Axis(name, idBase++, hasDefault, new Axis.AxisRefProvider() {
+                    public void load(Axis axis)
+                    {
+                        String srcTenant = getString(jsonAxis, "sourceTenant");
+                        String srcApp = getString(jsonAxis, "sourceApp");
+                        String srcVer = getString(jsonAxis, "sourceVersion");
+                        String srcStatus = getString(jsonAxis, "sourceStatus");
+                        String srcBranch = getString(jsonAxis, "sourceBranch");
+                        String srcCubeName = getString(jsonAxis, "sourceCubeName");
+                        String srcAxisName = getString(jsonAxis, "sourceAxisName");
 
-            axis.metaProps.remove("name");
-            axis.metaProps.remove("type");
-            axis.metaProps.remove("hasDefault");
-            axis.metaProps.remove("valueType");
-            axis.metaProps.remove("preferredOrder");
-            axis.metaProps.remove("multiMatch");
-            axis.metaProps.remove("columns");
-            axis.metaProps.remove("fireAll");
+                        axis.setSourceAppId(new ApplicationID(srcTenant, srcApp, srcVer, srcStatus, srcBranch));
+                        axis.setSourceCubeName(srcCubeName);
+                        axis.setSourceAxisName(srcAxisName);
 
-            if (axis.metaProps.size() < 1)
-            {
-                axis.metaProps = null;
+                        String transformApp = getString(jsonAxis, "transformApp");
+                        String transformVer = getString(jsonAxis, "transformVersion");
+                        String transformStatus = getString(jsonAxis, "transformStatus");
+                        String transformBranch = getString(jsonAxis, "transformBranch");
+                        String transformCubeName = getString(jsonAxis, "transformCubeName");
+                        String transformMethoddName = getString(jsonAxis, "transformMethodName");
+
+                        axis.setTransformAppId(new ApplicationID(srcTenant, transformApp, transformVer, transformStatus, transformBranch));
+                        axis.setTransformCubeName(transformCubeName);
+                        axis.setTransformMethodName(transformMethoddName);
+                    }
+                });
+                ncube.addAxis(axis);
             }
             else
             {
-                loadMetaProperties(axis.metaProps);
-            }
-
-            if (!jsonAxis.containsKey("columns"))
-            {
-                throw new IllegalArgumentException("'columns' must be specified, axis: " + name + ", cube: " + cubeName);
-            }
-
-            // Read columns
-            Object[] cols = (Object[]) jsonAxis.get("columns");
-            for (Object col : cols)
-            {
-                Map<String, Object> jsonColumn = (Map) col;
-                Object value = jsonColumn.get("value");
-                String url = (String)jsonColumn.get("url");
-                String colType = (String) jsonColumn.get("type");
-                Object id = jsonColumn.get("id");
-                String colName = (String) jsonColumn.get(Column.NAME);
-
-                if (value == null)
+                AxisType type = AxisType.valueOf(getString(jsonAxis, "type"));
+                AxisValueType valueType = AxisValueType.valueOf(getString(jsonAxis, "valueType"));
+                final int preferredOrder = getLong(jsonAxis, "preferredOrder").intValue();
+                boolean fireAll = true;
+                if (jsonAxis.containsKey("fireAll"))
                 {
-                    if (id == null)
+                    fireAll = getBoolean(jsonAxis, "fireAll");
+                }
+                Axis axis = new Axis(name, type, valueType, hasDefault, preferredOrder, idBase++, fireAll);
+                ncube.addAxis(axis);
+                axis.metaProps = new CaseInsensitiveMap<>();
+                axis.metaProps.putAll(jsonAxis);
+
+                axis.metaProps.remove("name");
+                axis.metaProps.remove("type");
+                axis.metaProps.remove("hasDefault");
+                axis.metaProps.remove("valueType");
+                axis.metaProps.remove("preferredOrder");
+                axis.metaProps.remove("multiMatch");
+                axis.metaProps.remove("columns");
+                axis.metaProps.remove("fireAll");
+
+                if (axis.metaProps.size() < 1)
+                {
+                    axis.metaProps = null;
+                }
+                else
+                {
+                    loadMetaProperties(axis.metaProps);
+                }
+
+                if (!jsonAxis.containsKey("columns"))
+                {
+                    throw new IllegalArgumentException("'columns' must be specified, axis: " + name + ", cube: " + cubeName);
+                }
+
+                // Read columns
+                Object[] cols = (Object[]) jsonAxis.get("columns");
+                for (Object col : cols)
+                {
+                    Map<String, Object> jsonColumn = (Map) col;
+                    Object value = jsonColumn.get("value");
+                    String url = (String)jsonColumn.get("url");
+                    String colType = (String) jsonColumn.get("type");
+                    Object id = jsonColumn.get("id");
+                    String colName = (String) jsonColumn.get(Column.NAME);
+
+                    if (value == null)
                     {
-                        throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: " + name + ", cube: " + cubeName);
-                    }
-                    else
-                    {   // Allows you to skip setting both id and value to the same value.
-                        value = id;
-                    }
-                }
-
-                boolean cache = false;
-
-                if (jsonColumn.containsKey("cache"))
-                {
-                    cache = getBoolean(jsonColumn, "cache");
-                }
-
-                Column colAdded;
-                Long suggestedId = (id instanceof Long) ? (Long) id : null;
-                if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
-                {
-                    colAdded = ncube.addColumn(axis.getName(), (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId);
-                }
-                else if (type == AxisType.RANGE)
-                {
-                    Object[] rangeItems = (Object[])value;
-                    if (rangeItems.length != 2)
-                    {
-                        throw new IllegalArgumentException("Range must have exactly two items, axis: " + name +", cube: " + cubeName);
-                    }
-                    Comparable low = (Comparable) CellInfo.parseJsonValue(rangeItems[0], null, colType, false);
-                    Comparable high = (Comparable) CellInfo.parseJsonValue(rangeItems[1], null, colType, false);
-                    colAdded = ncube.addColumn(axis.getName(), new Range(low, high), colName, suggestedId);
-                }
-                else if (type == AxisType.SET)
-                {
-                    Object[] rangeItems = (Object[])value;
-                    RangeSet rangeSet = new RangeSet();
-                    for (Object pt : rangeItems)
-                    {
-                        if (pt instanceof Object[])
+                        if (id == null)
                         {
-                            Object[] rangeValues = (Object[]) pt;
-                            if (rangeValues.length != 2)
-                            {
-                                throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis: " + name + ", cube: " + cubeName);
-                            }
-                            Comparable low = (Comparable) CellInfo.parseJsonValue(rangeValues[0], null, colType, false);
-                            Comparable high = (Comparable) CellInfo.parseJsonValue(rangeValues[1], null, colType, false);
-                            Range range = new Range(low, high);
-                            rangeSet.add(range);
+                            throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: " + name + ", cube: " + cubeName);
                         }
                         else
-                        {
-                            rangeSet.add((Comparable)CellInfo.parseJsonValue(pt, null, colType, false));
+                        {   // Allows you to skip setting both id and value to the same value.
+                            value = id;
                         }
                     }
-                    colAdded = ncube.addColumn(axis.getName(), rangeSet, colName, suggestedId);
-                }
-                else if (type == AxisType.RULE)
-                {
-                    Object cmd = CellInfo.parseJsonValue(value, url, colType, cache);
-                    if (!(cmd instanceof CommandCell))
+
+                    boolean cache = false;
+
+                    if (jsonColumn.containsKey("cache"))
                     {
-                        cmd = new GroovyExpression("false", null, cache);
+                        cache = getBoolean(jsonColumn, "cache");
                     }
-                    colAdded = ncube.addColumn(axis.getName(), (CommandCell)cmd, colName, suggestedId);
-                }
-                else
-                {
-                    throw new IllegalArgumentException("Unsupported Axis Type '" + type + "' for simple JSON input, axis: " + name + ", cube: " + cubeName);
-                }
 
-                if (id != null)
-                {
-                    userIdToUniqueId.put(id, colAdded.id);
-                }
+                    Column colAdded;
+                    Long suggestedId = (id instanceof Long) ? (Long) id : null;
+                    if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+                    {
+                        colAdded = ncube.addColumn(axis.getName(), (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId);
+                    }
+                    else if (type == AxisType.RANGE)
+                    {
+                        Object[] rangeItems = (Object[])value;
+                        if (rangeItems.length != 2)
+                        {
+                            throw new IllegalArgumentException("Range must have exactly two items, axis: " + name +", cube: " + cubeName);
+                        }
+                        Comparable low = (Comparable) CellInfo.parseJsonValue(rangeItems[0], null, colType, false);
+                        Comparable high = (Comparable) CellInfo.parseJsonValue(rangeItems[1], null, colType, false);
+                        colAdded = ncube.addColumn(axis.getName(), new Range(low, high), colName, suggestedId);
+                    }
+                    else if (type == AxisType.SET)
+                    {
+                        Object[] rangeItems = (Object[])value;
+                        RangeSet rangeSet = new RangeSet();
+                        for (Object pt : rangeItems)
+                        {
+                            if (pt instanceof Object[])
+                            {
+                                Object[] rangeValues = (Object[]) pt;
+                                if (rangeValues.length != 2)
+                                {
+                                    throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis: " + name + ", cube: " + cubeName);
+                                }
+                                Comparable low = (Comparable) CellInfo.parseJsonValue(rangeValues[0], null, colType, false);
+                                Comparable high = (Comparable) CellInfo.parseJsonValue(rangeValues[1], null, colType, false);
+                                Range range = new Range(low, high);
+                                rangeSet.add(range);
+                            }
+                            else
+                            {
+                                rangeSet.add((Comparable)CellInfo.parseJsonValue(pt, null, colType, false));
+                            }
+                        }
+                        colAdded = ncube.addColumn(axis.getName(), rangeSet, colName, suggestedId);
+                    }
+                    else if (type == AxisType.RULE)
+                    {
+                        Object cmd = CellInfo.parseJsonValue(value, url, colType, cache);
+                        if (!(cmd instanceof CommandCell))
+                        {
+                            cmd = new GroovyExpression("false", null, cache);
+                        }
+                        colAdded = ncube.addColumn(axis.getName(), (CommandCell)cmd, colName, suggestedId);
+                    }
+                    else
+                    {
+                        throw new IllegalArgumentException("Unsupported Axis Type '" + type + "' for simple JSON input, axis: " + name + ", cube: " + cubeName);
+                    }
 
-                colAdded.metaProps = new CaseInsensitiveMap<>();
-                colAdded.metaProps.putAll(jsonColumn);
-                colAdded.metaProps.remove("id");
-                colAdded.metaProps.remove("value");
-                colAdded.metaProps.remove("type");
-                colAdded.metaProps.remove("url");
-                colAdded.metaProps.remove("cache");
+                    if (id != null)
+                    {
+                        userIdToUniqueId.put(id, colAdded.id);
+                    }
 
-                if (colAdded.metaProps.size() < 1)
-                {
-                    colAdded.metaProps = null;
-                }
-                else
-                {
-                    loadMetaProperties(colAdded.metaProps);
+                    colAdded.metaProps = new CaseInsensitiveMap<>();
+                    colAdded.metaProps.putAll(jsonColumn);
+                    colAdded.metaProps.remove("id");
+                    colAdded.metaProps.remove("value");
+                    colAdded.metaProps.remove("type");
+                    colAdded.metaProps.remove("url");
+                    colAdded.metaProps.remove("cache");
+
+                    if (colAdded.metaProps.size() < 1)
+                    {
+                        colAdded.metaProps = null;
+                    }
+                    else
+                    {
+                        loadMetaProperties(colAdded.metaProps);
+                    }
                 }
             }
         }

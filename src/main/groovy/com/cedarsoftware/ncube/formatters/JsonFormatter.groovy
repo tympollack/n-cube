@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube.formatters
 
+import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.Column
@@ -220,15 +221,36 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     private void writeAxisGuts(Axis axis, Map<String, Object> options)
     {
         writeObjectKeyValue("name", axis.getName(), true)
-        writeObjectKeyValue("type", axis.getType().name(), true)
-        writeObjectKeyValue("valueType", axis.getValueType().name(), true)
-
-        //  optional inputs that can use defaults
-        writeObjectKeyValue("preferredOrder", axis.getColumnOrder(), true)
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
-        writeObjectKeyValue("fireAll", axis.isFireAll(), true)
-        writeMetaProperties(axis.getMetaProperties())
-        writeColumns(axis.getColumns(), options)
+        if (axis.isReference())
+        {
+            writeObjectKeyValue("isRef", true, true)
+            writeObjectKeyValue("sourceTenant", axis.sourceAppId.tenant, true)
+            writeObjectKeyValue("sourceApp", axis.sourceAppId.app, true)
+            writeObjectKeyValue("sourceVersion", axis.sourceAppId.version, true)
+            writeObjectKeyValue("sourceStatus", axis.sourceAppId.status, true)
+            writeObjectKeyValue("sourceBranch", axis.sourceAppId.branch, true)
+            writeObjectKeyValue("sourceCubeName", axis.sourceCubeName, true)
+            writeObjectKeyValue("sourceAxisName", axis.sourceAxisName, true)
+            writeObjectKeyValue("transformApp", axis.transformAppId.app, true)
+            writeObjectKeyValue("transformVersion", axis.transformAppId.version, true)
+            writeObjectKeyValue("transformStatus", axis.transformAppId.status, true)
+            writeObjectKeyValue("transformBranch", axis.transformAppId.branch, true)
+            writeObjectKeyValue("transformCubeName", axis.transformCubeName, true)
+            writeObjectKeyValue("transformMethodName", axis.transformMethodName, true)
+            writeMetaProperties(axis.getMetaProperties())
+        }
+        else
+        {
+            writeObjectKeyValue("type", axis.getType().name(), true)
+            writeObjectKeyValue("valueType", axis.getValueType().name(), true)
+
+            //  optional inputs that can use defaults
+            writeObjectKeyValue("preferredOrder", axis.getColumnOrder(), true)
+            writeObjectKeyValue("fireAll", axis.isFireAll(), true)
+            writeMetaProperties(axis.getMetaProperties())
+            writeColumns(axis.getColumns(), options)
+        }
         endObject()
     }
 
