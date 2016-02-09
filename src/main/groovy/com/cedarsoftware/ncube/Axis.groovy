@@ -66,14 +66,16 @@ class Axis
     private int preferredOrder = SORTED
     private boolean fireAll = true
     private final boolean isRef
-    // Reference Axis fields
-    private ApplicationID sourceAppId = null
-    private String sourceCubeName = null
-    private String sourceAxisName = null
-    private ApplicationID txAppId = null
-    private String txCubeName = null
-    private String txMethodName = null
 
+    // Reference Axis fields
+    ApplicationID sourceAppId = null
+    String sourceCubeName = null
+    String sourceAxisName = null
+    ApplicationID txAppId = null
+    String txCubeName = null
+    String txMethodName = null
+
+    // Internal indexes
     private final Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
@@ -221,36 +223,6 @@ class Axis
     boolean isReference()
     {
         return isRef
-    }
-
-    void setSourceAppId(ApplicationID sourceAppId)
-    {
-        this.sourceAppId = sourceAppId
-    }
-
-    void setSourceCubeName(String sourceCubeName)
-    {
-        this.sourceCubeName = sourceCubeName
-    }
-
-    void setSourceAxisName(String sourceAxisName)
-    {
-        this.sourceAxisName = sourceAxisName
-    }
-
-    void setTxAppId(ApplicationID txAppId)
-    {
-        this.txAppId = txAppId
-    }
-
-    void setTxCubeName(String txCubeName)
-    {
-        this.txCubeName = txCubeName
-    }
-
-    void setTxMethodName(String txMethodName)
-    {
-        this.txMethodName = txMethodName
     }
 
     protected long getNextColId()
