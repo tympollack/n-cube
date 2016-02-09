@@ -57,8 +57,8 @@ class Axis
     private static final long BASE_AXIS_ID = 1000000000000L
 
     private String name
-    protected AxisType type
-    protected AxisValueType valueType
+    private AxisType type
+    private AxisValueType valueType
     protected Map<String, Object> metaProps = null
     private Column defaultCol
     protected final long id
@@ -443,12 +443,22 @@ class Axis
         return type
     }
 
+    protected void setType(AxisType newType)
+    {
+        type = newType
+    }
+
     /**
      * @return AxisValueType of this Axis, which is one of: STRING, LONG, BIG_DECIMAL, DOUBLE, DATE, EXPRESSION, COMPARABLE
      */
     AxisValueType getValueType()
     {
         return valueType
+    }
+
+    protected void setValueType(AxisValueType newValueType)
+    {
+        valueType = newValueType
     }
 
     protected void clear()

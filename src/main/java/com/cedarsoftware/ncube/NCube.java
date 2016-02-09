@@ -1884,124 +1884,8 @@ public class NCube<T>
             boolean isRef = getBoolean(jsonAxis, "isRef");
             if (isRef)
             {
-                Axis newAxis = new Axis(axisName, idBase++, hasDefault, new Axis.AxisRefProvider()
-                {
-                    public void load(Axis axis)
-                    {
-                        String srcTenant = getString(jsonAxis, "sourceTenant");
-                        String srcApp = getString(jsonAxis, "sourceApp");
-                        String srcVer = getString(jsonAxis, "sourceVersion");
-                        String srcStatus = getString(jsonAxis, "sourceStatus");
-                        String srcBranch = getString(jsonAxis, "sourceBranch");
-                        String srcCubeName = getString(jsonAxis, "sourceCubeName");
-                        String srcAxisName = getString(jsonAxis, "sourceAxisName");
-
-                        axis.setSourceAppId(new ApplicationID(srcTenant, srcApp, srcVer, srcStatus, srcBranch));
-                        axis.setSourceCubeName(srcCubeName);
-                        axis.setSourceAxisName(srcAxisName);
-
-                        String transformApp = getString(jsonAxis, "transformApp");
-                        String transformVer = getString(jsonAxis, "transformVersion");
-                        String transformStatus = getString(jsonAxis, "transformStatus");
-                        String transformBranch = getString(jsonAxis, "transformBranch");
-                        String transformCubeName = getString(jsonAxis, "transformCubeName");
-                        String transformMethodName = getString(jsonAxis, "transformMethodName");
-
-                        boolean hasTransformer = StringUtilities.hasContent(transformApp) &&
-                                StringUtilities.hasContent(transformVer) &&
-                                StringUtilities.hasContent(transformStatus) &&
-                                StringUtilities.hasContent(transformBranch);
-
-                        if (hasTransformer)
-                        {
-                            axis.setTransformAppId(new ApplicationID(srcTenant, transformApp, transformVer, transformStatus, transformBranch));
-                            axis.setTransformCubeName(transformCubeName);
-                            axis.setTransformMethodName(transformMethodName);
-                        }
-
-                        Map<String, Object> metaProps = new CaseInsensitiveMap<>();
-                        metaProps.putAll(jsonAxis);
-                        metaProps.remove("isRef");
-                        metaProps.remove("hasDefault");
-                        metaProps.remove("sourceTenant");
-                        metaProps.remove("sourceApp");
-                        metaProps.remove("sourceVersion");
-                        metaProps.remove("sourceStatus");
-                        metaProps.remove("sourceBranch");
-                        metaProps.remove("sourceCubeName");
-                        metaProps.remove("sourceAxisName");
-                        metaProps.remove("transformApp");
-                        metaProps.remove("transformVersion");
-                        metaProps.remove("transformStatus");
-                        metaProps.remove("transformBranch");
-                        metaProps.remove("transformCubeName");
-                        metaProps.remove("transformMethodName");
-
-                        NCube sourceCube = NCubeManager.getCube(axis.getSourceAppId(), axis.getSourceCubeName());
-                        if (sourceCube == null)
-                        {
-                            throw new IllegalStateException("Unable to load cube: " + cubeName +
-                                    " which has a reference axis, failed to load referenced cube: " + srcCubeName + ", axis: " + srcAxisName +
-                                    ", source app: " + axis.getSourceAppId());
-                        }
-
-                        NCube transformCube = null;
-                        if (hasTransformer)
-                        {
-                            transformCube = NCubeManager.getCube(axis.getTransformAppId(), axis.getTransformCubeName());
-                            if (transformCube == null)
-                            {
-                                throw new IllegalStateException("Unable to load cube: " + ncube.getName() +
-                                        " which has a reference axis, failed to load transform cube: " + transformCubeName + ", method: " +
-                                        transformMethodName + ", source app: " + axis.getTransformAppId());
-                            }
-                        }
-
-                        Axis refAxis = sourceCube.getAxis(srcAxisName);
-                        if (refAxis == null)
-                        {
-                            throw new IllegalStateException("Unable to load cube: " + ncube.getName() +
-                                    ", The reference axis: " + srcAxisName + " was not found on the referenced cube: " +
-                                    srcCubeName + ", in app: " + axis.getSourceAppId());
-                        }
-
-                        Map<String, Object> input = new CaseInsensitiveMap<>();
-                        input.put("columns", refAxis.getColumns());
-                        Map<String, Object> output = new CaseInsensitiveMap<>();
-                        if (transformCube != null)
-                        {   // Allow this cube to manipulate the passed in Axis.
-                            transformCube.getCell(input, output);
-                        }
-                        else
-                        {
-                            output.put("columns", input.get("columns"));
-                        }
-
-                        axis.setName(axisName);
-                        axis.type = refAxis.type;
-                        axis.valueType = refAxis.valueType;
-                        axis.fireAll = refAxis.fireAll;
-
-                        // Bring over referenced axis meta properties
-                        for (Map.Entry<String, Object> entry : refAxis.getMetaProperties().entrySet())
-                        {
-                            axis.setMetaProperty(entry.getKey(), entry.getValue());
-                        }
-
-                        // Allow meta properties for reference axis - these take priority (override)
-                        // any meta-properties on the referenced axis.
-                        for (Map.Entry<String, Object> entry : metaProps.entrySet())
-                        {
-                            axis.setMetaProperty(entry.getKey(), entry.getValue());
-                        }
-
-                        List<Column> columns = (List<Column>) output.get("columns");
-                        for (Column column : columns)
-                        {
-                            axis.addColumn(column.getValue(), column.getColumnName(), column.id);
-                        }
-                    }
-                });
+                ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, jsonAxis);
+                Axis newAxis = new Axis(axisName, idBase++, hasDefault, refAxisLoader);
                 ncube.addAxis(newAxis);
             }
             else
@@ -2236,7 +2120,7 @@ public class NCube<T>
         }
     }
 
-    static String getString(Map obj, String key)
+    protected static String getString(Map obj, String key)
     {
         Object val = obj.get(key);
         if (val instanceof String)
@@ -2247,7 +2131,7 @@ public class NCube<T>
         throw new IllegalArgumentException("Expected 'String' for key '" + key + "' but instead found: " + clazz);
     }
 
-    static Long getLong(Map obj, String key)
+    protected static Long getLong(Map obj, String key)
     {
         Object val = obj.get(key);
         if (val instanceof Number)
