@@ -80,6 +80,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
 
         Map<String, Object> metaProps = new CaseInsensitiveMap<>()
         metaProps.putAll(refAxisArgs)
+        metaProps.remove("name")
         metaProps.remove("isRef")
         metaProps.remove("hasDefault")
         metaProps.remove("sourceTenant")

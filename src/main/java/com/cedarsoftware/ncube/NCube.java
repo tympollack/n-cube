@@ -1887,6 +1887,10 @@ public class NCube<T>
                 ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, jsonAxis);
                 Axis newAxis = new Axis(axisName, idBase++, hasDefault, refAxisLoader);
                 ncube.addAxis(newAxis);
+                for (Column column : newAxis.getColumns())
+                {
+                    userIdToUniqueId.put(column.id, column.id);
+                }
             }
             else
             {
@@ -2063,17 +2067,8 @@ public class NCube<T>
                     Set<Long> colIds = new LongHashSet();
                     for (Object id : (Object[])ids)
                     {
-
                         if (!userIdToUniqueId.containsKey(id))
                         {
-                            if (id instanceof String)
-                            {
-                                Long id2 = (Long) Converter.convert(id, Long.class);
-                                if (!userIdToUniqueId.containsKey(id2))
-                                {
-
-                                }
-                            }
                             throw new IllegalArgumentException("ID specified in cell does not match an ID in the columns, id: " + id + ", cube: " + cubeName);
                         }
                         colIds.add(userIdToUniqueId.get(id));

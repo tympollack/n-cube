@@ -130,8 +130,10 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             return
         }
 
-        for (Map.Entry<String, Object> entry : metaProps.entrySet())
+        Iterator<Map.Entry<String, Object>> i = metaProps.entrySet().iterator()
+        while (i.hasNext())
         {
+            Map.Entry<String, Object> entry = i.next()
             final String key = entry.getKey()
             Object value = entry.getValue()
             if (value instanceof String || value instanceof Boolean || value instanceof Long || value == null)
@@ -155,7 +157,10 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 endObject()
             }
 
-            comma()
+            if (i.hasNext())
+            {
+                comma()
+            }
         }
     }
 
@@ -224,6 +229,8 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
         if (axis.isReference())
         {
+            boolean hasTransformer = axis.transformAppId != null && StringUtilities.hasContent(axis.transformCubeName) && StringUtilities.hasContent(axis.transformMethodName)
+
             writeObjectKeyValue("isRef", true, true)
             writeObjectKeyValue("sourceTenant", axis.sourceAppId.tenant, true)
             writeObjectKeyValue("sourceApp", axis.sourceAppId.app, true)
@@ -231,13 +238,22 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             writeObjectKeyValue("sourceStatus", axis.sourceAppId.status, true)
             writeObjectKeyValue("sourceBranch", axis.sourceAppId.branch, true)
             writeObjectKeyValue("sourceCubeName", axis.sourceCubeName, true)
-            writeObjectKeyValue("sourceAxisName", axis.sourceAxisName, true)
-            writeObjectKeyValue("transformApp", axis.transformAppId.app, true)
-            writeObjectKeyValue("transformVersion", axis.transformAppId.version, true)
-            writeObjectKeyValue("transformStatus", axis.transformAppId.status, true)
-            writeObjectKeyValue("transformBranch", axis.transformAppId.branch, true)
-            writeObjectKeyValue("transformCubeName", axis.transformCubeName, true)
-            writeObjectKeyValue("transformMethodName", axis.transformMethodName, true)
+            writeObjectKeyValue("sourceAxisName", axis.sourceAxisName, false)
+
+            if (hasTransformer)
+            {
+                comma()
+                writeObjectKeyValue("transformApp", axis.transformAppId.app, true)
+                writeObjectKeyValue("transformVersion", axis.transformAppId.version, true)
+                writeObjectKeyValue("transformStatus", axis.transformAppId.status, true)
+                writeObjectKeyValue("transformBranch", axis.transformAppId.branch, true)
+                writeObjectKeyValue("transformCubeName", axis.transformCubeName, true)
+                writeObjectKeyValue("transformMethodName", axis.transformMethodName, false)
+            }
+            if (axis.getMetaProperties().size() > 0)
+            {
+                comma()
+            }
             writeMetaProperties(axis.getMetaProperties())
         }
         else

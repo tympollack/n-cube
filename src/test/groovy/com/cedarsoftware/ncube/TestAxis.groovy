@@ -2548,6 +2548,38 @@ class TestAxis
         { }
     }
 
+    @Test
+    void testReferenceAxisNoDefault()
+    {
+        NCube one = NCubeBuilder.getDiscrete1D()
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args.sourceTenant = appId.tenant
+        args.sourceApp = appId.app
+        args.sourceVersion = appId.version
+        args.sourceStatus = appId.status
+        args.sourceBranch = appId.branch
+        args.sourceCubeName = 'SimpleDiscrete'
+        args.sourceAxisName = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
+        Axis axis = new Axis('stateSource', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.addAxis(axis)
+
+        two.setCell('a', [stateSource:'OH'] as Map)
+        two.setCell('b', [stateSource:'TX'] as Map)
+
+        String json = two.toFormattedJson()
+        println json
+        NCube reload = NCube.fromSimpleJson(json)
+        println reload
+    }
+
     private static boolean isValidRange(Axis axis, Range range)
     {
         try

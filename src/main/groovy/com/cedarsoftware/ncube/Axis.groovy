@@ -79,8 +79,8 @@ class Axis
     private final Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    private final transient NavigableMap<Comparable, Column> valueToCol
-    protected final transient RangeMap<Comparable, Column> rangeToCol
+    private transient NavigableMap<Comparable, Column> valueToCol = new TreeMap<>()
+    protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
     /**
      * Implement to provide data for this Axis
@@ -159,14 +159,17 @@ class Axis
             idToCol[defaultCol.id] = defaultCol
         }
 
+        verifyAxisType()
+    }
+
+    private void verifyAxisType()
+    {
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
         {
-            valueToCol = new TreeMap<>()
             rangeToCol = null
         }
         else if (type == AxisType.RANGE || type == AxisType.SET)
         {
-            rangeToCol = TreeRangeMap.create()
             valueToCol = null
         }
         else
@@ -200,10 +203,7 @@ class Axis
         }
 
         // Verify that the axis is indeed valid
-        if (!AxisType.values().contains(type))
-        {
-            throw new IllegalStateException('AxisType not set, axis: ' + name)
-        }
+        verifyAxisType()
 
         if (!AxisValueType.values().contains(valueType))
         {
@@ -631,10 +631,10 @@ class Axis
 
     protected Column addColumnInternal(Column column)
     {
-        if (isRef)
-        {
-            throw new IllegalStateException('You cannot add columns to a reference Axis, axis: ' + name)
-        }
+//        if (isRef)
+//        {
+//            throw new IllegalStateException('You cannot add columns to a reference Axis, axis: ' + name)
+//        }
         ensureUnique(column.getValue())
 
         if (column.value == null)
