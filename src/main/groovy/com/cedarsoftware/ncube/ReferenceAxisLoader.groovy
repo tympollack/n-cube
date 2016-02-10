@@ -34,10 +34,33 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ReferenceAxisLoader implements Axis.AxisRefProvider
 {
+    public static final String SOURCE_TENANT = 'sourceTenant'
+    public static final String SOURCE_APP = 'sourceApp'
+    public static final String SOURCE_VERSION = 'sourceVersion'
+    public static final String SOURCE_STATUS = 'sourceStatus'
+    public static final String SOURCE_BRANCH = 'sourceBranch'
+    public static final String SOURCE_CUBE_NAME = 'sourceCubeName'
+    public static final String SOURCE_AXIS_NAME = 'sourceAxisName'
+
+    public static final String TRANSFORM_APP = 'transformApp'
+    public static final String TRANSFORM_VERSION = 'transformVersion'
+    public static final String TRANSFORM_STATUS = 'transformStatus'
+    public static final String TRANSFORM_BRANCH = 'transformBranch'
+    public static final String TRANSFORM_CUBE_NAME = 'transformCubeName'
+    public static final String TRANSFORM_METHOD_NAME = 'transformMethodName'
+
     private String cubeName
     private String axisName
     private Map refAxisArgs
 
+    /**
+     * @param containingCubeName String name of cube that holds the 'pointer' (referring) axis
+     * @param sourceAxisName String name of the referring axis
+     * @param refAxisArgs Map containing all the key-value pairs to describe the referenced n-cube + axis
+     * and an optional reference to a transformation cube.<br>
+     * required keys: sourceTenant, sourceApp, sourceVersion, sourceStatus, sourceBranch, sourceCubeName, sourceAxisName
+     * optional keys (transformer): transformApp, transformVersion, transformStatus, transformBranch, transformCubeName, transformMethodName
+     */
     ReferenceAxisLoader(String containingCubeName, String sourceAxisName, Map<String , Object> refAxisArgs)
     {
         cubeName = containingCubeName
@@ -45,26 +68,30 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         this.refAxisArgs = refAxisArgs
     }
 
+    /**
+     * Axis calls this method to load itself from this AxisRefProvider.
+     * @param axis Axis to 'fill-up' from the reference and 'transform' from the optional transformer.
+     */
     void load(Axis axis)
     {
-        String srcTenant = refAxisArgs.sourceTenant
-        String srcApp = refAxisArgs.sourceApp
-        String srcVer = refAxisArgs.sourceVersion
-        String srcStatus = refAxisArgs.sourceStatus
-        String srcBranch = refAxisArgs.sourceBranch
-        String srcCubeName = refAxisArgs.sourceCubeName
-        String srcAxisName = refAxisArgs.sourceAxisName
+        String srcTenant = refAxisArgs[SOURCE_TENANT]
+        String srcApp = refAxisArgs[SOURCE_APP]
+        String srcVer = refAxisArgs[SOURCE_VERSION]
+        String srcStatus = refAxisArgs[SOURCE_STATUS]
+        String srcBranch = refAxisArgs[SOURCE_BRANCH]
+        String srcCubeName = refAxisArgs[SOURCE_CUBE_NAME]
+        String srcAxisName = refAxisArgs[SOURCE_AXIS_NAME]
 
         axis.setSourceAppId(new ApplicationID(srcTenant, srcApp, srcVer, srcStatus, srcBranch))
         axis.setSourceCubeName(srcCubeName)
         axis.setSourceAxisName(srcAxisName)
 
-        String transformApp = refAxisArgs.transformApp
-        String transformVer = refAxisArgs.transformVersion
-        String transformStatus = refAxisArgs.transformStatus
-        String transformBranch = refAxisArgs.transformBranch
-        String transformCubeName = refAxisArgs.transformCubeName
-        String transformMethodName = refAxisArgs.transformMethodName
+        String transformApp = refAxisArgs[TRANSFORM_APP]
+        String transformVer = refAxisArgs[TRANSFORM_VERSION]
+        String transformStatus = refAxisArgs[TRANSFORM_STATUS]
+        String transformBranch = refAxisArgs[TRANSFORM_BRANCH]
+        String transformCubeName = refAxisArgs[TRANSFORM_CUBE_NAME]
+        String transformMethodName = refAxisArgs[TRANSFORM_METHOD_NAME]
 
         boolean hasTransformer = StringUtilities.hasContent(transformApp) &&
                 StringUtilities.hasContent(transformVer) &&
@@ -83,19 +110,19 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         metaProps.remove("name")
         metaProps.remove("isRef")
         metaProps.remove("hasDefault")
-        metaProps.remove("sourceTenant")
-        metaProps.remove("sourceApp")
-        metaProps.remove("sourceVersion")
-        metaProps.remove("sourceStatus")
-        metaProps.remove("sourceBranch")
-        metaProps.remove("sourceCubeName")
-        metaProps.remove("sourceAxisName")
-        metaProps.remove("transformApp")
-        metaProps.remove("transformVersion")
-        metaProps.remove("transformStatus")
-        metaProps.remove("transformBranch")
-        metaProps.remove("transformCubeName")
-        metaProps.remove("transformMethodName")
+        metaProps.remove(SOURCE_TENANT)
+        metaProps.remove(SOURCE_APP)
+        metaProps.remove(SOURCE_VERSION)
+        metaProps.remove(SOURCE_STATUS)
+        metaProps.remove(SOURCE_BRANCH)
+        metaProps.remove(SOURCE_CUBE_NAME)
+        metaProps.remove(SOURCE_AXIS_NAME)
+        metaProps.remove(TRANSFORM_APP)
+        metaProps.remove(TRANSFORM_VERSION)
+        metaProps.remove(TRANSFORM_STATUS)
+        metaProps.remove(TRANSFORM_BRANCH)
+        metaProps.remove(TRANSFORM_CUBE_NAME)
+        metaProps.remove(TRANSFORM_METHOD_NAME)
 
         NCube sourceCube = NCubeManager.getCube(axis.getSourceAppId(), axis.getSourceCubeName())
         if (sourceCube == null)

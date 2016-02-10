@@ -7,12 +7,27 @@ import com.cedarsoftware.ncube.CommandCell
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.Range
 import com.cedarsoftware.ncube.RangeSet
+import com.cedarsoftware.ncube.ReferenceAxisLoader
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
+
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_AXIS_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_TENANT
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_VERSION
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_METHOD_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
 
 /**
  * Format an NCube into an JSON document
@@ -235,23 +250,23 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             boolean hasTransformer = axis.transformAppId != null && StringUtilities.hasContent(axis.transformCubeName) && StringUtilities.hasContent(axis.transformMethodName)
 
             writeObjectKeyValue("isRef", true, true)
-            writeObjectKeyValue("sourceTenant", axis.sourceAppId.tenant, true)
-            writeObjectKeyValue("sourceApp", axis.sourceAppId.app, true)
-            writeObjectKeyValue("sourceVersion", axis.sourceAppId.version, true)
-            writeObjectKeyValue("sourceStatus", axis.sourceAppId.status, true)
-            writeObjectKeyValue("sourceBranch", axis.sourceAppId.branch, true)
-            writeObjectKeyValue("sourceCubeName", axis.sourceCubeName, true)
-            writeObjectKeyValue("sourceAxisName", axis.sourceAxisName, false)
+            writeObjectKeyValue(SOURCE_TENANT, axis.sourceAppId.tenant, true)
+            writeObjectKeyValue(SOURCE_APP, axis.sourceAppId.app, true)
+            writeObjectKeyValue(SOURCE_VERSION, axis.sourceAppId.version, true)
+            writeObjectKeyValue(SOURCE_STATUS, axis.sourceAppId.status, true)
+            writeObjectKeyValue(SOURCE_BRANCH, axis.sourceAppId.branch, true)
+            writeObjectKeyValue(SOURCE_CUBE_NAME, axis.sourceCubeName, true)
+            writeObjectKeyValue(SOURCE_AXIS_NAME, axis.sourceAxisName, false)
 
             if (hasTransformer)
             {
                 comma()
-                writeObjectKeyValue("transformApp", axis.transformAppId.app, true)
-                writeObjectKeyValue("transformVersion", axis.transformAppId.version, true)
-                writeObjectKeyValue("transformStatus", axis.transformAppId.status, true)
-                writeObjectKeyValue("transformBranch", axis.transformAppId.branch, true)
-                writeObjectKeyValue("transformCubeName", axis.transformCubeName, true)
-                writeObjectKeyValue("transformMethodName", axis.transformMethodName, false)
+                writeObjectKeyValue(TRANSFORM_APP, axis.transformAppId.app, true)
+                writeObjectKeyValue(TRANSFORM_VERSION, axis.transformAppId.version, true)
+                writeObjectKeyValue(TRANSFORM_STATUS, axis.transformAppId.status, true)
+                writeObjectKeyValue(TRANSFORM_BRANCH, axis.transformAppId.branch, true)
+                writeObjectKeyValue(TRANSFORM_CUBE_NAME, axis.transformCubeName, true)
+                writeObjectKeyValue(TRANSFORM_METHOD_NAME, axis.transformMethodName, false)
             }
             if (axis.getMetaProperties().size() > 0)
             {
