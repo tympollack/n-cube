@@ -512,15 +512,9 @@ class Axis
 
         if (suggestedId != null)
         {
-            long impliedAxisId = (long) (suggestedId / BASE_AXIS_ID)
-
-            if (impliedAxisId != id ||                  // suggestedID must include matching Axis ID
-                idToCol.containsKey(suggestedId))       // suggestedID must not already exist on axis
-            {
-                return new Column(v, getNextColId())
-            }
-
-            return new Column(v, suggestedId)
+            long attemptId = (id * BASE_AXIS_ID) + (suggestedId % BASE_AXIS_ID)
+            long finalId = idToCol.containsKey(attemptId) ? getNextColId() : attemptId
+            return new Column(v, finalId)
         }
         else
         {
@@ -605,6 +599,10 @@ class Axis
      */
     Column addColumn(Comparable value, String colName)
     {
+        if (isRef)
+        {
+            throw new IllegalStateException('You cannot add columns to a reference Axis, axis: ' + name)
+        }
         return addColumn(value, colName, null)
     }
 
@@ -631,10 +629,6 @@ class Axis
 
     protected Column addColumnInternal(Column column)
     {
-//        if (isRef)
-//        {
-//            throw new IllegalStateException('You cannot add columns to a reference Axis, axis: ' + name)
-//        }
         ensureUnique(column.getValue())
 
         if (column.value == null)

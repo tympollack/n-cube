@@ -126,7 +126,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         }
 
         Map<String, Object> input = new CaseInsensitiveMap<>()
-        input.put("columns", refAxis.getColumns())
+        input.put("columns", refAxis.getColumnsWithoutDefault())
         Map<String, Object> output = new CaseInsensitiveMap<>()
         if (transformCube != null)
         {   // Allow this cube to manipulate the passed in Axis.

@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube.formatters
 
-import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.Column
@@ -18,7 +17,7 @@ import groovy.transform.CompileStatic
 /**
  * Format an NCube into an JSON document
  *
- * @author Ken Partlow (kpartlow@gmail.com)
+ * @author Ken Partlow (kpartlow@gmail.com), John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
@@ -111,7 +110,11 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 }
             }
 
-            writeMetaProperties(ncube.getMetaProperties())
+            if (ncube.getMetaProperties().size() > 0)
+            {
+                writeMetaProperties(ncube.getMetaProperties())
+                comma()
+            }
             writeAxes(ncube.getAxes(), options)
             writeCells(ncube.getCellMap() as Map, options)
             endObject()
@@ -264,7 +267,11 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             //  optional inputs that can use defaults
             writeObjectKeyValue("preferredOrder", axis.getColumnOrder(), true)
             writeObjectKeyValue("fireAll", axis.isFireAll(), true)
-            writeMetaProperties(axis.getMetaProperties())
+            if (axis.getMetaProperties().size() > 0)
+            {
+                writeMetaProperties(axis.getMetaProperties())
+                comma()
+            }
             writeColumns(axis.getColumns(), options)
         }
         endObject()
@@ -277,14 +284,14 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 
         boolean firstPass = true
 
-        for (Column item : columns)
+        for (Column column : columns)
         {
-            if (!item.isDefault())
+            if (!column.isDefault())
             {
                 if (!firstPass) {
                     comma()
                 }
-                writeColumn(item, options)
+                writeColumn(column, options)
                 firstPass = false
             }
         }
@@ -308,7 +315,11 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             writeId(column.getId(), true)
         }
         writeType(columnType)
-        writeMetaProperties(column.getMetaProperties())
+        if (column.getMetaProperties().size() > 0)
+        {
+            writeMetaProperties(column.getMetaProperties())
+            comma()
+        }
         if (column.getValue() instanceof CommandCell)
         {
             writeCommandCell((CommandCell) column.getValue())
