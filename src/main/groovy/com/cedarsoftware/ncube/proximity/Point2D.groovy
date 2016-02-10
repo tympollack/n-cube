@@ -63,7 +63,6 @@ class Point2D implements Distance<Point2D>
 		ly ^= ly >> 47
 		h = (int) ly * 31 + h
 
-		println h
 		return h
 	}
 

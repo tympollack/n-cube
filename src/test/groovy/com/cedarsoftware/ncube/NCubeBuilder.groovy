@@ -369,6 +369,109 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube getDiscrete1DLong()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "discreteLong",
+  "axes": [
+    {
+      "name": "code",
+      "type": "DISCRETE",
+      "valueType": "LONG",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "value": "1"
+        },
+        {
+          "id": 1000000000002,
+          "value": "2"
+        },
+        {
+          "id": 1000000000003,
+          "value": "3"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "a"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "string",
+      "value": "b"
+    },
+    {
+      "id": [
+        1000000000003
+      ],
+      "type": "string",
+      "value": "c"
+    }
+  ]
+}''')
+    }
+
+    static NCube getTransformMultiply()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "multiplier",
+  "axes": [
+    {
+      "name": "method",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "value": "double"
+        },
+        {
+          "id": 1000000000002,
+          "value": "triple"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "exp",
+      "value": "        output.columns = new ArrayList()
+        for (Column column : input.columns)
+        {
+            Column copy = new Column(column.value * 2, column.id)
+            copy.setColumnName(column.getColumnName())
+            output.columns.add(copy)
+        }"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "exp",
+      "value": "output.columns = new ArrayList()\nfor (Column column : input.columns)\n{\noutput.columns.add(column.value * 2)\n}"
+    }
+  ]
+}''')
+    }
+
     static NCube getDiscrete1D()
     {
         return NCube.fromSimpleJson('''\

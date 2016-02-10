@@ -12,6 +12,12 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_METHOD_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotEquals
@@ -2654,6 +2660,63 @@ class TestAxis
         assert 'c' == reload.getCell([stateSource:'AZ'] as Map)
         assert 'c' == reload.getCell([stateSource:'blah'] as Map)
     }
+
+    @Test
+    void testReferenceAxisWithTransform()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DLong()
+        assert one.getAxis('code').size() == 3
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        NCube transform = NCubeBuilder.getTransformMultiply()
+        assert transform.getAxis('method').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, transform)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args.sourceTenant = appId.tenant
+        args.sourceApp = appId.app
+        args.sourceVersion = appId.version
+        args.sourceStatus = appId.status
+        args.sourceBranch = appId.branch
+        args.sourceCubeName = 'discreteLong'
+        args.sourceAxisName = 'code'
+        args[TRANSFORM_APP] = appId.app
+        args[TRANSFORM_VERSION] = appId.version
+        args[TRANSFORM_STATUS] = appId.status
+        args[TRANSFORM_BRANCH] = appId.branch
+        args[TRANSFORM_CUBE_NAME] = 'multiplier'
+        args[TRANSFORM_METHOD_NAME] = 'double'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
+        Axis axis = new Axis('age', 1, false, refAxisLoader)
+        NCube two = new NCube('TestTransform')
+        two.addAxis(axis)
+        two.setCell('a', [age:2] as Map)
+        assert 'a' == two.getCell([age:2] as Map)
+
+        two.setCell('b', [age:4] as Map)
+        assert 'b' == two.getCell([age:4] as Map)
+
+        two.setCell('c', [age:6] as Map)
+        assert 'c' == two.getCell([age:6] as Map)
+
+        String json = two.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+        assert reload.getNumCells() == 3
+        assert 'a' == reload.getCell([age:2] as Map)
+        assert 'b' == reload.getCell([age:4] as Map)
+        assert 'c' == reload.getCell([age:6] as Map)
+    }
+
+    // TODO: Tests to write
+    // Test non-existent reference cube (catch exception)
+    // Test non-existent reference axis on cube
+    // Test non-existent transform cube
+    // Test non-existent method on transform cube
+    // Test multi-dimensional reference cube with offset IDs
 
     private static boolean isValidRange(Axis axis, Range range)
     {

@@ -157,6 +157,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         Map<String, Object> output = new CaseInsensitiveMap<>()
         if (transformCube != null)
         {   // Allow this cube to manipulate the passed in Axis.
+            input.method = transformMethodName
             transformCube.getCell(input, output)
         }
         else
