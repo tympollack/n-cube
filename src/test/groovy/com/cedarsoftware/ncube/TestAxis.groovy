@@ -12,6 +12,13 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
@@ -2564,13 +2571,13 @@ class TestAxis
         Map<String, Object> args = [:]
 
         ApplicationID appId = ApplicationID.testAppId
-        args.sourceTenant = appId.tenant
-        args.sourceApp = appId.app
-        args.sourceVersion = appId.version
-        args.sourceStatus = appId.status
-        args.sourceBranch = appId.branch
-        args.sourceCubeName = 'SimpleDiscrete'
-        args.sourceAxisName = 'state'
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
 
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
@@ -2598,13 +2605,13 @@ class TestAxis
         Map<String, Object> args = [:]
 
         ApplicationID appId = ApplicationID.testAppId
-        args.sourceTenant = appId.tenant
-        args.sourceApp = appId.app
-        args.sourceVersion = appId.version
-        args.sourceStatus = appId.status
-        args.sourceBranch = appId.branch
-        args.sourceCubeName = 'SimpleDiscrete'
-        args.sourceAxisName = 'state'
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
 
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
@@ -2634,13 +2641,13 @@ class TestAxis
         Map<String, Object> args = [:]
 
         ApplicationID appId = ApplicationID.testAppId
-        args.sourceTenant = appId.tenant
-        args.sourceApp = appId.app
-        args.sourceVersion = appId.version
-        args.sourceStatus = appId.status
-        args.sourceBranch = appId.branch
-        args.sourceCubeName = 'SimpleDiscrete'
-        args.sourceAxisName = 'state'
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
 
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
@@ -2675,13 +2682,13 @@ class TestAxis
         Map<String, Object> args = [:]
 
         ApplicationID appId = ApplicationID.testAppId
-        args.sourceTenant = appId.tenant
-        args.sourceApp = appId.app
-        args.sourceVersion = appId.version
-        args.sourceStatus = appId.status
-        args.sourceBranch = appId.branch
-        args.sourceCubeName = 'discreteLong'
-        args.sourceAxisName = 'code'
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'discreteLong'
+        args[REF_AXIS_NAME] = 'code'
         args[TRANSFORM_APP] = appId.app
         args[TRANSFORM_VERSION] = appId.version
         args[TRANSFORM_STATUS] = appId.status
@@ -2706,17 +2713,145 @@ class TestAxis
         String json = two.toFormattedJson()
         NCube reload = NCube.fromSimpleJson(json)
         assert reload.getNumCells() == 3
+
+        // 1, 2, 3 was transformed to 2, 4, 6
         assert 'a' == reload.getCell([age:2] as Map)
         assert 'b' == reload.getCell([age:4] as Map)
         assert 'c' == reload.getCell([age:6] as Map)
+
+        json = reload
+        assert !json.contains('"columns":{')
+        json = reload.toFormattedJson([indexFormat:true] as Map)
+        assert json.contains('"columns":{')
     }
 
+    @Test
+    void testReferenceAxisCubeNotExists()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DAlt()
+        assert one.getAxis('state').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscreteNotExisting'
+        args[REF_AXIS_NAME] = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
+        try
+        {
+            new Axis('stateSource', 1, false, refAxisLoader)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('unable to load')
+            assert e.message.toLowerCase().contains('reference axis')
+            assert e.message.contains('impleDiscreteNotExisting')
+        }
+
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'stateNotThere'
+        refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
+        try
+        {
+            new Axis('stateSource', 1, false, refAxisLoader)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('unable to load')
+            assert e.message.toLowerCase().contains('reference axis')
+            assert e.message.contains('stateNotThere')
+            assert e.message.toLowerCase().contains('not found')
+        }
+    }
+
+    @Test
+    void testNonExistingTransformCube()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DLong()
+        assert one.getAxis('code').size() == 3
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        NCube transform = NCubeBuilder.getTransformMultiply()
+        assert transform.getAxis('method').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, transform)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'discreteLong'
+        args[REF_AXIS_NAME] = 'code'
+        args[TRANSFORM_APP] = appId.app
+        args[TRANSFORM_VERSION] = appId.version
+        args[TRANSFORM_STATUS] = appId.status
+        args[TRANSFORM_BRANCH] = appId.branch
+        args[TRANSFORM_CUBE_NAME] = 'multiplierNotThere'
+        args[TRANSFORM_METHOD_NAME] = 'double'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
+        try
+        {
+            new Axis('age', 1, false, refAxisLoader)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('unable to load')
+            assert e.message.contains('TestTransform')
+            assert e.message.toLowerCase().contains('reference axis')
+            assert e.message.toLowerCase().contains('failed to load transform')
+        }
+
+        args[TRANSFORM_CUBE_NAME] = 'discreteLong'  // this cube has no 'method' axis
+        args[TRANSFORM_METHOD_NAME] = 'double'
+        refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
+        try
+        {
+            new Axis('age', 1, false, refAxisLoader)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('unable to load')
+            assert e.message.contains('TestTransform')
+            assert e.message.toLowerCase().contains('reference axis (age)')
+            assert e.message.toLowerCase().contains("no 'method' axis")
+        }
+
+        args[TRANSFORM_CUBE_NAME] = 'multiplier'  // this cube has no 'method' axis
+        args[TRANSFORM_METHOD_NAME] = 'doubleNotThere'
+        refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
+        try
+        {
+            new Axis('age', 1, false, refAxisLoader)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('unable to load')
+            assert e.message.contains('TestTransform')
+            assert e.message.toLowerCase().contains('reference axis (age)')
+            assert e.message.contains("(doubleNotThere) does not exist")
+        }
+    }
     // TODO: Tests to write
-    // Test non-existent reference cube (catch exception)
-    // Test non-existent reference axis on cube
-    // Test non-existent transform cube
-    // Test non-existent method on transform cube
     // Test multi-dimensional reference cube with offset IDs
+    // Test that meta-properties pull-through from the reference axis and are overridden by source meta-properties
 
     private static boolean isValidRange(Axis axis, Range range)
     {

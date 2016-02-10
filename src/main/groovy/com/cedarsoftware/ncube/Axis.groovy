@@ -17,7 +17,19 @@ import groovy.transform.CompileStatic
 import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Matcher
 
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_METHOD_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
 import static java.lang.Math.abs
+
 /**
  * Implements an Axis of an NCube. When modeling, think of an axis as a 'condition'
  * or decision point.  An input variable (like 'X:1' in a cartesian coordinate system)
@@ -66,14 +78,6 @@ class Axis
     private int preferredOrder = SORTED
     protected boolean fireAll = true
     private final boolean isRef
-
-    // Reference Axis fields
-    ApplicationID sourceAppId = null
-    String sourceCubeName = null
-    String sourceAxisName = null
-    ApplicationID transformAppId = null
-    String transformCubeName = null
-    String transformMethodName = null
 
     // Internal indexes
     private final Map<Long, Column> idToCol = new HashMap<>()
@@ -162,22 +166,6 @@ class Axis
         verifyAxisType()
     }
 
-    private void verifyAxisType()
-    {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
-        {
-            rangeToCol = null
-        }
-        else if (type == AxisType.RANGE || type == AxisType.SET)
-        {
-            valueToCol = null
-        }
-        else
-        {
-            throw new IllegalArgumentException('Unknown axis type: ' + type + " set")
-        }
-    }
-
     /**
      * Use this constructor to create a 'reference' axis.  This allows a single MASTER DATA axis to be referenced
      * by many other axes without repeating the columnar data.
@@ -216,6 +204,62 @@ class Axis
         }
     }
 
+    private void verifyAxisType()
+    {
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
+        {
+            rangeToCol = null
+        }
+        else if (type == AxisType.RANGE || type == AxisType.SET)
+        {
+            valueToCol = null
+        }
+        else
+        {
+            throw new IllegalArgumentException('Unknown axis type: ' + type + " set")
+        }
+    }
+
+    /**
+     * @return ApplicationID of the referenced cube (if this Axis is a reference Axis, or
+     * null otherwise).
+     */
+    ApplicationID getReferencedApp()
+    {
+        return isRef ? new ApplicationID(getMetaProperty(REF_TENANT) as String,
+                getMetaProperty(REF_APP) as String,
+                getMetaProperty(REF_VERSION) as String,
+                getMetaProperty(REF_STATUS) as String,
+                getMetaProperty(REF_BRANCH) as String) : null
+    }
+
+    /**
+     * @return ApplicationID of the transformer cube (if this Axis is a reference Axis and it
+     * specifies a transformer cube, otherwise null).
+     */
+    ApplicationID getTransformApp()
+    {
+        return isReferenceTransformed() ? new ApplicationID(getMetaProperty(REF_TENANT) as String,
+                getMetaProperty(TRANSFORM_APP) as String,
+                getMetaProperty(TRANSFORM_VERSION) as String,
+                getMetaProperty(TRANSFORM_STATUS) as String,
+                getMetaProperty(TRANSFORM_BRANCH) as String) : null
+    }
+
+    /**
+     * @return boolean true if this Axis is a reference Axis AND there is a transformer app
+     * specified for the reference.
+     */
+    boolean isReferenceTransformed()
+    {
+        return isRef && StringUtilities.hasContent(getMetaProperty(TRANSFORM_APP) as String) &&
+                StringUtilities.hasContent(getMetaProperty(TRANSFORM_VERSION) as String) &&
+                StringUtilities.hasContent(getMetaProperty(TRANSFORM_STATUS) as String) &&
+                StringUtilities.hasContent(getMetaProperty(TRANSFORM_BRANCH) as String) &&
+                StringUtilities.hasContent(getMetaProperty(TRANSFORM_CUBE_NAME) as String) &&
+                StringUtilities.hasContent(getMetaProperty(TRANSFORM_METHOD_NAME) as String)
+
+    }
     /**
      * @return boolean true if this Axis is a reference to another axis, not a 'real' axis.  A reference axis
      * cannot be modified.

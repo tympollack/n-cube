@@ -14,13 +14,13 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_APP
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_AXIS_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_BRANCH
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_STATUS
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_TENANT
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.SOURCE_VERSION
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
@@ -246,34 +246,14 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
         if (axis.isReference())
         {
-            boolean hasTransformer = axis.transformAppId != null && StringUtilities.hasContent(axis.transformCubeName) && StringUtilities.hasContent(axis.transformMethodName)
-
-            writeObjectKeyValue("isRef", true, true)
-            writeObjectKeyValue(SOURCE_TENANT, axis.sourceAppId.tenant, true)
-            writeObjectKeyValue(SOURCE_APP, axis.sourceAppId.app, true)
-            writeObjectKeyValue(SOURCE_VERSION, axis.sourceAppId.version, true)
-            writeObjectKeyValue(SOURCE_STATUS, axis.sourceAppId.status, true)
-            writeObjectKeyValue(SOURCE_BRANCH, axis.sourceAppId.branch, true)
-            writeObjectKeyValue(SOURCE_CUBE_NAME, axis.sourceCubeName, true)
-            writeObjectKeyValue(SOURCE_AXIS_NAME, axis.sourceAxisName, false)
-
-            if (hasTransformer)
-            {
-                comma()
-                writeObjectKeyValue(TRANSFORM_APP, axis.transformAppId.app, true)
-                writeObjectKeyValue(TRANSFORM_VERSION, axis.transformAppId.version, true)
-                writeObjectKeyValue(TRANSFORM_STATUS, axis.transformAppId.status, true)
-                writeObjectKeyValue(TRANSFORM_BRANCH, axis.transformAppId.branch, true)
-                writeObjectKeyValue(TRANSFORM_CUBE_NAME, axis.transformCubeName, true)
-                writeObjectKeyValue(TRANSFORM_METHOD_NAME, axis.transformMethodName, false)
-            }
-            if (axis.getMetaProperties().size() > 0)
+            writeReferenceAxisInfo(axis)
+            if (options.indexFormat)
             {
                 comma()
             }
-            writeMetaProperties(axis.getMetaProperties())
         }
-        else
+
+        if (options.indexFormat || !axis.isReference())
         {
             writeObjectKeyValue("type", axis.getType().name(), true)
             writeObjectKeyValue("valueType", axis.getValueType().name(), true)
@@ -289,6 +269,37 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             writeColumns(axis.getColumns(), options)
         }
         endObject()
+    }
+
+    private void writeReferenceAxisInfo(Axis axis)
+    {
+        Map meta = axis.getMetaProperties()
+        boolean hasTransformer = axis.isReferenceTransformed()
+
+        writeObjectKeyValue("isRef", true, true)
+        writeObjectKeyValue(REF_TENANT, meta[REF_TENANT], true)
+        writeObjectKeyValue(REF_APP, meta[REF_APP], true)
+        writeObjectKeyValue(REF_VERSION, meta[REF_VERSION], true)
+        writeObjectKeyValue(REF_STATUS, meta[REF_STATUS], true)
+        writeObjectKeyValue(REF_BRANCH, meta[REF_BRANCH], true)
+        writeObjectKeyValue(REF_CUBE_NAME, meta[REF_CUBE_NAME], true)
+        writeObjectKeyValue(REF_AXIS_NAME, meta[REF_AXIS_NAME], false)
+
+        if (hasTransformer)
+        {
+            comma()
+            writeObjectKeyValue(TRANSFORM_APP, meta[TRANSFORM_APP], true)
+            writeObjectKeyValue(TRANSFORM_VERSION, meta[TRANSFORM_VERSION], true)
+            writeObjectKeyValue(TRANSFORM_STATUS, meta[TRANSFORM_STATUS], true)
+            writeObjectKeyValue(TRANSFORM_BRANCH, meta[TRANSFORM_BRANCH], true)
+            writeObjectKeyValue(TRANSFORM_CUBE_NAME, meta[TRANSFORM_CUBE_NAME], true)
+            writeObjectKeyValue(TRANSFORM_METHOD_NAME, meta[TRANSFORM_METHOD_NAME], false)
+        }
+        if (axis.getMetaProperties().size() > 0)
+        {
+            comma()
+        }
+        writeMetaProperties(axis.getMetaProperties())
     }
 
     void writeColumns(List<Column> columns, Map<String, Object> options) throws IOException
