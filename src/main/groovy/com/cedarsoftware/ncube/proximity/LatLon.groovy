@@ -57,6 +57,24 @@ class LatLon implements Distance<LatLon>
 		return lat == that.lat && lon == that.lon
 	}
 
+	int hashCode()
+	{
+		long lx = Double.doubleToRawLongBits(lat)
+		long ly = Double.doubleToRawLongBits(lon)
+
+		lx ^= lx >> 23
+		lx *= 0x2127599bf4325c37L
+		lx ^= lx >> 47
+		int h = (int) lx
+
+		ly ^= ly >> 23
+		ly *= 0x2127599bf4325c37L
+		ly ^= ly >> 47
+		h = (int) ly * 31 + h
+
+		return h
+	}
+
 	int compareTo(LatLon that)
 	{
 		if (lat < that.lat)

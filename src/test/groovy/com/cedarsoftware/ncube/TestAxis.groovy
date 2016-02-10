@@ -713,7 +713,7 @@ class TestAxis
             assert expected.message.contains('already')
         }
         axis.deleteColumn null
-        assert !axis.hasDefaultColumn()
+        assert axis.getDefaultColumn() == null
     }
 
     @Test
@@ -2544,7 +2544,7 @@ class TestAxis
         {
             ncube.addAxis(axis2)
         }
-        catch (IllegalArgumentException e)
+        catch (IllegalArgumentException ignore)
         { }
     }
 
@@ -2552,6 +2552,7 @@ class TestAxis
     void testReferenceAxisNoDefault()
     {
         NCube one = NCubeBuilder.getDiscrete1DAlt()
+        assert one.getAxis('state').size() == 2
         NCubeManager.addCube(ApplicationID.testAppId, one)
 
         Map<String, Object> args = [:]
@@ -2585,6 +2586,7 @@ class TestAxis
     void testReferenceAxisAddedDefault()
     {
         NCube one = NCubeBuilder.getDiscrete1DAlt()
+        assert one.getAxis('state').size() == 2
         NCubeManager.addCube(ApplicationID.testAppId, one)
 
         Map<String, Object> args = [:]

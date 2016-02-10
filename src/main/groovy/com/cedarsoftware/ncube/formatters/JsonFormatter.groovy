@@ -7,7 +7,6 @@ import com.cedarsoftware.ncube.CommandCell
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.Range
 import com.cedarsoftware.ncube.RangeSet
-import com.cedarsoftware.ncube.ReferenceAxisLoader
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D

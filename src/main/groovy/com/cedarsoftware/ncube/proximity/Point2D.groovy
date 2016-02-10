@@ -50,20 +50,20 @@ class Point2D implements Distance<Point2D>
 
 	int hashCode()
 	{
-		int h = 0
 		long lx = Double.doubleToRawLongBits(x)
 		long ly = Double.doubleToRawLongBits(y)
 
 		lx ^= lx >> 23
 		lx *= 0x2127599bf4325c37L
 		lx ^= lx >> 47
-		h += (int) lx
+		int h = (int) lx
 
 		ly ^= ly >> 23
 		ly *= 0x2127599bf4325c37L
 		ly ^= ly >> 47
-		h += (int) ly
+		h = (int) ly * 31 + h
 
+		println h
 		return h
 	}
 

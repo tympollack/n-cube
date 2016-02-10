@@ -11,7 +11,6 @@ import com.cedarsoftware.util.ArrayUtilities;
 import com.cedarsoftware.util.ByteUtilities;
 import com.cedarsoftware.util.CaseInsensitiveMap;
 import com.cedarsoftware.util.CaseInsensitiveSet;
-import com.cedarsoftware.util.Converter;
 import com.cedarsoftware.util.EncryptionUtilities;
 import com.cedarsoftware.util.IOUtilities;
 import com.cedarsoftware.util.MapUtilities;
@@ -21,6 +20,8 @@ import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
 import groovy.util.MapEntry;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -76,6 +77,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class NCube<T>
 {
+    private static final Logger LOG = LogManager.getLogger(NCube.class);
     public static final String DEFAULT_CELL_VALUE_TYPE = "defaultCellValueType";
     public static final String DEFAULT_CELL_VALUE = "defaultCellValue";
     public static final String DEFAULT_CELL_VALUE_URL = "defaultCellValueUrl";
@@ -2073,7 +2075,14 @@ public class NCube<T>
                         }
                         colIds.add(userIdToUniqueId.get(id));
                     }
-                    ncube.setCellById(v, colIds);
+                    try
+                    {
+                        ncube.setCellById(v, colIds);
+                    }
+                    catch (CoordinateNotFoundException e)
+                    {
+                        LOG.debug("Orphaned cell on n-cube: " + cubeName + ", ids: " + colIds);
+                    }
                 }
                 else
                 {
