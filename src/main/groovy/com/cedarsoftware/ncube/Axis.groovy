@@ -18,7 +18,9 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
@@ -77,7 +79,7 @@ class Axis
     private long colIdBase = 0
     private int preferredOrder = SORTED
     protected boolean fireAll = true
-    private final boolean isRef
+    private boolean isRef
 
     // Internal indexes
     private final Map<Long, Column> idToCol = new HashMap<>()
@@ -267,6 +269,24 @@ class Axis
     boolean isReference()
     {
         return isRef
+    }
+
+    void breakReference()
+    {
+        isRef = false
+        removeMetaProperty(REF_TENANT)
+        removeMetaProperty(REF_APP)
+        removeMetaProperty(REF_VERSION)
+        removeMetaProperty(REF_STATUS)
+        removeMetaProperty(REF_BRANCH)
+        removeMetaProperty(REF_CUBE_NAME)
+        removeMetaProperty(REF_AXIS_NAME)
+        removeMetaProperty(TRANSFORM_APP)
+        removeMetaProperty(TRANSFORM_VERSION)
+        removeMetaProperty(TRANSFORM_STATUS)
+        removeMetaProperty(TRANSFORM_BRANCH)
+        removeMetaProperty(TRANSFORM_CUBE_NAME)
+        removeMetaProperty(TRANSFORM_METHOD_NAME)
     }
 
     protected long getNextColId()

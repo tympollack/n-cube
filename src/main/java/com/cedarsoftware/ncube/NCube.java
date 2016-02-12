@@ -1592,6 +1592,13 @@ public class NCube<T>
         clearSha1();
     }
 
+    public void breakAxisReference(final String axisName)
+    {
+        Axis axis = getAxis(axisName);
+        axis.breakReference();
+        clearSha1();
+    }
+
     /**
      * Remove an axis from an NCube.
      * All cells will be cleared when an axis is deleted.
