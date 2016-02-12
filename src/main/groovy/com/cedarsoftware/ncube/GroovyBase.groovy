@@ -69,12 +69,11 @@ abstract class GroovyBase extends UrlCommandCell
         prepare(data, ctx)
         Object result = executeInternal(ctx)
         if (isCacheable())
-        {
-            // Remove the compiled class from Groovy's internal cache after executing it.
-            // This is because the cell is marked as cacheable, so there is no need to
-            // hold a reference to the compiled class.  Also remove our reference
-            // (runnableCode = null). Internally, the class, constructor, and run() method
-            // are not cached when the cell is marked cache:true.
+        {   // Remove the compiled class from Groovy's internal cache after executing it.
+            // This is because the cell is marked as cacheable meaning the result of the
+            // execution is cached, so there is no need to hold a reference to the compiled class.
+            // Also remove our reference (runnableCode = null). Internally, the class is not cached
+            // when the cell is marked cache:true.
             ClassLoader cl = getRunnableCode().getClassLoader().getParent()
             if (cl instanceof GroovyClassLoader)
             {
@@ -162,49 +161,8 @@ abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        synchronized(GroovyBase.class)
-        {
-            if (compiledMap.containsKey(cmdHash))
-            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-                setRunnableCode(compiledMap[cmdHash])
-                return
-            }
-            Class groovyCode = compile(ctx)
-            setRunnableCode(groovyCode)
-            if (!isCacheable())
-            {
-                compiledMap[cmdHash] = getRunnableCode()
-            }
-        }
-    }
-
-    /**
-     * Compute SHA1 hash for this CommandCell.  The tricky bit here is that the command can be either
-     * defined inline or via a URL.  If defined inline, then the command hash is SHA1(command text).  If
-     * defined through a URL, then the command hash is SHA1(command URL + GroovyClassLoader URLs.toString).
-     */
-    private void computeCmdHash(Object data, Map<String, Object> ctx)
-    {
-        String content
-        if (getUrl() == null)
-        {
-            content = data != null ? data.toString() : ""
-        }
-        else
-        {   // specified via URL, add classLoader URL strings to URL for SHA-1 source.
-            NCube cube = getNCube(ctx)
-            GroovyClassLoader gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
-            URL[] urls = gcLoader.getURLs()
-            StringBuilder s = new StringBuilder()
-            for (URL url : urls)
-            {
-                s.append(url.toString())
-                s.append('.')
-            }
-            s.append(getUrl())
-            content = s.toString()
-        }
-        cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getBytes(content, "UTF-8"))
+        Class compiledGroovy = compile(ctx)
+        setRunnableCode(compiledGroovy)
     }
 
     protected Class compile(Map<String, Object> ctx)
@@ -247,9 +205,54 @@ abstract class GroovyBase extends UrlCommandCell
             gcLoader = (GroovyClassLoader)NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
             grvSrcCode = getCmd()
         }
+
         String groovySource = expandNCubeShortCuts(buildGroovy(ctx, grvSrcCode))
-//        Thread.currentThread().setContextClassLoader(gcLoader)
-        return gcLoader.parseClass(groovySource, 'N_' + cmdHash + '.groovy')
+        Map<String, Class> compiledMap = getCache(cube.applicationID, compiledClasses)
+
+        synchronized (GroovyBase.class)
+        {
+            if (compiledMap.containsKey(cmdHash))
+            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+                return compiledMap[cmdHash]
+            }
+
+            Class clazz = gcLoader.parseClass(groovySource, 'N_' + cmdHash + '.groovy')
+            if (!isCacheable())
+            {   // Seems backward, but it is not.  Cacheable means the result of the compiled code's execution,
+                // which if cached, then we drop the class and hold just the return value
+                compiledMap[cmdHash] = clazz
+            }
+            return clazz
+        }
+    }
+
+    /**
+     * Compute SHA1 hash for this CommandCell.  The tricky bit here is that the command can be either
+     * defined inline or via a URL.  If defined inline, then the command hash is SHA1(command text).  If
+     * defined through a URL, then the command hash is SHA1(command URL + GroovyClassLoader URLs.toString).
+     */
+    private void computeCmdHash(Object data, Map<String, Object> ctx)
+    {
+        String content
+        if (getUrl() == null)
+        {
+            content = data != null ? data.toString() : ""
+        }
+        else
+        {   // specified via URL, add classLoader URL strings to URL for SHA-1 source.
+            NCube cube = getNCube(ctx)
+            GroovyClassLoader gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
+            URL[] urls = gcLoader.getURLs()
+            StringBuilder s = new StringBuilder()
+            for (URL url : urls)
+            {
+                s.append(url.toString())
+                s.append('.')
+            }
+            s.append(getUrl())
+            content = s.toString()
+        }
+        cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getBytes(content, "UTF-8"))
     }
 
     protected static String expandNCubeShortCuts(String groovy)

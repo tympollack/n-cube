@@ -74,19 +74,21 @@ class TestNCubeConcurrency
 
     private static void concurrencyTest(final String site) throws IOException
     {
-        Thread[] threads = new Thread[16]
-        long[] iter = new long[16]
+        int numThreads = 8
+        int timeToRun = 3000;
+        Thread[] threads = new Thread[numThreads]
+        long[] iter = new long[numThreads]
         NCube n1 = NCubeManager.getNCubeFromResource('urlContent.json')
         Map map = new ConcurrentHashMap()
         AtomicInteger count = new AtomicInteger(0)
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < numThreads; i++)
         {
             final int index = i
 
             def run = {
                 long start = System.currentTimeMillis()
-                while (System.currentTimeMillis() - start < 2500)
+                while (System.currentTimeMillis() - start < timeToRun)
                 {
                     for (int j = 0; j < 100; j++)
                     {
@@ -102,12 +104,12 @@ class TestNCubeConcurrency
         }
 
         // Start all at the same time (more concurrent that starting them during construction)
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < numThreads; i++)
         {
             threads[i].start()
         }
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < numThreads; i++)
         {
             try
             {

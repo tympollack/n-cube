@@ -46,7 +46,7 @@ class TestThreadedClearCache
     public void tearDown()
     {
         manager.tearDown()
-        manager = null;
+        manager = null
 
         NCubeManager.clearCache()
     }
@@ -54,31 +54,32 @@ class TestThreadedClearCache
     @Test
     void testCubesWithThreadedClearCacheWithAppId()
     {
-        NCube[] ncubes = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.2per.app.json", "math.controller.json");
+        NCube[] ncubes = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.2per.app.json", "math.controller.json")
 
         // add cubes for this test.
         manager.addCubes(usedId, USER_ID, ncubes)
 
-        concurrencyTestWithAppId();
+        concurrencyTestWithAppId()
 
         // remove cubes
-        manager.removeBranches([usedId] as ApplicationID[]);
+        manager.removeBranches([usedId] as ApplicationID[])
     }
 
     private void concurrencyTestWithAppId()
     {
-        int numThreads = 8;
+        long time = 8000L
+        int numThreads = 8
         def run =
         {
             long start = System.currentTimeMillis()
-            while (System.currentTimeMillis() - start < 3000)
+            while (System.currentTimeMillis() - start < time)
             {
-                for (int j = 0; j < 100; j++)
+                try
                 {
-                    try
-                    {
-                        NCube cube = NCubeManager.getCube(usedId, "MathController")
+                    NCube cube = NCubeManager.getCube(usedId, "MathController")
 
+                    for (int i=0; i < 10; i++)
+                    {
                         def input = [:]
                         input.env = "a"
                         input.x = 5
@@ -96,24 +97,26 @@ class TestThreadedClearCache
                         input.method = 'factorial'
                         assertEquals(6, cube.getCell(input))
                     }
-                    catch (Exception e)
-                    {
-                    }
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace()
                 }
             }
         }
 
         def clearCache = {
             long start = System.currentTimeMillis()
-            while (System.currentTimeMillis() - start < 3000)
+            while (System.currentTimeMillis() - start < time)
             {
                 try
                 {
-                    NCubeManager.clearCache(usedId);
-                    Thread.sleep(100);
+                    NCubeManager.clearCache()
+                    Thread.sleep(250)
                 }
                 catch (Exception e)
                 {
+                    e.printStackTrace()
                 }
             }
         }
@@ -122,12 +125,12 @@ class TestThreadedClearCache
 
         for (int i = 0; i < numThreads; i++)
         {
-            threads[i] = new Thread(run);
+            threads[i] = new Thread(run)
             threads[i].name = 'NCubeConcurrencyTest' + i
             threads[i].daemon = true
         }
 
-        Thread clear = new Thread(clearCache);
+        Thread clear = new Thread(clearCache)
         clear.name = "ClearCache";
         clear.daemon = true;
 
@@ -136,7 +139,7 @@ class TestThreadedClearCache
         {
             threads[i].start()
         }
-        clear.start();
+        clear.start()
 
         for (int i = 0; i < numThreads; i++)
         {
@@ -147,7 +150,7 @@ class TestThreadedClearCache
             catch (InterruptedException ignored)
             { }
         }
-        clear.join();
+        clear.join()
     }
 
     /**
@@ -164,5 +167,4 @@ class TestThreadedClearCache
 
         return e
     }
-
 }

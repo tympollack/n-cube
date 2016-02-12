@@ -120,7 +120,10 @@ class GroovyTemplate extends ContentCmdCell
 
             // Create Groovy Standard Template
             SimpleTemplateEngine engine = new SimpleTemplateEngine(urlLoader)
-            resolvedTemplate = engine.createTemplate(cmd)
+            synchronized(GroovyBase.class)
+            {
+                resolvedTemplate = engine.createTemplate(cmd)
+            }
         }
 
         // Do normal Groovy substitutions.
