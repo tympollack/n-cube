@@ -1,5 +1,6 @@
 package ncube.grv.exp.cdn
 
+import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.BinaryUrlCmd
 import com.cedarsoftware.ncube.StringUrlCmd
 import com.cedarsoftware.ncube.UrlCommandCell
@@ -44,8 +45,12 @@ class CdnDefaultHandler extends NCubeGroovyExpression
 
         synchronized (fullName.intern())
         {
-            ncube.addColumn(axisName, logicalFileName)
-            ncube.setCell(exp, input)
+            Axis axis = ncube.getAxis(axisName)
+            if (axis.findColumn(logicalFileName) == axis.getDefaultColumn())
+            {
+                ncube.addColumn(axisName, logicalFileName)
+                ncube.setCell(exp, input)
+            }
             return ncube.getCell(input)
         }
     }

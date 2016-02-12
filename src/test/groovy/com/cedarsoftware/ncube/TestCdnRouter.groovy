@@ -509,9 +509,9 @@ class TestCdnRouter
     @Test
     void testDefaultRoute()
     {
-        NCube router = NCubeManager.getNCubeFromResource 'cdnRouter.json'
+        NCube router = NCubeManager.getNCubeFromResource('cdnRouter.json')
 
-        Axis axis = router.getAxis 'content.name'
+        Axis axis = router.getAxis('content.name')
         assert 5 == axis.columns.size()
 
         Map coord = new HashMap()
