@@ -2960,15 +2960,19 @@ class TestNCube
         assertEquals("bar", ncube.getCell([test:'foo'] as Map))
     }
 
-    @Test(expected=RuntimeException.class)
+    @Test
     void testIdInCellDoesNotMatch()
     {
+        // Throws no exception because cell is effectively orphaned.  This test exists so that
+        // if we start throwing an exception, this test will need to be updated.
         NCubeManager.getNCubeFromResource("id-in-cell-does-not-match-columns-error.json")
     }
 
-    @Test(expected=RuntimeException.class)
+    @Test
     void testUrlCommandWithoutValueAndUrl()
     {
+        // Throws no exception because cell is effectively orphaned.  This test exists so that
+        // if we start throwing an exception, this test will need to be updated.
         NCubeManager.getNCubeFromResource("url-command-without-value-and-url-error.json")
     }
 
@@ -4821,7 +4825,13 @@ class TestNCube
     void testSetCellByIdWithBadCoord()
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(false)
-        assert null == ncube.setCellById(1.0, null)
+        try
+        {
+            ncube.setCellById(1.0, null)
+            fail()
+        }
+        catch (CoordinateNotFoundException ignored)
+        { }
     }
 
     @Test

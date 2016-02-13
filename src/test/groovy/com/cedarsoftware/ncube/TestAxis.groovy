@@ -2946,7 +2946,11 @@ class TestAxis
         code.setMetaProperty('d', 'delta')
         two.addAxis(code)
         NCubeManager.addCube(ApplicationID.testAppId, two)
-        Map meta = two.getAxis('code').getMetaProperties()
+
+        String json = two.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+
+        Map meta = reload.getAxis('code').getMetaProperties()
         assert 'alpha' == meta.get('a')
         assert 'bravo' == meta.get('b')
         assert 'charlie' == meta.get('c')

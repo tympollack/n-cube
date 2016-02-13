@@ -445,7 +445,7 @@ public class NCube<T>
         Set<Long> ids = ensureFullCoordinate(coordinate);
         if (ids == null)
         {
-            return null;
+            throw new CoordinateNotFoundException("Unable to setCellById() into n-cube: " + name + " using coordinate: " + coordinate);
         }
         return cells.put(ids, value);
     }
@@ -998,11 +998,11 @@ public class NCube<T>
      * @return Set<Long> that contains only the necessary coordinates from the passed in Collection.  If it cannot
      * bind, null is returned.
      */
-    Set<Long> ensureFullCoordinate(final Collection<Long> coordinate)
+    Set<Long> ensureFullCoordinate(Collection<Long> coordinate)
     {
         if (coordinate == null)
         {
-            return null;
+            coordinate = new HashSet<>();
         }
 
         // Ensure that the specified coordinate matches a column on each axis
@@ -2078,7 +2078,7 @@ public class NCube<T>
                     {
                         if (!userIdToUniqueId.containsKey(id))
                         {
-                            throw new IllegalArgumentException("ID specified in cell does not match an ID in the columns, id: " + id + ", cube: " + cubeName);
+                            continue;
                         }
                         colIds.add(userIdToUniqueId.get(id));
                     }
@@ -2103,7 +2103,14 @@ public class NCube<T>
                     {
                         keys.put(entry.getKey(), CellInfo.parseJsonValue(entry.getValue(), null, null, false));
                     }
-                    ncube.setCell(v, keys);
+                    try
+                    {
+                        ncube.setCell(v, keys);
+                    }
+                    catch (CoordinateNotFoundException e)
+                    {
+                        LOG.debug("Orphaned cell on n-cube: " + cubeName + ", coord: " + keys);
+                    }
                 }
             }
         }

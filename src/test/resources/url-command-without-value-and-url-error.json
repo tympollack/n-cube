@@ -6,7 +6,7 @@
             "name":"test",
             "type":"DISCRETE",
             "valueType":"STRING",
-            "hasDefault":true,
+            "hasDefault":false,
             "preferredOrder":0,
             "columns":[
                 {"id":"foo"}
