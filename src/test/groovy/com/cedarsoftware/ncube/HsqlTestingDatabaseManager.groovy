@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
+
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Statement
@@ -21,6 +23,7 @@ import java.sql.Statement
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class HsqlTestingDatabaseManager extends AbstractJdbcTestingDatabaseManager
 {
     HsqlTestingDatabaseManager(JdbcConnectionProvider p)

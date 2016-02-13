@@ -2852,6 +2852,8 @@ class TestAxis
     // TODO: Tests to write
     // Test multi-dimensional reference cube with offset IDs
     // Test that meta-properties pull-through from the reference axis and are overridden by source meta-properties
+    // Test Reference to a Reference Axis
+    // Test Circular Reference to a Reference Axis
 
     private static boolean isValidRange(Axis axis, Range range)
     {

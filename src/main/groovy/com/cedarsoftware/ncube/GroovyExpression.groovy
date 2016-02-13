@@ -143,7 +143,7 @@ import com.cedarsoftware.util.io.*
         }
     }
 
-    private static void addPrototypeExpImports(Map<String, Object> ctx, StringBuilder groovy, NCube prototype)
+    protected static void addPrototypeExpImports(Map<String, Object> ctx, StringBuilder groovy, NCube prototype)
     {
         try
         {

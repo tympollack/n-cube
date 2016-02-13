@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
 import org.junit.After
 import org.junit.Assert
@@ -27,6 +28,7 @@ import static org.junit.Assert.fail
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestGroovyExpression
 {
     @Before
@@ -55,7 +57,7 @@ class TestGroovyExpression
     void testCompilerErrorOutput()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("GroovyExpCompileError.json")
-        Map coord = [state: 'OH']
+        Map coord = [state: 'OH'] as Map
         Object x = ncube.getCell(coord)
         assert 'Hello, Ohio' == x
         coord.state = 'TX'
@@ -89,13 +91,13 @@ class TestGroovyExpression
         ncube.addAxis(axis)
         ncube.setApplicationID(ApplicationID.testAppId)
 
-        ncube.setCell(1, [day: 'mon'])
-        ncube.setCell(2, [day: 'tue'])
-        ncube.setCell(3, [day: 'wed'])
-        ncube.setCell(4, [day: 'thu'])
-        ncube.setCell(5, [day: 'fri'])
-        ncube.setCell(6, [day: 'sat'])
-        ncube.setCell(7, [day: 'sun'])
+        ncube.setCell(1, [day: 'mon'] as Map)
+        ncube.setCell(2, [day: 'tue'] as Map)
+        ncube.setCell(3, [day: 'wed'] as Map)
+        ncube.setCell(4, [day: 'thu'] as Map)
+        ncube.setCell(5, [day: 'fri'] as Map)
+        ncube.setCell(6, [day: 'sat'] as Map)
+        ncube.setCell(7, [day: 'sun'] as Map)
 
         parse(ncube, '''
 int ret = @[day:'mon']
@@ -206,29 +208,29 @@ return ret
         ncube.addAxis(axis)
         ncube.setApplicationID(ApplicationID.testAppId)
 
-        ncube.setCell(new GroovyExpression("return 'hello'", null, false), [day:'mon'])
-        assert 'hello' == ncube.getCell([day:'mon'])
-        ncube.setCell(new GroovyExpression("return 'world'", null, true), [day:'tue'])
-        assert 'world' == ncube.getCell([day:'tue'])
+        ncube.setCell(new GroovyExpression("return 'hello'", null, false), [day:'mon'] as Map)
+        assert 'hello' == ncube.getCell([day:'mon'] as Map)
+        ncube.setCell(new GroovyExpression("return 'world'", null, true), [day:'tue'] as Map)
+        assert 'world' == ncube.getCell([day:'tue'] as Map)
 
-        assert 'hello' == ncube.getCell([day:'mon'])
-        assert 'world' == ncube.getCell([day:'tue'])
+        assert 'hello' == ncube.getCell([day:'mon'] as Map)
+        assert 'world' == ncube.getCell([day:'tue'] as Map)
 
-        GroovyExpression exp = ncube.getCellByIdNoExecute(ncube.getCoordinateKey([day:'mon']))
+        GroovyExpression exp = ncube.getCellByIdNoExecute(ncube.getCoordinateKey([day:'mon'] as Map))
         assert exp.cmd == "return 'hello'"
         assert exp.cacheable == false
         assert exp.getRunnableCode() != null
         assert NCubeGroovyExpression.class.isAssignableFrom(exp.getRunnableCode())
 
-        GroovyExpression exp1 = ncube.getCellNoExecute([day:'mon'])
+        GroovyExpression exp1 = ncube.getCellNoExecute([day:'mon'] as Map)
         assert exp1.equals(exp)
 
-        exp = ncube.getCellByIdNoExecute(ncube.getCoordinateKey([day:'tue']))
+        exp = ncube.getCellByIdNoExecute(ncube.getCoordinateKey([day:'tue'] as Map))
         assert exp.cmd == "return 'world'"
         assert exp.cacheable == true
         assert exp.getRunnableCode() == null
 
-        exp1 = ncube.getCellNoExecute([day:'tue'])
+        exp1 = ncube.getCellNoExecute([day:'tue'] as Map)
         assert exp1.equals(exp)
     }
 

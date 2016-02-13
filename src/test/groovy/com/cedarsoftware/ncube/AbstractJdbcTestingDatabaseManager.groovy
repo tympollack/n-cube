@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.StringUtilities
+import groovy.transform.CompileStatic
 
 import java.sql.Connection
 
@@ -21,6 +22,7 @@ import java.sql.Connection
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 abstract class AbstractJdbcTestingDatabaseManager implements TestingDatabaseManager
 {
     JdbcConnectionProvider provider;

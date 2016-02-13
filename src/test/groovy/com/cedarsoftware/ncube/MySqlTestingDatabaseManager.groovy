@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
+
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Statement
@@ -21,6 +23,7 @@ import java.sql.Statement
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class MySqlTestingDatabaseManager extends AbstractJdbcTestingDatabaseManager
 {
     MySqlTestingDatabaseManager(JdbcConnectionProvider p)
@@ -39,30 +42,31 @@ class MySqlTestingDatabaseManager extends AbstractJdbcTestingDatabaseManager
             // schema, you will want to run this one time.  You will also need to change
             // TestingDatabaseHelper.test_db = MYSQL instead of HSQL
 
-//            s.execute("drop table if exists ncube.n_cube");
-//            s.execute("CREATE TABLE if not exists n_cube (\n" +
-//                    "  n_cube_id bigint(20) NOT NULL,\n" +
-//                    "  n_cube_nm varchar(250) NOT NULL,\n" +
-//                    "  tenant_cd char(10) CHARACTER SET ascii NOT NULL DEFAULT 'NONE',\n" +
-//                    "  cube_value_bin longblob,\n" +
-//                    "  create_dt timestamp NOT NULL,\n" +
-//                    "  create_hid varchar(20) DEFAULT NULL,\n" +
-//                    "  version_no_cd varchar(16) NOT NULL,\n" +
-//                    "  status_cd varchar(16) NOT NULL DEFAULT 'SNAPSHOT',\n" +
-//                    "  app_cd varchar(20) NOT NULL,\n" +
-//                    "  test_data_bin longblob,\n" +
-//                    "  notes_bin longblob,\n" +
-//                    "  revision_number bigint(20) DEFAULT '0',\n" +
-//                    "  branch_id varchar(80) NOT NULL DEFAULT 'HEAD',\n" +
-//                    "  sha1 varchar(40) DEFAULT NULL,\n" +
-//                    "  head_sha1 varchar(40) DEFAULT NULL,\n" +
-//                    "  changed int DEFAULT NULL, " +
-//                    "  PRIMARY KEY (n_cube_id),\n" +
-//                    "  UNIQUE KEY n_cube_unique (n_cube_nm, tenant_cd, app_cd, version_no_cd, branch_id, revision_number),\n" +
-//                    "  KEY versionIdx (version_no_cd)\n" +
-//                    "  KEY revIdx (revision_number)\n" +
-//                    "  KEY branchIdx (branch_id)\n" +
-//                    ") ENGINE=InnoDB DEFAULT CHARSET=latin1;");
+            s.execute("drop table if exists ncube.n_cube");
+            s.execute("CREATE TABLE if not exists n_cube (\n" +
+                    "  n_cube_id bigint(20) NOT NULL,\n" +
+                    "  n_cube_nm varchar(250) NOT NULL,\n" +
+                    "  tenant_cd char(10) CHARACTER SET ascii NOT NULL DEFAULT 'NONE',\n" +
+                    "  cube_value_bin longblob,\n" +
+                    "  create_dt timestamp NOT NULL,\n" +
+                    "  create_hid varchar(20) DEFAULT NULL,\n" +
+                    "  version_no_cd varchar(16) NOT NULL,\n" +
+                    "  status_cd varchar(16) NOT NULL DEFAULT 'SNAPSHOT',\n" +
+                    "  app_cd varchar(20) NOT NULL,\n" +
+                    "  test_data_bin longblob,\n" +
+                    "  notes_bin longblob,\n" +
+                    "  revision_number bigint(20) DEFAULT '0',\n" +
+                    "  branch_id varchar(80) NOT NULL DEFAULT 'HEAD',\n" +
+                    "  sha1 varchar(40) DEFAULT NULL,\n" +
+                    "  head_sha1 varchar(40) DEFAULT NULL,\n" +
+                    "  changed int DEFAULT NULL, " +
+                    "  PRIMARY KEY (n_cube_id),\n" +
+                    "  UNIQUE KEY n_cube_unique (n_cube_nm, tenant_cd, app_cd, version_no_cd, branch_id, revision_number),\n" +
+                    "  KEY fourIdx (tenant_cd, app_cd, version_no_cd, branch_id),\n" +
+                    "  KEY versionIdx (version_no_cd),\n" +
+                    "  KEY revIdx (revision_number),\n" +
+                    "  KEY branchIdx (branch_id)\n" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=latin1;");
 
         }
         finally

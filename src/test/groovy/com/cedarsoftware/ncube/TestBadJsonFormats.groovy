@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
 import org.junit.Test;
 
 /**
@@ -21,6 +22,7 @@ import org.junit.Test;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestBadJsonFormats
 {
     @Test(expected=RuntimeException.class)

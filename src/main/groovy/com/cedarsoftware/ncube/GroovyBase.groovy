@@ -1,4 +1,5 @@
 package com.cedarsoftware.ncube
+
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UrlUtilities
@@ -8,7 +9,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
 import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
@@ -69,27 +69,9 @@ abstract class GroovyBase extends UrlCommandCell
         prepare(data, ctx)
         Object result = executeInternal(ctx)
         if (isCacheable())
-        {   // Remove the compiled class from Groovy's internal cache after executing it.
+        {   // Remove the compiled class from the cell's cache.
             // This is because the cell is marked as cacheable meaning the result of the
             // execution is cached, so there is no need to hold a reference to the compiled class.
-            // Also remove our reference (runnableCode = null). Internally, the class is not cached
-            // when the cell is marked cache:true.
-            ClassLoader cl = getRunnableCode().getClassLoader().getParent()
-            if (cl instanceof GroovyClassLoader)
-            {
-                GroovyClassLoader gcl = (GroovyClassLoader) cl
-                GroovySystem.getMetaClassRegistry().removeMetaClass(getRunnableCode())
-                try
-                {
-                    Method remove = GroovyClassLoader.class.getDeclaredMethod("removeClassCacheEntry", String.class)
-                    remove.setAccessible(true)
-                    remove.invoke(gcl, getRunnableCode().getName())
-                }
-                catch (Exception e)
-                {
-                    LOG.warn("Unable to remove cached GroovyExpression from GroovyClassLoader", e)
-                }
-            }
             setRunnableCode(null)
         }
         return result
@@ -217,11 +199,7 @@ abstract class GroovyBase extends UrlCommandCell
             }
 
             Class clazz = gcLoader.parseClass(groovySource, 'N_' + cmdHash + '.groovy')
-            if (!isCacheable())
-            {   // Seems backward, but it is not.  Cacheable means the result of the compiled code's execution,
-                // which if cached, then we drop the class and hold just the return value
-                compiledMap[cmdHash] = clazz
-            }
+            compiledMap[cmdHash] = clazz
             return clazz
         }
     }

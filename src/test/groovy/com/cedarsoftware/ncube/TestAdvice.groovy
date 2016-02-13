@@ -1,5 +1,8 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -11,7 +14,6 @@ import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.fail
-
 /**
  * NCube Advice Tests (Advice often used for security annotations on Groovy Methods / Expressions)
  *
@@ -31,6 +33,7 @@ import static org.junit.Assert.fail
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestAdvice
 {
     static final String USER_ID = "jdirt";
@@ -48,6 +51,7 @@ class TestAdvice
     }
 
     @Test
+    @TypeChecked(TypeCheckingMode.SKIP)
     void testExpression()
     {
         NCube ncube2 = NCubeManager.getNCubeFromResource("urlPieces.json")
@@ -98,7 +102,7 @@ class TestAdvice
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, "*", advice2)
 
         Map output = [:]
-        ncube.getCell([env_level:'local', protocol:'http',content:'95'], output)
+        ncube.getCell([env_level:'local', protocol:'http',content:'95'] as Map, output)
 
         assert output._atime1 > output._atime2
         assert output._btime1 < output._btime2
@@ -112,7 +116,7 @@ class TestAdvice
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
         NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
 
-        assert 6 == ncube.getCell([code:'simpleExp'], [:])
+        assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -132,7 +136,7 @@ class TestAdvice
 
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
-        assertNull ncube.getCell([code:'simpleExp'], [:])
+        assertNull ncube.getCell([code:'simpleExp'] as Map, [:])
     }
 
     @Test
@@ -141,7 +145,7 @@ class TestAdvice
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
         NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
 
-        assert 6 == ncube.getCell([code:'simpleExp'], [:])
+        assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -169,7 +173,7 @@ class TestAdvice
         // Proves that after exception does not kill n-cube execution, and output is logged.
 
         Map output = [:]
-        assert 6 == ncube.getCell([code:'simpleExp'], output)
+        assert 6 == ncube.getCell([code:'simpleExp'] as Map, output)
         assert output.before == 'yes'
         assert output.after == 'yes'
     }
@@ -208,7 +212,7 @@ class TestAdvice
         Map output = [:]
         try
         {
-            ncube.getCell([code:'ExceptionExp'], output)
+            ncube.getCell([code:'ExceptionExp'] as Map, output)
             fail()
         }
         catch (Throwable t)
@@ -284,7 +288,7 @@ class TestAdvice
         NCubeManager.addAdvice(ApplicationID.testAppId, ncube.name + ".*()", advice1)
 
         Map output = [:]
-        Map coord = [method:'foo',state:'OH']
+        Map coord = [method:'foo',state:'OH'] as Map
         ncube.getCell(coord, output)
         assert output.containsKey("before")
         assert output.containsKey("after")
@@ -367,7 +371,7 @@ class TestAdvice
         NCubeManager.addAdvice(ApplicationID.testAppId, ncube.name + ".ba*()", advice1)
 
         Map output = [:]
-        Map coord = [method:'foo', state:'OH']
+        Map coord = [method:'foo', state:'OH'] as Map
         ncube.getCell(coord, output)
         assertFalse(output.containsKey("before"))
         assertFalse(output.containsKey("after"))
@@ -471,7 +475,7 @@ class TestAdvice
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
 
         Map output = [:]
-        Map coord = [method:'foo', state:'OH']
+        Map coord = [method:'foo', state:'OH'] as Map
         ncube.getCell(coord, output)
         assertFalse(output.containsKey("before"))
         assertFalse(output.containsKey("after"))
@@ -536,7 +540,7 @@ class TestAdvice
         NCube ncube = NCubeManager.getNCubeFromResource("debugExp.json")
 
         def output = [:]
-        ncube.getCell([Age:10], output)
+        ncube.getCell([Age:10] as Map, output)
 
         // This advice was placed on all expressions ("exp") in the loaded cube.
         // This advice was placed into the Manager first, and then onto the cube later.
@@ -569,11 +573,12 @@ class TestAdvice
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
         NCubeManager.addAdvice(ApplicationID.testAppId, ncube.name + "*", advice1)
-        assertNull(ncube.getCell([method:'foo', state:'OH']))
+        assertNull(ncube.getCell([method:'foo', state:'OH'] as Map))
         ncube.clearAdvices()
     }
 
     @Test
+    @TypeChecked(TypeCheckingMode.SKIP)
     void testMultiAdvice()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
@@ -628,7 +633,7 @@ class TestAdvice
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, ncube.name + "*()", advice2)
 
         Map output = [:]
-        ncube.getCell([method:'foo', state:'OH'], output)
+        ncube.getCell([method:'foo', state:'OH'] as Map, output)
 
         assert output.advice1before == true
         assert output.advice1after == true
@@ -644,6 +649,7 @@ class TestAdvice
     }
 
     @Test
+    @TypeChecked(TypeCheckingMode.SKIP)
     void testMultiAdviceLateLoad()
     {
         Advice advice1 = new Advice() {
@@ -698,7 +704,7 @@ class TestAdvice
         NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
 
         def output = [:]
-        ncube.getCell([method:'foo', state:'OH'], output)
+        ncube.getCell([method:'foo', state:'OH'] as Map, output)
 
         assert output.advice1before == true
         assert output.advice1after == true
@@ -714,6 +720,7 @@ class TestAdvice
     }
 
     @Ignore
+    @TypeChecked(TypeCheckingMode.SKIP)
     void testMultiAdviceLateLoadWithMethodThatThrowsException()
     {
         Advice advice1 = new Advice() {
@@ -773,7 +780,7 @@ class TestAdvice
         try
         {
             // TODO: "method" specified as 'value' instead of 'url' should still work (as exp)
-            ncube.getCell([method:'foo', state:'GA'], output)
+            ncube.getCell([method:'foo', state:'GA'] as Map, output)
         }
         catch (Exception e)
         {

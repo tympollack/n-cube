@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
 
 /**
@@ -19,6 +20,7 @@ import ncube.grv.exp.NCubeGroovyExpression
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class FancyGroovyExpression extends NCubeGroovyExpression
 {
     def plusOne(long x)

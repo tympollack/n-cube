@@ -2,6 +2,9 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import groovy.transform.CompileStatic
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
@@ -32,6 +35,7 @@ import static org.junit.Assert.fail
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestApplicationID
 {
     @Test
@@ -566,10 +570,11 @@ class TestApplicationID
     }
 
     @Test
+    @TypeChecked(TypeCheckingMode.SKIP)
     void testGetBootstrapVersion()
     {
         System.setProperty("NCUBE_PARAMS", '{}')
-        NCubeManager.systemParams = null;
+        NCubeManager.systemParams = null
 
         ApplicationID id = ApplicationID.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant

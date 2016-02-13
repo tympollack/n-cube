@@ -271,6 +271,10 @@ class Axis
         return isRef
     }
 
+    /**
+     * Break the reference to the other axis.  After calling this method, this axis will
+     * be a copy of the axis to which it had pointed.
+     */
     void breakReference()
     {
         isRef = false
@@ -292,9 +296,7 @@ class Axis
     protected long getNextColId()
     {
         long baseAxisId = id * BASE_AXIS_ID
-        while (idToCol.containsKey(++colIdBase + baseAxisId))
-        {
-        }
+        while (idToCol.containsKey(++colIdBase + baseAxisId)) { }
         return baseAxisId + colIdBase
     }
 

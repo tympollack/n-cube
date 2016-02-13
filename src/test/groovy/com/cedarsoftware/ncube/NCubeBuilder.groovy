@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
+
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -17,6 +19,7 @@ package com.cedarsoftware.ncube
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class NCubeBuilder
 {
     static Axis getStatesAxis()

@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnRouter
 import com.cedarsoftware.ncube.util.CdnRoutingProvider
+import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.when
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestCdnRouter
 {
     @Before
@@ -492,7 +494,7 @@ class TestCdnRouter
 
         verify(response, times(1)).addHeader 'content-type', 'text/html'
 
-        def coord = ['content.type':'view', 'content.name':logicalFileName];
+        def coord = ['content.type':'view', 'content.name':logicalFileName] as Map
         String one = (String) cube.getCell(coord)
         String two = (String) cube.getCell(coord)
 
