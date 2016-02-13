@@ -2849,9 +2849,111 @@ class TestAxis
             assert e.message.contains("(doubleNotThere) does not exist")
         }
     }
+
+    @Test
+    void testReferenceIntoHigherDimensionCube()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DLong()
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+        NCube two = NCubeBuilder.get5DTestCube()
+        NCubeManager.addCube(ApplicationID.testAppId, two)
+
+        Map args = [:] as Map
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'testMerge'
+        args[REF_AXIS_NAME] = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(one.name, 'stateRef', args)
+        Axis state = new Axis('stateRef', 2, false, refAxisLoader)
+        one.addAxis(state)
+
+        Map coord = [:] as Map
+        coord.code ='1'
+        coord.stateRef = 'OH'
+        one.setCell('1.OH', coord)
+
+        coord.code ='2'
+        one.setCell('2.OH', coord)
+
+        coord.code ='3'
+        one.setCell('3.OH', coord)
+
+        coord.code ='1'
+        coord.stateRef = 'TX'
+        one.setCell('1.TX', coord)
+
+        coord.code ='2'
+        one.setCell('2.TX', coord)
+
+        coord.code ='3'
+        one.setCell('3.TX', coord)
+
+        String json = one.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+        assert reload.getNumCells() == 6
+
+        coord.code ='1'
+        coord.stateRef = 'OH'
+        assert '1.OH' == one.getCell(coord)
+
+        coord.code ='2'
+        assert '2.OH' == one.getCell(coord)
+
+        coord.code ='3'
+        assert '3.OH' == one.getCell(coord)
+
+        coord.code ='1'
+        coord.stateRef = 'TX'
+        assert '1.TX' == one.getCell(coord)
+
+        coord.code ='2'
+        assert '2.TX' == one.getCell(coord)
+
+        coord.code ='3'
+        assert '3.TX' == one.getCell(coord)
+    }
+
+    @Test
+    void testRefAxisWithMetaProps()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DLong()
+        Axis code = one.getAxis('code')
+        code.setMetaProperty('a', 'alpha')
+        code.setMetaProperty('b', 'ball')
+        code.setMetaProperty('c', 'charlie')
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+        NCube two = new NCube('two')
+
+        Map args = [:] as Map
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'discreteLong'
+        args[REF_AXIS_NAME] = 'code'
+
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(one.name, 'code', args)
+        code =  new Axis('code', 1L, false, refAxisLoader)
+        code.setMetaProperty('b', 'bravo')
+        code.setMetaProperty('d', 'delta')
+        two.addAxis(code)
+        NCubeManager.addCube(ApplicationID.testAppId, two)
+        Map meta = two.getAxis('code').getMetaProperties()
+        assert 'alpha' == meta.get('a')
+        assert 'bravo' == meta.get('b')
+        assert 'charlie' == meta.get('c')
+        assert 'delta' == meta.get('d')
+    }
     // TODO: Tests to write
-    // Test multi-dimensional reference cube with offset IDs
-    // Test that meta-properties pull-through from the reference axis and are overridden by source meta-properties
+    // Test Break Reference (check code coverage afterward)
     // Test Reference to a Reference Axis
     // Test Circular Reference to a Reference Axis
 

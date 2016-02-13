@@ -47,6 +47,12 @@ abstract class GroovyBase extends UrlCommandCell
         super(cmd, url, cache)
     }
 
+    /**
+     * @return Class the compiled Class the code within this cell was compiled to (it could have been found
+     * and re-used if the code is the same as another cell).  If the cell is marked cache=true, then this
+     * method will return null. This is because the cell retains the cached value of the executed code and
+     * therefore the class reference is no longer needed.
+     */
     Class getRunnableCode()
     {
         return runnableCode
