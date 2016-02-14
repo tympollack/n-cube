@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.23</version>
+  <version>3.4.24</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -95,8 +95,13 @@ innovative and intelligent tools for profiling Java and .NET applications.
 [![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
+* 3.4.24
+ * When an n-cube is loaded, orphaned cells are now logged when found, but no longer throw an exception.  A cell can become orphaned if the Reference `Axis` it points to were to be modified.  Next version will not allow reference axis to non-RELEASE version and this becomes a mute point.
+ * Enhancement: `ncube.breakAxisReference()`.  This API breaks the reference and effectively copies columns of the referenced axis to the referring axis.  
+ * bug fix: The `CdnDefaultHandler` now ensures that it is not adding the same value more than once to the same axis.  Before, an `AxisOverlapException` was being thrown if more than one thread went after the same resource at the same time.  The blocked threads would still attempt to add the column to the axis.
+ * bug fix: Situation where deadlock could occur between the `synchronized(this)` in `UrlCommandCell` and the `synchronized(GroovyBase.class)` in the `GroovyBase` compile.  The synchronization around compile is now tightened up against just the compile (parseClass) method, which does not re-enter any of n-cube code.  Further, the synchronization that was done at the execute() level in `UrlCommandCell` has been removed, and instead the synchronization is now around the URL resource resolution and resource fetching (using the String URL as the lock), the only places where dead-lock was occurring.
 * 3.4.23
- * Reference Axis support added. Now, an axis can be defined once in a single cube (for example, all US states), and then that axis can be re-used on other n-cubes without redefining the axis (nor duplicating the storage).  Changing the original axis, will change all references.  Very use for 'availability' matrices (e.g. "which products are available by state"), managing 'exclusivity' between items ("which items work with each other"), etc. 
+ * Enhancement: Reference Axis support added. Now, an axis can be defined once in a single cube (for example, all US states), and then that axis can be re-used on other n-cubes without redefining the axis (nor duplicating the storage).  Changing the original axis, will change all references.  Very use for 'availability' matrices (e.g. "which products are available by state"), managing 'exclusivity' between items ("which items work with each other"), etc. 
 * 3.4.22
  * Enhancement: All axis types now load, delete, and update in `O(1)` or `O(Log n)`. They find within `O(1)` or `(O Log n)` excluding RULE cubes, where the conditions are linearly executed.  `Date` and `Number` axisValueTypes on `NEAREST` access in `O(Log n)`, the others are linear.
  * Enhancement: The n-cube merge process (`DeltaProcessor`) now handles more cases by locating columns by value, not ID (except with a RULE column that has no name).
