@@ -118,7 +118,6 @@ abstract class UrlCommandCell implements CommandCell
                     {
                         String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
                                 url + ", cube: " + ncube.name + ", app: " + ncube.applicationID
-                        setErrorMessage(err)
                         throw new IllegalStateException(err)
                     }
                     return actualUrl
