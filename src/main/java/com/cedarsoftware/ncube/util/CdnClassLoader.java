@@ -104,6 +104,7 @@ public class CdnClassLoader extends GroovyClassLoader
             name.startsWith("groovy/") ||
             name.startsWith("org/") ||
             name.startsWith("net/") ||
+            name.startsWith("com/google/") ||
             name.startsWith("com/cedarsoftware/"))
         {
             if (name.startsWith("ncube/grv/closure/"))

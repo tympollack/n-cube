@@ -98,7 +98,7 @@ class TestCdnRouter
         CdnRouter router = new CdnRouter()
         router.route request, response
 
-        verify(response, times(1)).sendError 500, 'Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: tests/does/not/exist/index.html, cube: CdnRouterTest, app: ' + ApplicationID.testAppId
+        verify(response, times(1)).sendError 500, 'Invalid URL in cell (malformed or cannot resolve given classpath): tests/does/not/exist/index.html, cube: CdnRouterTest, app: none / default_app / 999.99.9 / test /'
     }
 
     @Test

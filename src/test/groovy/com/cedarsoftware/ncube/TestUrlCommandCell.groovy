@@ -158,7 +158,7 @@ class TestUrlCommandCell
         assert !cell.equals('String')
 
         Map coord = ['content.type':'view','content.name':'badProtocol'] as Map
-        NCube cube = NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        NCube cube = NCubeManager.getNCubeFromResource('cdnRouterTest.json')
         try
         {
             cube.getCell(coord)
@@ -167,7 +167,7 @@ class TestUrlCommandCell
         catch (Throwable e)
         {
             e = e.getCause()
-            assert e.message.toLowerCase().contains('invalid url in content cell')
+            assert e.message.toLowerCase().contains('invalid url in cell')
             assert e.message.toLowerCase().contains('malformed')
         }
 

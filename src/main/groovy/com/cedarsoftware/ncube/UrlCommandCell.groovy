@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 
 import java.util.concurrent.atomic.AtomicBoolean
 /**
@@ -23,18 +25,19 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 abstract class UrlCommandCell implements CommandCell
 {
+    private static final Logger LOG = LogManager.getLogger(UrlCommandCell.class)
     private String cmd
     private volatile transient String errorMsg = null
-    private String url = null
+    private final String url
     private int hash
     public static final char EXTENSION_SEPARATOR = '.'
     private AtomicBoolean hasBeenCached = new AtomicBoolean(false)
-    private Object cache
+    protected Object cache
     // would prefer this was a final
     private boolean cacheable
 
     //  Private constructor only for serialization.
-    protected UrlCommandCell() { }
+    protected UrlCommandCell() { url = null }
 
     UrlCommandCell(String cmd, String url, boolean cacheable)
     {
@@ -66,14 +69,14 @@ abstract class UrlCommandCell implements CommandCell
 
     void clearClassLoaderCache()
     {
-        if (!hasBeenCached.get())
+        if (cache == null)
         {
             return
         }
 
-        synchronized (this)
+        synchronized (GroovyBase.class)
         {
-            if (!hasBeenCached.get())
+            if (cache == null)
             {
                 return
             }
@@ -82,39 +85,61 @@ abstract class UrlCommandCell implements CommandCell
             if (cache instanceof GroovyClassLoader)
             {
                 ((GroovyClassLoader)cache).clearCache()
-                cache = null
             }
-
-            hasBeenCached.set(false)
+            cache = null
         }
     }
 
     protected URL getActualUrl(Map<String, Object> ctx)
     {
-        URL actualUrl
-        NCube ncube = getNCube(ctx)
-        String localUrl = url.toLowerCase()
+        for (int i=0; i < 2; i++)
+        {   // Try URL resolution twice (HTTP HEAD called for connecting relative URLs to sys.classpath)
+            try
+            {
+                URL actualUrl
+                NCube ncube = getNCube(ctx)
+                String localUrl = url.toLowerCase()
 
-        if (localUrl.startsWith('http:') || localUrl.startsWith('https:') || localUrl.startsWith('file:'))
-        {   // Absolute URL
-            actualUrl = new URL(url)
-        }
-        else
-        {   // Relative URL
-            URLClassLoader loader = NCubeManager.getUrlClassLoader(ncube.applicationID, getInput(ctx))
+                synchronized (url)
+                {
+                    if (localUrl.startsWith('http:') || localUrl.startsWith('https:') || localUrl.startsWith('file:'))
+                    {   // Absolute URL
+                        actualUrl = new URL(url)
+                    }
+                    else
+                    {   // Relative URL
+                        URLClassLoader loader = NCubeManager.getUrlClassLoader(ncube.applicationID, getInput(ctx))
 
-            // Make URL absolute (uses URL roots added to NCubeManager)
-            actualUrl = loader.getResource(url)
-        }
+                        // Make URL absolute (uses URL roots added to NCubeManager)
+                        actualUrl = loader.getResource(url)
+                    }
 
-        if (actualUrl == null)
-        {
-            String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
-                    url + ", cube: " + ncube.name + ", app: " + ncube.applicationID
-            setErrorMessage(err)
-            throw new IllegalStateException(err)
+                    if (actualUrl == null)
+                    {
+                        String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
+                                url + ", cube: " + ncube.name + ", app: " + ncube.applicationID
+                        setErrorMessage(err)
+                        throw new IllegalStateException(err)
+                    }
+                    return actualUrl
+                }
+            }
+            catch(Exception e)
+            {
+                NCube cube = getNCube(ctx)
+                if (i == 1)
+                {   // Note: Error is marked, it will not be retried in the future
+                    setErrorMessage("Invalid URL in cell (malformed or cannot resolve given classpath): " + getUrl() + ", cube: " + cube.getName() + ", app: " + cube.applicationID)
+                    LOG.warn(getClass().getSimpleName() + ': failed 2nd attempt [will NOT retry in future] getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName() + ", app: " + cube.applicationID)
+                    throw new IllegalStateException(getErrorMessage(), e)
+                }
+                else
+                {
+                    LOG.warn(getClass().getSimpleName() + ': retrying getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName() + ", app: " + cube.applicationID)
+                    Thread.sleep(100)
+                }
+            }
         }
-        return actualUrl
     }
 
     static NCube getNCube(Map<String, Object> ctx)
@@ -221,17 +246,9 @@ abstract class UrlCommandCell implements CommandCell
             return cache
         }
 
-        synchronized (this)
-        {
-            if (hasBeenCached.get())
-            {
-                return cache
-            }
-
-            cache = fetchResult(ctx)
-            hasBeenCached.set(true)
-            return cache
-        }
+        cache = fetchResult(ctx)
+        hasBeenCached.set(true)
+        return cache
     }
 
     protected abstract Object fetchResult(Map<String, Object> ctx)

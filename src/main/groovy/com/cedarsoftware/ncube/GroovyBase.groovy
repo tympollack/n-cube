@@ -111,7 +111,13 @@ abstract class GroovyBase extends UrlCommandCell
     {
         try
         {
-            final NCubeGroovyExpression exp = (NCubeGroovyExpression) getRunnableCode().newInstance()
+            Class code = getRunnableCode()
+            if (code == null)
+            {
+                NCube ncube = getNCube(ctx)
+                throw new IllegalStateException('Code cleared while getCell() was executing, n-cube: ' + ncube.name + ", app: " + ncube.applicationID)
+            }
+            final NCubeGroovyExpression exp = (NCubeGroovyExpression) code.newInstance()
             exp.input = getInput(ctx)
             exp.output = getOutput(ctx)
             exp.ncube = getNCube(ctx)
@@ -184,9 +190,12 @@ abstract class GroovyBase extends UrlCommandCell
         }
         else if (isUrlUsed)
         {
-            gcLoader = (GroovyClassLoader)NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
             URL groovySourceUrl = getActualUrl(ctx)
-            grvSrcCode = StringUtilities.createString(UrlUtilities.getContentFromUrl(groovySourceUrl, true), "UTF-8")
+            gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
+            synchronized (url)
+            {
+                grvSrcCode = StringUtilities.createString(UrlUtilities.getContentFromUrl(groovySourceUrl, true), "UTF-8")
+            }
         }
         else
         {

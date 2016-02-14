@@ -68,7 +68,7 @@ class TestBinaryUrlCmd
         }
         catch (IllegalStateException e)
         {
-            assertTrue(e.message.toLowerCase().contains("invalid url in byte[] cell"))
+            assertTrue(e.message.toLowerCase().contains("invalid url in cell"))
             assertTrue(e.message.toLowerCase().contains("malformed"))
         }
     }

@@ -39,7 +39,6 @@ class TestCdnClassLoader
         assert testLoader2.isLocalOnlyResource("META-INF/org.codehaus.groovy.transform.ASTTransformation")
         assert testLoader2.isLocalOnlyResource("ncube/grv/exp/NCubeGroovyExpression.groovy")
         assert testLoader2.isLocalOnlyResource("ncube/grv/method/NCubeGroovyController.groovy")
-        assert !testLoader2.isLocalOnlyResource("ncube/grv/closure/NCubeGroovyController.groovy")
         assert !testLoader2.isLocalOnlyResource("FooBeanInfo.groovy")
         assert !testLoader2.isLocalOnlyResource("FooCustomizer.groovy")
     }

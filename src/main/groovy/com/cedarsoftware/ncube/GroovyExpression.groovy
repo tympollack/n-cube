@@ -75,6 +75,9 @@ import com.cedarsoftware.ncube.proximity.*
 import com.cedarsoftware.ncube.util.*
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.*
+import com.google.common.base.*
+import com.google.common.collect.*
+import com.google.common.net.*
 """)
 
         // Add in import statements extracted from the expression cell

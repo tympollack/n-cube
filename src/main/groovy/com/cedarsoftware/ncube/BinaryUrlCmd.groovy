@@ -38,37 +38,18 @@ class BinaryUrlCmd extends ContentCmdCell
 
     protected Object simpleFetch(Map ctx)
     {
-        URL u
         NCube cube = getNCube(ctx)
-
-        for (int i=0; i < 2; i++)
-        {   // Try URL resolution twice (HTTP HEAD to called for connecting relative URLs to sys.classpath)
-            try
-            {
-                u = getActualUrl(ctx)
-            }
-            catch (Exception e)
-            {   // Do not retry (mark as BAD)
-                if (i == 1)
-                {   // Note: Error is marked, it will not be retried in the future
-                    setErrorMessage("Invalid URL in byte[] cell (malformed or cannot resolve given classpath): " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion())
-                    LOG.warn('BinaryUrlCmd: failed 2nd attempt [will NOT retry in future] getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName())
-                    throw new IllegalStateException(getErrorMessage(), e)
-                }
-                else
-                {
-                    LOG.warn('BinaryUrlCmd: retrying getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.getName())
-                    Thread.sleep(100)
-                }
-            }
-        }
+        URL u = getActualUrl(ctx)
 
         // Try to load twice.
         for (int i=0; i < 2; i++)
         {
             try
             {
-                return UrlUtilities.getContentFromUrl(u, true)
+                synchronized (url)
+                {
+                    return UrlUtilities.getContentFromUrl(u, true)
+                }
             }
             catch (Exception e)
             {
