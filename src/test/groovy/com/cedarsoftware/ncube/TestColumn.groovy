@@ -80,4 +80,28 @@ class TestColumn
         assert false == ncube.deleteColumn('rule', new Date())
         assert rule.size() == 2
     }
+
+    @Test
+    void testCompareTo()
+    {
+        Column col1 = new Column(null, 1)
+        Column col2 = new Column('hi', 2)
+        assert -1 == col1.compareTo(col2)
+
+        col1 = new Column('hi', 1)
+        col2 = new Column(null, 2)
+        assert 1 == col1.compareTo(col2)
+
+        col1 = new Column('a', 1)
+        col2 = new Column('z', 2)
+        assert -1 == col1.compareTo(col2)
+
+        col1 = new Column('z', 1)
+        col2 = new Column('a', 2)
+        assert 1 == col1.compareTo(col2)
+
+        col1 = new Column('a', 1)
+        col2 = new Column('a', 2)
+        assert 0 == col1.compareTo(col2)
+    }
 }

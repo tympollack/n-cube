@@ -1824,7 +1824,7 @@ class TestAxis
         assertEquals(cols.get(2).value, "aWed")
         assertEquals(cols.get(6).value, "aSun")
 
-        assertEquals(-1, cols.get(4).compareTo(new Column(null, dow.nextColId)))
+        assertEquals(1, cols.get(4).compareTo(new Column(null, dow.nextColId)))
     }
 
     @Test

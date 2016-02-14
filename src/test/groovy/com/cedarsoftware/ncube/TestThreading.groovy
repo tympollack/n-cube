@@ -1,4 +1,6 @@
 package com.cedarsoftware.ncube
+
+import com.cedarsoftware.util.StringUtilities
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.codehaus.groovy.runtime.StackTraceUtils
@@ -246,14 +248,20 @@ public class TestThreading
         def uniqueFailures = [:]
         failures.each { f ->
             def msg = f.getMessage()
-            if (msg.contains('@')) {
-                msg = msg.split('@')[0]
-            }
-            if (uniqueFailures.containsKey(msg)) {
-                uniqueFailures[msg]++
-            }
-            else {
-                uniqueFailures[msg] = 1L
+            if (StringUtilities.hasContent(msg))
+            {
+                if (msg.contains('@'))
+                {
+                    msg = msg.split('@')[0]
+                }
+                if (uniqueFailures.containsKey(msg))
+                {
+                    uniqueFailures[msg]++
+                }
+                else
+                {
+                    uniqueFailures[msg] = 1L
+                }
             }
         }
         uniqueFailures.each { k,v ->

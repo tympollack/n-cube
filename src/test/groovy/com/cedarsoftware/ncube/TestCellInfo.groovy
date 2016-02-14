@@ -313,6 +313,23 @@ class TestCellInfo
         assertFalse info1.equals(13)
     }
 
+    @Test
+    void testRangeWithStrings()
+    {
+        Range range = new Range('alpha', 'zooloo')
+        CellInfo cellInfo = new CellInfo(range)
+        assert "range" == cellInfo.getType(range)
+    }
+
+    @Test
+    void testRangeSetWithStrings()
+    {
+        RangeSet set = new RangeSet(new Range('alpha', 'zooloo'))
+        set.add('kilo')
+        CellInfo cellInfo = new CellInfo(set)
+        assert "rangeset" == cellInfo.getType(set)
+    }
+
     @TypeChecked(TypeCheckingMode.SKIP)
     public void performRecreateAssertion(Object o)
     {

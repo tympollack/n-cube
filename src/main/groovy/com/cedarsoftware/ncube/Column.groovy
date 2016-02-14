@@ -248,17 +248,7 @@ class Column implements Comparable<Comparable>
             that = ((Column)that).value
         }
 
-        if (value == null)
-        {
-            return that == null ? 0 : 1
-        }
-
-        if (that == null)
-        {
-            return -1
-        }
-
-        return value.compareTo(that)
+        return value <=> that
     }
 
     String toString()

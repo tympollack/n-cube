@@ -619,4 +619,19 @@ class TestApplicationID
             assertEquals("Branch cannot be 'HEAD'", e.getMessage());
         }
     }
+
+    @Test
+    void testApplicationIdAsFail()
+    {
+        ApplicationID appId = ApplicationID.testAppId
+        try
+        {
+            appId as List
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            e.message.toLowerCase().contains('cannot convert')
+        }
+    }
 }

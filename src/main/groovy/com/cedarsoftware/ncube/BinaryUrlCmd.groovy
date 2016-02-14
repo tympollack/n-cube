@@ -36,35 +36,8 @@ class BinaryUrlCmd extends ContentCmdCell
         super(null, url, cache)
     }
 
-    protected Object simpleFetch(Map ctx)
+    protected Object grab(URL u)
     {
-        NCube cube = getNCube(ctx)
-        URL u = getActualUrl(ctx)
-
-        // Try to load twice.
-        for (int i=0; i < 2; i++)
-        {
-            try
-            {
-                synchronized (url)
-                {
-                    return UrlUtilities.getContentFromUrl(u, true)
-                }
-            }
-            catch (Exception e)
-            {
-                if (i == 1)
-                {   // Note: Error is not marked - it will be retried in the future
-                    String msg = "Unable to load binary content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion()
-                    LOG.warn('BinaryUrlCmd: failed 2nd attempt [will retry in future] UrlUtilities.getContentFromUrl() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
-                    throw new IllegalStateException(msg, e)
-                }
-                else
-                {
-                    LOG.warn('BinaryUrlCmd: retrying UrlUtilities.getContentFromUrl() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
-                    Thread.sleep(100)
-                }
-            }
-        }
+        return UrlUtilities.getContentFromUrl(u, true)
     }
 }

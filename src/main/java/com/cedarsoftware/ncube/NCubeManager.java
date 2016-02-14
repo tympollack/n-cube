@@ -303,7 +303,7 @@ public class NCubeManager
             return (URLClassLoader)urlCpLoader;
         }
 
-        throw new IllegalStateException("If the sys.classpath cube exists it must return a URLClassLoader.");
+        throw new IllegalStateException("If the sys.classpath cube exists, it must return a URLClassLoader.");
     }
 
     static URLClassLoader getLocalClassloader(ApplicationID appId)

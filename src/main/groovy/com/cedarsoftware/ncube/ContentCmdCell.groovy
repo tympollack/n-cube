@@ -104,24 +104,31 @@ abstract class ContentCmdCell extends UrlCommandCell
             {
                 synchronized (url)
                 {
-                    return UrlUtilities.getContentFromUrlAsString(u, true)
+                    return grab(u)
                 }
             }
             catch (Exception e)
             {
+                final String className = getClass().getSimpleName()
+                String errorMsg = 'url: ' + getUrl() + ', n-cube: ' + cube.name + ', app: ' + cube.applicationID
                 if (i == 1)
                 {   // Note: Error is not marked - it will be retried in the future
-                    String msg = "Unable to load content from URL: " + getUrl() + ", cube: " + cube.getName() + ", version: " + cube.getVersion();
-                    LOG.warn('ContentCmdCell: failed 2nd attempt [will retry in future] UrlUtilities.getContentFromUrlAsString() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
+                    String msg = 'Unable to load content from ' + errorMsg
+                    LOG.warn(className + ': failed 2nd attempt [will retry on future attempts] unable to fetch contents, ' + errorMsg)
                     throw new IllegalStateException(msg, e)
                 }
                 else
                 {
-                    LOG.warn('ContentCmdCell: retrying UrlUtilities.getContentFromUrlAsString() - unable to fetch full contents, url: ' + getUrl() + ", cube: " + cube.getName())
-                    Thread.sleep(100)
+                    LOG.warn(className + ': retrying fetch, ' + errorMsg)
+                    Thread.sleep(150)
                 }
             }
         }
+    }
+
+    protected Object grab(URL u)
+    {
+        return UrlUtilities.getContentFromUrlAsString(u, true)
     }
 
     protected Object proxyFetch(Map ctx)
