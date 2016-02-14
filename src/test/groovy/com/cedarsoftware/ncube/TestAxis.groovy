@@ -2562,7 +2562,7 @@ class TestAxis
     }
 
     @Test
-    void testReferenceAxisNoDefault()
+    void testReferenceAxisNoDefaultAndBreakReference()
     {
         NCube one = NCubeBuilder.getDiscrete1DAlt()
         assert one.getAxis('state').size() == 2
@@ -2593,6 +2593,73 @@ class TestAxis
         assert reload.getNumCells() == 2
         assert 'a' == reload.getCell([stateSource:'OH'] as Map)
         assert 'b' == reload.getCell([stateSource:'TX'] as Map)
+        assert reload.getAxis('stateSource').isReference()
+
+        // Break reference and verify broken
+        reload.breakAxisReference('stateSource')
+        assert reload.getNumCells() == 2
+        assert 'a' == reload.getCell([stateSource:'OH'] as Map)
+        assert 'b' == reload.getCell([stateSource:'TX'] as Map)
+        assert !reload.getAxis('stateSource').isReference()
+    }
+
+    @Test
+    void testReferenceAxisToReferenceAxis()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DAlt()
+        assert one.getAxis('state').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
+        Axis axis = new Axis('stateSource', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.addAxis(axis)
+
+        two.setCell('a', [stateSource:'OH'] as Map)
+        two.setCell('b', [stateSource:'TX'] as Map)
+        NCubeManager.addCube(ApplicationID.testAppId, two)
+
+        String json = two.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+        assert reload.getNumCells() == 2
+        assert 'a' == reload.getCell([stateSource:'OH'] as Map)
+        assert 'b' == reload.getCell([stateSource:'TX'] as Map)
+        assert reload.getAxis('stateSource').isReference()
+
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'Mongo'
+        args[REF_AXIS_NAME] = 'stateSource'
+
+        ReferenceAxisLoader refAxisLoader3 = new ReferenceAxisLoader('Three', 'stateClone', args)
+        axis = new Axis('stateClone', 1, false, refAxisLoader3)
+        NCube three = new NCube('Three')
+        three.addAxis(axis)
+
+        three.setCell('a', [stateClone:'OH'] as Map)
+        three.setCell('b', [stateClone:'TX'] as Map)
+
+        json = three.toFormattedJson()
+        reload = NCube.fromSimpleJson(json)
+        assert reload.getNumCells() == 2
+        assert 'a' == reload.getCell([stateClone:'OH'] as Map)
+        assert 'b' == reload.getCell([stateClone:'TX'] as Map)
+        assert reload.getAxis('stateClone').isReference()
     }
 
     @Test
@@ -2956,10 +3023,6 @@ class TestAxis
         assert 'charlie' == meta.get('c')
         assert 'delta' == meta.get('d')
     }
-    // TODO: Tests to write
-    // Test Break Reference (check code coverage afterward)
-    // Test Reference to a Reference Axis
-    // Test Circular Reference to a Reference Axis
 
     private static boolean isValidRange(Axis axis, Range range)
     {
