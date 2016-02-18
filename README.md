@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.24</version>
+  <version>3.4.25</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.25
+ * bug fix: Axis.updateColumns() was dropping the Default column (not re-indexing it), causing cells associated to the default column to be orphaned.
 * 3.4.24
  * When an n-cube is loaded, orphaned cells are now logged when found, but no longer throw an exception.  A cell can become orphaned if the Reference `Axis` it points to were to be modified.  Next version will not allow reference axis to non-RELEASE version and this becomes a mute point.
  * Enhancement: `ncube.breakAxisReference()`.  This API breaks the reference and effectively copies columns of the referenced axis to the referring axis.  
