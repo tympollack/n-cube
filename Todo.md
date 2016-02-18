@@ -4,9 +4,6 @@ n-cube 'ToDo' list
 ### n-cube engine
 TODO: Write test for NCubeManager.rollbackCube() or remove the API
 * Datatypes
-* Cell Prototype
- * For cube BAR in app FOO, the prototype could be specified as BAR.prototype - meaning that there is a prototype specific to the cube, -or-
-   FOO.prototype meaning that this is the prototype for all expression cells in the app 'FOO' 
 * MetaCommandCell
  * These are used for non-compiled commands.  First one needed, a 'cell pointer' that does not modify the input map in order to point.
  * Allow for 'impersonation' when pointing.
