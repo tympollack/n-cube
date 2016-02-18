@@ -161,8 +161,7 @@ class Axis
         if (hasDefault && type != AxisType.NEAREST)
         {
             defaultCol = new Column(null, getDefaultColId())
-            defaultCol.setDisplayOrder(Integer.MAX_VALUE)  // Always at the end
-            idToCol[defaultCol.id] = defaultCol
+            indexColumn(defaultCol)
         }
 
         verifyAxisType()
@@ -188,8 +187,7 @@ class Axis
         if (hasDefault && type != AxisType.NEAREST)
         {
             defaultCol = new Column(null, getDefaultColId())
-            defaultCol.setDisplayOrder(Integer.MAX_VALUE)  // Always at the end
-            idToCol[defaultCol.id] = defaultCol
+            indexColumn(defaultCol)
         }
 
         // Verify that the axis is indeed valid
@@ -576,7 +574,7 @@ class Axis
             }
         }
 
-        if (suggestedId != null)
+        if (suggestedId != null && suggestedId > 0)
         {
             long attemptId = (id * BASE_AXIS_ID) + (suggestedId % BASE_AXIS_ID)
             long finalId = idToCol.containsKey(attemptId) ? getNextColId() : attemptId
@@ -820,15 +818,13 @@ class Axis
     }
 
     /**
-     * Update (merge)} columns on this Axis from the passed in Collection.  Columns that exist on both axes,
+     * Update (merge) columns on this Axis from the passed in Collection.  Columns that exist on both axes,
      * will have their values updated.  Columns that exist on this axis, but not exist in the 'newCols'
      * will be deleted (and returned as a Set of deleted Columns).  Columns that exist in newCols but not
      * on this are new columns.
      *
      * NOTE: The columns field within the newCols axis are NOT in sorted order as they normally are
      * within the Axis class.  Instead, they are in display order (this order is typically set forth by a UI).
-     * Axis is used as a Data-Transfer-Object (DTO) in this case, not the normal way it is typically used
-     * where the columns would always be sorted for quick access.
      */
     Set<Long> updateColumns(Collection<Column> newCols)
     {
@@ -843,7 +839,7 @@ class Axis
         // Step 1. Map all columns from passed in Collection by ID
         for (Column col : newCols)
         {
-            Column newColumn = createColumnFromValue(col.value, null)
+            Column newColumn = createColumnFromValue(col.value, col.id)
             Map<String, Object> metaProperties = col.getMetaProperties()
             for (Map.Entry<String, Object> entry : metaProperties.entrySet())
             {
@@ -874,8 +870,11 @@ class Axis
             }
             else
             {   // Delete case - existing column id no longer found
-                colsToDelete.add(col.id)
-                i.remove()
+                if (col.value != null)
+                {
+                    colsToDelete.add(col.id)
+                    i.remove()
+                }
             }
         }
 

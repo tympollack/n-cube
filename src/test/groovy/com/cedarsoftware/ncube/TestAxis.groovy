@@ -2069,6 +2069,23 @@ class TestAxis
     }
 
     @Test
+    void testUpdateColumnsNotLosingCellsInDefaultColumn()
+    {
+        NCube ncube = NCubeBuilder.getDiscrete1DEmptyWithDefault()
+        ncube.setCell('Ohio', [state:'OH'] as Map)
+        ncube.setCell('Texas', [state:'TX'] as Map)
+        ncube.setCell('Alabama', [state:'AL'] as Map)
+        assert 'Alabama' == ncube.getCell([state:'WY'] as Map)          // WY hits Default
+
+        List columns = ncube.getAxis('state').columnsWithoutDefault
+        ncube.updateColumns('state', columns)
+
+        assert 'Ohio' == ncube.getCell([state:'OH'] as Map)
+        assert 'Texas' == ncube.getCell([state:'TX'] as Map)
+        assert 'Alabama' == ncube.getCell([state:'WY'] as Map)          // WY hits Default
+    }
+
+    @Test
     void testMaxAxisId()  throws Exception
     {
         NCube cube = new NCube("fourD")
