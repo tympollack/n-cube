@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.25</version>
+  <version>3.4.26</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,11 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.26
+ * Added NCubeManager.getBranches(appId), which looks at Tenant, App, Version, and Status to filter branch list.
+ * Added NCubeManager.getVersions(String app) which returns a Map with two keys, 'SNAPSHOT' associated to List<String> of all SNAPSHOT version numbers, and 'RELEASE' associated to a List<String> of all RELEASE version numbers.
+ * Changed NCubeManage.getAppNames(tenant) which returns all application names for the given tenant.
+ * Future: NCubeManager.getAppVersions() will likely be dropped. 
 * 3.4.25
  * bug fix: Axis.updateColumns() was dropping the Default column (not re-indexing it), causing cells associated to the default column to be orphaned.
 * 3.4.24
