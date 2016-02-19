@@ -161,6 +161,12 @@ abstract class TestWithPreloadedDatabase
         assertEquals(3, NCubeManager.getBranches('NONE').size())
         assertEquals(3, NCubeManager.getBranches('NONE').size())
         assertEquals(3, NCubeManager.getBranches('NONE').size())
+
+        NCubeManager.getBranches(branch1).size() == 2
+        NCubeManager.getBranches(branch1).contains('HEAD')
+        NCubeManager.getBranches(branch1).contains('FOO')
+        NCubeManager.getBranches(branch2).size() == 1
+        NCubeManager.getBranches(branch2).contains('someoneelse')
     }
 
     @Test
@@ -184,9 +190,7 @@ abstract class TestWithPreloadedDatabase
         assertEquals(2, NCubeManager.createBranch(branch4))
 
         // showing we only rely on tenant and branch to get app names.
-        assertEquals(3, NCubeManager.getAppNames('NONE', 'SNAPSHOT', ApplicationID.HEAD).size())
-        assertEquals(2, NCubeManager.getAppNames('NONE', 'SNAPSHOT', 'kenny').size())
-        assertEquals(1, NCubeManager.getAppNames('NONE', 'SNAPSHOT', 'someoneelse').size())
+        assertEquals(3, NCubeManager.getAppNames('NONE').size())
 
         manager.removeBranches([app1, app2, app3, branch1, branch2, branch3, branch4] as ApplicationID[])
     }
@@ -1107,6 +1111,13 @@ abstract class TestWithPreloadedDatabase
         testValuesOnBranch(branch1, "FOO")
 
         assertEquals(2, NCubeManager.releaseCubes(head, "1.29.0"))
+
+        Map<String, List<String>> versions = NCubeManager.getVersions(head.tenant, head.app, head.branch)
+        assert versions.size() == 2
+        assert versions.SNAPSHOT.size() == 1
+        assert versions.SNAPSHOT.contains('1.29.0')
+        assert versions.RELEASE.size() == 1
+        assert versions.RELEASE.contains('1.28.0')
 
         assertNull(NCubeManager.getCube(branch1, "TestAge"))
         assertNull(NCubeManager.getCube(branch1, "TestBranch"))

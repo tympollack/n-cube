@@ -34,13 +34,15 @@ interface NCubeReadOnlyPersister
     // Load n-cube by SHA-1 (latest revision with that SHA-1)
     NCube loadCubeBySha1(ApplicationID appId, String name, String sha1)
 
-    List<String> getAppNames(String tenant, String status, String branch)
+    List<String> getAppNames(String tenant)
     List<String> getAppVersions(String tenant, String app, String status, String branch)
+    Map<String, List<String>> getVersions(String tenant, String app, String branch)
 
     List<NCubeInfoDto> getRevisions(ApplicationID appId, String cubeName)
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String searchValue, Map options)
 
     Set<String> getBranches(String tenant)
+    Set<String> getBranches(ApplicationID appId)
 
     String getTestData(ApplicationID appId, String cubeName)
 }

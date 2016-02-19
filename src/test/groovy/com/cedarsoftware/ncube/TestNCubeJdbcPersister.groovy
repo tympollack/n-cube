@@ -115,7 +115,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().getAppNames(c, defaultSnapshotApp.DEFAULT_TENANT, null, ApplicationID.TEST_BRANCH)
+            new NCubeJdbcPersister().getAppNames(c, null)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -219,7 +219,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().getBranches(c, null)
+            new NCubeJdbcPersister().getBranches(c, (String)null)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -283,7 +283,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            adapter.getAppNames(null, null, null)
+            adapter.getAppNames(null)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -299,7 +299,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            adapter.getBranches(null)
+            adapter.getBranches((String)null)
             fail()
         }
         catch (IllegalArgumentException e)

@@ -1323,19 +1323,17 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         return rows == 1
     }
 
-    List<String> getAppNames(Connection c, String tenant, String status, String branch)
+    List<String> getAppNames(Connection c, String tenant)
     {
-        if (StringUtilities.isEmpty(tenant) ||
-            StringUtilities.isEmpty(status) ||
-            StringUtilities.isEmpty(branch))
+        if (StringUtilities.isEmpty(tenant))
         {
-            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), status (' + status + '), or branch (' + branch + '), cannot be null or empty')
+            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + ') cannot be null or empty')
         }
-        Map map = [tenant:tenant, status:status, branch:branch]
+        Map map = [tenant:tenant]
         Sql sql = new Sql(c)
         List<String> apps = []
 
-        sql.eachRow("/* getAppNames */ SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ') and status_cd = :status and branch_id = :branch", map, { ResultSet row ->
+        sql.eachRow("/* getAppNames */ SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)
@@ -1368,6 +1366,41 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         return versions
     }
 
+    Map<String, List<String>> getVersions(Connection c, String tenant, String app, String branch)
+    {
+        if (StringUtilities.isEmpty(tenant) ||
+            StringUtilities.isEmpty(app) ||
+            StringUtilities.isEmpty(branch))
+        {
+            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), app (' + app +'), or branch (' + branch + '), cannot be null or empty')
+        }
+        Sql sql = new Sql(c)
+        Map map = [tenant:tenant, app:app, branch:branch]
+        List<String> releaseVersions = []
+        List<String> snapshotVersions = []
+        Map<String, List<String>> versions = [:]
+
+        sql.eachRow("/* getVersions */ SELECT DISTINCT version_no_cd, status_cd FROM n_cube WHERE app_cd = :app AND tenant_cd = RPAD(:tenant, 10, ' ') and branch_id = :branch", map, { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
+
+            String version = row.getString('version_no_cd')
+            if (ReleaseStatus.RELEASE.name() == row.getString('status_cd'))
+            {
+                releaseVersions.add(version)
+            }
+            else
+            {
+                snapshotVersions.add(version)
+            }
+        })
+        versions[ReleaseStatus.SNAPSHOT.name()] = snapshotVersions
+        versions[ReleaseStatus.RELEASE.name()] = releaseVersions
+        return versions
+    }
+
     Set<String> getBranches(Connection c, String tenant)
     {
         if (StringUtilities.isEmpty(tenant))
@@ -1377,7 +1410,23 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         Sql sql = new Sql(c)
         Set<String> branches = new HashSet<>()
 
-        sql.eachRow("/* getBranches */ SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", [tenant:tenant], { ResultSet row ->
+        sql.eachRow("/* getBranches.all */ SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", [tenant:tenant], { ResultSet row ->
+            if (row.getFetchSize() < FETCH_SIZE)
+            {
+                row.setFetchSize(FETCH_SIZE)
+            }
+            branches.add(row.getString('branch_id'))
+        })
+        return branches
+    }
+
+    Set<String> getBranches(Connection c, ApplicationID appId)
+    {
+        Map map = appId as Map
+        Sql sql = new Sql(c)
+        Set<String> branches = new HashSet<>()
+
+        sql.eachRow("/* getBranches.appVerStat */ SELECT DISTINCT branch_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ')", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)
@@ -1420,7 +1469,7 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
 
         String select = '''\
 /* ''' + methodName + '''.maxRev */ SELECT revision_number FROM n_cube
- WHERE ''' + buildNameCondition(c, "n_cube_nm") + ''' = :cube AND app_cd = :app AND status_cd = :status AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
+ WHERE ''' + buildNameCondition(c, "n_cube_nm") + ''' = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
  ORDER BY abs(revision_number) DESC'''
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->

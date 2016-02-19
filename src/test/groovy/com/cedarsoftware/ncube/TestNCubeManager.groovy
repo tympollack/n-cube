@@ -380,7 +380,7 @@ class TestNCubeManager
         NCube n1 = NCubeManager.getNCubeFromResource('stringIds.json')
         NCubeManager.updateCube(defaultSnapshotApp, n1, USER_ID)
 
-        List<String> names = NCubeManager.getAppNames(defaultSnapshotApp.DEFAULT_TENANT, defaultSnapshotApp.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+        List<String> names = NCubeManager.getAppNames(defaultSnapshotApp.DEFAULT_TENANT)
         boolean foundName = false
         for (String name : names)
         {
@@ -1485,6 +1485,18 @@ class TestNCubeManager
         cubes = NCubeManager.search(johnAppId, null, null, null)
         assert cubes.size() == 1
         assert cubes[0].revision == '1'
+
+        // Stuck this code on the end, to test multiple answers for getVersions()
+        johnAppId = new ApplicationID('ibm', 'deep.blue', '1.1.0', 'SNAPSHOT', 'jdereg')
+        cube = NCubeManager.getNCubeFromResource(johnAppId, 'testCube4.json')
+        NCubeManager.updateCube(johnAppId, cube, USER_ID)
+
+        Map<String, List<String>> versions = NCubeManager.getVersions('ibm', 'deep.blue', 'jdereg')
+        assert versions.size() == 2
+        assert versions['SNAPSHOT'].size() == 2
+        assert versions['SNAPSHOT'].contains('1.0.0')
+        assert versions['SNAPSHOT'].contains('1.1.0')
+        assert versions['RELEASE'].size() == 0
     }
 
     @Test

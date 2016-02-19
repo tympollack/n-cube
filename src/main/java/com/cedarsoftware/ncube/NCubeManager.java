@@ -746,9 +746,9 @@ public class NCubeManager
     /**
      * Return a List of Strings containing all unique App names for the given tenant.
      */
-    public static List<String> getAppNames(String tenant, String status, String branch)
+    public static List<String> getAppNames(String tenant)
     {
-        return getPersister().getAppNames(tenant, status, branch);
+        return getPersister().getAppNames(tenant);
     }
 
     /**
@@ -761,6 +761,18 @@ public class NCubeManager
         ApplicationID.validateApp(app);
         ApplicationID.validateBranch(branch);
         return getPersister().getAppVersions(tenant, app, status, branch);
+    }
+
+    /**
+     * Get all of the versions that exist for the given ApplicationID (tenant and app).
+     * @return List<String> version numbers.
+     */
+    public static Map<String, List<String>> getVersions(String tenant, String app, String branch)
+    {
+        ApplicationID.validateTenant(tenant);
+        ApplicationID.validateApp(app);
+        ApplicationID.validateBranch(branch);
+        return getPersister().getVersions(tenant, app, branch);
     }
 
     /**
@@ -1466,6 +1478,12 @@ public class NCubeManager
             throw new IllegalArgumentException("Could not fetch notes, no cube: " + cubeName + " in app: " + appId);
         }
         return infos.get(0).notes;
+    }
+
+    public static Set<String> getBranches(ApplicationID appId)
+    {
+        appId.validate();
+        return getPersister().getBranches(appId);
     }
 
     public static Set<String> getBranches(String tenant)

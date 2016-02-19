@@ -90,6 +90,11 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         return (Set<String>) jdbcOperation { Connection c -> persister.getBranches(c, tenant) }
     }
 
+    Set<String> getBranches(ApplicationID appId)
+    {
+        return (Set<String>) jdbcOperation { Connection c -> persister.getBranches(c, appId) }
+    }
+
     boolean deleteBranch(ApplicationID branchId)
     {
         return (boolean) jdbcOperation { Connection c -> persister.deleteBranch(c, branchId) }
@@ -100,14 +105,19 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         return (boolean) jdbcOperation { Connection c -> persister.deleteCubes(c, appId, cubeNames, allowDelete, username) }
     }
 
-    List<String> getAppNames(String tenant, String status, String branch)
+    List<String> getAppNames(String tenant)
     {
-        return (List<String>) jdbcOperation { Connection c -> persister.getAppNames(c, tenant, status, branch) }
+        return (List<String>) jdbcOperation { Connection c -> persister.getAppNames(c, tenant) }
     }
 
     List<String> getAppVersions(String tenant, String app, String status, String branch)
     {
         return (List<String>) jdbcOperation { Connection c -> persister.getAppVersions(c, tenant, app, status, branch) }
+    }
+
+    Map<String, List<String>> getVersions(String tenant, String app, String branch)
+    {
+        return (Map<String, List<String>>) jdbcOperation { Connection c -> persister.getVersions(c, tenant, app, branch) }
     }
 
     int changeVersionValue(ApplicationID appId, String newVersion)
