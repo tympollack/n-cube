@@ -1112,7 +1112,7 @@ abstract class TestWithPreloadedDatabase
 
         assertEquals(2, NCubeManager.releaseCubes(head, "1.29.0"))
 
-        Map<String, List<String>> versions = NCubeManager.getVersions(head.tenant, head.app, head.branch)
+        Map<String, List<String>> versions = NCubeManager.getVersions(head.tenant, head.app)
         assert versions.size() == 2
         assert versions.SNAPSHOT.size() == 1
         assert versions.SNAPSHOT.contains('1.29.0')

@@ -1346,17 +1346,15 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
     List<String> getAppVersions(Connection c, String tenant, String app, String status, String branch)
     {
         if (StringUtilities.isEmpty(tenant) ||
-            StringUtilities.isEmpty(app) ||
-            StringUtilities.isEmpty(status) ||
-            StringUtilities.isEmpty(branch))
+            StringUtilities.isEmpty(app))
         {
             throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), app (' + app +'), status (' + status + '), or branch (' + branch + '), cannot be null or empty')
         }
         Sql sql = new Sql(c)
-        Map map = [tenant:tenant, app:app, status:status, branch:branch]
+        Map map = [tenant:tenant, app:app]
         List<String> versions = []
 
-        sql.eachRow("/* getAppVersions */ SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = :app AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') and branch_id = :branch", map, { ResultSet row ->
+        sql.eachRow("/* getAppVersions */ SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = :app AND tenant_cd = RPAD(:tenant, 10, ' ')", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)
@@ -1366,21 +1364,20 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         return versions
     }
 
-    Map<String, List<String>> getVersions(Connection c, String tenant, String app, String branch)
+    Map<String, List<String>> getVersions(Connection c, String tenant, String app)
     {
         if (StringUtilities.isEmpty(tenant) ||
-            StringUtilities.isEmpty(app) ||
-            StringUtilities.isEmpty(branch))
+            StringUtilities.isEmpty(app))
         {
-            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), app (' + app +'), or branch (' + branch + '), cannot be null or empty')
+            throw new IllegalArgumentException('error calling getAppVersions() tenant (' + tenant + ') or app (' + app +') cannot be null or empty')
         }
         Sql sql = new Sql(c)
-        Map map = [tenant:tenant, app:app, branch:branch]
+        Map map = [tenant:tenant, app:app]
         List<String> releaseVersions = []
         List<String> snapshotVersions = []
         Map<String, List<String>> versions = [:]
 
-        sql.eachRow("/* getVersions */ SELECT DISTINCT version_no_cd, status_cd FROM n_cube WHERE app_cd = :app AND tenant_cd = RPAD(:tenant, 10, ' ') and branch_id = :branch", map, { ResultSet row ->
+        sql.eachRow("/* getVersions */ SELECT DISTINCT version_no_cd, status_cd FROM n_cube WHERE app_cd = :app AND tenant_cd = RPAD(:tenant, 10, ' ')", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)

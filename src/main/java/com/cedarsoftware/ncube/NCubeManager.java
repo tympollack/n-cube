@@ -758,8 +758,6 @@ public class NCubeManager
     public static List<String> getAppVersions(String tenant, String app, String status, String branch)
     {
         ApplicationID.validateTenant(tenant);
-        ApplicationID.validateApp(app);
-        ApplicationID.validateBranch(branch);
         return getPersister().getAppVersions(tenant, app, status, branch);
     }
 
@@ -767,12 +765,11 @@ public class NCubeManager
      * Get all of the versions that exist for the given ApplicationID (tenant and app).
      * @return List<String> version numbers.
      */
-    public static Map<String, List<String>> getVersions(String tenant, String app, String branch)
+    public static Map<String, List<String>> getVersions(String tenant, String app)
     {
         ApplicationID.validateTenant(tenant);
         ApplicationID.validateApp(app);
-        ApplicationID.validateBranch(branch);
-        return getPersister().getVersions(tenant, app, branch);
+        return getPersister().getVersions(tenant, app);
     }
 
     /**

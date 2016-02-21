@@ -1491,7 +1491,7 @@ class TestNCubeManager
         cube = NCubeManager.getNCubeFromResource(johnAppId, 'testCube4.json')
         NCubeManager.updateCube(johnAppId, cube, USER_ID)
 
-        Map<String, List<String>> versions = NCubeManager.getVersions('ibm', 'deep.blue', 'jdereg')
+        Map<String, List<String>> versions = NCubeManager.getVersions('ibm', 'deep.blue')
         assert versions.size() == 2
         assert versions['SNAPSHOT'].size() == 2
         assert versions['SNAPSHOT'].contains('1.0.0')
