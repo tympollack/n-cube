@@ -391,10 +391,10 @@ class TestNCubeManager
             }
         }
 
-        List<String> vers = NCubeManager.getAppVersions(defaultSnapshotApp.DEFAULT_TENANT, APP_ID, defaultSnapshotApp.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+        Map<String, List<String>> vers = NCubeManager.getVersions(defaultSnapshotApp.DEFAULT_TENANT, APP_ID)
         boolean foundVer = false
         String version = '1.0.0'
-        for (String ver : vers)
+        for (String ver : vers['SNAPSHOT'])
         {
             if (version.equals(ver))
             {

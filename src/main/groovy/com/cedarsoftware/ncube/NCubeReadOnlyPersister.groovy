@@ -35,7 +35,6 @@ interface NCubeReadOnlyPersister
     NCube loadCubeBySha1(ApplicationID appId, String name, String sha1)
 
     List<String> getAppNames(String tenant)
-    List<String> getAppVersions(String tenant, String app, String status, String branch)
     Map<String, List<String>> getVersions(String tenant, String app)
 
     List<NCubeInfoDto> getRevisions(ApplicationID appId, String cubeName)

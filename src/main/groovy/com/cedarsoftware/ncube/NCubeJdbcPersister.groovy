@@ -1343,27 +1343,6 @@ AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :
         return apps
     }
 
-    List<String> getAppVersions(Connection c, String tenant, String app, String status, String branch)
-    {
-        if (StringUtilities.isEmpty(tenant) ||
-            StringUtilities.isEmpty(app))
-        {
-            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + '), app (' + app +'), status (' + status + '), or branch (' + branch + '), cannot be null or empty')
-        }
-        Sql sql = new Sql(c)
-        Map map = [tenant:tenant, app:app]
-        List<String> versions = []
-
-        sql.eachRow("/* getAppVersions */ SELECT DISTINCT version_no_cd FROM n_cube WHERE app_cd = :app AND tenant_cd = RPAD(:tenant, 10, ' ')", map, { ResultSet row ->
-            if (row.getFetchSize() < FETCH_SIZE)
-            {
-                row.setFetchSize(FETCH_SIZE)
-            }
-            versions.add(row.getString('version_no_cd'))
-        })
-        return versions
-    }
-
     Map<String, List<String>> getVersions(Connection c, String tenant, String app)
     {
         if (StringUtilities.isEmpty(tenant) ||

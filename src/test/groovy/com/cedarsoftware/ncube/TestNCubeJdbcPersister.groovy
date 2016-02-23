@@ -130,7 +130,7 @@ class TestNCubeJdbcPersister
         Connection c = getConnectionThatThrowsSQLException()
         try
         {
-            new NCubeJdbcPersister().getAppVersions(c, "DEFAULT", null, "SNAPSHOT", null)
+            new NCubeJdbcPersister().getVersions(c, "DEFAULT", null)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -291,7 +291,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            adapter.getAppVersions(null, null, null, null)
+            adapter.getVersions(null, null)
             fail()
         }
         catch (IllegalArgumentException e)

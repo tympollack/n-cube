@@ -110,11 +110,6 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         return (List<String>) jdbcOperation { Connection c -> persister.getAppNames(c, tenant) }
     }
 
-    List<String> getAppVersions(String tenant, String app, String status, String branch)
-    {
-        return (List<String>) jdbcOperation { Connection c -> persister.getAppVersions(c, tenant, app, status, branch) }
-    }
-
     Map<String, List<String>> getVersions(String tenant, String app)
     {
         return (Map<String, List<String>>) jdbcOperation { Connection c -> persister.getVersions(c, tenant, app) }
