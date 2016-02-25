@@ -194,7 +194,7 @@ class CellInfo
             isUrl = StringUtilities.hasContent(method.getUrl())
             value = isUrl ? method.getUrl() : method.getCmd()
             dataType = 'method'
-            isCached = true
+            isCached = method.isCacheable()
         }
         else if (cell instanceof StringUrlCmd)
         {

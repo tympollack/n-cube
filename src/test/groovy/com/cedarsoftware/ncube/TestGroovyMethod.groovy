@@ -147,4 +147,36 @@ class TestGroovyMethod
         assertEquals('far', x)
         TestingDatabaseHelper.tearDownDatabase()
     }
+
+    @Test
+    void testGroovyMethodAsCellInfo()
+    {
+        GroovyMethod gm = new GroovyMethod(null, "http://whatever.com", false)
+        CellInfo cellInfo = new CellInfo(gm)
+        assert cellInfo.isUrl == true
+        assert cellInfo.isCached == false
+        assert cellInfo.value == 'http://whatever.com'
+        assert cellInfo.dataType == 'method'
+
+        gm = new GroovyMethod(null, "http://whatever.com", true)
+        cellInfo = new CellInfo(gm)
+        assert cellInfo.isUrl == true
+        assert cellInfo.isCached == true
+        assert cellInfo.value == 'http://whatever.com'
+        assert cellInfo.dataType == 'method'
+
+        gm = new GroovyMethod('return "groovy code"', null, false)
+        cellInfo = new CellInfo(gm)
+        assert cellInfo.isUrl == false
+        assert cellInfo.isCached == false
+        assert cellInfo.value == 'return "groovy code"'
+        assert cellInfo.dataType == 'method'
+
+        gm = new GroovyMethod('return "groovy code"', null, true)
+        cellInfo = new CellInfo(gm)
+        assert cellInfo.isUrl == false
+        assert cellInfo.isCached == true
+        assert cellInfo.value == 'return "groovy code"'
+        assert cellInfo.dataType == 'method'
+    }
 }
