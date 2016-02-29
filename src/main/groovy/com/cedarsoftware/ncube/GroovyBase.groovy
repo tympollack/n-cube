@@ -53,12 +53,12 @@ abstract class GroovyBase extends UrlCommandCell
      * method will return null. This is because the cell retains the cached value of the executed code and
      * therefore the class reference is no longer needed.
      */
-    Class getRunnableCode()
+    protected Class getRunnableCode()
     {
         return runnableCode
     }
 
-    void setRunnableCode(Class runnableCode)
+    protected void setRunnableCode(Class runnableCode)
     {
         this.runnableCode = runnableCode
     }
