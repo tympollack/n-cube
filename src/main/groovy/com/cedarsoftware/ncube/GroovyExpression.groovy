@@ -56,7 +56,7 @@ class GroovyExpression extends GroovyBase
         super(cmd, url, cache)
     }
 
-    String buildGroovy(Map<String, Object> ctx, String theirGroovy)
+    protected String buildGroovy(Map<String, Object> ctx, String theirGroovy)
     {
         Matcher m = Regexes.hasClassDefPattern.matcher(theirGroovy)
         if (m.find())

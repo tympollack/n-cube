@@ -210,7 +210,7 @@ public class NCube<T>
      * It consists of a String cube Name and a Set of
      * Column references (one Column per axis).
      */
-    public static class StackEntry
+    private static class StackEntry
     {
         final String cubeName;
         final Map<String, Object> coord;

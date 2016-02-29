@@ -1,8 +1,6 @@
-package com.cedarsoftware.ncube.util;
+package com.cedarsoftware.ncube.util
 
-import java.util.Collection;
-import java.util.TreeSet;
-
+import groovy.transform.CompileStatic
 
 /**
  * Special Set instance that hashes the Set<Long> column IDs with
@@ -24,54 +22,55 @@ import java.util.TreeSet;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class LongHashSet extends TreeSet<Long>
+@CompileStatic
+class LongHashSet extends TreeSet<Long>
 {
-    public LongHashSet()
+    LongHashSet()
     {
-        super();
+        super()
     }
 
-    public LongHashSet(Collection<? extends Long> c)
+    LongHashSet(Collection<? extends Long> c)
     {
-        super(c);
+        super(c)
     }
 
-    public int hashCode()
+    int hashCode()
     {
-        int h = 0;
+        int h = 0
         for (Long value : this)
         {
-            long x = value;
+            long x = value
             // do not change the formula below.  It is been hand crafted and tested for performance.
             // If this does not hash well, ncube breaks down in performance.  The BigCube tests are
             // greatly slowed down as proper hashing is vital or cells will be really slow to access
             // when there are a lot of them in the ncube.
 
             // Original hash function  (John)
-//                h += (int)(x * 347 ^ (x >>> 32) * 7);
+//                h += (int)(x * 347 ^ (x >>> 32) * 7)
 
             // Better (from Stack overflow)
-//            x = ((x >> 16) ^ x) * 0x45d9f3b;
-//            x = ((x >> 16) ^ x) * 0x45d9f3b;
-//            x = ((x >> 16) ^ x);
-//            h += (int) x;
+//            x = ((x >> 16) ^ x) * 0x45d9f3b
+//            x = ((x >> 16) ^ x) * 0x45d9f3b
+//            x = ((x >> 16) ^ x)
+//            h += (int) x
 
             // Even better (from Google)
-            x ^= x >> 23;
-            x *= 0x2127599bf4325c37L;
-            x ^= x >> 47;
-            h += (int) x;
+            x ^= x >> 23
+            x *= 0x2127599bf4325c37L
+            x ^= x >> 47
+            h += (int) x
 
             // Yet another good hashing function
-//                x = (~x) + (x << 18); // key = (key << 18) - key - 1;
-//                x = x ^ (x >>> 31);
-//                x = x * 21; // key = (key + (key << 2)) + (key << 4);
-//                x = x ^ (x >>> 11);
-//                x = x + (x << 6);
-//                x = x ^ (x >>> 22);
-//                h += (int) x;
+//                x = (~x) + (x << 18) // key = (key << 18) - key - 1
+//                x = x ^ (x >>> 31)
+//                x = x * 21; // key = (key + (key << 2)) + (key << 4)
+//                x = x ^ (x >>> 11)
+//                x = x + (x << 6)
+//                x = x ^ (x >>> 22)
+//                h += (int) x
         }
 
-        return h;
+        return h
     }
 }
