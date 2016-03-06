@@ -325,6 +325,78 @@ class NCubeBuilder
         return NCubeManager.getNCubeFromResource("sys.classpath.tests.json")
     }
 
+    static NCube getMetaPropWithFormula()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "metaPropFormula",
+  "requiredScopeKeys": {
+    "type": "exp",
+    "value": "return ['revenue', 'cost', input.key]"
+  },
+  "axes": [
+    {
+      "name": "Column",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": []
+    }
+  ],
+  "cells": []
+}''')
+    }
+
+    static NCube getSimpleAutoRule()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "0Rule",
+  "axes": [
+    {
+      "name": "Conditions",
+      "hasDefault": false,
+      "type": "RULE",
+      "valueType": "EXPRESSION",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "exp",
+          "name": "age-test",
+          "value": "input.age < 18"
+        },
+        {
+          "id": 1000000000002,
+          "type": "exp",
+          "name": "credit-score",
+          "value": "input.creditScore > 700"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "exp",
+      "value": "if (input.color == 'red')\\n   output.rate +=25"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "exp",
+      "value": "output.rate -= 10\\nif (output.rate < 0)\\n   output.rate = 0"
+    }
+  ]
+}''')
+    }
+
     static NCube getTrackingTestCube()
     {
         return NCube.fromSimpleJson('''\

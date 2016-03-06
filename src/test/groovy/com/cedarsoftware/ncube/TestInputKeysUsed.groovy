@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.TrackingMap
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
@@ -135,5 +136,37 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('weight')
     }
 
-    // TODO: Test with RULE cube
+    @Test
+    void testKeyTrackingInRuleConditions()
+    {
+        NCube ncube = NCubeBuilder.getSimpleAutoRule()
+        Map output = [:]
+        ncube.getCell([rate:0], output)
+        Set keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        assert keys.size() == 4
+        assert keys.contains('conditions')
+        assert keys.contains('AGe')
+        assert keys.contains('coLOR')
+        assert keys.contains('creditSCORE')
+
+        output = [:]
+        output.rate = 0.0
+        ncube.getCell([age:50, creditScore:701], output)
+        keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        assert keys.size() == 3
+        assert keys.contains('conditions')
+        assert keys.contains('AGe')
+        assert keys.contains('creditSCORE')
+    }
+
+    @Test
+    void testKeyTrackingMetaPropertyWithExp()
+    {
+        NCube ncube = NCubeBuilder.getMetaPropWithFormula()
+        Map output = [:]
+        Set reqScope = ncube.getRequiredScope(new TrackingMap([revenue:100, cost:45, key: 'john']), output)
+        Set keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        assert keys.size() == 1
+        assert keys.contains('key')
+    }
 }

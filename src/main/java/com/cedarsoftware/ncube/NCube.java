@@ -1730,9 +1730,14 @@ public class NCube<T>
         return required;
     }
 
-    // TODO:
-    // Should we have another API, getDeclaredScopeFromCube() which reads a meta-property key that lists
-    // the name of an n-cube that will be asked for requiredScope?
+    /**
+     * Get the declared required scope keys for this n-cube.  These keys are required to
+     * 'talk' to this cube and any of it's subordinate cubes.  Note that the keys can be
+     * a list of Strings of an expression (which could join another n-cube).
+     * @param input Map containing input
+     * @param output Map for writing output.
+     * @return Set<String> required scope keys.
+     */
     Set<String> getDeclaredScope(Map input, Map output)
     {
         Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"), input, output);
