@@ -325,6 +325,117 @@ class NCubeBuilder
         return NCubeManager.getNCubeFromResource("sys.classpath.tests.json")
     }
 
+    static NCube getTrackingTestCube()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "TestInputKeyTracking",
+  "axes": [
+    {
+      "name": "Column",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "A"
+        },
+        {
+          "id": 1000000000002,
+          "type": "string",
+          "value": "B"
+        }
+      ]
+    },
+    {
+      "name": "Row",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "LONG",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000001,
+          "type": "long",
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001,
+        2000000000001
+      ],
+      "type": "exp",
+      "value": "if (input.age < 16)\\n    output.msg = 'You cant drive'; if (input.Weight > 200)\\noutput.msg = 'you are heavy'"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000001
+      ],
+      "type": "exp",
+      "value": "@Secondary[:]"
+    },
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "a1"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "exp",
+      "value": "if (input.containsKey('smokes'))\\n    output.rate += 150.0d"
+    }
+  ]
+}''')
+    }
+
+    static NCube getTrackingTestCubeSecondary()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "Secondary",
+  "axes": [
+    {
+      "name": "State",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "OH"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "exp",
+      "value": "println 'in secondary.'; if (input.age < 16)\\n    output.msg = 'You cant drive'; if (input.Weight > 200)\\noutput.msg = 'you are heavy'; return 9"
+    }
+  ]
+}''')
+    }
+
     static NCube getRule1D()
     {
         return NCube.fromSimpleJson('''\
@@ -614,6 +725,60 @@ class NCubeBuilder
     }
   ],
   "cells": []
+}''')
+    }
+
+    static NCube getHeadLessCommands()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "headLessCommands",
+  "axes": [
+    {
+      "name": "command",
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "hasDefault": false,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "value": "rating"
+        },
+        {
+          "id": 1000000000002,
+          "value": "pricing"
+        },
+        {
+          "id": 1000000000003,
+          "value": "quoting"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "exp",
+      "url": "com/acme/exp/headLess.groovy"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "exp",
+      "url": "com/acme/exp/notHeadLess.groovy"
+    },
+    {
+      "id": [
+        1000000000003
+      ],
+      "type": "exp",
+      "value": "if (input.get('age') == null)\n{ output.price = 150.0d }\n else\n{ output.price = input.age * input.rate }\nreturn output.price"
+    }
+  ]
 }''')
     }
 

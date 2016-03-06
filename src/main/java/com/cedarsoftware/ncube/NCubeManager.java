@@ -9,6 +9,7 @@ import com.cedarsoftware.util.IOUtilities;
 import com.cedarsoftware.util.MapUtilities;
 import com.cedarsoftware.util.StringUtilities;
 import com.cedarsoftware.util.SystemUtilities;
+import com.cedarsoftware.util.TrackingMap;
 import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
@@ -280,6 +281,7 @@ public class NCubeManager
     static URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
     {
         NCube cpCube = getCube(appId, CLASSPATH_CUBE);
+
         if (cpCube == null)
         {   // No sys.classpath cube exists, just create regular GroovyClassLoader with no URLs set into it.
             // Scope the GroovyClassLoader per ApplicationID
@@ -287,12 +289,12 @@ public class NCubeManager
         }
 
         final String envLevel = SystemUtilities.getExternalVariable("ENV_LEVEL");
-        if (!input.containsKey("env") && StringUtilities.hasContent(envLevel))
+        if (!doesMapContainKey(input, "env") && StringUtilities.hasContent(envLevel))
         {   // Add in the 'ENV_LEVEL" environment variable when looking up sys.* cubes,
             // if there was not already an entry for it.
             input.put("env", envLevel);
         }
-        if (!input.containsKey("username"))
+        if (!doesMapContainKey(input, "username"))
         {   // same as ENV_LEVEL, add it in if not already there.
             input.put("username", System.getProperty("user.name"));
         }
@@ -304,6 +306,16 @@ public class NCubeManager
         }
 
         throw new IllegalStateException("If the sys.classpath cube exists, it must return a URLClassLoader.");
+    }
+
+    private static boolean doesMapContainKey(Map map, String key)
+    {
+        if (map instanceof TrackingMap)
+        {
+            Map wrappedMap = ((TrackingMap)map).getWrappedMap();
+            return wrappedMap.containsKey(key);
+        }
+        return map.containsKey(key);
     }
 
     static URLClassLoader getLocalClassloader(ApplicationID appId)
@@ -1588,6 +1600,10 @@ public class NCubeManager
             ncube.sha1();
             addCube(id, ncube);
             return ncube;
+        }
+        catch (NullPointerException e)
+        {
+            throw new IllegalArgumentException("Could not find [file] n-cube: " + name + ", app: " + id, e);
         }
         catch (Exception e)
         {

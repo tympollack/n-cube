@@ -284,4 +284,63 @@ class TestUrlCommandCell
 //        assert 14 == x
 //        assert 27 == y
     }
+
+    @Test
+    void testUrlToGroovyScript()
+    {
+        NCube ncube = NCubeBuilder.getHeadLessCommands()
+        Map coord = [command:'rating'] as Map
+        Map output = [:]
+
+        int times = 1
+        long start = System.nanoTime()
+
+        for (int i=0; i < times; i++)
+        {
+            coord.age = null
+            def ret = ncube.getCell(coord, output)
+            assert ret == 150.0d
+            coord.age = 18
+            coord.rate = 10
+            ret = ncube.getCell(coord, output)
+            assert ret == 180
+        }
+        long end = System.nanoTime()
+
+//        println ((long) (end - start) / 1000000.0d)
+
+        coord = [command:'pricing'] as Map
+
+        start = System.nanoTime()
+        for (int i=0; i < times; i++)
+        {
+            coord.age = null
+            def ret = ncube.getCell(coord, output)
+            assert ret == 150.0d
+            coord.age = 18
+            coord.rate = 10
+            ret = ncube.getCell(coord, output)
+            assert ret == 180
+        }
+        end = System.nanoTime()
+
+//        println ((long) (end - start) / 1000000.0d)
+
+        coord = [command:'quoting'] as Map
+
+        start = System.nanoTime()
+        for (int i=0; i < times; i++)
+        {
+            coord.age = null
+            def ret = ncube.getCell(coord, output)
+            assert ret == 150.0d
+            coord.age = 18
+            coord.rate = 10
+            ret = ncube.getCell(coord, output)
+            assert ret == 180
+        }
+        end = System.nanoTime()
+
+//        println ((long) (end - start) / 1000000.0d)
+    }
 }

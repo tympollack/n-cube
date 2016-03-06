@@ -27,13 +27,14 @@ import groovy.transform.CompileStatic
 class RuleInfo extends CaseInsensitiveMap<String, Object>
 {
     // Convert Enums to String constants for performance gain
-    private static final String RULES_EXECUTED = RuleMetaKeys.RULES_EXECUTED.name()
-    private static final String RULE_STOP = RuleMetaKeys.RULE_STOP.name()
-    private static final String SYSTEM_OUT = RuleMetaKeys.SYSTEM_OUT.name()
-    private static final String SYSTEM_ERR = RuleMetaKeys.SYSTEM_ERR.name()
-    private static final String ASSERTION_FAILURES = RuleMetaKeys.ASSERTION_FAILURES.name()
-    private static final String LAST_EXECUTED_STATEMENT = RuleMetaKeys.LAST_EXECUTED_STATEMENT.name()
-    private static final String AXIS_BINDINGS = RuleMetaKeys.AXIS_BINDINGS.name()
+    public static final String RULES_EXECUTED = 'RULES_EXECUTED'
+    public static final String RULE_STOP = 'RULE_STOP'
+    public static final String SYSTEM_OUT = 'SYSTEM_OUT'
+    public static final String SYSTEM_ERR = 'SYSTEM_ERR'
+    public static final String ASSERTION_FAILURES = 'ASSERTION_FAILURES'
+    public static final String LAST_EXECUTED_STATEMENT = 'LAST_EXECUTED_STATEMENT'
+    public static final String AXIS_BINDINGS = 'AXIS_BINDINGS'
+    public static final String INPUT_KEYS_USED = 'INPUT_KEYS_ACCESSED'
 
     RuleInfo()
     {
@@ -117,7 +118,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         return null
     }
 
-    protected void setLastExecutedStatementValue(Object value)
+    protected void setLastExecutedStatement(def value)
     {
         put(LAST_EXECUTED_STATEMENT, value)
     }
@@ -131,5 +132,21 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         List<Binding> bindings = new ArrayList<>()
         put(AXIS_BINDINGS, bindings)
         return bindings
+    }
+
+    Set getInputKeysUsed()
+    {
+        Set keysUsed = (Set)get(INPUT_KEYS_USED)
+        if (keysUsed == null)
+        {
+            keysUsed = [] as CaseInsensitiveSet
+            put(INPUT_KEYS_USED, keysUsed)
+        }
+        return keysUsed
+    }
+
+    protected void addInputKeysUsed(Collection keys)
+    {
+        getInputKeysUsed().addAll(keys)
     }
 }

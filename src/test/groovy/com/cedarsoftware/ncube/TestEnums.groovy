@@ -20,12 +20,6 @@ import org.junit.Test
 class TestEnums
 {
     @Test
-    void testRuleMetaKeys()
-    {
-        assert RuleMetaKeys.values().length == 7
-    }
-
-    @Test
     void testDeltaEnum()
     {
         assert Delta.Location.values().length == 8
