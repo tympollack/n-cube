@@ -155,6 +155,10 @@ public class NCube<T>
     {
         if (value instanceof CommandCell)
         {
+            if (!(input instanceof TrackingMap))
+            {
+                input = new TrackingMap(input);
+            }
             CommandCell cmd = (CommandCell) value;
             value = executeExpression(prepareExecutionContext(input, output), cmd);
         }

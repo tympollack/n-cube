@@ -330,9 +330,9 @@ class NCubeBuilder
         return NCube.fromSimpleJson('''\
 {
   "ncube": "metaPropFormula",
-  "requiredScopeKeys": {
+  "formula": {
     "type": "exp",
-    "value": "return ['revenue', 'cost', input.key]"
+    "value": "if (input.revenue != null && input.cost != null) { output.profit = (input.revenue - input.cost) * input.tax }"
   },
   "axes": [
     {

@@ -164,9 +164,19 @@ class TestInputKeysUsed
     {
         NCube ncube = NCubeBuilder.getMetaPropWithFormula()
         Map output = [:]
-        Set reqScope = ncube.getRequiredScope(new TrackingMap([revenue:100, cost:45, key: 'john']), output)
+        def formula = ncube.getMetaProperty("formula")
+        ncube.extractMetaPropertyValue(formula, [:], output)
         Set keys = NCube.getRuleInfo(output).getInputKeysUsed()
         assert keys.size() == 1
-        assert keys.contains('key')
+        assert keys.contains("Revenue")
+
+        formula = ncube.getMetaProperty("formula")
+        def profit = ncube.extractMetaPropertyValue(formula, [revenue:100, cost:40, tax:(1 - 0.2)], output)
+        assert profit == 48.0
+        keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        assert keys.size() == 3
+        assert keys.contains("Revenue")
+        assert keys.contains("Cost")
+        assert keys.contains("Tax")
     }
 }

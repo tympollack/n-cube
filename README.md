@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.28</version>
+  <version>3.4.29</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.29
+ * Input key tracking now available.  After a call to .getCell(), fetch the RuleInfo from the output Map and call ruleInfo.getInputKeysUsed() and it will return all the scope keys (Strings) that were referenced with either a .get() or a .containsKey().  This includes keys referenced from conditions on a Rule axis as well as meta-properties that are expressions.
 * 3.4.28
  * Updated: removed NCubePersister.getAppVersions() - use getVersions()
  * bug fix: GroovyMethod cells were returning always as cacheable = true
