@@ -124,20 +124,22 @@ public class NCubeManager
             if (systemParams == null)
             {
                 String jsonParams = SystemUtilities.getExternalVariable(NCUBE_PARAMS);
-                systemParams = new ConcurrentHashMap<>();
+                ConcurrentMap sysParamMap = new ConcurrentHashMap<>();
 
                 if (StringUtilities.hasContent(jsonParams))
                 {
                     try
                     {
-                        systemParams = new ConcurrentHashMap<>(JsonReader.jsonToMaps(jsonParams));
+                        Map args = new HashMap();
+                        args.put(JsonReader.USE_MAPS, true);
+                        sysParamMap = new ConcurrentHashMap<>((Map)JsonReader.jsonToJava(jsonParams, args));
                     }
                     catch (Exception e)
                     {
                         LOG.warn("Parsing of NCUBE_PARAMS failed.  " + jsonParams);
                     }
-
                 }
+                systemParams = sysParamMap;
             }
         }
         return systemParams;

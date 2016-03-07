@@ -45,7 +45,7 @@
 
     <properties>
         <version.json-io>4.3.1</version.json-io>
-        <version.java-util>1.20.3</version.java-util>
+        <version.java-util>1.20.5</version.java-util>
         <version.log4j>2.5</version.log4j>
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.6</version.groovy>
@@ -59,14 +59,14 @@
         <version.mongo>2.12.3</version.mongo>
         <version.mysql.connector.java>5.1.37</version.mysql.connector.java>
         <version.nosqlunit>0.7.9</version.nosqlunit>
-        <version.tomcat.jdbc>8.0.29</version.tomcat.jdbc>
+        <version.tomcat.jdbc>8.0.32</version.tomcat.jdbc>
         <version.hsqldb>2.3.3</version.hsqldb>
         <version.oracle>11.2.0.3</version.oracle>
         <version.plugin.compiler>3.5.1</version.plugin.compiler>
         <version.plugin.gmavenplus>1.5</version.plugin.gmavenplus>
         <version.plugin.groovy.eclipse.compiler>2.9.2-01</version.plugin.groovy.eclipse.compiler>
         <version.plugin.groovy.eclipse.batch>2.4.3-01</version.plugin.groovy.eclipse.batch>
-        <version.plugin.deploy>1.3</version.plugin.deploy>
+        <version.plugin.deploy>2.8.2</version.plugin.deploy>
         <version.plugin.nexus>1.6.6</version.plugin.nexus>
         <version.plugin.source>3.0.0</version.plugin.source>
         <version.plugin.javadoc>2.10.3</version.plugin.javadoc>

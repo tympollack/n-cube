@@ -10,6 +10,7 @@ import com.cedarsoftware.util.io.JsonReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,9 +40,9 @@ public class NCubeTestReader
             return list;
         }
 
-        Map map = JsonReader.jsonToMaps(s);
-
-        Object[] items = (Object[])map.get("@items");
+        Map args = new HashMap();
+        args.put(JsonReader.USE_MAPS, true);
+        Object[] items = (Object[]) JsonReader.jsonToJava(s, args);
 
         for (Object o : items)
         {

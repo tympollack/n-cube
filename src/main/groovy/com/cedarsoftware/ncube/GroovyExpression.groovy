@@ -39,7 +39,7 @@ import java.util.regex.Matcher
  * the coordinate that called into this cell.
  *
  * @author John DeRegnaucourt
- * Copyright (c) 2012-2015, John DeRegnaucourt.  All rights reserved.
+ * Copyright (c) 2012-2016, John DeRegnaucourt.  All rights reserved.
  */
 @CompileStatic
 class GroovyExpression extends GroovyBase
@@ -174,7 +174,7 @@ import com.google.common.net.*
     {
         try
         {
-            Map<String, Object> input = getInput(ctx)
+            Map input = getInput(ctx)
             input[SYS_PROPERTY] = EXP_CLASS
             Object className = prototype.getCell(input)
             if (className instanceof String && StringUtilities.hasContent((String)className))

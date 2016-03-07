@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.30
+ * Updated to pick up new version of java-util (1.20.5).
 * 3.4.29
  * Input key tracking now available.  After a call to .getCell(), fetch the RuleInfo from the output Map and call ruleInfo.getInputKeysUsed() and it will return all the scope keys (Strings) that were referenced with either a .get() or a .containsKey().  This includes keys referenced from conditions on a Rule axis as well as meta-properties that are expressions.
 * 3.4.28
