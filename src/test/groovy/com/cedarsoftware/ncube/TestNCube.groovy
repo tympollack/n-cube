@@ -3764,7 +3764,7 @@ class TestNCube
         // manually set classpath cube
         NCubeManager.updateCube(appId, cpCube, TestNCubeManager.USER_ID)
 
-        FileOutputStream fo = new FileOutputStream(base + "Abc.groovy")
+        FileOutputStream fo = new FileOutputStream(base + File.separator + "Abc.groovy")
         String code = "import ncube.grv.exp.NCubeGroovyExpression; class Abc extends NCubeGroovyExpression { def run() { return 10 } }";
         fo.write(code.bytes)
         fo.close()
@@ -3780,7 +3780,7 @@ class TestNCube
 
         NCubeManager.clearCache(appId)
 
-        fo = new FileOutputStream(base + "Abc.groovy")
+        fo = new FileOutputStream(base + File.separator + "Abc.groovy")
         code = "import ncube.grv.exp.NCubeGroovyExpression; class Abc extends NCubeGroovyExpression { def run() { return 20 } }"
         fo.write(code.bytes)
         fo.close()
