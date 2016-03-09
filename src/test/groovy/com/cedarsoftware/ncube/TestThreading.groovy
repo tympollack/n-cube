@@ -299,7 +299,7 @@ public class TestThreading
                         cell = new GroovyExpression("if (input.get('sleep',0L)>0) sleep(input.sleep)\n'test-' + input.tid + '-' + input.cnt",null, false)
                         break
                     case 2:
-                        cell = new GroovyExpression(null,'files/ncube/ThreadCount.groovy', false)
+                        cell = new GroovyExpression(null,'files/ncube/threadCount.groovy', false)
                         break
                 }
 
