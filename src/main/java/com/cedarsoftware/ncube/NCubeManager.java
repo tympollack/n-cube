@@ -861,32 +861,42 @@ public class NCubeManager
         return rows;
     }
 
-    public static boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
+    public static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
         appId.validateStatusIsNotRelease();
-
-        boolean ret = getPersister().mergeAcceptMine(appId, cubeName, username);
-
         Map<String, Object> appCache = getCacheForApp(appId);
-        appCache.remove(cubeName.toLowerCase());
+        int count = 0;
 
-        return ret;
+        for (Object cubeName : cubeNames)
+        {
+            String cubeNameStr = (String)cubeName;
+            getPersister().mergeAcceptMine(appId, cubeNameStr, username);
+            appCache.remove(cubeNameStr.toLowerCase());
+            count++;
+        }
+        return count;
     }
 
-    public static boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
+    public static int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username)
     {
         validateAppId(appId);
         appId.validateBranchIsNotHead();
         appId.validateStatusIsNotRelease();
-
-        boolean ret = getPersister().mergeAcceptTheirs(appId, cubeName, branchSha1, username);
-
         Map<String, Object> appCache = getCacheForApp(appId);
-        appCache.remove(cubeName.toLowerCase());
+        int count = 0;
 
-        return ret;
+        for (int i = 0; i < cubeNames.length; i++)
+        {
+            String cubeNameStr = (String)cubeNames[i];
+            String sha1 = (String)branchSha1[i];
+            getPersister().mergeAcceptTheirs(appId, cubeNameStr, sha1, username);
+            appCache.remove(cubeNameStr.toLowerCase());
+            count++;
+        }
+
+        return count;
     }
 
     /**
