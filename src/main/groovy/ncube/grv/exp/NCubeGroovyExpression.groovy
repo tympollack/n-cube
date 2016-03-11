@@ -129,8 +129,11 @@ class NCubeGroovyExpression
 
     /**
      * Using the input Map passed in, fetch the coordinate at that location.
-     * @param coord Input Map with the coordinate to fetch.  This coordinate is used as-is, no
-     * content from the input map passed into this cube is included in the passed in coord.
+     * @param coord Map containing precise coordinate to use.
+     * @param cubeName String n-cube name.  This argument is optional and defaults
+     * to the same cube as the cell currently executing.
+     * @param defaultValue Object to return when no cell exists at the target coordinate
+     * and the cube does not have a cube-level default.  This argument is optional.
      * @return executed cell contents at the given coordinate.
      */
     def go(Map coord, String cubeName = ncube.name, def defaultValue = null)
@@ -139,10 +142,30 @@ class NCubeGroovyExpression
     }
 
     /**
+     * Using the input Map passed in, fetch the coordinate at that location.
+     * @param coord Map containing precise coordinate to use.
+     * @param cubeName String n-cube name.  This argument is optional and defaults
+     * to the same cube as the cell currently executing.
+     * @param defaultValue Object to return when no cell exists at the target coordinate
+     * and the cube does not have a cube-level default.  This argument is optional.
+     * @param ApplicationID of a different application (reference data application for
+     * example) from which the running cube exists.
+     * @return executed cell contents at the given coordinate.
+     */
+    def go(Map coord, String cubeName = ncube.name, def defaultValue = null, ApplicationID appId)
+    {
+        NCube target = NCubeManager.getCube(appId, cubeName)
+        return target.getCell(coord, output, defaultValue)
+    }
+
+    /**
      * Fetch the cell contents using the current input coordinate and specified n-cube,
      * but first apply any updates from the passed in coordinate.
      * @param coord Map containing 'updates' to the current input coordinate.
-     * @param cubeName String n-cube name.
+     * @param cubeName String n-cube name.  This argument is optional and defaults
+     * to the same cube as the cell currently executing.
+     * @param defaultValue Object to return when no cell exists at the target coordinate
+     * and the cube does not have a cube-level default.  This argument is optional.
      * @return executed cell contents at the current input location and specified n-cube,
      * but first apply updates to the current input coordinate from the passed in coord.
      */
@@ -150,6 +173,26 @@ class NCubeGroovyExpression
     {
         input.putAll(coord)
         return getCube(cubeName).getCell(input, output, defaultValue)
+    }
+
+    /**
+     * Fetch the cell contents using the current input coordinate and specified n-cube,
+     * but first apply any updates from the passed in coordinate.
+     * @param coord Map containing 'updates' to the current input coordinate.
+     * @param cubeName String n-cube name.  This argument is optional and defaults
+     * to the same cube as the cell currently executing.
+     * @param defaultValue Object to return when no cell exists at the target coordinate
+     * and the cube does not have a cube-level default.  This argument is optional.
+     * @param ApplicationID of a different application (reference data application for
+     * example) from which the running cube exists.
+     * @return executed cell contents at the current input location and specified n-cube,
+     * but first apply updates to the current input coordinate from the passed in coord.
+     */
+    def at(Map coord, String cubeName = ncube.name, def defaultValue = null, ApplicationID appId)
+    {
+        NCube target = NCubeManager.getCube(appId, cubeName)
+        input.putAll(coord)
+        return target.getCell(input, output, defaultValue)
     }
 
     /**
@@ -241,9 +284,9 @@ class NCubeGroovyExpression
      * @param url String URL
      * @return String content fetched from the passed in URL.
      */
-    String getStringFromUrl(String url)
+    String url(String url)
     {
-        byte[] bytes = getBytesFromUrl(url)
+        byte[] bytes = urlToBytes(url)
         if (bytes == null)
         {
             return null
@@ -258,7 +301,7 @@ class NCubeGroovyExpression
      * @param url String URL
      * @return byte[] content fetched from the passed in URL.
      */
-    byte[] getBytesFromUrl(String url)
+    byte[] urlToBytes(String url)
     {
         InputStream inStream = getClass().getResourceAsStream(url)
         byte[] bytes = IOUtilities.inputStreamToBytes(inStream)
