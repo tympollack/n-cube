@@ -10,6 +10,7 @@ import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 
 /**
@@ -303,10 +304,11 @@ class NCubeGroovyExpression
      */
     byte[] urlToBytes(String url)
     {
-        InputStream inStream = getClass().getResourceAsStream(url)
-        byte[] bytes = IOUtilities.inputStreamToBytes(inStream)
-        IOUtilities.close(inStream as Closeable)
-        return bytes
+        URL actualUrl = NCubeManager.getActualUrl(ncube, input, url)
+        synchronized(url.intern())
+        {
+            return UrlUtilities.getContentFromUrl(actualUrl, true)
+        }
     }
 
     /**

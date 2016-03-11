@@ -96,32 +96,7 @@ abstract class UrlCommandCell implements CommandCell
         {   // Try URL resolution twice (HTTP HEAD called for connecting relative URLs to sys.classpath)
             try
             {
-                URL actualUrl
-                NCube ncube = getNCube(ctx)
-                String localUrl = url.toLowerCase()
-
-                synchronized (url)
-                {
-                    if (localUrl.startsWith('http:') || localUrl.startsWith('https:') || localUrl.startsWith('file:'))
-                    {   // Absolute URL
-                        actualUrl = new URL(url)
-                    }
-                    else
-                    {   // Relative URL
-                        URLClassLoader loader = NCubeManager.getUrlClassLoader(ncube.applicationID, getInput(ctx))
-
-                        // Make URL absolute (uses URL roots added to NCubeManager)
-                        actualUrl = loader.getResource(url)
-                    }
-
-                    if (actualUrl == null)
-                    {
-                        String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
-                                url + ", cube: " + ncube.name + ", app: " + ncube.applicationID
-                        throw new IllegalStateException(err)
-                    }
-                    return actualUrl
-                }
+                return NCubeManager.getActualUrl(getNCube(ctx), getInput(ctx), url)
             }
             catch(Exception e)
             {

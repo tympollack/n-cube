@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -1673,6 +1674,42 @@ public class NCubeManager
             String s = "Failed to load cubes from resource: " + name + ", last successful cube: " + lastSuccessful;
             LOG.warn(s);
             throw new RuntimeException(s, e);
+        }
+    }
+
+    public static URL getActualUrl(NCube ncube, Map input, String url)
+    {
+        String localUrl = url.toLowerCase();
+
+        if (localUrl.startsWith("http:") || localUrl.startsWith("https:") || localUrl.startsWith("file:"))
+        {   // Absolute URL
+            try
+            {
+                return new URL(url);
+            }
+            catch (MalformedURLException e)
+            {
+                throw new IllegalArgumentException("URL is malformed: " + url, e);
+            }
+        }
+        else
+        {
+            URL actualUrl;
+            synchronized (url.intern())
+            {
+                URLClassLoader loader = getUrlClassLoader(ncube.getApplicationID(), input);
+
+                // Make URL absolute (uses URL roots added to NCubeManager)
+                actualUrl = loader.getResource(url);
+            }
+
+            if (actualUrl == null)
+            {
+                String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
+                        url + ", cube: " + ncube.getName() + ", app: " + ncube.getApplicationID();
+                throw new IllegalStateException(err);
+            }
+            return actualUrl;
         }
     }
 
