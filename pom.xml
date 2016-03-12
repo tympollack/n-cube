@@ -45,7 +45,7 @@
 
     <properties>
         <version.json-io>4.4.0</version.json-io>
-        <version.java-util>1.21.0</version.java-util>
+        <version.java-util>1.22.0</version.java-util>
         <version.log4j>2.5</version.log4j>
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.6</version.groovy>
@@ -53,7 +53,6 @@
         <version.guava>19.0</version.guava>
         <version.commons.math>3.5</version.commons.math>
         <version.encog.core>3.3.0</version.encog.core>
-        <version.concurrent.linked.hashmap.lru>1.4.2</version.concurrent.linked.hashmap.lru>
         <version.mockito>1.10.19</version.mockito>
         <!--<version.jgit>3.6.1.201501031845-r</version.jgit>-->
         <version.mongo>2.12.3</version.mongo>
@@ -258,12 +257,6 @@
             <!--<version>${version.mysql.connector.java}</version>-->
             <!--<scope>test</scope>-->
         <!--</dependency>-->
-
-        <dependency>
-            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
-            <artifactId>concurrentlinkedhashmap-lru</artifactId>
-            <version>${version.concurrent.linked.hashmap.lru}</version>
-        </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
