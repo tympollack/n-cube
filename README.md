@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.31</version>
+  <version>3.4.32</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,9 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.32
+ * New at() and go() APIs available on the NCubeGroovyExpression (cell).  These allow you to target n-cubes in other applications without referencing the NCubeManager.
+ * Synchronization lifted for URL resource fetching (the serialization portion).  The resolution of the URL (relative to absolute) remains synchronized per URL String interned, e.g. parallel on different URLs, serial on a given URL.  
 * 3.4.31
  * mergeAcceptMine() and mergeAcceptTheirs() can now process an array of cubes.  Makes it easy for front ends to allow user to merge a bunch of cubes at once.
  * Updated to use json-io 4.4.0.
