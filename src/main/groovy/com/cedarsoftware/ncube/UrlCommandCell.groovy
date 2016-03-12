@@ -96,7 +96,7 @@ abstract class UrlCommandCell implements CommandCell
         {   // Try URL resolution twice (HTTP HEAD called for connecting relative URLs to sys.classpath)
             try
             {
-                return NCubeManager.getActualUrl(getNCube(ctx), getInput(ctx), url)
+                return NCubeManager.getActualUrl(getNCube(ctx).getApplicationID(), url, getInput(ctx))
             }
             catch(Exception e)
             {

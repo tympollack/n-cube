@@ -292,7 +292,7 @@ public class NCubeManager
         }
 
         final String envLevel = SystemUtilities.getExternalVariable("ENV_LEVEL");
-        if (!doesMapContainKey(input, "env") && StringUtilities.hasContent(envLevel))
+        if (StringUtilities.hasContent(envLevel) && !doesMapContainKey(input, "env"))
         {   // Add in the 'ENV_LEVEL" environment variable when looking up sys.* cubes,
             // if there was not already an entry for it.
             input.put("env", envLevel);
@@ -1572,24 +1572,6 @@ public class NCubeManager
         return cubes;
     }
 
-    public static String resolveRelativeUrl(ApplicationID appId, String relativeUrl)
-    {
-        validateAppId(appId);
-        if (StringUtilities.isEmpty(relativeUrl))
-        {
-            throw new IllegalArgumentException("Cannot resolve relative url - relative url cannot be null or empty string.");
-        }
-        final String loUrl = relativeUrl.toLowerCase();
-        if (loUrl.startsWith("http:") || loUrl.startsWith("https:") || loUrl.startsWith("file:"))
-        {
-            return relativeUrl;
-        }
-
-        URLClassLoader classLoader = getUrlClassLoader(appId, new HashMap());
-        URL absUrl = classLoader.getResource(relativeUrl);
-        return absUrl != null ? absUrl.toString() : null;
-    }
-
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
     public static String getResourceAsString(String name) throws Exception
     {
@@ -1616,7 +1598,7 @@ public class NCubeManager
         }
         catch (NullPointerException e)
         {
-            throw new IllegalArgumentException("Could not find [file] n-cube: " + name + ", app: " + id, e);
+            throw new IllegalArgumentException("Could not find the file [n-cube]: " + name + ", app: " + id, e);
         }
         catch (Exception e)
         {
@@ -1677,8 +1659,22 @@ public class NCubeManager
         }
     }
 
-    public static URL getActualUrl(NCube ncube, Map input, String url)
+    /**
+     * Resolve the passed in String URL to a fully qualified URL object.  If the passed in String URL is relative
+     * to a path in the sys.classpath, this method will perform (indirectly) the necessary HTTP HEAD requests to
+     * determine which path it connects to.
+     * @param url String url (relative or absolute)
+     * @param input Map coordinate that the reuqested the URL (may include environment level settings that
+     *              help sys.classpath select the correct ClassLoader.
+     * @return URL fully qualified URL based on the passed in relative or absolute URL String.
+     */
+    public static URL getActualUrl(ApplicationID appId, String url, Map input)
     {
+        validateAppId(appId);
+        if (StringUtilities.isEmpty(url))
+        {
+            throw new IllegalArgumentException("URL cannot be null or empty, attempting to resolve relative to absolute url for app: " + appId);
+        }
         String localUrl = url.toLowerCase();
 
         if (localUrl.startsWith("http:") || localUrl.startsWith("https:") || localUrl.startsWith("file:"))
@@ -1697,7 +1693,7 @@ public class NCubeManager
             URL actualUrl;
             synchronized (url.intern())
             {
-                URLClassLoader loader = getUrlClassLoader(ncube.getApplicationID(), input);
+                URLClassLoader loader = getUrlClassLoader(appId, input);
 
                 // Make URL absolute (uses URL roots added to NCubeManager)
                 actualUrl = loader.getResource(url);
@@ -1706,8 +1702,8 @@ public class NCubeManager
             if (actualUrl == null)
             {
                 String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
-                        url + ", cube: " + ncube.getName() + ", app: " + ncube.getApplicationID();
-                throw new IllegalStateException(err);
+                        url + ", app: " + appId;
+                throw new IllegalArgumentException(err);
             }
             return actualUrl;
         }

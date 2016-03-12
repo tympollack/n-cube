@@ -304,11 +304,8 @@ class NCubeGroovyExpression
      */
     byte[] urlToBytes(String url)
     {
-        URL actualUrl = NCubeManager.getActualUrl(ncube, input, url)
-        synchronized(url.intern())
-        {
-            return UrlUtilities.getContentFromUrl(actualUrl, true)
-        }
+        URL actualUrl = NCubeManager.getActualUrl(getApplicationID(), url, input)
+        return UrlUtilities.getContentFromUrl(actualUrl, true)
     }
 
     /**

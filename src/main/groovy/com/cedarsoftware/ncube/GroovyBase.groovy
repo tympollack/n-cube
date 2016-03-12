@@ -192,10 +192,7 @@ abstract class GroovyBase extends UrlCommandCell
         {
             URL groovySourceUrl = getActualUrl(ctx)
             gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
-            synchronized (url.intern())
-            {
-                grvSrcCode = StringUtilities.createString(UrlUtilities.getContentFromUrl(groovySourceUrl, true), "UTF-8")
-            }
+            grvSrcCode = StringUtilities.createString(UrlUtilities.getContentFromUrl(groovySourceUrl, true), "UTF-8")
         }
         else
         {

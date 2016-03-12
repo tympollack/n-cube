@@ -1352,8 +1352,8 @@ class TestNCubeManager
         String s = (String) hello.getCell([:])
         assertEquals('Hello, world.', s)
 
-        String absUrl = NCubeManager.resolveRelativeUrl(ApplicationID.testAppId, 'tests/ncube/hello.groovy')
-        assertEquals('http://www.cedarsoftware.com/tests/ncube/hello.groovy', absUrl)
+        URL absUrl = NCubeManager.getActualUrl(ApplicationID.testAppId, 'tests/ncube/hello.groovy', [:])
+        assertEquals('http://www.cedarsoftware.com/tests/ncube/hello.groovy', absUrl.toString())
     }
 
     @Test
@@ -1361,7 +1361,7 @@ class TestNCubeManager
     {
         try
         {
-            NCubeManager.resolveRelativeUrl(ApplicationID.testAppId, null)
+            NCubeManager.getActualUrl(ApplicationID.testAppId, null, [:])
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1377,23 +1377,28 @@ class TestNCubeManager
     void testResolveUrlFullyQualified()
     {
         String url = 'http://www.cedarsoftware.com'
-        String ret = NCubeManager.resolveRelativeUrl(ApplicationID.testAppId, url)
-        assertEquals(url, ret)
+        URL ret = NCubeManager.getActualUrl(ApplicationID.testAppId, url, [:])
+        assertEquals(url, ret.toString())
 
         url = 'https://www.cedarsoftware.com'
-        ret = NCubeManager.resolveRelativeUrl(ApplicationID.testAppId, url)
-        assertEquals(url, ret)
+        ret = NCubeManager.getActualUrl(ApplicationID.testAppId, url, [:])
+        assertEquals(url, ret.toString())
 
         url = 'file://Users/joe/Development'
-        ret = NCubeManager.resolveRelativeUrl(ApplicationID.testAppId, url)
-        assertEquals(url, ret)
+        ret = NCubeManager.getActualUrl(ApplicationID.testAppId, url, [:])
+        assertEquals(url, ret.toString())
     }
 
     @Test
     void testResolveUrlBadApp()
     {
-        Object o = NCubeManager.resolveRelativeUrl(new ApplicationID('foo', 'bar', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH), 'tests/ncube/hello.groovy')
-        assertNull o
+        try
+        {
+            NCubeManager.getActualUrl(new ApplicationID('foo', 'bar', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH), 'tests/ncube/hello.groovy', [:])
+            fail()
+        }
+        catch (IllegalArgumentException ignored)
+        { }
     }
 
     @Test

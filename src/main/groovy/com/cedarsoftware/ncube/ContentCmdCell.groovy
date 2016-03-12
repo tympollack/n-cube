@@ -102,10 +102,7 @@ abstract class ContentCmdCell extends UrlCommandCell
         {
             try
             {
-                synchronized (url.intern())
-                {
-                    return grab(u)
-                }
+                return grab(u)
             }
             catch (Exception e)
             {
