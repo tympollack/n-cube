@@ -6,6 +6,13 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotEquals
 import static org.junit.Assert.assertNotNull
@@ -3545,6 +3552,66 @@ abstract class TestWithPreloadedDatabase
         assert results[NCubeManager.BRANCH_UPDATES].size() == 0
         assert results[NCubeManager.BRANCH_MERGES].size() == 0
         assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+    }
+
+    @Test
+    void testGetReferenceAxes()
+    {
+        NCube one = NCubeBuilder.getDiscrete1DAlt()
+        NCubeManager.updateCube(ApplicationID.testAppId, one, USER_ID)
+        assert one.getAxis('state').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
+        Axis axis = new Axis('stateSource', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.addAxis(axis)
+
+        two.setCell('a', [stateSource:'OH'] as Map)
+        two.setCell('b', [stateSource:'TX'] as Map)
+
+        String json = two.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+        assert reload.getNumCells() == 2
+        assert 'a' == reload.getCell([stateSource:'OH'] as Map)
+        assert 'b' == reload.getCell([stateSource:'TX'] as Map)
+        assert reload.getAxis('stateSource').isReference()
+        NCubeManager.updateCube(ApplicationID.testAppId, two, USER_ID)
+
+        List<AxisRef> axisRefs = NCubeManager.getReferenceAxes(ApplicationID.testAppId)
+        assert axisRefs.size() == 1
+        AxisRef axisRef = axisRefs[0]
+        assert axisRef.srcAppId == ApplicationID.testAppId
+        assert axisRef.srcCubeName == two.name
+        assert axisRef.srcAxisName == axis.name
+        assert axisRef.app == ApplicationID.testAppId.app
+        assert axisRef.version == ApplicationID.testAppId.version
+        assert axisRef.transformApp == null
+        assert axisRef.transformVersion == null
+        assert axisRef.transformCubeName == null
+        assert axisRef.transformMethodName == null
+
+        // Break reference and verify broken (also verify it does not show up as reference axis anymore from the persister)
+        reload.breakAxisReference('stateSource')
+        assert reload.getNumCells() == 2
+        assert 'a' == reload.getCell([stateSource:'OH'] as Map)
+        assert 'b' == reload.getCell([stateSource:'TX'] as Map)
+        assert !reload.getAxis('stateSource').isReference()
+        NCubeManager.updateCube(ApplicationID.testAppId, reload, USER_ID)
+        axisRefs = NCubeManager.getReferenceAxes(ApplicationID.testAppId)
+        assert axisRefs.isEmpty()
     }
 
     /**

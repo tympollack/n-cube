@@ -226,11 +226,13 @@ class Axis
      */
     ApplicationID getReferencedApp()
     {
+        String status = (getMetaProperty(REF_STATUS) as String) ?: ReleaseStatus.RELEASE
+        String branch = (getMetaProperty(REF_BRANCH) as String) ?: ApplicationID.HEAD
         return isRef ? new ApplicationID(getMetaProperty(REF_TENANT) as String,
                 getMetaProperty(REF_APP) as String,
                 getMetaProperty(REF_VERSION) as String,
-                getMetaProperty(REF_STATUS) as String,
-                getMetaProperty(REF_BRANCH) as String) : null
+                status,
+                branch) : null
     }
 
     /**
@@ -239,11 +241,13 @@ class Axis
      */
     ApplicationID getTransformApp()
     {
+        String status = (getMetaProperty(TRANSFORM_STATUS) as String) ?: ReleaseStatus.RELEASE
+        String branch = (getMetaProperty(TRANSFORM_BRANCH) as String) ?: ApplicationID.HEAD
         return isReferenceTransformed() ? new ApplicationID(getMetaProperty(REF_TENANT) as String,
                 getMetaProperty(TRANSFORM_APP) as String,
                 getMetaProperty(TRANSFORM_VERSION) as String,
-                getMetaProperty(TRANSFORM_STATUS) as String,
-                getMetaProperty(TRANSFORM_BRANCH) as String) : null
+                status,
+                branch) : null
     }
 
     /**
@@ -252,10 +256,12 @@ class Axis
      */
     boolean isReferenceTransformed()
     {
+        String status = (getMetaProperty(TRANSFORM_STATUS) as String) ?: ReleaseStatus.RELEASE
+        String branch = (getMetaProperty(TRANSFORM_BRANCH) as String) ?: ApplicationID.HEAD
         return isRef && StringUtilities.hasContent(getMetaProperty(TRANSFORM_APP) as String) &&
                 StringUtilities.hasContent(getMetaProperty(TRANSFORM_VERSION) as String) &&
-                StringUtilities.hasContent(getMetaProperty(TRANSFORM_STATUS) as String) &&
-                StringUtilities.hasContent(getMetaProperty(TRANSFORM_BRANCH) as String) &&
+                StringUtilities.hasContent(status) &&
+                StringUtilities.hasContent(branch) &&
                 StringUtilities.hasContent(getMetaProperty(TRANSFORM_CUBE_NAME) as String) &&
                 StringUtilities.hasContent(getMetaProperty(TRANSFORM_METHOD_NAME) as String)
 
