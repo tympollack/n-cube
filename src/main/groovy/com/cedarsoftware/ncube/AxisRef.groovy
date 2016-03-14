@@ -28,10 +28,10 @@ class AxisRef
     ApplicationID srcAppId
     String srcCubeName
     String srcAxisName
-    String app
-    String version
-    String cubeName
-    String axisName
+    String destApp
+    String destVersion
+    String destCubeName
+    String destAxisName
     String transformApp
     String transformVersion
     String transformCubeName

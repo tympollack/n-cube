@@ -3596,8 +3596,8 @@ abstract class TestWithPreloadedDatabase
         assert axisRef.srcAppId == ApplicationID.testAppId
         assert axisRef.srcCubeName == two.name
         assert axisRef.srcAxisName == axis.name
-        assert axisRef.app == ApplicationID.testAppId.app
-        assert axisRef.version == ApplicationID.testAppId.version
+        assert axisRef.destApp == ApplicationID.testAppId.app
+        assert axisRef.destVersion == ApplicationID.testAppId.version
         assert axisRef.transformApp == null
         assert axisRef.transformVersion == null
         assert axisRef.transformCubeName == null
