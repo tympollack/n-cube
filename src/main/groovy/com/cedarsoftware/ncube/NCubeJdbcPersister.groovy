@@ -87,10 +87,10 @@ class NCubeJdbcPersister
                     ref.srcAxisName = axis.name
 
                     ApplicationID refAppId = axis.getReferencedApp()
-                    ref.app = refAppId.app
-                    ref.version = refAppId.version
-                    ref.cubeName = axis.getMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME)
-                    ref.axisName = axis.getMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME)
+                    ref.destApp = refAppId.app
+                    ref.destVersion = refAppId.version
+                    ref.destCubeName = axis.getMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME)
+                    ref.destAxisName = axis.getMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME)
 
                     ApplicationID transformAppId = axis.getTransformApp()
                     if (transformAppId)
