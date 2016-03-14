@@ -199,4 +199,9 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
     {
         return (List<NCubeInfoDto>) jdbcOperation { Connection c -> persister.search(c, appId, cubeNamePattern, searchValue, options) }
     }
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
+    {
+        return (List<AxisRef>) jdbcOperation { Connection c -> persister.getReferenceAxes(c, appId) }
+    }
 }

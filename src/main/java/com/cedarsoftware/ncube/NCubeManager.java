@@ -1485,7 +1485,7 @@ public class NCubeManager
         options.put(SEARCH_EXACT_MATCH_NAME, true);
 
         List<NCubeInfoDto> infos = search(appId, cubeName, null, options);
-        if (infos.size() == 0)
+        if (infos.isEmpty())
         {
             throw new IllegalArgumentException("Could not fetch notes, no cube: " + cubeName + " in app: " + appId);
         }
@@ -1570,6 +1570,19 @@ public class NCubeManager
             cacheCubes(appId, cubes);
         }
         return cubes;
+    }
+
+    /**
+     * This API will hand back a List of AxisRef, which is a complete description of a Reference
+     * Axis pointer. It includes the Source ApplicationID, source Cube Name, source Axis Name,
+     * and all the referenced cube/axis and filter (cube/method) parameters.
+     * @param appId ApplicationID of the cube-set from which to fetch all the reference axes.
+     * @return List<AxisRef>
+     */
+    public static List<AxisRef> getReferenceAxes(ApplicationID appId)
+    {
+        validateAppId(appId);
+        return getPersister().getReferenceAxes(appId);
     }
 
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
