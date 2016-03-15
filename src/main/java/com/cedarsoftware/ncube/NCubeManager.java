@@ -1585,6 +1585,20 @@ public class NCubeManager
         return getPersister().getReferenceAxes(appId);
     }
 
+    public static void updateReferenceAxes(List<AxisRef> axisRefs, String username)
+    {
+        for (AxisRef axisRef : axisRefs)
+        {
+            ApplicationID srcApp = axisRef.getSrcAppId();
+            validateAppId(srcApp);
+            ApplicationID destAppId = new ApplicationID(srcApp.getTenant(), axisRef.getDestApp(), axisRef.getDestVersion(), ReleaseStatus.RELEASE.name(), ApplicationID.HEAD);
+            validateAppId(destAppId);
+            ApplicationID transformAppId = new ApplicationID(srcApp.getTenant(), axisRef.getTransformApp(), axisRef.getTransformVersion(), ReleaseStatus.RELEASE.name(), ApplicationID.HEAD);
+            validateAppId(transformAppId);
+        }
+        getPersister().updateReferenceAxes(axisRefs, username);
+    }
+
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
     public static String getResourceAsString(String name) throws Exception
     {

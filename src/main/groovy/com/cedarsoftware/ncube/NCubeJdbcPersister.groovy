@@ -108,6 +108,29 @@ class NCubeJdbcPersister
         return refAxes
     }
 
+    boolean updateReferenceAxes(Connection c, List<AxisRef> axisRefs, String username)
+    {
+        for (AxisRef axisRef : axisRefs)
+        {
+            NCube ncube = loadCube(c, axisRef.srcAppId, axisRef.srcCubeName)
+            Axis axis = ncube.getAxis(axisRef.srcAxisName)
+            if (axis.isReference())
+            {
+                axis.setMetaProperty(ReferenceAxisLoader.REF_APP, axisRef.destApp)
+                axis.setMetaProperty(ReferenceAxisLoader.REF_VERSION, axisRef.destVersion)
+                axis.setMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME, axisRef.destCubeName)
+                axis.setMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME, axisRef.destAxisName)
+
+                axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_APP, axisRef.transformApp)
+                axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_VERSION, axisRef.transformVersion)
+                axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME, axisRef.transformCubeName)
+                axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME, axisRef.transformMethodName)
+
+                updateCube(c, axisRef.srcAppId, ncube, username)
+            }
+        }
+    }
+
     NCube loadCube(Connection c, ApplicationID appId, String cubeName)
     {
         Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
