@@ -38,7 +38,7 @@ import static org.junit.Assert.fail
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-abstract class TestWithPreloadedDatabase
+class TestWithPreloadedDatabase
 {
     public static String USER_ID = TestNCubeManager.USER_ID
 
@@ -73,8 +73,15 @@ abstract class TestWithPreloadedDatabase
 
     }
 
-    abstract TestingDatabaseManager getTestingDatabaseManager()
-    abstract NCubePersister getNCubePersister()
+    TestingDatabaseManager getTestingDatabaseManager()
+    {
+        return TestingDatabaseHelper.testingDatabaseManager
+    }
+
+    NCubePersister getNCubePersister()
+    {
+        return TestingDatabaseHelper.persister
+    }
 
     private preloadCubes(ApplicationID id, String ...names) {
         manager.addCubes(id, USER_ID, TestingDatabaseHelper.getCubesFromDisk(names))
