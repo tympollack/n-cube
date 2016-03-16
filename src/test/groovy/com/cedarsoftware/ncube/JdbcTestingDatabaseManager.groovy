@@ -4,6 +4,8 @@ import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 
 import java.sql.Connection
+import java.sql.SQLException
+import java.sql.Statement
 
 /**
  * @author Ken Partlow (kpartlow@gmail.com)
@@ -23,44 +25,86 @@ import java.sql.Connection
  *         limitations under the License.
  */
 @CompileStatic
-abstract class AbstractJdbcTestingDatabaseManager implements TestingDatabaseManager
+class JdbcTestingDatabaseManager implements TestingDatabaseManager
 {
-    JdbcConnectionProvider provider;
-    NCubeJdbcPersister persister = new NCubeJdbcPersister();
+    JdbcConnectionProvider provider
+    NCubeJdbcPersister persister = new NCubeJdbcPersister()
+    private final String schemaName
 
-    AbstractJdbcTestingDatabaseManager(JdbcConnectionProvider p) {
-        provider = p;
+    JdbcTestingDatabaseManager(JdbcConnectionProvider p, String schemaName)
+    {
+        provider = p
+        this.schemaName = schemaName
     }
+
+    String fetchSchemaDDL()
+    {
+        URL url = getClass().getResource(schemaName)
+        String fileContents = new File(url.getFile()).text
+        return fileContents
+    }
+
+    void setUp() throws SQLException
+    {
+        Connection c = provider.connection
+        try
+        {
+            Statement s = c.createStatement()
+            // Normally this should NOT be used, however, for the first time creation of your MySQL
+            // schema, you will want to run this one time.  You will also need to change
+            // TestingDatabaseHelper.test_db = MYSQL instead of HSQL
+            s.execute(fetchSchemaDDL())
+            s.close()
+        }
+        finally
+        {
+            provider.releaseConnection(c)
+        }
+    }
+
+    void tearDown() throws SQLException
+    {
+        Connection c = provider.connection
+        try
+        {
+            Statement s = c.createStatement()
+            s.execute("DROP TABLE n_cube;")
+            s.close()
+        }
+        finally
+        {
+            provider.releaseConnection(c)
+        }
+    }
+
 
     void insertCubeWithNoSha1(ApplicationID appId, String username, NCube cube)
     {
         Connection c = provider.connection;
         try
         {
-            byte[] cubeData = StringUtilities.getBytes(cube.toFormattedJson(), "UTF-8");
+            byte[] cubeData = StringUtilities.getBytes(cube.toFormattedJson(), "UTF-8")
             persister.insertCube(c, appId, cube.name, 0L, cubeData, (byte[]) null, "Inserted without sha1-1", (Boolean) false, (String) null, (String) null, System.currentTimeMillis(), username, 'insertCubeWithNoSha1')
         }
         finally
         {
-            provider.releaseConnection(c);
+            provider.releaseConnection(c)
         }
     }
 
     void addCubes(ApplicationID appId, String username, NCube[] cubes)
     {
         Connection c = provider.connection;
-
-
         try
         {
             for (NCube ncube : cubes)
             {
-                persister.updateCube(c, appId, ncube, username);
+                persister.updateCube(c, appId, ncube, username)
             }
         }
         finally
         {
-            provider.releaseConnection(c);
+            provider.releaseConnection(c)
         }
     }
 
@@ -76,7 +120,7 @@ abstract class AbstractJdbcTestingDatabaseManager implements TestingDatabaseMana
         }
         finally
         {
-            provider.releaseConnection(c);
+            provider.releaseConnection(c)
         }
     }
 
@@ -85,11 +129,11 @@ abstract class AbstractJdbcTestingDatabaseManager implements TestingDatabaseMana
         Connection c = provider.connection;
         try
         {
-            persister.updateCube(c, appId, ncube, username);
+            persister.updateCube(c, appId, ncube, username)
         }
         finally
         {
-            provider.releaseConnection(c);
+            provider.releaseConnection(c)
         }
     }
 }
