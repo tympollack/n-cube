@@ -75,12 +75,12 @@ class TestingDatabaseHelper
     {
         if (test_db == HSQL)
         {
-            return new JdbcTestingDatabaseManager(createJdbcConnectionProvider(), '/ddl/hsqldb-schema.ddl')
+            return new JdbcTestingDatabaseManager(createJdbcConnectionProvider(), '/ddl/hsqldb-schema.sql')
         }
 
         if (test_db == MYSQL)
         {
-            return new JdbcTestingDatabaseManager(createJdbcConnectionProvider(), '/ddl/mysql-schema.ddl')
+            return new JdbcTestingDatabaseManager(createJdbcConnectionProvider(), '/ddl/mysql-schema.sql')
         }
 
         //  Don't manage tables for other databases
