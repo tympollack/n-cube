@@ -53,7 +53,7 @@ public class TestThreading
 
         data << [ ['load':load,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
         data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-//        data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
+        data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
 
 //        load = 50; threads = 5; count = 5
 //        data << [ ['load':load*2,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
@@ -206,9 +206,13 @@ public class TestThreading
                                         throw new RuntimeException("Cell value=" + val + " does not match expected")
                                     }
                                 }
-                                catch (Exception e) {
-//                                    e.printStackTrace()
-                                    failures << StackTraceUtils.extractRootCause(e)
+                                catch (Exception e)
+                                {
+                                    Throwable rootCause = StackTraceUtils.extractRootCause(e)
+                                    if (!rootCause.message.toLowerCase().contains('code cleared while getCell'))
+                                    {
+                                        failures << StackTraceUtils.extractRootCause(e)
+                                    }
                                 }
                             }
                         }
@@ -216,7 +220,6 @@ public class TestThreading
                     threads << t
                 }
             }
-
 
             LOG.debug '==>starting threads'
             threads.each { thread ->

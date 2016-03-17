@@ -1593,10 +1593,12 @@ public class NCubeManager
             validateAppId(srcApp);
             ApplicationID destAppId = new ApplicationID(srcApp.getTenant(), axisRef.getDestApp(), axisRef.getDestVersion(), ReleaseStatus.RELEASE.name(), ApplicationID.HEAD);
             validateAppId(destAppId);
-            if (axisRef.getTransformApp() != null && axisRef.getTransformVersion() != null) {
+            if (axisRef.getTransformApp() != null && axisRef.getTransformVersion() != null)
+            {
                 ApplicationID transformAppId = new ApplicationID(srcApp.getTenant(), axisRef.getTransformApp(), axisRef.getTransformVersion(), ReleaseStatus.RELEASE.name(), ApplicationID.HEAD);
                 validateAppId(transformAppId);
             }
+            getCacheForApp(srcApp).remove(axisRef.getSrcCubeName().toLowerCase());
         }
         getPersister().updateReferenceAxes(axisRefs, username);
     }
