@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.34</version>
+  <version>3.4.35</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.35
+ * Bug fix: NCubeManager.updateReferenceAxes() must use RELEASE / HEAD as the status / branch. 
 * 3.4.34
  * Added NCubeManager.updateReferenceAxes() which allows batch updating reference axes.
  * Extracted n-cube schema from JUnit test to it's own .sql file. 
