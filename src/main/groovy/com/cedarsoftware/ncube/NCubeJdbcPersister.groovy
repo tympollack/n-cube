@@ -122,7 +122,7 @@ class NCubeJdbcPersister
                     axis.setMetaProperty(ReferenceAxisLoader.REF_VERSION, destVersion)
                     axis.setMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME, destCubeName)
                     axis.setMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME, destAxisName)
-                    ApplicationID appId = new ApplicationID(srcAppId.tenant, destApp, destVersion, srcAppId.status, srcAppId.branch)
+                    ApplicationID appId = new ApplicationID(srcAppId.tenant, destApp, destVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
 
                     NCube target = loadCube(c, appId, destCubeName)
                     if (target == null)
@@ -146,7 +146,7 @@ class NCubeJdbcPersister
 
                     if (transformApp && transformVersion && transformCubeName && transformMethodName)
                     {   // If transformer cube reference supplied, verify that the cube exists
-                        ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, srcAppId.status, srcAppId.branch)
+                        ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
                         NCube transformCube = loadCube(c, txAppId, transformCubeName)
                         if (transformCube == null)
                         {
