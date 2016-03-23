@@ -883,6 +883,7 @@ class Axis
                 }
             }
         }
+        clear()
 
         // Step 3. Save existing before clearing all columns
         Map<Long, Column> existingColumns = [:]
@@ -890,8 +891,8 @@ class Axis
         for (Column column : tempCol)
         {
             existingColumns[column.id] = column
+            indexColumn column
         }
-        clear()
         int dispOrder = 1
 
         // Step 4. Add new columns (they exist in the passed in newCols, but not in this Axis) and
