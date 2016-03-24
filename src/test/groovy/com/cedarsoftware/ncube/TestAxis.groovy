@@ -1909,32 +1909,32 @@ class TestAxis
     void testUpdateColumnsOverlapFail()
     {
         Axis axis = new Axis('days', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1)
-        axis.addColumn 'Mon'
-        axis.addColumn 'Tue'
-        axis.addColumn 'Wed'
-        axis.addColumn 'Thu'
-        axis.addColumn 'Fri'
-        axis.addColumn 'Sat'
-        axis.addColumn 'Sun'
+        axis.addColumn('Mon')
+        axis.addColumn('Tue')
+        axis.addColumn('Wed')
+        axis.addColumn('Thu')
+        axis.addColumn('Fri')
+        axis.addColumn('Sat')
+        axis.addColumn('Sun')
 
         List<Column> columnList = axis.getColumns()
-        axis.deleteColumn 'Wed'
-        Column repeatedColumn = axis.addColumn 'Wed'
+        axis.deleteColumn('Wed')
+        Column repeatedColumn = axis.addColumn('Wed')
         repeatedColumn.id = -repeatedColumn.id
         columnList << repeatedColumn
 
         Axis axis2 = new Axis('days', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1)
-        axis2.addColumn 'Mon'
-        axis2.addColumn 'Tue'
-        axis2.addColumn 'Wed'
-        axis2.addColumn 'Thu'
-        axis2.addColumn 'Fri'
-        axis2.addColumn 'Sat'
-        axis2.addColumn 'Sun'
+        axis2.addColumn('Mon')
+        axis2.addColumn('Tue')
+        axis2.addColumn('Wed')
+        axis2.addColumn('Thu')
+        axis2.addColumn('Fri')
+        axis2.addColumn('Sat')
+        axis2.addColumn('Sun')
 
         try
         {
-            axis2.updateColumns columnList
+            axis2.updateColumns(columnList)
             fail()
         }
         catch (AxisOverlapException e)

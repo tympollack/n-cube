@@ -891,7 +891,7 @@ class Axis
         for (Column column : tempCol)
         {
             existingColumns[column.id] = column
-            indexColumn column
+            indexColumn(column)
         }
         int dispOrder = 1
 
