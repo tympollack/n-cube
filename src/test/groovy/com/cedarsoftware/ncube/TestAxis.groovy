@@ -1947,6 +1947,34 @@ class TestAxis
     }
 
     @Test
+    void testUpdateColumnsUpdatedValueFail()
+    {
+        Axis axis = new Axis('days', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1)
+        axis.addColumn('Mon')
+        axis.addColumn('Tue')
+        axis.addColumn('Wed')
+        axis.getColumnById(1000000000001).setValue('Wed')
+
+        Axis axis2 = new Axis('days', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1)
+        axis2.addColumn('Mon')
+        axis2.addColumn('Tue')
+        axis2.addColumn('Wed')
+
+        try
+        {
+            axis2.updateColumns(axis.getColumns())
+            fail()
+        }
+        catch (AxisOverlapException e)
+        {
+            String msg = e.message.toLowerCase()
+            assert msg.contains('matches a value already on axis')
+            assert msg.contains('days')
+            assert msg.contains('wed')
+        }
+    }
+
+    @Test
     void testUpColumnsMaintainsOrder()
     {
         Axis axis = new Axis('days', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1)
