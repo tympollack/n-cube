@@ -891,7 +891,10 @@ class Axis
         for (Column column : tempCol)
         {
             existingColumns[column.id] = column
-            indexColumn(column)
+            if (column != defaultCol) {
+                ensureUnique(column.getValue())
+                indexColumn(column)
+            }
         }
         int dispOrder = 1
 
