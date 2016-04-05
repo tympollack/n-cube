@@ -891,7 +891,7 @@ class Axis
         for (Column column : tempCol)
         {
             existingColumns[column.id] = column
-            if (column != defaultCol) {
+            if (!column.isDefault()) {
                 ensureUnique(column.getValue())
                 indexColumn(column)
             }
@@ -1302,7 +1302,7 @@ class Axis
         {   // A name was specified for a rule, but did not match any rule names and there is no default column.
             throw new CoordinateNotFoundException("Rule named '" + ruleName + "' matches no column names on the rule axis '" + name + "', and there is no default column.")
         }
-        else if (firstRule == defaultCol)
+        else if (firstRule.isDefault())
         {   // Matched no names, but there is a default column
             cols.add(defaultCol)
             return cols
