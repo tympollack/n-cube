@@ -50,7 +50,7 @@ import java.util.concurrent.ConcurrentMap
  *         limitations under the License.
  */
 @CompileStatic
-public class NCubeManager
+class NCubeManager
 {
     static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
     static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
@@ -79,15 +79,25 @@ public class NCubeManager
     // not private in case we want to tweak things for testing.
     protected static volatile ConcurrentMap<String, Object> systemParams = null
 
+    static enum ACTION {
+        ADD,
+        UPDATE,
+        DELETE,
+        RELEASE,
+        READ,
+        COMMIT
+    }
+
+
     /**
      * Store the Persister to be used with the NCubeManager API (Dependency Injection API)
      */
-    public static void setNCubePersister(NCubePersister persister)
+    static void setNCubePersister(NCubePersister persister)
     {
         nCubePersister = persister
     }
 
-    public static NCubePersister getPersister()
+    static NCubePersister getPersister()
     {
         if (nCubePersister == null)
         {
@@ -96,7 +106,7 @@ public class NCubeManager
         return nCubePersister
     }
 
-    public static Map<String, Object> getSystemParams()
+    static Map<String, Object> getSystemParams()
     {
         final ConcurrentMap<String, Object> params = systemParams
 
@@ -137,7 +147,7 @@ public class NCubeManager
      * @return Set<String> n-cube names.  If an empty Set is returned,
      * then there are no persisted n-cubes for the passed in ApplicationID.
      */
-    public static Set<String> getCubeNames(ApplicationID appId)
+    static Set<String> getCubeNames(ApplicationID appId)
     {
         List<NCubeInfoDto> cubeInfos = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         Set<String> names = new TreeSet<>()
@@ -168,7 +178,7 @@ public class NCubeManager
      * cache.  Any advices in the manager will be applied to the n-cube.
      * @return NCube of the specified name from the specified AppID, or null if not found.
      */
-    public static NCube loadCube(ApplicationID appId, String cubeName)
+    static NCube loadCube(ApplicationID appId, String cubeName)
     {
         NCube ncube = getPersister().loadCube(appId, cubeName)
         if (ncube == null)
@@ -187,7 +197,7 @@ public class NCubeManager
      * internal cache is checked again.  If the cube is not found, null is
      * returned.
      */
-    public static NCube getCube(ApplicationID appId, String name)
+    static NCube getCube(ApplicationID appId, String name)
     {
         validateAppId(appId)
         NCube.validateCubeName(name)
@@ -213,7 +223,7 @@ public class NCubeManager
         return prepareCube(ncube)
     }
 
-    public static NCube loadCubeById(long id)
+    static NCube loadCubeById(long id)
     {
         NCube ncube = getPersister().loadCubeById(id)
         return ncube
@@ -250,7 +260,7 @@ public class NCubeManager
     /**
      * Testing API (Cache validation)
      */
-    public static boolean isCubeCached(ApplicationID appId, String cubeName)
+    static boolean isCubeCached(ApplicationID appId, String cubeName)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
@@ -321,7 +331,7 @@ public class NCubeManager
      * Add a cube to the internal cache of available cubes.
      * @param ncube NCube to add to the list.
      */
-    public static void addCube(ApplicationID appId, NCube ncube)
+    static void addCube(ApplicationID appId, NCube ncube)
     {
         validateAppId(appId)
         validateCube(ncube)
@@ -357,7 +367,7 @@ public class NCubeManager
         return ncubes
     }
 
-    public static void clearCacheForBranches(ApplicationID appId)
+    static void clearCacheForBranches(ApplicationID appId)
     {
         synchronized (ncubeCache)
         {
@@ -387,7 +397,7 @@ public class NCubeManager
      *
      * @param appId ApplicationID for which the cache is to be cleared.
      */
-    public static void clearCache(ApplicationID appId)
+    static void clearCache(ApplicationID appId)
     {
         synchronized (ncubeCache)
         {
@@ -421,7 +431,7 @@ public class NCubeManager
      * This method will clear all caches for all ApplicationIDs.
      * Do not call it for anything other than test purposes.
      */
-    public static void clearCache()
+    static void clearCache()
     {
         synchronized (ncubeCache)
         {
@@ -458,7 +468,7 @@ public class NCubeManager
     /**
      * Associate Advice to all n-cubes that match the passed in regular expression.
      */
-    public static void addAdvice(ApplicationID appId, String wildcard, Advice advice)
+    static void addAdvice(ApplicationID appId, String wildcard, Advice advice)
     {
         validateAppId(appId)
         ConcurrentMap<String, Advice> current = advices[appId]
@@ -541,7 +551,7 @@ public class NCubeManager
     /**
      * Retrieve all cube names that are deeply referenced by ApplicationID + n-cube name.
      */
-    public static void getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs)
+    static void getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs)
     {
         if (refs == null)
         {
@@ -575,7 +585,7 @@ public class NCubeManager
      * by an NCube if more than the name is required.
      * one (1) character.  This is universal whether using a SQL perister or Mongo persister.
      */
-    public static List<NCubeInfoDto> getBranchChangesFromDatabase(ApplicationID appId)
+    static List<NCubeInfoDto> getBranchChangesFromDatabase(ApplicationID appId)
     {
         validateAppId(appId)
         if (appId.getBranch().equals(ApplicationID.HEAD))
@@ -687,7 +697,7 @@ public class NCubeManager
     /**
      * Restore a previously deleted n-cube.
      */
-    public static void restoreCubes(ApplicationID appId, Object[] cubeNames, String username)
+    static void restoreCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -725,7 +735,7 @@ public class NCubeManager
     /**
      * Get a List<NCubeInfoDto> containing all history for the given cube.
      */
-    public static List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
+    static List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
@@ -736,7 +746,7 @@ public class NCubeManager
     /**
      * Return a List of Strings containing all unique App names for the given tenant.
      */
-    public static List<String> getAppNames(String tenant)
+    static List<String> getAppNames(String tenant)
     {
         return getPersister().getAppNames(tenant)
     }
@@ -745,7 +755,7 @@ public class NCubeManager
      * Get all of the versions that exist for the given ApplicationID (tenant and app).
      * @return List<String> version numbers.
      */
-    public static Map<String, List<String>> getVersions(String tenant, String app)
+    static Map<String, List<String>> getVersions(String tenant, String app)
     {
         ApplicationID.validateTenant(tenant)
         ApplicationID.validateApp(app)
@@ -755,7 +765,7 @@ public class NCubeManager
     /**
      * Duplicate the given n-cube specified by oldAppId and oldName to new ApplicationID and name,
      */
-    public static void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
+    static void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
     {
         validateAppId(oldAppId)
         validateAppId(newAppId)
@@ -797,7 +807,7 @@ public class NCubeManager
      * @param ncube      NCube to be updated.
      * @return boolean true on success, false otherwise
      */
-    public static boolean updateCube(ApplicationID appId, NCube ncube, String username)
+    static boolean updateCube(ApplicationID appId, NCube ncube, String username)
     {
         validateAppId(appId)
         validateCube(ncube)
@@ -826,7 +836,7 @@ public class NCubeManager
     /**
      * Create a branch off of a SNAPSHOT for the given ApplicationIDs n-cubes.
      */
-    public static int createBranch(ApplicationID appId)
+    static int createBranch(ApplicationID appId)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -837,7 +847,7 @@ public class NCubeManager
         return rows
     }
 
-    public static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames, String username)
+    static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -855,7 +865,7 @@ public class NCubeManager
         return count
     }
 
-    public static int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username)
+    static int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -879,7 +889,7 @@ public class NCubeManager
      * Commit the passed in changed cube records identified by NCubeInfoDtos.
      * @return array of NCubeInfoDtos that are to be committed.
      */
-    public static List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos, String username)
+    static List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1105,7 +1115,7 @@ public class NCubeManager
      * when the branch was created.  This is an insert cube (maintaining revision history) for
      * each cube passed in.
      */
-    public static int rollbackCubes(ApplicationID appId, Object[] names, String username)
+    static int rollbackCubes(ApplicationID appId, Object[] names, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1120,7 +1130,7 @@ public class NCubeManager
      * cube with the passed in name will have the content from a cube with the same name, in the passed in branch,
      * merged into itself and persisted.
      */
-    public static Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String branch, String username)
+    static Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String branch, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1232,7 +1242,7 @@ public class NCubeManager
      * supplied branch.  If the merge cannot be done perfectly, an exception is
      * thrown indicating the cubes that are in conflict.
      */
-    public static Map<String, Object> updateBranch(ApplicationID appId, String username)
+    static Map<String, Object> updateBranch(ApplicationID appId, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1323,7 +1333,7 @@ public class NCubeManager
     /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
-    public static int releaseCubes(ApplicationID appId, String newSnapVer)
+    static int releaseCubes(ApplicationID appId, String newSnapVer)
     {
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
@@ -1334,7 +1344,7 @@ public class NCubeManager
         return rows
     }
 
-    public static void changeVersionValue(ApplicationID appId, String newVersion)
+    static void changeVersionValue(ApplicationID appId, String newVersion)
     {
         validateAppId(appId)
 
@@ -1349,7 +1359,7 @@ public class NCubeManager
         broadcast(appId)
     }
 
-    public static boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
+    static boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1385,7 +1395,7 @@ public class NCubeManager
         return result
     }
 
-    public static boolean deleteBranch(ApplicationID appId)
+    static boolean deleteBranch(ApplicationID appId)
     {
         appId.validateBranchIsNotHead()
         return getPersister().deleteBranch(appId)
@@ -1396,7 +1406,7 @@ public class NCubeManager
      *
      * @param cubeNames  Object[] of String cube names to be deleted (soft deleted)
      */
-    public static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username)
+    static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
         appId.validateBranchIsNotHead()
         return deleteCubes(appId, cubeNames, false, username)
@@ -1426,28 +1436,28 @@ public class NCubeManager
         return false
     }
 
-    public static boolean updateTestData(ApplicationID appId, String cubeName, String testData)
+    static boolean updateTestData(ApplicationID appId, String cubeName, String testData)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
         return getPersister().updateTestData(appId, cubeName, testData)
     }
 
-    public static String getTestData(ApplicationID appId, String cubeName)
+    static String getTestData(ApplicationID appId, String cubeName)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
         return getPersister().getTestData(appId, cubeName)
     }
 
-    public static boolean updateNotes(ApplicationID appId, String cubeName, String notes)
+    static boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
         return getPersister().updateNotes(appId, cubeName, notes)
     }
 
-    public static String getNotes(ApplicationID appId, String cubeName)
+    static String getNotes(ApplicationID appId, String cubeName)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
@@ -1463,19 +1473,19 @@ public class NCubeManager
         return infos[0].notes
     }
 
-    public static Set<String> getBranches(ApplicationID appId)
+    static Set<String> getBranches(ApplicationID appId)
     {
         appId.validate()
         return getPersister().getBranches(appId)
     }
 
-    public static Set<String> getBranches(String tenant)
+    static Set<String> getBranches(String tenant)
     {
         ApplicationID.validateTenant(tenant)
         return getPersister().getBranches(tenant)
     }
 
-    public static ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    static ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
         ApplicationID.validateTenant(tenant)
         ApplicationID.validateApp(tenant)
@@ -1524,7 +1534,7 @@ public class NCubeManager
      *                cacheResult - default false -> Cache the cubes that match this result..
      * @return List<NCubeInfoDto>
      */
-    public static List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
+    static List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
     {
         validateAppId(appId)
 
@@ -1550,13 +1560,13 @@ public class NCubeManager
      * @param appId ApplicationID of the cube-set from which to fetch all the reference axes.
      * @return List<AxisRef>
      */
-    public static List<AxisRef> getReferenceAxes(ApplicationID appId)
+    static List<AxisRef> getReferenceAxes(ApplicationID appId)
     {
         validateAppId(appId)
         return getPersister().getReferenceAxes(appId)
     }
 
-    public static void updateReferenceAxes(List<AxisRef> axisRefs, String username)
+    static void updateReferenceAxes(List<AxisRef> axisRefs, String username)
     {
         for (AxisRef axisRef : axisRefs)
         {
@@ -1575,7 +1585,7 @@ public class NCubeManager
     }
 
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
-    public static String getResourceAsString(String name) throws Exception
+    static String getResourceAsString(String name) throws Exception
     {
         URL url = NCubeManager.class.getResource('/' + name)
         Path resPath = Paths.get(url.toURI())
@@ -1587,7 +1597,7 @@ public class NCubeManager
         return getNCubeFromResource(ApplicationID.testAppId, name)
     }
 
-    public static NCube getNCubeFromResource(ApplicationID id, String name)
+    static NCube getNCubeFromResource(ApplicationID id, String name)
     {
         try
         {
@@ -1632,7 +1642,7 @@ public class NCubeManager
         }
     }
 
-    public static List<NCube> getNCubesFromResource(String name)
+    static List<NCube> getNCubesFromResource(String name)
     {
         String lastSuccessful = ''
         try
@@ -1670,7 +1680,7 @@ public class NCubeManager
      *              help sys.classpath select the correct ClassLoader.
      * @return URL fully qualified URL based on the passed in relative or absolute URL String.
      */
-    public static URL getActualUrl(ApplicationID appId, String url, Map input)
+    static URL getActualUrl(ApplicationID appId, String url, Map input)
     {
         validateAppId(appId)
         if (StringUtilities.isEmpty(url))
