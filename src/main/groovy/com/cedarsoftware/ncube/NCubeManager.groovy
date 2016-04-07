@@ -52,27 +52,27 @@ import java.util.concurrent.ConcurrentMap
 @CompileStatic
 public class NCubeManager
 {
-    static final String SEARCH_INCLUDE_CUBE_DATA = "includeCubeData"
-    static final String SEARCH_INCLUDE_TEST_DATA = "includeTestData"
-    static final String SEARCH_INCLUDE_NOTES = "includeNotes"
-    static final String SEARCH_DELETED_RECORDS_ONLY = "deletedRecordsOnly"
-    static final String SEARCH_ACTIVE_RECORDS_ONLY = "activeRecordsOnly"
-    static final String SEARCH_CHANGED_RECORDS_ONLY = "changedRecordsOnly"
-    static final String SEARCH_EXACT_MATCH_NAME = "exactMatchName"
-    static final String SEARCH_CACHE_RESULT = "cacheResult"
+    static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
+    static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
+    static final String SEARCH_INCLUDE_NOTES = 'includeNotes'
+    static final String SEARCH_DELETED_RECORDS_ONLY = 'deletedRecordsOnly'
+    static final String SEARCH_ACTIVE_RECORDS_ONLY = 'activeRecordsOnly'
+    static final String SEARCH_CHANGED_RECORDS_ONLY = 'changedRecordsOnly'
+    static final String SEARCH_EXACT_MATCH_NAME = 'exactMatchName'
+    static final String SEARCH_CACHE_RESULT = 'cacheResult'
 
-    static final String BRANCH_UPDATES = "updates"
-    static final String BRANCH_MERGES = "merges"
-    static final String BRANCH_CONFLICTS = "conflicts"
+    static final String BRANCH_UPDATES = 'updates'
+    static final String BRANCH_MERGES = 'merges'
+    static final String BRANCH_CONFLICTS = 'conflicts'
 
-    static final String SYS_BOOTSTRAP = "sys.bootstrap"
-    static final String SYS_PROTOTYPE = "sys.prototype"
-    static final String CLASSPATH_CUBE = "sys.classpath"
+    static final String SYS_BOOTSTRAP = 'sys.bootstrap'
+    static final String SYS_PROTOTYPE = 'sys.prototype'
+    static final String CLASSPATH_CUBE = 'sys.classpath'
 
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
-    static final String NCUBE_PARAMS = "NCUBE_PARAMS"
+    static final String NCUBE_PARAMS = 'NCUBE_PARAMS'
     private static NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManager.class)
 
@@ -91,7 +91,7 @@ public class NCubeManager
     {
         if (nCubePersister == null)
         {
-            throw new IllegalStateException("Persister not set into NCubeManager.")
+            throw new IllegalStateException('Persister not set into NCubeManager.')
         }
         return nCubePersister
     }
@@ -120,7 +120,7 @@ public class NCubeManager
                     }
                     catch (Exception ignored)
                     {
-                        LOG.warn("Parsing of NCUBE_PARAMS failed.  " + jsonParams)
+                        LOG.warn('Parsing of NCUBE_PARAMS failed. ' + jsonParams)
                     }
                 }
                 systemParams = sysParamMap
@@ -233,14 +233,14 @@ public class NCubeManager
             return prepareCube(getPersister().loadCubeById(id))
         }
 
-        throw new IllegalStateException("Failed to retrieve cube from cache, value: " + value)
+        throw new IllegalStateException('Failed to retrieve cube from cache, value: ' + value)
     }
 
     private static NCube prepareCube(NCube cube)
     {
         applyAdvices(cube.getApplicationID(), cube)
         String cubeName = cube.getName().toLowerCase()
-        if (!cube.getMetaProperties().containsKey("cache") || Boolean.TRUE.equals(cube.getMetaProperty("cache")))
+        if (!cube.getMetaProperties().containsKey('cache') || Boolean.TRUE.equals(cube.getMetaProperty('cache')))
         {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
             getCacheForApp(cube.getApplicationID())[cubeName] = cube
         }
@@ -272,15 +272,15 @@ public class NCubeManager
             return getLocalClassloader(appId)
         }
 
-        final String envLevel = SystemUtilities.getExternalVariable("ENV_LEVEL")
-        if (StringUtilities.hasContent(envLevel) && !doesMapContainKey(input, "env"))
+        final String envLevel = SystemUtilities.getExternalVariable('ENV_LEVEL')
+        if (StringUtilities.hasContent(envLevel) && !doesMapContainKey(input, 'env'))
         {   // Add in the 'ENV_LEVEL" environment variable when looking up sys.* cubes,
             // if there was not already an entry for it.
             input.env = envLevel
         }
-        if (!doesMapContainKey(input, "username"))
+        if (!doesMapContainKey(input, 'username'))
         {   // same as ENV_LEVEL, add it in if not already there.
-            input.username = System.getProperty("user.name")
+            input.username = System.getProperty('user.name')
         }
         Object urlCpLoader = cpCube.getCell(input)
 
@@ -289,7 +289,7 @@ public class NCubeManager
             return (URLClassLoader)urlCpLoader
         }
 
-        throw new IllegalStateException("If the sys.classpath cube exists, it must return a URLClassLoader.")
+        throw new IllegalStateException('If the sys.classpath cube exists, it must return a URLClassLoader.')
     }
 
     private static boolean doesMapContainKey(Map map, String key)
@@ -328,7 +328,7 @@ public class NCubeManager
 
         String cubeName = ncube.getName().toLowerCase()
 
-        if (!ncube.getMetaProperties().containsKey("cache") || Boolean.TRUE.equals(ncube.getMetaProperty("cache")))
+        if (!ncube.getMetaProperties().containsKey('cache') || Boolean.TRUE.equals(ncube.getMetaProperty('cache')))
         {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
             getCacheForApp(appId)[cubeName] = ncube
         }
@@ -483,7 +483,7 @@ public class NCubeManager
             if (value instanceof NCube)
             {   // apply advice to hydrated cubes
                 NCube ncube = (NCube) value
-                Axis axis = ncube.getAxis("method")
+                Axis axis = ncube.getAxis('method')
                 addAdviceToMatchedCube(advice, regex, ncube, axis)
             }
         }
@@ -496,7 +496,7 @@ public class NCubeManager
             for (Column column : axis.getColumnsWithoutDefault())
             {
                 String method = column.getValue().toString()
-                String classMethod = ncube.getName() + '.' + method + "()"
+                String classMethod = ncube.getName() + '.' + method + '()'
                 if (classMethod.matches(regex))
                 {
                     ncube.addAdvice(advice, method)
@@ -505,10 +505,10 @@ public class NCubeManager
         }
         else
         {   // Expressions
-            String classMethod = ncube.getName() + ".run()"
+            String classMethod = ncube.getName() + '.run()'
             if (classMethod.matches(regex))
             {
-                ncube.addAdvice(advice, "run")
+                ncube.addAdvice(advice, 'run')
             }
         }
     }
@@ -533,7 +533,7 @@ public class NCubeManager
             final Advice advice = entry.getValue()
             final String wildcard = entry.getKey().replace(advice.getName() + '/', "")
             final String regex = StringUtilities.wildcardToRegexString(wildcard)
-            final Axis axis = ncube.getAxis("method")
+            final Axis axis = ncube.getAxis('method')
             addAdviceToMatchedCube(advice, regex, ncube, axis)
         }
     }
@@ -545,14 +545,14 @@ public class NCubeManager
     {
         if (refs == null)
         {
-            throw new IllegalArgumentException("Could not get referenced cube names, null passed in for Set to hold referenced n-cube names, app: " + appId + ", n-cube: " + name)
+            throw new IllegalArgumentException('Could not get referenced cube names, null passed in for Set to hold referenced n-cube names, app: ' + appId + ', n-cube: ' + name)
         }
         validateAppId(appId)
         NCube.validateCubeName(name)
         NCube ncube = getCube(appId, name)
         if (ncube == null)
         {
-            throw new IllegalArgumentException("Could not get referenced cube names, n-cube: " + name + " does not exist in app: " + appId)
+            throw new IllegalArgumentException('Could not get referenced cube names, n-cube: ' + name + ' does not exist in app: ' + appId)
         }
         Set<String> subCubeList = ncube.getReferencedCubeNames()
 
@@ -580,7 +580,7 @@ public class NCubeManager
         validateAppId(appId)
         if (appId.getBranch().equals(ApplicationID.HEAD))
         {
-            throw new IllegalArgumentException("Cannot get branch changes from HEAD")
+            throw new IllegalArgumentException('Cannot get branch changes from HEAD')
         }
 
         ApplicationID headAppId = appId.asHead()
@@ -665,7 +665,7 @@ public class NCubeManager
         {
             String key = cubeInfo.name.toLowerCase()
 
-            if (!cubeInfo.revision.startsWith("-"))
+            if (!cubeInfo.revision.startsWith('-'))
             {
                 Object cachedItem = appCache[key]
                 if (cachedItem == null || cachedItem instanceof NCubeInfoDto)
@@ -699,7 +699,7 @@ public class NCubeManager
 
         if (ArrayUtilities.isEmpty(cubeNames))
         {
-            throw new IllegalArgumentException("Error, empty array of cube names passed in to be restored.")
+            throw new IllegalArgumentException('Error, empty array of cube names passed in to be restored.')
         }
 
         // Batch restore
@@ -717,7 +717,7 @@ public class NCubeManager
             }
             else
             {
-                throw new IllegalArgumentException("Non string name given for cube to restore: " + name)
+                throw new IllegalArgumentException('Non string name given for cube to restore: ' + name)
             }
         }
     }
@@ -764,7 +764,7 @@ public class NCubeManager
 
         if (newAppId.isRelease())
         {
-            throw new IllegalArgumentException("Cubes cannot be duplicated into a " + ReleaseStatus.RELEASE + " version, cube: " + newName + ", app: " + newAppId)
+            throw new IllegalArgumentException('Cubes cannot be duplicated into a ' + ReleaseStatus.RELEASE + ' version, cube: ' + newName + ', app: ' + newAppId)
         }
 
         NCube.validateCubeName(oldName)
@@ -772,7 +772,7 @@ public class NCubeManager
 
         if (oldName.equalsIgnoreCase(newName) && oldAppId.equals(newAppId))
         {
-            throw new IllegalArgumentException("Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: " + oldName + ", app: " + oldAppId)
+            throw new IllegalArgumentException('Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ' + oldName + ', app: ' + oldAppId)
         }
 
         getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, username)
@@ -804,7 +804,7 @@ public class NCubeManager
 
         if (appId.isRelease())
         {
-            throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + " cubes cannot be updated, cube: " + ncube.getName() + ", app: " + appId)
+            throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + ' cubes cannot be updated, cube: ' + ncube.getName() + ', app: ' + appId)
         }
 
         appId.validateBranchIsNotHead()
@@ -950,11 +950,11 @@ public class NCubeManager
                 String msg
                 if (branchCubeInfo.headSha1 == null)
                 {
-                    msg = ". A cube with the same name was added to HEAD since your branch was created."
+                    msg = '. A cube with the same name was added to HEAD since your branch was created.'
                 }
                 else
                 {
-                    msg = ". The cube changed since your last update branch."
+                    msg = '. The cube changed since your last update branch.'
                 }
                 String message = "Conflict merging " + branchCubeInfo.name + msg
                 NCube mergedCube = checkForConflicts(appId, errors, message, branchCubeInfo, headCubeInfo, false)
@@ -968,7 +968,7 @@ public class NCubeManager
 
         if (!errors.isEmpty())
         {
-            throw new BranchMergeException(errors.size() + " merge conflict(s) committing branch.  Update your branch and retry commit.", errors)
+            throw new BranchMergeException(errors.size() + ' merge conflict(s) committing branch.  Update your branch and retry commit.', errors)
         }
 
         List<NCubeInfoDto> committedCubes = new ArrayList<>(dtosToUpdate.size())
@@ -1149,11 +1149,11 @@ public class NCubeManager
         }
         if (records.size() > 1)
         {
-            throw new IllegalArgumentException("Name passed in matches more than one n-cube, no update performed. Name: " + cubeName + ", app: " + appId)
+            throw new IllegalArgumentException('Name passed in matches more than one n-cube, no update performed. Name: ' + cubeName + ', app: ' + appId)
         }
         if (srcRecords.size() > 1)
         {
-            throw new IllegalArgumentException("Name passed in matches more than one n-cube in branch (" + branch + "), no update performed. Name: " + cubeName + ", app: " + appId)
+            throw new IllegalArgumentException('Name passed in matches more than one n-cube in branch (' + branch + '), no update performed. Name: ' + cubeName + ', app: ' + appId)
         }
 
         NCubeInfoDto srcDto = srcRecords[0]    // Exact match, only 1
@@ -1187,7 +1187,7 @@ public class NCubeManager
             {
                 if (!StringUtilities.equalsIgnoreCase(info.headSha1, srcDto.sha1))
                 {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
-                    String message = "Cube was changed in both branch and HEAD"
+                    String message = 'Cube was changed in both branch and HEAD'
                     NCube cube = checkForConflicts(appId, conflicts, message, info, srcDto, true)
 
                     if (cube != null)
@@ -1202,7 +1202,7 @@ public class NCubeManager
         {
             if (!StringUtilities.equalsIgnoreCase(info.sha1, srcDto.sha1))
             {   // Different SHA-1's
-                String message = "Cube in " + appId.getBranch() + " conflicts with cube in " + branch
+                String message = 'Cube in ' + appId.getBranch() + ' conflicts with cube in ' + branch
                 NCube cube = attemptMerge(appId, conflicts, message, info, srcDto)
 
                 if (cube != null)
@@ -1289,7 +1289,7 @@ public class NCubeManager
             {
                 if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
                 {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
-                    String message = "Cube was changed in both branch and HEAD"
+                    String message = 'Cube was changed in both branch and HEAD'
                     NCube cube = checkForConflicts(appId, conflicts, message, info, head, true)
 
                     if (cube != null)
@@ -1340,7 +1340,7 @@ public class NCubeManager
 
         if (appId.isRelease())
         {
-            throw new IllegalArgumentException("Cannot change the version of a " + ReleaseStatus.RELEASE + " app, app: " + appId)
+            throw new IllegalArgumentException('Cannot change the version of a ' + ReleaseStatus.RELEASE.name() + ' app, app: ' + appId)
         }
         ApplicationID.validateVersion(newVersion)
         getPersister().changeVersionValue(appId, newVersion)
@@ -1356,7 +1356,7 @@ public class NCubeManager
 
         if (appId.isRelease())
         {
-            throw new IllegalArgumentException("Cannot rename a " + ReleaseStatus.RELEASE + " cube, cube: " + oldName + ", app: " + appId)
+            throw new IllegalArgumentException('Cannot rename a ' + ReleaseStatus.RELEASE.name() + ' cube, cube: ' + oldName + ', app: ' + appId)
         }
 
         NCube.validateCubeName(oldName)
@@ -1364,7 +1364,7 @@ public class NCubeManager
 
         if (oldName.equalsIgnoreCase(newName))
         {
-            throw new IllegalArgumentException("Could not rename, old name cannot be the same as the new name, name: " + oldName + ", app: " + appId)
+            throw new IllegalArgumentException('Could not rename, old name cannot be the same as the new name, name: ' + oldName + ', app: ' + appId)
         }
 
         boolean result = getPersister().renameCube(appId, oldName, newName, username)
@@ -1409,7 +1409,7 @@ public class NCubeManager
         {
             if (appId.isRelease())
             {
-                throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + " cubes cannot be hard-deleted, app: " + appId)
+                throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + ' cubes cannot be hard-deleted, app: ' + appId)
             }
         }
 
@@ -1458,7 +1458,7 @@ public class NCubeManager
         List<NCubeInfoDto> infos = search(appId, cubeName, null, options)
         if (infos.isEmpty())
         {
-            throw new IllegalArgumentException("Could not fetch notes, no cube: " + cubeName + " in app: " + appId)
+            throw new IllegalArgumentException('Could not fetch notes, no cube: ' + cubeName + ' in app: ' + appId)
         }
         return infos[0].notes
     }
@@ -1489,7 +1489,7 @@ public class NCubeManager
 
         if (bootCube == null)
         {
-            throw new IllegalStateException("Missing " + SYS_BOOTSTRAP + " cube in the 0.0.0 version for the app: " + app)
+            throw new IllegalStateException('Missing ' + SYS_BOOTSTRAP + ' cube in the 0.0.0 version for the app: ' + app)
         }
 
         ApplicationID bootAppId = (ApplicationID) bootCube.getCell(coord)
@@ -1600,7 +1600,7 @@ public class NCubeManager
         }
         catch (NullPointerException e)
         {
-            throw new IllegalArgumentException("Could not find the file [n-cube]: " + name + ", app: " + id, e)
+            throw new IllegalArgumentException('Could not find the file [n-cube]: ' + name + ', app: ' + id, e)
         }
         catch (Exception e)
         {
@@ -1608,7 +1608,7 @@ public class NCubeManager
             {
                 throw (RuntimeException)e
             }
-            throw new RuntimeException("Failed to load cube from resource: " + name, e)
+            throw new RuntimeException('Failed to load cube from resource: ' + name, e)
         }
     }
 
@@ -1620,7 +1620,7 @@ public class NCubeManager
         JsonReader reader = null
         try
         {
-            URL url = NCubeManager.class.getResource("/" + name)
+            URL url = NCubeManager.class.getResource('/' + name)
             File jsonFile = new File(url.getFile())
             InputStream input = new BufferedInputStream(new FileInputStream(jsonFile))
             reader = new JsonReader(input, true)
@@ -1634,7 +1634,7 @@ public class NCubeManager
 
     public static List<NCube> getNCubesFromResource(String name)
     {
-        String lastSuccessful = ""
+        String lastSuccessful = ''
         try
         {
             Object[] cubes = getJsonObjectFromResource(name)
@@ -1655,7 +1655,7 @@ public class NCubeManager
         }
         catch (Exception e)
         {
-            String s = "Failed to load cubes from resource: " + name + ", last successful cube: " + lastSuccessful
+            String s = 'Failed to load cubes from resource: ' + name + ', last successful cube: ' + lastSuccessful
             LOG.warn(s)
             throw new RuntimeException(s, e)
         }
@@ -1675,11 +1675,11 @@ public class NCubeManager
         validateAppId(appId)
         if (StringUtilities.isEmpty(url))
         {
-            throw new IllegalArgumentException("URL cannot be null or empty, attempting to resolve relative to absolute url for app: " + appId)
+            throw new IllegalArgumentException('URL cannot be null or empty, attempting to resolve relative to absolute url for app: ' + appId)
         }
         String localUrl = url.toLowerCase()
 
-        if (localUrl.startsWith("http:") || localUrl.startsWith("https:") || localUrl.startsWith("file:"))
+        if (localUrl.startsWith('http:') || localUrl.startsWith('https:') || localUrl.startsWith('file:'))
         {   // Absolute URL
             try
             {
@@ -1687,7 +1687,7 @@ public class NCubeManager
             }
             catch (MalformedURLException e)
             {
-                throw new IllegalArgumentException("URL is malformed: " + url, e)
+                throw new IllegalArgumentException('URL is malformed: ' + url, e)
             }
         }
         else
@@ -1703,8 +1703,8 @@ public class NCubeManager
 
             if (actualUrl == null)
             {
-                String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: " +
-                        url + ", app: " + appId
+                String err = 'Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: ' +
+                        url + ', app: ' + appId
                 throw new IllegalArgumentException(err)
             }
             return actualUrl
@@ -1716,7 +1716,7 @@ public class NCubeManager
     {
         if (appId == null)
         {
-            throw new IllegalArgumentException("ApplicationID cannot be null")
+            throw new IllegalArgumentException('ApplicationID cannot be null')
         }
         appId.validate()
     }
@@ -1725,7 +1725,7 @@ public class NCubeManager
     {
         if (cube == null)
         {
-            throw new IllegalArgumentException("NCube cannot be null")
+            throw new IllegalArgumentException('NCube cannot be null')
         }
         NCube.validateCubeName(cube.getName())
     }
