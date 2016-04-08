@@ -79,6 +79,8 @@ class NCubeManager
     // not private in case we want to tweak things for testing.
     protected static volatile ConcurrentMap<String, Object> systemParams = null
 
+    private static final ThreadLocal<String> userId = new ThreadLocal<String>()
+
     static enum ACTION {
         ADD,
         UPDATE,
@@ -86,8 +88,12 @@ class NCubeManager
         RELEASE,
         READ,
         COMMIT
-    }
 
+        String lower()
+        {
+            return name().toLowerCase()
+        }
+    }
 
     /**
      * Store the Persister to be used with the NCubeManager API (Dependency Injection API)
@@ -180,6 +186,7 @@ class NCubeManager
      */
     static NCube loadCube(ApplicationID appId, String cubeName)
     {
+        checkPermissions(appId, cubeName)
         NCube ncube = getPersister().loadCube(appId, cubeName)
         if (ncube == null)
         {
@@ -1747,5 +1754,143 @@ class NCubeManager
         // Separate thread reads from this table every 1 second, for new commands, for
         // example, clear cache
         appId.toString()
+    }
+
+    // --------------------------------------- Permissions -------------------------------------------------------------
+
+    /**
+     * Verify whether the action can be performed against the resource (typically cube name).
+     * @param appId ApplicationID containing the n-cube being checked.
+     * @param resource String cubeName or cubeName with wildcards('*' or '?') or cubeName / axisName (with wildcards).
+     * @param action ACTION To be attempted.
+     * @return boolean true if allowed, false if not.  If the permissions cubes restricting access have not yet been
+     * added to the same App, then all access is granted.
+     */
+    static boolean checkPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
+    {
+        ApplicationID bootVersion = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        NCube permCube = getCube(bootVersion, 'sys.permissions')
+        if (permCube == null)
+        {   // Allow everything if no permssions are set up.
+            return true
+        }
+        NCube userCube = getCube(bootVersion, 'sys.usergroups')
+        if (userCube == null)
+        {   // Allow everything if no permssions are set up.
+            return true
+        }
+
+        List<Column> resourceColumns = getResourcesToMatch(permCube, resource)
+        for (Column resourceColumn : resourceColumns)
+        {
+            Comparable columnVal = resourceColumn.getValue()
+            String valueString = columnVal == null ? null : columnVal.toString()
+            if (doesUserHaveAccessToResource(permCube, userCube, action.lower(), valueString))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static List<Column> getResourcesToMatch(NCube permCube, String resource)
+    {
+        List<Column> matches = new ArrayList<Column>()
+        Axis resourcePermissionAxis = permCube.getAxis('resource')
+        if (resource != null)
+        {
+            String[] splitResource = resource.split('/')
+            boolean shouldCheckAxis = splitResource.length > 1
+            String resourceCube = splitResource[0]
+            String resourceAxis = shouldCheckAxis ? splitResource[1] : null
+
+            for (Column resourcePermissionColumn : resourcePermissionAxis.getColumnsWithoutDefault())
+            {
+                String[] curSplitResource = resourcePermissionColumn.getValue().toString().split('/')
+                boolean resourceIncludesAxis = curSplitResource.length > 1
+                String curResourceCube = curSplitResource[0]
+                String curResourceAxis = resourceIncludesAxis ? curSplitResource[1] : null
+
+                if ((shouldCheckAxis && doStringsWithWildCardsMatch(resourceCube, curResourceCube) && doStringsWithWildCardsMatch(resourceAxis, curResourceAxis))
+                        || (!shouldCheckAxis && !resourceIncludesAxis && doStringsWithWildCardsMatch(resourceCube, curResourceCube)))
+                {
+                    matches << resourcePermissionColumn
+                }
+            }
+        }
+        if (matches.size() == 0)
+        {
+            matches << resourcePermissionAxis.getDefaultColumn()
+        }
+        return matches
+    }
+
+    private static boolean doStringsWithWildCardsMatch(String text, String pattern)
+    {
+        if (pattern == null)
+        {
+            return false
+        }
+        String lowerText = text.toLowerCase()
+        String lowerPattern = pattern.toLowerCase()
+        if (lowerPattern == '*')
+        {
+            return true
+        }
+        if (lowerPattern.contains('*'))
+        {
+            String[] parts = lowerPattern.split('\\*')
+            for (String part : parts)
+            {
+                int idx = lowerText.indexOf(part)
+                if (idx == -1)
+                {
+                    return false
+                }
+                lowerText = lowerText.substring(idx + part.length())
+            }
+            return true
+        }
+        return lowerText.equals(lowerPattern)
+    }
+
+    private static boolean doesUserHaveAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
+    {
+        Axis groupAxis = permCube.getAxis('group')
+        for (Column groupColumn : groupAxis.getColumns())
+        {
+            String colName = groupColumn.getValue()
+            boolean isGroupActive = permCube.getCell(['resource': resourceColumnName, 'action': action, 'group': colName])
+            if (isGroupActive && isUserInGroup(userCube, colName))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static boolean isUserInGroup(NCube userCube, String groupName)
+    {
+        boolean defaultInGroup = userCube.getCell(['role': groupName, 'users': null])
+        boolean isException = userCube.getCell(['role': groupName, 'users': getUserId()])
+        return defaultInGroup | isException
+    }
+
+    /**
+     * Set the user ID on the current thread
+     * @param user String user Id
+     */
+    static void setUserId(String user)
+    {
+        userId.set(user)
+    }
+
+    /**
+     * Retrieve the user ID from the current thread
+     * @return String user ID of the user associated to the requesting thread
+     */
+    static String getUserId()
+    {
+        return userId.get()
     }
 }

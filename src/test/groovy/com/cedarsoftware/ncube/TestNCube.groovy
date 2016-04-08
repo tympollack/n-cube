@@ -1830,21 +1830,21 @@ class TestNCube
         ncube.setCell("f", coord)
 
         Set set = new HashSet()
-        coord.put("Gender", set)
+        coord.Gender = set
         Map result = ncube.getMap(coord)
-        assertTrue("f".equals(result.get("Female")))
-        assertTrue("m".equals(result.get("Male")))
+        assertTrue("f".equals(result.Female))
+        assertTrue("m".equals(result.Male))
 
         set.clear()
         set.add("Male")
-        coord.put("Gender", set)
+        coord.Gender = set
         result = ncube.getMap(coord)
-        assertFalse("f".equals(result.get("Female")))
-        assertTrue("m".equals(result.get("Male")))
+        assertFalse("f".equals(result.Female))
+        assertTrue("m".equals(result.Male))
 
         set.clear()
         set.add("Snail")
-        coord.put("Gender", set)
+        coord.Gender = set
         result = ncube.getMap(coord)
         assertTrue(result.size() == 1)
         assertTrue("DEFAULT VALUE".equals(result.get(null)))
