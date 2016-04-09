@@ -17,6 +17,7 @@ import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import sun.plugin2.util.SystemUtil
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -79,7 +80,17 @@ class NCubeManager
     // not private in case we want to tweak things for testing.
     protected static volatile ConcurrentMap<String, Object> systemParams = null
 
-    private static final ThreadLocal<String> userId = new ThreadLocal<String>()
+    private static final ThreadLocal<String> userId = new ThreadLocal<String>() {
+        public String initialValue()
+        {
+            Map params = getSystemParams()
+            if (StringUtilities.hasContent(params.user))
+            {
+                return params.user
+            }
+            return System.getProperty('user.name')
+        }
+    }
 
     static enum ACTION {
         ADD,
@@ -814,7 +825,7 @@ class NCubeManager
      * @param ncube      NCube to be updated.
      * @return boolean true on success, false otherwise
      */
-    static boolean updateCube(ApplicationID appId, NCube ncube, String username)
+    static boolean updateCube(ApplicationID appId, NCube ncube, String username = getUserId())
     {
         validateAppId(appId)
         validateCube(ncube)
@@ -1831,27 +1842,8 @@ class NCubeManager
         {
             return false
         }
-        String lowerText = text.toLowerCase()
-        String lowerPattern = pattern.toLowerCase()
-        if (lowerPattern == '*')
-        {
-            return true
-        }
-        if (lowerPattern.contains('*'))
-        {
-            String[] parts = lowerPattern.split('\\*')
-            for (String part : parts)
-            {
-                int idx = lowerText.indexOf(part)
-                if (idx == -1)
-                {
-                    return false
-                }
-                lowerText = lowerText.substring(idx + part.length())
-            }
-            return true
-        }
-        return lowerText.equals(lowerPattern)
+        String regexString = '(?i)' + StringUtilities.wildcardToRegexString(pattern)
+        return regexString.matches(text)
     }
 
     private static boolean doesUserHaveAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
