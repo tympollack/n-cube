@@ -17,7 +17,6 @@ import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import sun.plugin2.util.SystemUtil
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -84,7 +83,7 @@ class NCubeManager
         public String initialValue()
         {
             Map params = getSystemParams()
-            if (StringUtilities.hasContent(params.user))
+            if (params.users instanceof String)
             {
                 return params.user
             }
@@ -171,7 +170,10 @@ class NCubeManager
 
         for (NCubeInfoDto info : cubeInfos)
         {
-            names.add(info.name)
+            if (checkPermissions(appId, info.name))
+            {   // Filter names by permission
+                names.add(info.name)
+            }
         }
 
         if (names.isEmpty())
@@ -182,7 +184,10 @@ class NCubeManager
                 if (value instanceof NCube)
                 {
                     NCube cube = (NCube) value
-                    names.add(cube.getName())
+                    if (checkPermissions(appId, cube.name))
+                    {   // filter by permission
+                        names.add(cube.getName())
+                    }
                 }
             }
         }
@@ -197,7 +202,10 @@ class NCubeManager
      */
     static NCube loadCube(ApplicationID appId, String cubeName)
     {
-        checkPermissions(appId, cubeName)
+        if (!checkPermissions(appId, cubeName))
+        {
+            throw new SecurityException('You do not have READ permission to n-cube: ' + cubeName + ', app: ' + appId)
+        }
         NCube ncube = getPersister().loadCube(appId, cubeName)
         if (ncube == null)
         {
@@ -215,12 +223,16 @@ class NCubeManager
      * internal cache is checked again.  If the cube is not found, null is
      * returned.
      */
-    static NCube getCube(ApplicationID appId, String name)
+    static NCube getCube(ApplicationID appId, String cubeName)
     {
         validateAppId(appId)
-        NCube.validateCubeName(name)
+//        if (!checkPermissions(appId, cubeName))
+//        {
+//            throw new SecurityException('You do not have READ permission to n-cube: ' + cubeName + ', app: ' + appId)
+//        }
+        NCube.validateCubeName(cubeName)
         Map<String, Object> cubes = getCacheForApp(appId)
-        final String lowerCubeName = name.toLowerCase()
+        final String lowerCubeName = cubeName.toLowerCase()
 
         if (cubes.containsKey(lowerCubeName))
         {   // pull from cache
@@ -232,7 +244,7 @@ class NCubeManager
         // and normal app processing doesn't do two queries anymore.
         // used to do getCubeInfoRecords() -> dto
         // and then dto -> loadCube(id)
-        NCube ncube = getPersister().loadCube(appId, name)
+        NCube ncube = getPersister().loadCube(appId, cubeName)
         if (ncube == null)
         {
             cubes[lowerCubeName] = Boolean.FALSE
@@ -1779,6 +1791,7 @@ class NCubeManager
      */
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
     {
+        validateAppId(appId)
         ApplicationID bootVersion = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         NCube permCube = getCube(bootVersion, 'sys.permissions')
         if (permCube == null)
@@ -1806,7 +1819,7 @@ class NCubeManager
 
     private static List<Column> getResourcesToMatch(NCube permCube, String resource)
     {
-        List<Column> matches = new ArrayList<Column>()
+        List<Column> matches = []
         Axis resourcePermissionAxis = permCube.getAxis('resource')
         if (resource != null)
         {
@@ -1817,7 +1830,8 @@ class NCubeManager
 
             for (Column resourcePermissionColumn : resourcePermissionAxis.getColumnsWithoutDefault())
             {
-                String[] curSplitResource = resourcePermissionColumn.getValue().toString().split('/')
+                String columnResource = resourcePermissionColumn.getValue()
+                String[] curSplitResource = columnResource.split('/')
                 boolean resourceIncludesAxis = curSplitResource.length > 1
                 String curResourceCube = curSplitResource[0]
                 String curResourceAxis = resourceIncludesAxis ? curSplitResource[1] : null
