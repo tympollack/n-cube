@@ -1574,13 +1574,22 @@ class NCubeManager
         }
 
         List<NCubeInfoDto> cubes = getPersister().search(appId, cubeNamePattern, content, options)
+        List<NCubeInfoDto> readableCubes = new ArrayList<NCubeInfoDto>()
         Boolean result = (Boolean)options[SEARCH_CACHE_RESULT]
+
+        for (NCubeInfoDto info : cubes)
+        {
+            if (checkPermissions(appId, info.name, ACTION.READ))
+            {
+                readableCubes << info
+            }
+        }
 
         if (result == null || result)
         {
-            cacheCubes(appId, cubes)
+            cacheCubes(appId, readableCubes)
         }
-        return cubes
+        return readableCubes
     }
 
     /**
