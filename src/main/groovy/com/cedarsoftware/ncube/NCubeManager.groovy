@@ -902,7 +902,7 @@ class NCubeManager
 
         for (Object cubeName : cubeNames)
         {
-            String cubeNameStr = (String)cubeName
+            String cubeNameStr = cubeName as String
             assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
             getPersister().mergeAcceptMine(appId, cubeNameStr, username)
             appCache.remove(cubeNameStr.toLowerCase())
@@ -921,8 +921,8 @@ class NCubeManager
 
         for (int i = 0; i < cubeNames.length; i++)
         {
-            String cubeNameStr = (String)cubeNames[i]
-            String sha1 = (String)branchSha1[i]
+            String cubeNameStr = cubeNames[i] as String
+            String sha1 = branchSha1[i] as String
             assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
             getPersister().mergeAcceptTheirs(appId, cubeNameStr, sha1, username)
             appCache.remove(cubeNameStr.toLowerCase())
