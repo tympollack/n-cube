@@ -153,38 +153,8 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    void testGetBranches() {
-        ApplicationID head = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", ApplicationID.HEAD)
-        preloadCubes(head, "test.branch.1.json", "test.branch.age.1.json")
-
-        NCube cube = NCubeManager.getCube(head, "TestBranch")
-        assertEquals("ABC", cube.getCell(["Code":-10]))
-        cube = NCubeManager.getCube(head, "TestAge")
-        assertEquals("youth", cube.getCell(["Code":10]))
-
-        // load cube with same name, but different structure in TEST branch
-        ApplicationID branch = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", "kenny")
-        preloadCubes(branch1, "test.branch.2.json")
-
-        // showing we only rely on tenant to get branches.
-        assertEquals(2, NCubeManager.getBranches('NONE').size())
-        assertEquals(2, NCubeManager.getBranches('NONE').size())
-
-        ApplicationID branch2 = new ApplicationID('NONE', 'foo', '1.29.0', 'SNAPSHOT', 'someoneelse')
-        preloadCubes(branch2, "test.branch.1.json", "test.branch.age.1.json")
-        assertEquals(3, NCubeManager.getBranches('NONE').size())
-        assertEquals(3, NCubeManager.getBranches('NONE').size())
-        assertEquals(3, NCubeManager.getBranches('NONE').size())
-
-        NCubeManager.getBranches(branch1).size() == 2
-        NCubeManager.getBranches(branch1).contains('HEAD')
-        NCubeManager.getBranches(branch1).contains('FOO')
-        NCubeManager.getBranches(branch2).size() == 1
-        NCubeManager.getBranches(branch2).contains('someoneelse')
-    }
-
-    @Test
-    void testGetAppNames() {
+    void testGetAppNames()
+    {
         ApplicationID app1 = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", ApplicationID.HEAD)
         ApplicationID app2 = new ApplicationID('NONE', "foo", "1.29.0", "SNAPSHOT", ApplicationID.HEAD)
         ApplicationID app3 = new ApplicationID('NONE', "bar", "1.29.0", "SNAPSHOT", ApplicationID.HEAD)
@@ -210,7 +180,8 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    void testCommitBranchOnCubeCreatedInBranch() {
+    void testCommitBranchOnCubeCreatedInBranch()
+    {
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
 
         NCubeManager.updateCube(branch1, cube, 'kenny')
