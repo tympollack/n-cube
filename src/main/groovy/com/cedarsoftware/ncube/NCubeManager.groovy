@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.regex.Pattern
 
 /**
  * This class manages a list of NCubes.  This class is referenced
@@ -1923,7 +1924,8 @@ class NCubeManager
             return false
         }
         String regexString = '(?i)' + StringUtilities.wildcardToRegexString(pattern)
-        return regexString.matches(text)
+        Pattern p = Pattern.compile(regexString)
+        return p.matcher(text).matches()
     }
 
     private static boolean doesUserHaveAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
