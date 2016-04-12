@@ -94,12 +94,10 @@ class NCubeManager
     }
 
     static enum ACTION {
-        ADD,
-        UPDATE,
-        DELETE,
-        RELEASE,
+        COMMIT,
         READ,
-        COMMIT
+        RELEASE,
+        UPDATE
 
         String lower()
         {
@@ -748,7 +746,7 @@ class NCubeManager
 
         for (String cubeName : cubeNames)
         {
-            assertPermissions(appId, cubeName, ACTION.ADD)
+            assertPermissions(appId, cubeName, ACTION.UPDATE)
         }
 
         // Batch restore
@@ -825,7 +823,7 @@ class NCubeManager
             throw new IllegalArgumentException('Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ' + oldName + ', app: ' + oldAppId)
         }
 
-        assertPermissions(newAppId, newName, ACTION.ADD)
+        assertPermissions(newAppId, newName, ACTION.UPDATE)
         getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, username)
 
         if (CLASSPATH_CUBE.equalsIgnoreCase(newName))
@@ -863,7 +861,6 @@ class NCubeManager
         final String cubeName = ncube.getName()
 
         // Could be added or updated, so check for both permissions
-        assertPermissions(appId, cubeName, ACTION.ADD)
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         getPersister().updateCube(appId, ncube, username)
         ncube.setApplicationID(appId)
@@ -886,7 +883,7 @@ class NCubeManager
         validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        assertPermissions(appId, null, ACTION.ADD)
+        assertPermissions(appId, null, ACTION.UPDATE)
         int rows = getPersister().createBranch(appId)
         clearCache(appId)
         broadcast(appId)
@@ -1437,7 +1434,7 @@ class NCubeManager
         }
 
         assertPermissions(appId, oldName, ACTION.UPDATE)
-        assertPermissions(appId, newName, ACTION.ADD)
+        assertPermissions(appId, newName, ACTION.UPDATE)
 
         boolean result = getPersister().renameCube(appId, oldName, newName, username)
 
@@ -1460,7 +1457,7 @@ class NCubeManager
     static boolean deleteBranch(ApplicationID appId)
     {
         appId.validateBranchIsNotHead()
-        assertPermissions(appId, null, ACTION.DELETE)
+        assertPermissions(appId, null, ACTION.UPDATE)
         return getPersister().deleteBranch(appId)
     }
 
@@ -1474,7 +1471,7 @@ class NCubeManager
         appId.validateBranchIsNotHead()
         for (Object name : cubeNames)
         {
-            assertPermissions(appId, name as String, ACTION.DELETE)
+            assertPermissions(appId, name as String, ACTION.UPDATE)
         }
         return deleteCubes(appId, cubeNames, false, username)
     }
@@ -1492,7 +1489,7 @@ class NCubeManager
 
         for (Object name : cubeNames)
         {
-            assertPermissions(appId, name as String, ACTION.DELETE)
+            assertPermissions(appId, name as String, ACTION.UPDATE)
         }
 
         if (getPersister().deleteCubes(appId, cubeNames, allowDelete, username))
