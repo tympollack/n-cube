@@ -68,7 +68,12 @@ class NCubeManager
 
     static final String SYS_BOOTSTRAP = 'sys.bootstrap'
     static final String SYS_PROTOTYPE = 'sys.prototype'
+    static final String SYS_PERMISSIONS = 'sys.permissions'
+    static final String SYS_USERGROUPS = 'sys.usergroups'
+    static final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
     static final String CLASSPATH_CUBE = 'sys.classpath'
+
+    static final String ROLE_ADMIN = 'admin'
 
     private static
     final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
@@ -1857,23 +1862,34 @@ class NCubeManager
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
     {
         ApplicationID bootVersion = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        NCube permCube = getCubeInternal(bootVersion, 'sys.permissions')
+        NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
-        {   // Allow everything if no permssions are set up.
+        {   // Allow everything if no permissions are set up.
             return true
         }
-        NCube userCube = getCubeInternal(bootVersion, 'sys.usergroups')
+        NCube userCube = getCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userCube == null)
-        {   // Allow everything if no permssions are set up.
+        {   // Allow everything if no permissions are set up.
             return true
         }
+        NCube branchPermCube = getCubeInternal(new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), appId.branch), SYS_BRANCH_PERMISSIONS)
 
+        boolean hasBranchPermission = branchPermCube == null || isUserInGroup(userCube, ROLE_ADMIN) || checkResourcePermissions(branchPermCube, null, action, resource)
+        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource)
+    }
+
+    private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
+    {
         List<Column> resourceColumns = getResourcesToMatch(permCube, resource)
         for (Column resourceColumn : resourceColumns)
         {
             Comparable columnVal = resourceColumn.getValue()
             String valueString = columnVal == null ? null : columnVal.toString()
-            if (doesUserHaveAccessToResource(permCube, userCube, action.lower(), valueString))
+            if (userCube == null && (action == ACTION.READ || doesUserHaveBranchAccessToResource(permCube, valueString)))
+            {
+                return true
+            }
+            if (userCube != null && doesUserHaveAppAccessToResource(permCube, userCube, action.lower(), valueString))
             {
                 return true
             }
@@ -1925,7 +1941,12 @@ class NCubeManager
         return p.matcher(text).matches()
     }
 
-    private static boolean doesUserHaveAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
+    private static boolean doesUserHaveBranchAccessToResource(NCube permCube, String resourceColumnName)
+    {
+        return permCube.getCell(['user': null, 'resource': resourceColumnName]) || permCube.getCell(['user': getUserId(), 'resource': resourceColumnName])
+    }
+
+    private static boolean doesUserHaveAppAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
     {
         Axis groupAxis = permCube.getAxis('group')
         for (Column groupColumn : groupAxis.getColumns())
@@ -1942,9 +1963,7 @@ class NCubeManager
 
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
-        boolean defaultInGroup = userCube.getCell(['role': groupName, 'users': null])
-        boolean isException = userCube.getCell(['role': groupName, 'users': getUserId()])
-        return defaultInGroup | isException
+        return userCube.getCell(['role': groupName, 'users': null]) || userCube.getCell(['role': groupName, 'users': getUserId()])
     }
 
     /**
