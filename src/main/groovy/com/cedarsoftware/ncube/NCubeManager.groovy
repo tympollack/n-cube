@@ -890,6 +890,7 @@ class NCubeManager
         appId.validateStatusIsNotRelease()
         assertPermissions(appId, null, ACTION.UPDATE)
         int rows = getPersister().createBranch(appId)
+        addBranchPermissionsCube(appId);
         clearCache(appId)
         broadcast(appId)
         return rows
@@ -1964,6 +1965,29 @@ class NCubeManager
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
         return userCube.getCell(['role': groupName, 'users': null]) || userCube.getCell(['role': groupName, 'users': getUserId()])
+    }
+
+    private static boolean addBranchPermissionsCube(ApplicationID appId)
+    {
+        String userId = getUserId()
+        ApplicationID permAppId = appId.asVersion('0.0.0')
+        NCube branchPermCube = new NCube('sys.branch.permissions')
+        branchPermCube.setApplicationID(permAppId)
+        branchPermCube.setDefaultCellValue(false)
+
+        Axis resourceAxis = new Axis('resource', AxisType.DISCRETE, AxisValueType.STRING, true)
+        resourceAxis.addColumn('sys.branch.permissions')
+        branchPermCube.addAxis(resourceAxis)
+
+        Axis userAxis = new Axis('user', AxisType.DISCRETE, AxisValueType.STRING, true)
+        userAxis.addColumn(userId)
+        branchPermCube.addAxis(userAxis)
+
+        branchPermCube.setCell(true, ['user':userId,'resource':'sys.branch.permissions'])
+        branchPermCube.setCell(true, ['user':userId,'resource':null])
+
+        getPersister().updateCube(permAppId, branchPermCube, userId)
+        updateBranch(permAppId, userId)
     }
 
     /**
