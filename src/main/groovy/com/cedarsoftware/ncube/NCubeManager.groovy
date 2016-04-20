@@ -85,7 +85,7 @@ class NCubeManager
         public String initialValue()
         {
             Map params = getSystemParams()
-            if (params.users instanceof String)
+            if (params.user instanceof String)
             {
                 return params.user
             }
