@@ -3762,7 +3762,7 @@ class TestNCube
         NCube cpCube = createTempDirClassPathCube()
 
         // manually set classpath cube
-        NCubeManager.updateCube(appId, cpCube, TestNCubeManager.USER_ID)
+        NCubeManager.updateCube(appId, cpCube)
 
         FileOutputStream fo = new FileOutputStream(base + File.separator + "Abc.groovy")
         String code = "import ncube.grv.exp.NCubeGroovyExpression; class Abc extends NCubeGroovyExpression { def run() { return 10 } }";

@@ -126,23 +126,23 @@ class TestingDatabaseHelper
     public static void setupTestClassPaths()
     {
         NCube cp = NCubeManager.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, cp, TestNCubeManager.USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, cp)
         cp = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-        NCubeManager.updateCube(ApplicationID.testAppId, cp, TestNCubeManager.USER_ID)
+        NCubeManager.updateCube(ApplicationID.testAppId, cp)
     }
 
     public static void tearDownDatabase()
     {
         try
         {
-            NCubeManager.deleteCubes TestNCubeManager.defaultSnapshotApp, 'sys.classpath', TestNCubeManager.USER_ID
+            NCubeManager.deleteCubes TestNCubeManager.defaultSnapshotApp, 'sys.classpath'
         }
         catch (Exception ignored)
         { }
 
         try
         {
-            NCubeManager.deleteCubes ApplicationID.testAppId, 'sys.classpath', TestNCubeManager.USER_ID
+            NCubeManager.deleteCubes ApplicationID.testAppId, 'sys.classpath'
         }
         catch (Exception ignored)
         { }

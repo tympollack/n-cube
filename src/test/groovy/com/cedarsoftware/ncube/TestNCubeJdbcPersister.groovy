@@ -35,8 +35,8 @@ import static org.mockito.Mockito.when
  */
 class TestNCubeJdbcPersister
 {
-    static final String APP_ID = "ncube.test";
-    static final String USER_ID = "jdirt";
+    static final String APP_ID = TestNCubeManager.APP_ID;
+    static final String USER_ID = TestNCubeManager.USER_ID;
 
     private ApplicationID defaultSnapshotApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, "1.0.0", ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
