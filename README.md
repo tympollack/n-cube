@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.38</version>
+  <version>3.4.39</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.39
+ * Added branch permission support.  Users can elect to allow others read/update access to the n-cubes in their branch.
 * 3.4.38
  * Added permissions checks to NCubeManager API.  If the `sys.usergroups` and `sys.permissions` n-cubes exist in an application, they will be consulted to determine whether or not the current user can execute the given API.  In addition, lists of cubes will be filtered based on these permissions.
 * 3.4.37
