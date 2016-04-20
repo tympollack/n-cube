@@ -36,8 +36,6 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestAdvice
 {
-    static final String USER_ID = "jdirt";
-
     @Before
     public void setUp()
     {
@@ -56,8 +54,8 @@ class TestAdvice
     {
         NCube ncube2 = NCubeManager.getNCubeFromResource("urlPieces.json")
         final NCube ncube = NCubeManager.getNCubeFromResource("urlWithNcubeRefs.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube2, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube2)
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -114,7 +112,7 @@ class TestAdvice
     void testExpressionStopExpressionWithBeforeAdvice()
     {
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -143,7 +141,7 @@ class TestAdvice
     void testExpressionAfterAdviceThrows()
     {
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -182,7 +180,7 @@ class TestAdvice
     void testExpressionThatThrows()
     {
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -582,7 +580,7 @@ class TestAdvice
     void testMultiAdvice()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
 
         Advice advice1 = new Advice() {
             String getName()
@@ -701,7 +699,7 @@ class TestAdvice
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, "*()", advice2)
 
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
 
         def output = [:]
         ncube.getCell([method:'foo', state:'OH'] as Map, output)
@@ -774,7 +772,7 @@ class TestAdvice
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, "*()", advice2)
 
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, USER_ID)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
 
         def output = [:]
         try

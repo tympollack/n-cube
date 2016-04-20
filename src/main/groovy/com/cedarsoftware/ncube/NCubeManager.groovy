@@ -68,7 +68,19 @@ class NCubeManager
 
     static final String SYS_BOOTSTRAP = 'sys.bootstrap'
     static final String SYS_PROTOTYPE = 'sys.prototype'
+    static final String SYS_PERMISSIONS = 'sys.permissions'
+    static final String SYS_USERGROUPS = 'sys.usergroups'
+    static final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
     static final String CLASSPATH_CUBE = 'sys.classpath'
+
+    static final String ROLE_ADMIN = 'admin'
+    static final String ROLE_USER = 'user'
+    static final String ROLE_READONLY = 'readonly'
+
+    static final String AXIS_ROLE = 'role'
+    static final String AXIS_USER = 'user'
+    static final String AXIS_RESOURCE = 'resource'
+    static final String AXIS_ACTION = 'action'
 
     private static
     final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
@@ -860,7 +872,12 @@ class NCubeManager
 
         final String cubeName = ncube.getName()
 
-        // Could be added or updated, so check for both permissions
+        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        if (records.size() == 0) {
+            addAppPermissionsCubes(appId, username)
+            addBranchPermissionsCube(appId, username)
+        }
+
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         getPersister().updateCube(appId, ncube, username)
         ncube.setApplicationID(appId)
@@ -885,6 +902,7 @@ class NCubeManager
         appId.validateStatusIsNotRelease()
         assertPermissions(appId, null, ACTION.UPDATE)
         int rows = getPersister().createBranch(appId)
+        addBranchPermissionsCube(appId, getUserId());
         clearCache(appId)
         broadcast(appId)
         return rows
@@ -1857,23 +1875,34 @@ class NCubeManager
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
     {
         ApplicationID bootVersion = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        NCube permCube = getCubeInternal(bootVersion, 'sys.permissions')
+        NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
-        {   // Allow everything if no permssions are set up.
+        {   // Allow everything if no permissions are set up.
             return true
         }
-        NCube userCube = getCubeInternal(bootVersion, 'sys.usergroups')
+        NCube userCube = getCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userCube == null)
-        {   // Allow everything if no permssions are set up.
+        {   // Allow everything if no permissions are set up.
             return true
         }
+        NCube branchPermCube = getCubeInternal(new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), appId.branch), SYS_BRANCH_PERMISSIONS)
 
+        boolean hasBranchPermission = branchPermCube == null || isUserInGroup(userCube, ROLE_ADMIN) || checkResourcePermissions(branchPermCube, null, action, resource)
+        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource)
+    }
+
+    private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
+    {
         List<Column> resourceColumns = getResourcesToMatch(permCube, resource)
         for (Column resourceColumn : resourceColumns)
         {
             Comparable columnVal = resourceColumn.getValue()
             String valueString = columnVal == null ? null : columnVal.toString()
-            if (doesUserHaveAccessToResource(permCube, userCube, action.lower(), valueString))
+            if (userCube == null && (action == ACTION.READ || doesUserHaveBranchAccessToResource(permCube, valueString)))
+            {
+                return true
+            }
+            if (userCube != null && doesUserHaveAppAccessToResource(permCube, userCube, action.lower(), valueString))
             {
                 return true
             }
@@ -1884,7 +1913,7 @@ class NCubeManager
     private static List<Column> getResourcesToMatch(NCube permCube, String resource)
     {
         List<Column> matches = []
-        Axis resourcePermissionAxis = permCube.getAxis('resource')
+        Axis resourcePermissionAxis = permCube.getAxis(AXIS_RESOURCE)
         if (resource != null)
         {
             String[] splitResource = resource.split('/')
@@ -1925,13 +1954,18 @@ class NCubeManager
         return p.matcher(text).matches()
     }
 
-    private static boolean doesUserHaveAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
+    private static boolean doesUserHaveBranchAccessToResource(NCube permCube, String resourceColumnName)
     {
-        Axis groupAxis = permCube.getAxis('group')
+        return permCube.getCell([(AXIS_USER): null, (AXIS_RESOURCE): resourceColumnName]) || permCube.getCell([(AXIS_USER): getUserId(), (AXIS_RESOURCE): resourceColumnName])
+    }
+
+    private static boolean doesUserHaveAppAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
+    {
+        Axis groupAxis = permCube.getAxis(AXIS_ROLE)
         for (Column groupColumn : groupAxis.getColumns())
         {
             String colName = groupColumn.getValue()
-            boolean isGroupActive = permCube.getCell(['resource': resourceColumnName, 'action': action, 'group': colName])
+            boolean isGroupActive = permCube.getCell([(AXIS_RESOURCE): resourceColumnName, (AXIS_ACTION): action, (AXIS_ROLE): colName])
             if (isGroupActive && isUserInGroup(userCube, colName))
             {
                 return true
@@ -1942,9 +1976,110 @@ class NCubeManager
 
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
-        boolean defaultInGroup = userCube.getCell(['role': groupName, 'users': null])
-        boolean isException = userCube.getCell(['role': groupName, 'users': getUserId()])
-        return defaultInGroup | isException
+        return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
+    }
+
+    private static void addBranchPermissionsCube(ApplicationID appId, String userId)
+    {
+        ApplicationID permAppId = appId.asVersion('0.0.0')
+        NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
+        branchPermCube.setApplicationID(permAppId)
+        branchPermCube.setDefaultCellValue(false)
+
+        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.STRING, true)
+        resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
+        branchPermCube.addAxis(resourceAxis)
+
+        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
+        userAxis.addColumn(userId)
+        branchPermCube.addAxis(userAxis)
+
+        branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
+        branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):null])
+
+        getPersister().updateCube(permAppId, branchPermCube, userId)
+        updateBranch(permAppId, userId)
+    }
+
+    private static void addAppPermissionsCubes(ApplicationID appId, String userId)
+    {
+        ApplicationID permAppId = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        addAppUserGroupsCube(permAppId, userId)
+        addAppPermissionsCube(permAppId, userId)
+    }
+
+    private static void addAppUserGroupsCube(ApplicationID appId, String userId)
+    {
+        NCube userGroupsCube = new NCube(SYS_USERGROUPS)
+        userGroupsCube.setApplicationID(appId)
+        userGroupsCube.setDefaultCellValue(false)
+
+        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
+        userAxis.addColumn(userId)
+        userGroupsCube.addAxis(userAxis)
+
+        Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
+        roleAxis.addColumn(ROLE_ADMIN)
+        roleAxis.addColumn(ROLE_READONLY)
+        roleAxis.addColumn(ROLE_USER)
+        userGroupsCube.addAxis(roleAxis)
+
+        userGroupsCube.setCell(true, [(AXIS_USER):userId, (AXIS_ROLE):ROLE_ADMIN])
+        userGroupsCube.setCell(true, [(AXIS_USER):userId, (AXIS_ROLE):ROLE_USER])
+        userGroupsCube.setCell(true, [(AXIS_USER):null, (AXIS_ROLE):ROLE_USER])
+
+        getPersister().updateCube(appId, userGroupsCube, userId)
+    }
+
+    private static void addAppPermissionsCube(ApplicationID appId, String userId)
+    {
+        NCube appPermCube = new NCube(SYS_PERMISSIONS)
+        appPermCube.setApplicationID(appId)
+        appPermCube.setDefaultCellValue(false)
+
+        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.STRING, true)
+        resourceAxis.addColumn(SYS_PERMISSIONS)
+        resourceAxis.addColumn(SYS_USERGROUPS)
+        resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
+        appPermCube.addAxis(resourceAxis)
+
+        Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
+        roleAxis.addColumn(ROLE_ADMIN)
+        roleAxis.addColumn(ROLE_READONLY)
+        roleAxis.addColumn(ROLE_USER)
+        appPermCube.addAxis(roleAxis)
+
+        Axis actionAxis = new Axis(AXIS_ACTION, AxisType.DISCRETE, AxisValueType.STRING, false)
+        actionAxis.addColumn(ACTION.UPDATE.lower())
+        actionAxis.addColumn(ACTION.READ.lower())
+        actionAxis.addColumn(ACTION.RELEASE.lower())
+        actionAxis.addColumn(ACTION.COMMIT.lower())
+        appPermCube.addAxis(actionAxis)
+
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.READ.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.COMMIT.lower()])
+
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.READ.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.COMMIT.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.READ.lower()])
+
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.READ.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.READ.lower()])
+
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.READ.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.RELEASE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.COMMIT.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.READ.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.COMMIT.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):ACTION.READ.lower()])
+
+        getPersister().updateCube(appId, appPermCube, userId)
     }
 
     /**
