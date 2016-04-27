@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.40
+ * Added getMap() API that takes an output Map and default value.
 * 3.4.39
  * Added branch permission support.  Users can elect to allow others read/update access to the n-cubes in their branch.
 * 3.4.38

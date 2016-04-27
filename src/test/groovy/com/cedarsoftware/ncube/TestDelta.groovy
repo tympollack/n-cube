@@ -975,11 +975,6 @@ class TestDelta
         assert delta.toString().contains('add')
     }
 
-    @Test
-    void testMergeWithoutHeadCube()
-    {
-        // TODO: Implement this
-    }
 
     static def getCellIgnoreRule(NCube ncube, Map coord)
     {

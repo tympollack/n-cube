@@ -856,6 +856,14 @@ public class NCube<T>
     }
 
     /**
+     * See getMap(coordinate, output, defaultValue)
+     */
+    public Map<Object, T> getMap(final Map coordinate)
+    {
+        return getMap(coordinate, new HashMap(), null);
+    }
+
+    /**
      * Get a Map of column values and corresponding cell values where all axes
      * but one are held to a fixed (single) column, and one axis allows more than
      * one value to match against it.
@@ -866,10 +874,16 @@ public class NCube<T>
      * returned in a Map.  If the Set has values in it, then only the columns
      * on the 'wildcard' axis that match the values in the set will be returned (along
      * with the corresponding cell values).
+     * @param output Map that can be written to by the code within the the n-cubes (for example,
+     *               GroovyExpressions.
+     * @param defaultValue Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.
      * @return a Map containing Axis names and values to bind to those axes.  One of the
      * axes must have a Set bound to it.
      */
-    public Map<Object, T> getMap(final Map coordinate)
+    public Map<Object, T> getMap(final Map coordinate, Map output, Object defaultValue)
     {
         final Map coord = validateCoordinate(coordinate, new HashMap());
         final Axis wildcardAxis = getWildcardAxis(coord);
@@ -880,7 +894,7 @@ public class NCube<T>
         for (final Column column : columns)
         {
             coord.put(axisName, column.getValueThatMatches());
-            result.put(column.getValue(), getCell(coord));
+            result.put(column.getValue(), getCell(coord, output, defaultValue));
         }
 
         return result;

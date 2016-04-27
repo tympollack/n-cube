@@ -197,7 +197,30 @@ class TestWithPreloadedDatabase
 
         ApplicationID headId = branch1.asHead()
         assertEquals(1, NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+    }
 
+    @Test
+    void testMergeWithNoHeadCube()
+    {
+        NCube cube1 = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
+        NCube cube2 = NCubeManager.getNCubeFromResource("test.branch.age.2.json")
+
+        NCubeManager.updateCube(branch1, cube1)
+        NCubeManager.updateCube(branch2, cube2)
+
+        Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
+        assertEquals(1, dtos.length)
+
+        dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
+        assertEquals(1, dtos.length)
+
+        Map merge = NCubeManager.updateBranchCube(branch2, cube1.name, branch1.branch)
+        assert merge.merges.isEmpty()
+        assert merge.updates.isEmpty()
+        assert merge.conflicts.size() > 0
+
+        // TODO: Finish verifying that merge Accept theirs should work
+//        println NCubeManager.mergeAcceptTheirs(branch2, [cube1.name].toArray(),['foo'].toArray())
     }
 
     @Test
