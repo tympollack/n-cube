@@ -872,9 +872,10 @@ class NCubeManager
         final String cubeName = ncube.getName()
 
         List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.size() == 0) {
-            addAppPermissionsCubes(appId, username)
-            addBranchPermissionsCube(appId, username)
+        if (records.size() == 0)
+        {
+            addAppPermissionsCubes(appId)
+            addBranchPermissionsCube(appId)
         }
 
         assertPermissions(appId, cubeName, ACTION.UPDATE)
@@ -901,7 +902,7 @@ class NCubeManager
         appId.validateStatusIsNotRelease()
         assertPermissions(appId, null, ACTION.UPDATE)
         int rows = getPersister().createBranch(appId)
-        addBranchPermissionsCube(appId, getUserId());
+        addBranchPermissionsCube(appId);
         clearCache(appId)
         broadcast(appId)
         return rows
@@ -1978,8 +1979,9 @@ class NCubeManager
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
     }
 
-    private static void addBranchPermissionsCube(ApplicationID appId, String userId)
+    private static void addBranchPermissionsCube(ApplicationID appId)
     {
+        String userId = getUserId()
         ApplicationID permAppId = appId.asVersion('0.0.0')
         NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
         branchPermCube.setApplicationID(permAppId)
@@ -2000,15 +2002,16 @@ class NCubeManager
         updateBranch(permAppId, userId)
     }
 
-    private static void addAppPermissionsCubes(ApplicationID appId, String userId)
+    private static void addAppPermissionsCubes(ApplicationID appId)
     {
         ApplicationID permAppId = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        addAppUserGroupsCube(permAppId, userId)
-        addAppPermissionsCube(permAppId, userId)
+        addAppUserGroupsCube(permAppId)
+        addAppPermissionsCube(permAppId)
     }
 
-    private static void addAppUserGroupsCube(ApplicationID appId, String userId)
+    private static void addAppUserGroupsCube(ApplicationID appId)
     {
+        String userId = getUserId()
         NCube userGroupsCube = new NCube(SYS_USERGROUPS)
         userGroupsCube.setApplicationID(appId)
         userGroupsCube.setDefaultCellValue(false)
@@ -2030,7 +2033,7 @@ class NCubeManager
         getPersister().updateCube(appId, userGroupsCube, userId)
     }
 
-    private static void addAppPermissionsCube(ApplicationID appId, String userId)
+    private static void addAppPermissionsCube(ApplicationID appId)
     {
         NCube appPermCube = new NCube(SYS_PERMISSIONS)
         appPermCube.setApplicationID(appId)
@@ -2078,7 +2081,7 @@ class NCubeManager
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.COMMIT.lower()])
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):ACTION.READ.lower()])
 
-        getPersister().updateCube(appId, appPermCube, userId)
+        getPersister().updateCube(appId, appPermCube, getUserId())
     }
 
     /**
