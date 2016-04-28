@@ -53,37 +53,36 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeManager
 {
-    static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
-    static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
-    static final String SEARCH_INCLUDE_NOTES = 'includeNotes'
-    static final String SEARCH_DELETED_RECORDS_ONLY = 'deletedRecordsOnly'
-    static final String SEARCH_ACTIVE_RECORDS_ONLY = 'activeRecordsOnly'
-    static final String SEARCH_CHANGED_RECORDS_ONLY = 'changedRecordsOnly'
-    static final String SEARCH_EXACT_MATCH_NAME = 'exactMatchName'
-    static final String SEARCH_CACHE_RESULT = 'cacheResult'
+    public static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
+    public static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
+    public static final String SEARCH_INCLUDE_NOTES = 'includeNotes'
+    public static final String SEARCH_DELETED_RECORDS_ONLY = 'deletedRecordsOnly'
+    public static final String SEARCH_ACTIVE_RECORDS_ONLY = 'activeRecordsOnly'
+    public static final String SEARCH_CHANGED_RECORDS_ONLY = 'changedRecordsOnly'
+    public static final String SEARCH_EXACT_MATCH_NAME = 'exactMatchName'
+    public static final String SEARCH_CACHE_RESULT = 'cacheResult'
 
-    static final String BRANCH_UPDATES = 'updates'
-    static final String BRANCH_MERGES = 'merges'
-    static final String BRANCH_CONFLICTS = 'conflicts'
+    public static final String BRANCH_UPDATES = 'updates'
+    public static final String BRANCH_MERGES = 'merges'
+    public static final String BRANCH_CONFLICTS = 'conflicts'
 
-    static final String SYS_BOOTSTRAP = 'sys.bootstrap'
-    static final String SYS_PROTOTYPE = 'sys.prototype'
-    static final String SYS_PERMISSIONS = 'sys.permissions'
-    static final String SYS_USERGROUPS = 'sys.usergroups'
-    static final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
-    static final String CLASSPATH_CUBE = 'sys.classpath'
+    public static final String SYS_BOOTSTRAP = 'sys.bootstrap'
+    public static final String SYS_PROTOTYPE = 'sys.prototype'
+    public static final String SYS_PERMISSIONS = 'sys.permissions'
+    public static final String SYS_USERGROUPS = 'sys.usergroups'
+    public static final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
+    public static final String CLASSPATH_CUBE = 'sys.classpath'
 
-    static final String ROLE_ADMIN = 'admin'
-    static final String ROLE_USER = 'user'
-    static final String ROLE_READONLY = 'readonly'
+    public static final String ROLE_ADMIN = 'admin'
+    public static final String ROLE_USER = 'user'
+    public static final String ROLE_READONLY = 'readonly'
 
-    static final String AXIS_ROLE = 'role'
-    static final String AXIS_USER = 'user'
-    static final String AXIS_RESOURCE = 'resource'
-    static final String AXIS_ACTION = 'action'
+    public static final String AXIS_ROLE = 'role'
+    public static final String AXIS_USER = 'user'
+    public static final String AXIS_RESOURCE = 'resource'
+    public static final String AXIS_ACTION = 'action'
 
-    private static
-    final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
+    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
     static final String NCUBE_PARAMS = 'NCUBE_PARAMS'

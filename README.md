@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.39</version>
+  <version>3.4.41</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.41
+ * bug fix: NCubeManager's constants were inadvertently made private when it was converted from Java to Groovy.  They are now public.
 * 3.4.40
  * Added getMap() API that takes an output Map and default value.
 * 3.4.39
