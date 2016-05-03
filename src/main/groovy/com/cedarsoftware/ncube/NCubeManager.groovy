@@ -84,6 +84,8 @@ class NCubeManager
     public static final String AXIS_ACTION = 'action'
     public static final String AXIS_SYSTEM = 'system'
 
+    public static final String PROPERTY_CACHE = 'cache'
+
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -292,7 +294,7 @@ class NCubeManager
     {
         applyAdvices(cube.getApplicationID(), cube)
         String cubeName = cube.getName().toLowerCase()
-        if (!cube.getMetaProperties().containsKey('cache') || Boolean.TRUE.equals(cube.getMetaProperty('cache')))
+        if (!cube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(cube.getMetaProperty(PROPERTY_CACHE)))
         {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
             getCacheForApp(cube.getApplicationID())[cubeName] = cube
         }
@@ -380,7 +382,7 @@ class NCubeManager
 
         String cubeName = ncube.name.toLowerCase()
 
-        if (!ncube.getMetaProperties().containsKey('cache') || Boolean.TRUE.equals(ncube.getMetaProperty('cache')))
+        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
         {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
             getCacheForApp(appId)[cubeName] = ncube
         }
@@ -1898,7 +1900,7 @@ class NCubeManager
         NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
 
         boolean hasBranchPermission = branchPermCube == null || isUserInGroup(userCube, ROLE_ADMIN) || checkResourcePermissions(branchPermCube, null, action, resource)
-        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource) && (action == ACTION.READ || resource == SYS_LOCK || !isAppLocked(appId))
+        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource) && (action == ACTION.READ || resource == SYS_LOCK || getAppLockedBy(appId) == null || (action == ACTION.RELEASE && getAppLockedBy(appId) == getUserId()))
     }
 
     private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
@@ -2028,30 +2030,30 @@ class NCubeManager
 
         NCube sysLockCube = new NCube(SYS_LOCK)
         sysLockCube.setApplicationID(appId)
-        sysLockCube.setDefaultCellValue(false)
+        sysLockCube.setMetaProperty(PROPERTY_CACHE, false)
         sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.STRING, true))
         getPersister().updateCube(appId, sysLockCube, getUserId())
     }
 
-    private static boolean isAppLocked(ApplicationID appId)
+    private static String getAppLockedBy(ApplicationID appId)
     {
         NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
         if (sysLockCube == null) {
-            return false
+            return null
         }
-        sysLockCube.getCell([(AXIS_SYSTEM):null])
+        return sysLockCube.getCell([(AXIS_SYSTEM):null])
     }
 
     private static void lockApp(ApplicationID appId)
     {
+        String userId = getUserId()
         ApplicationID bootAppId = getBootAppId(appId)
         NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null) {
             return
         }
-        sysLockCube.setCell(true, [(AXIS_SYSTEM):null])
-        sysLockCube.clearSha1()
-        getPersister().updateCube(bootAppId, sysLockCube, getUserId())
+        sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
+        getPersister().updateCube(bootAppId, sysLockCube, userId)
     }
 
     private static void unlockApp(ApplicationID appId)
@@ -2062,7 +2064,6 @@ class NCubeManager
             return
         }
         sysLockCube.removeCell([(AXIS_SYSTEM):null])
-        sysLockCube.clearSha1()
         getPersister().updateCube(bootAppId, sysLockCube, getUserId())
     }
 
