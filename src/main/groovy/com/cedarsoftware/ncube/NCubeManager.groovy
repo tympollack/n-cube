@@ -70,6 +70,7 @@ class NCubeManager
     public static final String SYS_PROTOTYPE = 'sys.prototype'
     public static final String SYS_PERMISSIONS = 'sys.permissions'
     public static final String SYS_USERGROUPS = 'sys.usergroups'
+    public static final String SYS_LOCK = 'sys.lock'
     public static final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
     public static final String CLASSPATH_CUBE = 'sys.classpath'
 
@@ -81,6 +82,9 @@ class NCubeManager
     public static final String AXIS_USER = 'user'
     public static final String AXIS_RESOURCE = 'resource'
     public static final String AXIS_ACTION = 'action'
+    public static final String AXIS_SYSTEM = 'system'
+
+    public static final String PROPERTY_CACHE = 'cache'
 
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
@@ -290,7 +294,7 @@ class NCubeManager
     {
         applyAdvices(cube.getApplicationID(), cube)
         String cubeName = cube.getName().toLowerCase()
-        if (!cube.getMetaProperties().containsKey('cache') || Boolean.TRUE.equals(cube.getMetaProperty('cache')))
+        if (!cube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(cube.getMetaProperty(PROPERTY_CACHE)))
         {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
             getCacheForApp(cube.getApplicationID())[cubeName] = cube
         }
@@ -378,7 +382,7 @@ class NCubeManager
 
         String cubeName = ncube.name.toLowerCase()
 
-        if (!ncube.getMetaProperties().containsKey('cache') || Boolean.TRUE.equals(ncube.getMetaProperty('cache')))
+        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
         {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
             getCacheForApp(appId)[cubeName] = ncube
         }
@@ -872,9 +876,10 @@ class NCubeManager
         final String cubeName = ncube.getName()
 
         List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.size() == 0) {
-            addAppPermissionsCubes(appId, username)
-            addBranchPermissionsCube(appId, username)
+        if (records.size() == 0)
+        {
+            addAppPermissionsCubes(appId)
+            addBranchPermissionsCube(appId)
         }
 
         assertPermissions(appId, cubeName, ACTION.UPDATE)
@@ -901,7 +906,7 @@ class NCubeManager
         appId.validateStatusIsNotRelease()
         assertPermissions(appId, null, ACTION.UPDATE)
         int rows = getPersister().createBranch(appId)
-        addBranchPermissionsCube(appId, getUserId());
+        addBranchPermissionsCube(appId);
         clearCache(appId)
         broadcast(appId)
         return rows
@@ -1409,10 +1414,13 @@ class NCubeManager
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
         assertPermissions(appId, null, ACTION.RELEASE)
+        lockApp(appId)
+        sleep(10000)
         int rows = getPersister().releaseCubes(appId, newSnapVer)
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
         broadcast(appId)
+        unlockApp(appId)
         return rows
     }
 
@@ -1863,6 +1871,11 @@ class NCubeManager
         throw new SecurityException('Operation not performed.  You do not have ' + action.name() + ' permission to ' + resource + ', app: ' + appId)
     }
 
+    private static ApplicationID getBootAppId(ApplicationID appId)
+    {
+        return new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+    }
+
     /**
      * Verify whether the action can be performed against the resource (typically cube name).
      * @param appId ApplicationID containing the n-cube being checked.
@@ -1873,7 +1886,7 @@ class NCubeManager
      */
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
     {
-        ApplicationID bootVersion = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        ApplicationID bootVersion = getBootAppId(appId)
         NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
         {   // Allow everything if no permissions are set up.
@@ -1884,10 +1897,10 @@ class NCubeManager
         {   // Allow everything if no permissions are set up.
             return true
         }
-        NCube branchPermCube = getCubeInternal(new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), appId.branch), SYS_BRANCH_PERMISSIONS)
+        NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
 
         boolean hasBranchPermission = branchPermCube == null || isUserInGroup(userCube, ROLE_ADMIN) || checkResourcePermissions(branchPermCube, null, action, resource)
-        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource)
+        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource) && (action == ACTION.READ || resource == SYS_LOCK || getAppLockedBy(appId) == null || (action == ACTION.RELEASE && getAppLockedBy(appId) == getUserId()))
     }
 
     private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
@@ -1978,8 +1991,9 @@ class NCubeManager
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
     }
 
-    private static void addBranchPermissionsCube(ApplicationID appId, String userId)
+    private static void addBranchPermissionsCube(ApplicationID appId)
     {
+        String userId = getUserId()
         ApplicationID permAppId = appId.asVersion('0.0.0')
         NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
         branchPermCube.setApplicationID(permAppId)
@@ -2000,15 +2014,66 @@ class NCubeManager
         updateBranch(permAppId, userId)
     }
 
-    private static void addAppPermissionsCubes(ApplicationID appId, String userId)
+    private static void addAppPermissionsCubes(ApplicationID appId)
     {
-        ApplicationID permAppId = new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        addAppUserGroupsCube(permAppId, userId)
-        addAppPermissionsCube(permAppId, userId)
+        ApplicationID permAppId = getBootAppId(appId)
+        addAppUserGroupsCube(permAppId)
+        addAppPermissionsCube(permAppId)
+        addSysLockingCube(permAppId)
     }
 
-    private static void addAppUserGroupsCube(ApplicationID appId, String userId)
+    private static void addSysLockingCube(ApplicationID appId)
     {
+        if (getCubeInternal(appId, SYS_LOCK) != null) {
+            return
+        }
+
+        NCube sysLockCube = new NCube(SYS_LOCK)
+        sysLockCube.setApplicationID(appId)
+        sysLockCube.setMetaProperty(PROPERTY_CACHE, false)
+        sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.STRING, true))
+        getPersister().updateCube(appId, sysLockCube, getUserId())
+    }
+
+    private static String getAppLockedBy(ApplicationID appId)
+    {
+        NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
+        if (sysLockCube == null) {
+            return null
+        }
+        return sysLockCube.getCell([(AXIS_SYSTEM):null])
+    }
+
+    private static void lockApp(ApplicationID appId)
+    {
+        String userId = getUserId()
+        ApplicationID bootAppId = getBootAppId(appId)
+        NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
+        if (sysLockCube == null) {
+            return
+        }
+        sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
+        getPersister().updateCube(bootAppId, sysLockCube, userId)
+    }
+
+    private static void unlockApp(ApplicationID appId)
+    {
+        ApplicationID bootAppId = getBootAppId(appId)
+        NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
+        if (sysLockCube == null) {
+            return
+        }
+        sysLockCube.removeCell([(AXIS_SYSTEM):null])
+        getPersister().updateCube(bootAppId, sysLockCube, getUserId())
+    }
+
+    private static void addAppUserGroupsCube(ApplicationID appId)
+    {
+        if (getCubeInternal(appId, SYS_USERGROUPS) != null) {
+            return
+        }
+
+        String userId = getUserId()
         NCube userGroupsCube = new NCube(SYS_USERGROUPS)
         userGroupsCube.setApplicationID(appId)
         userGroupsCube.setDefaultCellValue(false)
@@ -2030,8 +2095,12 @@ class NCubeManager
         getPersister().updateCube(appId, userGroupsCube, userId)
     }
 
-    private static void addAppPermissionsCube(ApplicationID appId, String userId)
+    private static void addAppPermissionsCube(ApplicationID appId)
     {
+        if (getCubeInternal(appId, SYS_PERMISSIONS)) {
+            return
+        }
+
         NCube appPermCube = new NCube(SYS_PERMISSIONS)
         appPermCube.setApplicationID(appId)
         appPermCube.setDefaultCellValue(false)
@@ -2040,6 +2109,7 @@ class NCubeManager
         resourceAxis.addColumn(SYS_PERMISSIONS)
         resourceAxis.addColumn(SYS_USERGROUPS)
         resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
+        resourceAxis.addColumn(SYS_LOCK)
         appPermCube.addAxis(resourceAxis)
 
         Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
@@ -2069,6 +2139,10 @@ class NCubeManager
         appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.UPDATE.lower()])
         appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.READ.lower()])
 
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.READ.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.COMMIT.lower()])
+
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.UPDATE.lower()])
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.READ.lower()])
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):ACTION.RELEASE.lower()])
@@ -2078,7 +2152,7 @@ class NCubeManager
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):ACTION.COMMIT.lower()])
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):ACTION.READ.lower()])
 
-        getPersister().updateCube(appId, appPermCube, userId)
+        getPersister().updateCube(appId, appPermCube, getUserId())
     }
 
     /**
