@@ -41,6 +41,11 @@ class Column implements Comparable<Comparable>
     private Comparable value
     protected Map<String, Object> metaProps = null
 
+    Column(Comparable value)
+    {
+        this(value, 0L)
+    }
+
     Column(Comparable value, long id)
     {
         this.value = value
