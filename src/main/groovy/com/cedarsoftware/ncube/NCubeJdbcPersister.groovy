@@ -187,7 +187,7 @@ class NCubeJdbcPersister
         Map map = [id: cubeId]
         Sql sql = new Sql(c)
         NCube cube = null
-        sql.eachRow(map, """/* loadCubeById */ SELECT n_cube_nm, tenant_cd, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, changed, sha1, head_sha1 FROM n_cube where n_cube_id = :id""", 0, 1, { ResultSet row ->
+        sql.eachRow(map, "/* loadCubeById */ SELECT n_cube_nm, tenant_cd, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, changed, sha1, head_sha1 FROM n_cube where n_cube_id = :id", 0, 1, { ResultSet row ->
             String tenant = row.getString('tenant_cd')
             String status = row.getString('status_cd')
             String app = row.getString('app_cd')
@@ -232,11 +232,12 @@ class NCubeJdbcPersister
         Sql sql = new Sql(c)
 
         sql.eachRow(map, """
-/* getRevisions */ SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
- FROM n_cube
- WHERE """ + buildNameCondition(c, "n_cube_nm") + """ = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch
- ORDER BY abs(revision_number) DESC
-""", {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
+                    /* getRevisions */
+                    SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
+                    FROM n_cube
+                    WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch
+                    ORDER BY abs(revision_number) DESC
+                    """, {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
         if (records.isEmpty())
         {
@@ -324,7 +325,8 @@ class NCubeJdbcPersister
                 /* ${methodName}.insertCube */
                 INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
                 sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """)
             s.setLong(1, uniqueId)
             s.setString(2, appId.tenant)
             s.setString(3, appId.app)
@@ -1138,7 +1140,7 @@ class NCubeJdbcPersister
         boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY])
         boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY])
         boolean exactMatchName = toBoolean(options[NCubeManager.SEARCH_EXACT_MATCH_NAME])
-        String methodName = options[METHOD_NAME]
+        String methodName = (String)options[METHOD_NAME]
         if (StringUtilities.isEmpty(methodName))
         {
             methodName = 'methodNameNotSet'
