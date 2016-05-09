@@ -43,6 +43,7 @@ class TestNCubeManager
     public static final String USER_ID = NCubeManager.getUserId()
     public static ApplicationID defaultSnapshotApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '1.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.TEST_BRANCH)
     public static ApplicationID defaultReleaseApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '1.0.0', ReleaseStatus.RELEASE.name(), ApplicationID.TEST_BRANCH)
+    public static ApplicationID defaultBootApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
 
     @Before
     public void setUp()
@@ -1609,6 +1610,7 @@ class TestNCubeManager
     @Test
     void testMutateReleaseCube()
     {
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK))
         NCube cube = NCubeManager.getNCubeFromResource(defaultSnapshotApp, 'latlon.json')
         NCubeManager.updateCube(defaultSnapshotApp, cube)
         Object[] cubeInfos = NCubeManager.search(defaultSnapshotApp, '*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
@@ -1764,6 +1766,186 @@ class TestNCubeManager
         assertNull(NCubeManager.getSystemParams().status);
         assertNull(NCubeManager.getSystemParams().app);
         assertNull(NCubeManager.getSystemParams().tenant);
+    }
+
+    @Test
+    void testGetBranches()
+    {
+        Set<String> branches = NCubeManager.getBranches(ApplicationID.testAppId)
+        assertEquals(1, branches.size())
+        assertEquals(ApplicationID.TEST_BRANCH, branches.getAt(0))
+    }
+
+    @Test
+    void testSysLockCubeCreatedWithApp()
+    {
+        NCube sysLockCube = NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK)
+        assertEquals(1, sysLockCube.getAxis(NCubeManager.AXIS_SYSTEM).getColumns().size())
+        assertNull(sysLockCube.getCell([(NCubeManager.AXIS_SYSTEM):null]))
+    }
+
+    @Test
+    void testSysPermissionsCreatedWithApp()
+    {
+        NCube sysPermCube = NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_PERMISSIONS)
+        assertEquals(3, sysPermCube.getAxes().size())
+        assertEquals(5, sysPermCube.getAxis(NCubeManager.AXIS_RESOURCE).getColumns().size())
+        assertEquals(3, sysPermCube.getAxis(NCubeManager.AXIS_ROLE).getColumns().size())
+        assertEquals(4, sysPermCube.getAxis(NCubeManager.AXIS_ACTION).getColumns().size())
+    }
+
+    @Test
+    void testSysUsergroupsCreatedWithApp()
+    {
+        NCube sysUsergroupsCube = NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS)
+        List<Column> userColumns = sysUsergroupsCube.getAxis(NCubeManager.AXIS_USER).getColumns()
+        assertEquals(2, sysUsergroupsCube.getAxes().size())
+        assertEquals(2, userColumns.size())
+        assertEquals(NCubeManager.getUserId(), userColumns.get(0).value)
+        assertEquals(3, sysUsergroupsCube.getAxis(NCubeManager.AXIS_ROLE).getColumns().size())
+    }
+
+    @Test
+    void testSysLockSecurity()
+    {
+        String userId = NCubeManager.getUserId()
+        ApplicationID branchBootAppId = defaultBootApp.asBranch(userId)
+        Map lockCoord = [(NCubeManager.AXIS_SYSTEM):null]
+
+        // update branch
+        NCubeManager.updateBranch(branchBootAppId)
+
+        // update sys lock in branch
+        NCube sysLockCube = NCubeManager.loadCube(branchBootAppId, NCubeManager.SYS_LOCK)
+        sysLockCube.setCell(userId, lockCoord)
+        NCubeManager.updateCube(branchBootAppId, sysLockCube)
+
+        // commit sys lock to head
+        Object[] cubeInfos = NCubeManager.search(branchBootAppId, NCubeManager.SYS_LOCK, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> commitResult = NCubeManager.commitBranch(branchBootAppId, cubeInfos)
+        assertEquals(1, commitResult.size())
+
+        // make sure head took the lock
+        sysLockCube = NCubeManager.loadCube(branchBootAppId, NCubeManager.SYS_LOCK)
+        NCube headSysLockCube = NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK)
+        assertEquals(sysLockCube.getCell(lockCoord), headSysLockCube.getCell(lockCoord))
+
+        // try creating a new cube in branch, should get exception
+        NCube testCube = new NCube('test')
+        testCube.setApplicationID(branchBootAppId)
+        try {
+            NCubeManager.updateCube(branchBootAppId, testCube)
+            fail()
+        } catch (SecurityException e) {
+            assertTrue(e.message.contains('not performed'))
+            assertTrue(e.message.contains(NCubeManager.ACTION.UPDATE.name()))
+            assertTrue(e.message.contains(testCube.name))
+        }
+    }
+
+    @Test
+    void testBranchPermissionsCubeCreatedOnNewBranch()
+    {
+        ApplicationID branchAppId = defaultSnapshotApp.asBranch('newBranch')
+        NCubeManager.createBranch(branchAppId)
+        NCube branchPermCube = NCubeManager.loadCube(branchAppId.asVersion('0.0.0'), NCubeManager.SYS_BRANCH_PERMISSIONS)
+        Axis userAxis = branchPermCube.getAxis(NCubeManager.AXIS_USER)
+        Axis resourceAxis = branchPermCube.getAxis(NCubeManager.AXIS_RESOURCE)
+
+        assertFalse(branchPermCube.getDefaultCellValue())
+        assertEquals(2, userAxis.getColumns().size())
+        assertEquals(2, resourceAxis.getColumns().size())
+        assertTrue(branchPermCube.getCell([(NCubeManager.AXIS_USER):NCubeManager.getUserId(), (NCubeManager.AXIS_RESOURCE):NCubeManager.SYS_BRANCH_PERMISSIONS]))
+        assertTrue(branchPermCube.getCell([(NCubeManager.AXIS_USER):NCubeManager.getUserId(), (NCubeManager.AXIS_RESOURCE):null]))
+        assertFalse(branchPermCube.getCell([(NCubeManager.AXIS_USER):null, (NCubeManager.AXIS_RESOURCE):NCubeManager.SYS_BRANCH_PERMISSIONS]))
+        assertFalse(branchPermCube.getCell([(NCubeManager.AXIS_USER):null, (NCubeManager.AXIS_RESOURCE):null]))
+    }
+
+    @Test
+    void testBranchPermissionsFail()
+    {
+        String testAxisName = 'testAxis'
+        String origUser = NCubeManager.getUserId()
+        ApplicationID appId = defaultSnapshotApp.asBranch(origUser)
+
+        //create new branch and make sure of permissions
+        NCubeManager.createBranch(appId)
+        NCube branchPermCube = NCubeManager.loadCube(defaultBootApp.asBranch(origUser), NCubeManager.SYS_BRANCH_PERMISSIONS)
+        Axis userAxis = branchPermCube.getAxis(NCubeManager.AXIS_USER)
+        List<Column> columnList = userAxis.getColumnsWithoutDefault()
+        assertEquals(1, columnList.size())
+        assertEquals(origUser, columnList.get(0).value)
+
+        //check app permissions cubes
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_PERMISSIONS))
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS))
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK))
+
+        //new cube on branch from good user
+        NCube testCube = new NCube('test')
+        testCube.setApplicationID(appId)
+        testCube.addAxis(new Axis(testAxisName, AxisType.DISCRETE, AxisValueType.STRING, true))
+        NCubeManager.updateCube(appId, testCube)
+
+        //try to create a cube as a different user in that branch
+        try {
+            NCubeManager.setUserId('otherUser')
+            testCube.setCell('testval', [(testAxisName):null])
+            NCubeManager.updateCube(appId, testCube)
+            fail()
+        } catch (SecurityException e) {
+            assertTrue(e.message.contains('not performed'))
+            assertTrue(e.message.contains(NCubeManager.ACTION.UPDATE.name()))
+            assertTrue(e.message.contains(testCube.name))
+        } finally {
+            NCubeManager.setUserId(origUser)
+        }
+    }
+
+    @Test
+    void testAppPermissionsFail()
+    {
+        String origUser = NCubeManager.getUserId()
+        String otherUser = 'otherUser'
+        String testAxisName = 'testAxis'
+        ApplicationID branchBootApp = defaultBootApp.asBranch(ApplicationID.TEST_BRANCH)
+
+        //check app permissions cubes
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_PERMISSIONS))
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS))
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK))
+
+        //set bad user as having branch permissions
+        NCube branchPermCube = NCubeManager.loadCube(branchBootApp, NCubeManager.SYS_BRANCH_PERMISSIONS)
+        branchPermCube.getAxis(NCubeManager.AXIS_USER).addColumn(otherUser)
+        branchPermCube.setCell(true, [(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_RESOURCE):null])
+
+        //set bad user as no app permissions
+        NCube userCube = NCubeManager.loadCube(branchBootApp, NCubeManager.SYS_USERGROUPS)
+        userCube.getAxis(NCubeManager.AXIS_USER).addColumn(otherUser)
+        userCube.setCell(true, [(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_ROLE):NCubeManager.ROLE_READONLY])
+        NCubeManager.updateCube(branchBootApp, userCube)
+        assertFalse(userCube.getCell([(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_ROLE):NCubeManager.ROLE_USER]))
+        assertTrue(userCube.getCell([(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_ROLE):NCubeManager.ROLE_READONLY]))
+
+        NCube testCube = new NCube('test')
+        testCube.setApplicationID(defaultSnapshotApp)
+        testCube.addAxis(new Axis(testAxisName, AxisType.DISCRETE, AxisValueType.STRING, true))
+        NCubeManager.updateCube(defaultSnapshotApp, testCube)
+
+        //try to update a cube from bad user
+        try {
+            NCubeManager.setUserId(otherUser)
+            testCube.setCell('testval', [(testAxisName):null])
+            NCubeManager.updateCube(defaultSnapshotApp, testCube)
+            fail()
+        } catch (SecurityException e) {
+            assertTrue(e.message.contains('not performed'))
+            assertTrue(e.message.contains(NCubeManager.ACTION.UPDATE.name()))
+            assertTrue(e.message.contains(testCube.name))
+        } finally {
+            NCubeManager.setUserId(origUser)
+        }
     }
 
     private static void loadTestClassPathCubes()

@@ -1993,8 +1993,12 @@ class NCubeManager
 
     private static void addBranchPermissionsCube(ApplicationID appId)
     {
-        String userId = getUserId()
         ApplicationID permAppId = appId.asVersion('0.0.0')
+        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null) {
+            return
+        }
+
+        String userId = getUserId()
         NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
         branchPermCube.setApplicationID(permAppId)
         branchPermCube.setDefaultCellValue(false)
