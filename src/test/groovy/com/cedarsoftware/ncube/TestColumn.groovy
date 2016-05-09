@@ -29,10 +29,10 @@ class TestColumn
     @Test
     void testSetValue()
     {
-        Column c = new Column(0, 5)
-        assertEquals 0, c.value
+        Column c = new Column(0)
+        assertEquals(0, c.value)
         c.value = 5
-        assertEquals 5, c.value
+        assertEquals(5, c.value)
     }
 
     @Test
