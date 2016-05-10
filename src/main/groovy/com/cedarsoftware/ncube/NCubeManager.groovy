@@ -838,6 +838,8 @@ class NCubeManager
             throw new IllegalArgumentException('Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ' + oldName + ', app: ' + oldAppId)
         }
 
+        assertPermissions(oldAppId, oldName, ACTION.READ)
+        detectNewAppId(newAppId)
         assertPermissions(newAppId, newName, ACTION.UPDATE)
         getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, username)
 
@@ -875,13 +877,7 @@ class NCubeManager
 
         final String cubeName = ncube.getName()
 
-        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.size() == 0)
-        {
-            addAppPermissionsCubes(appId)
-            addBranchPermissionsCube(appId)
-        }
-
+        detectNewAppId(appId)
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         getPersister().updateCube(appId, ncube, username)
         ncube.setApplicationID(appId)
@@ -1989,6 +1985,16 @@ class NCubeManager
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
+    }
+
+    private static void detectNewAppId(ApplicationID appId)
+    {
+        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        if (records.size() == 0)
+        {
+            addAppPermissionsCubes(appId)
+            addBranchPermissionsCube(appId)
+        }
     }
 
     private static void addBranchPermissionsCube(ApplicationID appId)

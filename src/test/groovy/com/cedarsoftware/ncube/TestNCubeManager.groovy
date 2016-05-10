@@ -361,7 +361,7 @@ class TestNCubeManager
     }
 
     @Test
-    void testDuplicateNCube()
+    void testDuplicateNCubeWithinSameApp()
     {
         NCube n1 = NCubeManager.getNCubeFromResource('stringIds.json')
         NCubeManager.updateCube(defaultSnapshotApp, n1)
@@ -373,6 +373,25 @@ class TestNCubeManager
         assertTrue(NCubeManager.deleteCubes(defaultSnapshotApp, [n1.name].toArray(), true))
         assertTrue(NCubeManager.deleteCubes(newId, [n2.name].toArray(), true))
         assertTrue(n1.equals(n2))
+    }
+
+    @Test
+    void testDuplicateNCubeToNewApp()
+    {
+        NCube n1 = NCubeManager.getNCubeFromResource('stringIds.json')
+        NCubeManager.updateCube(defaultSnapshotApp, n1)
+        ApplicationID newId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'some.new.app', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+
+        NCubeManager.duplicate(defaultSnapshotApp, newId, n1.name, n1.name)
+        NCube n2 = NCubeManager.getCube(newId, n1.name)
+        assertNotNull(n2)
+
+        //check for permissions cubes in new app
+        ApplicationID newBootId = newId.asVersion('0.0.0')
+        assertNotNull(NCubeManager.loadCube(newBootId, NCubeManager.SYS_BRANCH_PERMISSIONS))
+        assertNotNull(NCubeManager.loadCube(newBootId, NCubeManager.SYS_PERMISSIONS))
+        assertNotNull(NCubeManager.loadCube(newBootId, NCubeManager.SYS_USERGROUPS))
+        assertNotNull(NCubeManager.loadCube(newBootId, NCubeManager.SYS_LOCK))
     }
 
     @Test
