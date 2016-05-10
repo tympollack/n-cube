@@ -1270,6 +1270,10 @@ nameCondition2
 
     int releaseCubes(Connection c, ApplicationID appId, String newSnapVer)
     {
+        if (doCubesExist(c, appId.asVersion(newSnapVer), false, 'releaseCubes'))
+        {
+            throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
+        }
         if (doCubesExist(c, appId.asRelease(), false, 'releaseCubes'))
         {
             throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)

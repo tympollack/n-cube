@@ -633,7 +633,17 @@ class TestNCubeManager
         assertNotNull(cubeInfos)
         assertEquals(2, cubeInfos.length)
         NCubeManager.commitBranch(defaultSnapshotApp, cubeInfos)
-        assert 2 == NCubeManager.releaseCubes(defaultSnapshotApp, "1.2.3")
+
+        try
+        {
+            NCubeManager.releaseCubes(defaultSnapshotApp, '1.0.0')
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('1.0.0 already exists')
+        }
+
+        assert 2 == NCubeManager.releaseCubes(defaultSnapshotApp, '1.2.3')
 
         try
         {
@@ -646,7 +656,7 @@ class TestNCubeManager
 
         try
         {
-            NCubeManager.releaseCubes(defaultSnapshotApp, "1.2.3")
+            NCubeManager.releaseCubes(defaultSnapshotApp, '1.2.3')
         }
         catch (IllegalStateException e)
         {
