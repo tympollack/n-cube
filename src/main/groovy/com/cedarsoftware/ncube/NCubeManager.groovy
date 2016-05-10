@@ -1407,9 +1407,18 @@ class NCubeManager
      */
     static int releaseCubes(ApplicationID appId, String newSnapVer)
     {
+        assertPermissions(appId, null, ACTION.RELEASE)
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
-        assertPermissions(appId, null, ACTION.RELEASE)
+        if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        {
+            throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
+        }
+        if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        {
+            throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)
+        }
+
         lockApp(appId)
         sleep(10000)
         int rows = getPersister().releaseCubes(appId, newSnapVer)
@@ -1989,8 +1998,7 @@ class NCubeManager
 
     private static void detectNewAppId(ApplicationID appId)
     {
-        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.size() == 0)
+        if (search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false]).size() == 0)
         {
             addAppPermissionsCubes(appId)
             addBranchPermissionsCube(appId)
