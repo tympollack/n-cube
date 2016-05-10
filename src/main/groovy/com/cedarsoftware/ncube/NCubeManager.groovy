@@ -2053,7 +2053,7 @@ class NCubeManager
         getPersister().updateCube(appId, sysLockCube, getUserId())
     }
 
-    private static String getAppLockedBy(ApplicationID appId)
+    static String getAppLockedBy(ApplicationID appId)
     {
         NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
         if (sysLockCube == null) {
