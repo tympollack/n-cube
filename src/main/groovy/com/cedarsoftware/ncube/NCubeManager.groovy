@@ -1904,8 +1904,19 @@ class NCubeManager
         }
         NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
 
-        boolean hasBranchPermission = branchPermCube == null || isUserInGroup(userCube, ROLE_ADMIN) || checkResourcePermissions(branchPermCube, null, action, resource)
-        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource) && (action == ACTION.READ || resource == SYS_LOCK || getAppLockedBy(appId) == null || (action == ACTION.RELEASE && getAppLockedBy(appId) == getUserId()))
+        if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
+        {
+            return false
+        }
+        if (!checkResourcePermissions(permCube, userCube, action, resource))
+        {
+            return false
+        }
+        if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
+        {
+            return false
+        }
+        return true
     }
 
     private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
