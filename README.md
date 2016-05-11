@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.42</version>
+  <version>3.4.43</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,10 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.43
+ * Additional check added to NCubeManaer.releaseCubes() to ensure that the new version does not already exist.
+ * NCubeJdbcPersister updated to use triple double quotes so that ${methodCall()} can be used instead of using string concatenation (+)
+ * bug fix: duplicateCube() now auto-creates the persmissions cubes if the new cube causes a new app to be created.
 * 3.4.42
  * During release of an Application, a sys.lock n-cube is add/updated to indicate that the release process is running and all mutable operations are blocked by it. 
 * 3.4.41
