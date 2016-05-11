@@ -838,6 +838,8 @@ class NCubeManager
             throw new IllegalArgumentException('Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ' + oldName + ', app: ' + oldAppId)
         }
 
+        assertPermissions(oldAppId, oldName, ACTION.READ)
+        detectNewAppId(newAppId)
         assertPermissions(newAppId, newName, ACTION.UPDATE)
         getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, username)
 
@@ -875,13 +877,7 @@ class NCubeManager
 
         final String cubeName = ncube.getName()
 
-        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.size() == 0)
-        {
-            addAppPermissionsCubes(appId)
-            addBranchPermissionsCube(appId)
-        }
-
+        detectNewAppId(appId)
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         getPersister().updateCube(appId, ncube, username)
         ncube.setApplicationID(appId)
@@ -1411,9 +1407,18 @@ class NCubeManager
      */
     static int releaseCubes(ApplicationID appId, String newSnapVer)
     {
+        assertPermissions(appId, null, ACTION.RELEASE)
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
-        assertPermissions(appId, null, ACTION.RELEASE)
+        if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        {
+            throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
+        }
+        if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        {
+            throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)
+        }
+
         lockApp(appId)
         sleep(10000)
         int rows = getPersister().releaseCubes(appId, newSnapVer)
@@ -1899,8 +1904,19 @@ class NCubeManager
         }
         NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
 
-        boolean hasBranchPermission = branchPermCube == null || isUserInGroup(userCube, ROLE_ADMIN) || checkResourcePermissions(branchPermCube, null, action, resource)
-        return hasBranchPermission && checkResourcePermissions(permCube, userCube, action, resource) && (action == ACTION.READ || resource == SYS_LOCK || getAppLockedBy(appId) == null || (action == ACTION.RELEASE && getAppLockedBy(appId) == getUserId()))
+        if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
+        {
+            return false
+        }
+        if (!checkResourcePermissions(permCube, userCube, action, resource))
+        {
+            return false
+        }
+        if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
+        {
+            return false
+        }
+        return true
     }
 
     private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
@@ -1991,6 +2007,15 @@ class NCubeManager
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
     }
 
+    private static void detectNewAppId(ApplicationID appId)
+    {
+        if (search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false]).size() == 0)
+        {
+            addAppPermissionsCubes(appId)
+            addBranchPermissionsCube(appId)
+        }
+    }
+
     private static void addBranchPermissionsCube(ApplicationID appId)
     {
         ApplicationID permAppId = appId.asVersion('0.0.0')
@@ -2039,7 +2064,7 @@ class NCubeManager
         getPersister().updateCube(appId, sysLockCube, getUserId())
     }
 
-    private static String getAppLockedBy(ApplicationID appId)
+    static String getAppLockedBy(ApplicationID appId)
     {
         NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
         if (sysLockCube == null) {

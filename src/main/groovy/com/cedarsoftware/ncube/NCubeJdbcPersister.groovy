@@ -1284,11 +1284,6 @@ class NCubeJdbcPersister
 
     int releaseCubes(Connection c, ApplicationID appId, String newSnapVer)
     {
-        if (doCubesExist(c, appId.asRelease(), false, 'releaseCubes'))
-        {
-            throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)
-        }
-
         // Step 1: Move everyone's SNAPSHOT version cubes to new version.
         // (Update version number to new version where branch != HEAD (and rest of appId matches) ignore revision)
         Map map = appId as Map
