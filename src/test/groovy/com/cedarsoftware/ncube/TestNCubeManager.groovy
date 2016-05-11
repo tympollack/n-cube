@@ -1977,6 +1977,24 @@ class TestNCubeManager
         }
     }
 
+    @Test
+    void testCannotRelease000Version()
+    {
+        try {
+            NCubeManager.releaseCubes(defaultBootApp, '0.0.1')
+            fail()
+        } catch (IllegalStateException e) {
+            assertTrue(e.message.contains(NCubeManager.ERROR_CANNOT_RELEASE_000))
+        }
+
+        try {
+            NCubeManager.releaseCubes(defaultSnapshotApp, '0.0.0')
+            fail()
+        } catch (IllegalStateException e) {
+            assertTrue(e.message.contains(NCubeManager.ERROR_CANNOT_RELEASE_TO_000))
+        }
+    }
+
     private static void loadTestClassPathCubes()
     {
         NCube cube = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.versions.json')
