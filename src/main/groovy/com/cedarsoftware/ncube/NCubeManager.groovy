@@ -53,6 +53,9 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeManager
 {
+    public static final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
+    public static final String ERROR_CANNOT_RELEASE_TO_000 = 'Version 0.0.0 is for system configuration and cannot be created from the release process.'
+
     public static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
     public static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
     public static final String SEARCH_INCLUDE_NOTES = 'includeNotes'
@@ -1410,6 +1413,14 @@ class NCubeManager
         assertPermissions(appId, null, ACTION.RELEASE)
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
+        if (appId.version == '0.0.0')
+        {
+            throw new IllegalStateException(ERROR_CANNOT_RELEASE_000)
+        }
+        if (newSnapVer == '0.0.0')
+        {
+            throw new IllegalStateException(ERROR_CANNOT_RELEASE_TO_000)
+        }
         if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
             throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
