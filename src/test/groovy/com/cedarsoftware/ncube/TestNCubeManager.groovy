@@ -1932,6 +1932,30 @@ class TestNCubeManager
     }
 
     @Test
+    void testIsAdminPass()
+    {
+        //without user cube present
+        assertTrue(NCubeManager.isAdmin(defaultSnapshotApp))
+
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS))
+        assertTrue(NCubeManager.isAdmin(defaultSnapshotApp))
+    }
+
+    @Test
+    void testIsAdminFail()
+    {
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS))
+        NCubeManager.setUserId('bad')
+
+        try {
+            NCubeManager.isAdmin(defaultSnapshotApp)
+            fail()
+        } catch (SecurityException e) {
+            assertTrue(e.message.contains(NCubeManager.ERROR_NOT_ADMIN))
+        }
+    }
+
+    @Test
     void testAppPermissionsFail()
     {
         String origUser = NCubeManager.getUserId()
