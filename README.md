@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.44</version>
+  <version>3.4.45</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,10 +96,11 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.45
+ * Admin permissions are required to call clearCache().
 * 3.4.44
  * Bug fix: Updating the version number of a transform cube was throwing an error.
  * Added check to Batch Update Reference Axis so that n-cubes that have been hand edited to an incorrect state, will be ignored (but logged).
- * Admin permissions are required to call clearCache().
 * 3.4.43
  * Additional check added to NCubeManaer.releaseCubes() to ensure that the new version does not already exist.
  * NCubeJdbcPersister updated to use triple double quotes so that ${methodCall()} can be used instead of using string concatenation (+)

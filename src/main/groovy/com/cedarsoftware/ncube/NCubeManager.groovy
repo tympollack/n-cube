@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.sql.Connection
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
@@ -56,6 +55,7 @@ class NCubeManager
 {
     public static final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
     public static final String ERROR_CANNOT_RELEASE_TO_000 = 'Version 0.0.0 is for system configuration and cannot be created from the release process.'
+    public static final String ERROR_NOT_ADMIN = 'Operation not performed. You do not have admin permissions for '
 
     public static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
     public static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
@@ -1671,6 +1671,20 @@ class NCubeManager
             cacheCubes(appId, readableCubes)
         }
         return readableCubes
+    }
+
+    static boolean isAdmin(ApplicationID appId)
+    {
+        NCube userCube = getCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
+        if (userCube == null)
+        {   // Allow everything if no permissions are set up.
+            return true
+        }
+        if (isUserInGroup(userCube, ROLE_ADMIN))
+        {
+            return true
+        }
+        throw new SecurityException(ERROR_NOT_ADMIN + appId)
     }
 
     /**
