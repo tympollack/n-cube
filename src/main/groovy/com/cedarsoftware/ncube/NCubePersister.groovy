@@ -31,7 +31,6 @@ interface NCubePersister extends NCubeReadOnlyPersister
     boolean duplicateCube(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
     boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     boolean restoreCubes(ApplicationID appId, Object[] names, String username)
-    boolean updateReferenceAxes(List<AxisRef> axisRefs, String username)
 
     // Branch Management
     List<NCubeInfoDto> commitCubes(ApplicationID appId, Object[] cubeIds, String username)

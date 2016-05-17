@@ -204,9 +204,4 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
     {
         return (List<AxisRef>) jdbcOperation { Connection c -> persister.getReferenceAxes(c, appId) }
     }
-
-    boolean updateReferenceAxes(List<AxisRef> axisRefs, String username)
-    {
-        return (boolean) jdbcOperation { Connection c -> persister.updateReferenceAxes(c, axisRefs, username) }
-    }
 }

@@ -1705,7 +1705,65 @@ class NCubeManager
             }
             getCacheForApp(srcApp).remove(axisRef.getSrcCubeName().toLowerCase())
         }
-        getPersister().updateReferenceAxes(axisRefs, username)
+
+        for (AxisRef axisRef : axisRefs)
+        {
+            axisRef.with {
+                NCube ncube = getPersister().loadCube(srcAppId, srcCubeName)
+                Axis axis = ncube.getAxis(srcAxisName)
+
+                if (axis.isReference())
+                {
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_APP, destApp)
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_VERSION, destVersion)
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME, destCubeName)
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME, destAxisName)
+                    ApplicationID appId = new ApplicationID(srcAppId.tenant, destApp, destVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+
+                    NCube target = getPersister().loadCube(appId, destCubeName)
+                    if (target == null)
+                    {
+                        throw new IllegalArgumentException('Cannot point reference axis to non-existing cube (' +
+                                destCubeName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
+                                ', target: ' + destApp + ' / ' + destVersion + ' / ' + destCubeName + '.' + destAxisName)
+                    }
+
+                    if (target.getAxis(destAxisName) == null)
+                    {
+                        throw new IllegalArgumentException('Cannot point reference axis to non-existing axis (' +
+                                destAxisName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
+                                ', target: ' + destApp + ' / ' + destVersion + ' / ' + destCubeName + '.' + destAxisName)
+                    }
+
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_APP, transformApp)
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_VERSION, transformVersion)
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME, transformCubeName)
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME, transformMethodName)
+
+                    if (transformApp && transformVersion && transformCubeName && transformMethodName)
+                    {   // If transformer cube reference supplied, verify that the cube exists
+                        ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+                        NCube transformCube = getPersister().loadCube(txAppId, transformCubeName)
+                        if (transformCube == null)
+                        {
+                            throw new IllegalArgumentException('Cannot point reference axis transformer to non-existing cube (' +
+                                    transformCubeName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
+                                    ', target: ' + transformApp + ' / ' + transformVersion + ' / ' + transformCubeName + '.' + transformMethodName)
+                        }
+
+                        if (transformCube.getAxis('method') == null)
+                        {
+                            throw new IllegalArgumentException('Cannot point reference axis transformer to non-existing axis (' +
+                                    transformMethodName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
+                                    ', target: ' + transformApp + ' / ' + transformVersion + ' / ' + transformCubeName + '.' + transformMethodName)
+                        }
+                    }
+
+                    ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
+                    getPersister().updateCube(axisRef.srcAppId, ncube, username)
+                }
+            }
+        }
     }
 
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
