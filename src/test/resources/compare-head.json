@@ -1,0 +1,7259 @@
+{
+  "ncube": "rpm.enum.Coverage.Coverages",
+  "defaultCellValueType": "string",
+  "defaultCellValue": "#NOT_DEFINED",
+  "axes": [
+    {
+      "name": "name",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000006,
+          "type": "string",
+          "value": "AltEmplCoverage"
+        },
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "CLASS_TRAITS"
+        },
+        {
+          "id": 1000000000014,
+          "type": "string",
+          "value": "CertifiedRiskMgtProgramCoverage"
+        },
+        {
+          "id": 1000000000003,
+          "type": "string",
+          "value": "ClassCodeCoverage"
+        },
+        {
+          "id": 1000000000015,
+          "type": "string",
+          "value": "CompulsoryWorkplaceSafetyProgramCoverage"
+        },
+        {
+          "id": 1000000000055,
+          "type": "string",
+          "value": "CoverageWithNonPremium"
+        },
+        {
+          "id": 1000000000007,
+          "type": "string",
+          "value": "DesignWorkPlaceExclCoverage"
+        },
+        {
+          "id": 1000000000016,
+          "type": "string",
+          "value": "DesignatedMedicalProviderCoverage"
+        },
+        {
+          "id": 1000000000017,
+          "type": "string",
+          "value": "DrugFreeWorkPlaceDiscountCoverage"
+        },
+        {
+          "id": 1000000000018,
+          "type": "string",
+          "value": "DrugandAlcoholSafetyProgramCoverage"
+        },
+        {
+          "id": 1000000000114,
+          "type": "string",
+          "value": "ElectronicDataLiability"
+        },
+        {
+          "id": 1000000000043,
+          "type": "string",
+          "value": "EmployerIncreasedLimitsCoverage"
+        },
+        {
+          "id": 1000000000012,
+          "type": "string",
+          "value": "EndemicDiseaseCoverage"
+        },
+        {
+          "id": 1000000000008,
+          "type": "string",
+          "value": "ForeignVolEmpLiabCoverage"
+        },
+        {
+          "id": 1000000000004,
+          "type": "string",
+          "value": "IncreasedLimitCoverage"
+        },
+        {
+          "id": 1000000000019,
+          "type": "string",
+          "value": "IntermediateDeductibleCoverage"
+        },
+        {
+          "id": 1000000000020,
+          "type": "string",
+          "value": "LargeDeductibleCoverage"
+        },
+        {
+          "id": 1000000000021,
+          "type": "string",
+          "value": "ManagedCareCoverage"
+        },
+        {
+          "id": 1000000000009,
+          "type": "string",
+          "value": "PartnerCoverage"
+        },
+        {
+          "id": 1000000000022,
+          "type": "string",
+          "value": "PremAdjArapSurcharge"
+        },
+        {
+          "id": 1000000000023,
+          "type": "string",
+          "value": "PremAdjCoalMineDiseaseSurcharge"
+        },
+        {
+          "id": 1000000000024,
+          "type": "string",
+          "value": "PremAdjContractingClassProgram"
+        },
+        {
+          "id": 1000000000025,
+          "type": "string",
+          "value": "PremAdjExpenseConstant"
+        },
+        {
+          "id": 1000000000026,
+          "type": "string",
+          "value": "PremAdjExperienceModification"
+        },
+        {
+          "id": 1000000000027,
+          "type": "string",
+          "value": "PremAdjFlatRate"
+        },
+        {
+          "id": 1000000000028,
+          "type": "string",
+          "value": "PremAdjFlexRate"
+        },
+        {
+          "id": 1000000000029,
+          "type": "string",
+          "value": "PremAdjLraro"
+        },
+        {
+          "id": 1000000000030,
+          "type": "string",
+          "value": "PremAdjMeritRate"
+        },
+        {
+          "id": 1000000000044,
+          "type": "string",
+          "value": "PremAdjPremDiscount"
+        },
+        {
+          "id": 1000000000031,
+          "type": "string",
+          "value": "PremAdjPrevInj"
+        },
+        {
+          "id": 1000000000032,
+          "type": "string",
+          "value": "PremAdjRateDeviation"
+        },
+        {
+          "id": 1000000000033,
+          "type": "string",
+          "value": "PremAdjSchedMod"
+        },
+        {
+          "id": 1000000000034,
+          "type": "string",
+          "value": "PremAdjShortRatePenalty"
+        },
+        {
+          "id": 1000000000113,
+          "type": "string",
+          "value": "ProductsWithdrawal"
+        },
+        {
+          "id": 1000000000035,
+          "type": "string",
+          "value": "QualifiedLossManagementProgramCreditCoverage"
+        },
+        {
+          "id": 1000000000013,
+          "type": "string",
+          "value": "RepatriationCoverage"
+        },
+        {
+          "id": 1000000000036,
+          "type": "string",
+          "value": "ReturntoWorkSafetyProgramCoverage"
+        },
+        {
+          "id": 1000000000037,
+          "type": "string",
+          "value": "SafetyIncentivePlanCreditCoverage"
+        },
+        {
+          "id": 1000000000047,
+          "type": "string",
+          "value": "ScheduleFactorClassPeculiarities"
+        },
+        {
+          "id": 1000000000048,
+          "type": "string",
+          "value": "ScheduleFactorEmpServices"
+        },
+        {
+          "id": 1000000000049,
+          "type": "string",
+          "value": "ScheduleFactorMedFacilities"
+        },
+        {
+          "id": 1000000000050,
+          "type": "string",
+          "value": "ScheduleFactorMngtCoopIns"
+        },
+        {
+          "id": 1000000000051,
+          "type": "string",
+          "value": "ScheduleFactorMngtSafetyOrg"
+        },
+        {
+          "id": 1000000000052,
+          "type": "string",
+          "value": "ScheduleFactorPremises"
+        },
+        {
+          "id": 1000000000053,
+          "type": "string",
+          "value": "ScheduleFactorSafetyDevices"
+        },
+        {
+          "id": 1000000000054,
+          "type": "string",
+          "value": "ScheduleFactorTotal"
+        },
+        {
+          "id": 1000000000038,
+          "type": "string",
+          "value": "SmallDeductibleCoverage"
+        },
+        {
+          "id": 1000000000010,
+          "type": "string",
+          "value": "SoleProprietorCoverage"
+        },
+        {
+          "id": 1000000000117,
+          "type": "string",
+          "value": "Terrorism"
+        },
+        {
+          "id": 1000000000005,
+          "type": "string",
+          "value": "TransportCoverage"
+        },
+        {
+          "id": 1000000000011,
+          "type": "string",
+          "value": "VolCompEmpLiabCovEndt"
+        },
+        {
+          "id": 1000000000045,
+          "type": "string",
+          "value": "WCCatastrophe"
+        },
+        {
+          "id": 1000000000046,
+          "type": "string",
+          "value": "WCTerrorism"
+        },
+        {
+          "id": 1000000000039,
+          "type": "string",
+          "value": "WaiverSubrogationBlanketCoverage"
+        },
+        {
+          "id": 1000000000002,
+          "type": "string",
+          "value": "WaiverSubrogationSpecificCoverage"
+        },
+        {
+          "id": 1000000000040,
+          "type": "string",
+          "value": "WorkStudyCoveragePostSecondarySchools"
+        },
+        {
+          "id": 1000000000041,
+          "type": "string",
+          "value": "WorkStudyCoverageSecondarySchools"
+        },
+        {
+          "id": 1000000000042,
+          "type": "string",
+          "value": "WorkplaceSafetyProgramCoverage"
+        }
+      ]
+    },
+    {
+      "name": "trait",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000017,
+          "type": "string",
+          "value": "int:parentCoverage"
+        },
+        {
+          "id": 2000000000005,
+          "type": "string",
+          "value": "pd:code"
+        },
+        {
+          "id": 2000000000006,
+          "type": "string",
+          "value": "r:changeable"
+        },
+        {
+          "id": 2000000000001,
+          "type": "string",
+          "value": "r:desc"
+        },
+        {
+          "id": 2000000000002,
+          "type": "string",
+          "value": "r:exists"
+        },
+        {
+          "id": 2000000000007,
+          "type": "string",
+          "value": "r:name"
+        },
+        {
+          "id": 2000000000003,
+          "type": "string",
+          "value": "r:ordinal"
+        },
+        {
+          "id": 2000000000008,
+          "type": "string",
+          "value": "r:origin"
+        },
+        {
+          "id": 2000000000004,
+          "type": "string",
+          "value": "r:scopedName"
+        },
+        {
+          "id": 2000000000009,
+          "type": "string",
+          "value": "ui:LookupChild"
+        },
+        {
+          "id": 2000000000010,
+          "type": "string",
+          "value": "ui:LookupParent"
+        },
+        {
+          "id": 2000000000018,
+          "type": "string",
+          "value": "ui:group.PolicyCoverage"
+        },
+        {
+          "id": 2000000000019,
+          "type": "string",
+          "value": "ui:group.RatingWorksheet"
+        },
+        {
+          "id": 2000000000011,
+          "type": "string",
+          "value": "ui:group.StateSchedule"
+        },
+        {
+          "id": 2000000000020,
+          "type": "string",
+          "value": "ui:label"
+        },
+        {
+          "id": 2000000000012,
+          "type": "string",
+          "value": "ui:order"
+        },
+        {
+          "id": 2000000000013,
+          "type": "string",
+          "value": "ui:type"
+        },
+        {
+          "id": 2000000000014,
+          "type": "string",
+          "value": "v:max"
+        },
+        {
+          "id": 2000000000015,
+          "type": "string",
+          "value": "v:min"
+        },
+        {
+          "id": 2000000000016,
+          "type": "string",
+          "value": "v:selectable"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Class Traits"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000002
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000003
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000004
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000017
+      ],
+      "type": "string",
+      "value": "coverage.WorkersCompUILOBCoverage"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "ALTEMPL"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "CERTRISKMG"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "WORKCOMP"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "REQSAFETY"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "DESGNWRKEX"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "DMP"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "DRUGFREE"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "DRUGSAFE"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "ELINCRLIM"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "ENDEMDIS"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "FOREIGNWC"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "INTDEDCRD"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "LGDEDCRD"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "MNGDCARE"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "PARTNER"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "ARAPFACTOR"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "COALDIS"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "CCPAP"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "EXPCONSTNT"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "EXPMOD"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "FRA"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "FLEXRATE"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "LRARO"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "MERITRATE"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "PREMDISC"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "PREVINJ"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "RATEDEV"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "SCHEDMOD"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "SHORTRATE"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "LOSSMNGMT"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "REPATRIATE"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "RETURNSAFE"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "SAFEINCENT"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "SMLDEDCRD"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "SOLEPROP"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "TRANSPORT"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "VOLCOMP"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "CATSTROPHE"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "TERROR"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "WAIVESUBRO"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "WAIVESUBRO"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "WORKSTUDY"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "WORKSTUDY"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000005
+      ],
+      "type": "string",
+      "value": "SAFETY"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "false"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "false"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000006
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Alternate Employers Endorsement"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Certified Risk Mgt Program"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Add Class"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Compulsory Workplace Safety Program"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Coverage With Non Premium"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Designated Workplace Exclusion"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Designated Medical Provider"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Drug Free Work Place Discount"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Drug and Alcohol Safety Program"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Electronic Data Liability"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Employer Increased Limits"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Endemic Disease"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Foreign Voluntary Compensation and Employers Liability Coverage"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Increased Limit"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Intermediate Deductible Coverage"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Large Deductible Coverage"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Managed Care (Network Credit Factor)"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Partners, Officers & Others Exclusion"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "ARAP Surcharge"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Coal Mine Disease Surcharge"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Contracting Class Program"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Expense Constant"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Experience Modification"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Flat Rate Adjustment"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Flexible Rating Adjustment"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Large Risk Alternative Rating Option"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Merit Rate Adjustment"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Premium Discount Premium Adjustment"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Previously Injured Adjustment"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Rate Deviation Factor Adjustment"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Schedule Modifications Factor Adjustment"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Short Rate Penalty Premium Adjustment"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Products Withdrawal"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Qualified Loss Management Program Credit"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Limits of Liability for Repatriation Expense"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Return to Work Safety Program"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Safety Incentive Plan Credit"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Classification Peculiarities"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Employees - Selection, Training, Supervision"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Medical Facilities"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Management - Cooperation With Insurance Carrier"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Management - Safety Organization"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Premises"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Safety Devices"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Total"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Small Deductible Coverage"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Sole Proprietors, Partners, Officers & Others Coverage Endorsement"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Terrorism"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Transport"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Voluntary Compensation and Employers Liability"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Catastrophe"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Terrorism"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Blanket Waiver"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Specific Waiver"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "9447-Work Study Coverage-Post Secondary Schools"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "9428-Work Study Coverage-Secondary Schools"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Workplace Safety Program"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "AltEmplCoverage"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "CertifiedRiskMgtProgramCoverage"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ClassCodeCoverage"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "CompulsoryWorkplaceSafetyProgramCoverage"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "CoverageWithNonPremium"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "DesignWorkPlaceExclCoverage"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "DesignatedMedicalProviderCoverage"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "DrugFreeWorkPlaceDiscountCoverage"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "DrugandAlcoholSafetyProgramCoverage"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ElectronicDataLiability"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "EmployerIncreasedLimitsCoverage"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "EndemicDiseaseCoverage"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ForeignVolEmpLiabCoverage"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "IncreasedLimitCoverage"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "IntermediateDeductibleCoverage"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "LargeDeductibleCoverage"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ManagedCareCoverage"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PartnerCoverage"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjArapSurcharge"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjCoalMineDiseaseSurcharge"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjContractingClassProgram"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjExpenseConstant"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjExperienceModification"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjFlatRate"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjFlexRate"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjLraro"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjMeritRate"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjPremDiscount"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjPrevInj"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjRateDeviation"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjSchedMod"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "PremAdjShortRatePenalty"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ProductsWithdrawal"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "QualifiedLossManagementProgramCreditCoverage"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "RepatriationCoverage"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ReturntoWorkSafetyProgramCoverage"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "SafetyIncentivePlanCreditCoverage"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorClassPeculiarities"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorEmpServices"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorMedFacilities"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorMngtCoopIns"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorMngtSafetyOrg"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorPremises"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorSafetyDevices"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "ScheduleFactorTotal"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "SmallDeductibleCoverage"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "SoleProprietorCoverage"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "Terrorism"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "TransportCoverage"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "VolCompEmpLiabCovEndt"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WCCatastrophe"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WCTerrorism"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WaiverSubrogationBlanketCoverage"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WaiverSubrogationSpecificCoverage"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WorkStudyCoveragePostSecondarySchools"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WorkStudyCoverageSecondarySchools"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000007
+      ],
+      "type": "string",
+      "value": "WorkplaceSafetyProgramCoverage"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000008
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000009
+      ],
+      "type": "string",
+      "value": "Coverage"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000010
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Coverages"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'005',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCClassCodeTable',order:'030',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'030',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'004',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.ForeignSubCoverages',order:'030',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'010',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'010',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'004',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'004',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.ForeignSubCoverages',order:'040',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'003',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'004',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'020',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000018
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverage',order:'006',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'010',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCClassCodeTable',order:'030',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'070',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageDetails',order:'002',changeable:'false',relevant:'false',render:'false',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'020',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'030',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'040',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'010',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoverageTable',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoverageTable',order:'001',widget:'OPTIONS_BUTTON',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'060',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'050',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'080',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'090',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoverageTable',order:'003',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'020',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'030',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'030',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000019
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'100',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'010',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'070',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'020',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'030',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'040',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoverageTable',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoverageTable',order:'001',widget:'OPTIONS_BUTTON',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'060',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'ARAP Surcharge',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Coal Mine Disease Surcharge',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Contracting Class Program',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Expense Constant',order:'001',widget:'OPTIONS_BUTTONS',changeable:'false',relevant:'false',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Experience Modification',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Flat Rate Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Flexible Rating Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Large Risk Alternative Rating Option',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Merit Rate Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Previously Injured Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Rate Deviation Factor Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Schedule Modifications Factor Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Short Rate Penalty Premium Adjustment',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'false',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'050',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'080',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'090',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'008',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'010',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'009',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'011',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'012',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'007',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'013',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageSubCoverages',order:'013',widget:'OPTIONS_DROPDOWN',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoverageTable',order:'003',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCStateCoveragesGroup',label:'Blanket Waiver',order:'001',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.SpecificWaiverCoverageSubCoverages',order:'020',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'030',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'030',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "[group:'view.WCConditionalCoverageTable',order:'100',widget:'OPTION_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "ARAP Surcharge"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Coal Mine Disease Surcharge"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Contracting Class Program"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Expense Constant"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Experience Modification"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Flat Rate Adjustment"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Flexible Rating Adjustment"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Large Risk Alternative Rating Option"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Merit Rate Adjustment"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Previously Injured Adjustment"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Rate Deviation Factor Adjustment"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Schedule Modifications Factor Adjustment"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Short Rate Penalty Premium Adjustment"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000020
+      ],
+      "type": "string",
+      "value": "Blanket Waiver"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "005"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "010"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "030"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "070"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "002"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "030"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "020"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "030"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "040"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "004"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "000"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "030"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "010"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "010"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "002"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "060"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "004"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "002"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "002"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "002"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "000"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "004"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "050"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "040"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "080"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "090"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "008"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "010"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "009"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "011"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "012"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "007"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "013"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "013"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "003"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "003"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "004"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "020"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "006"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "000"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "000"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "001"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "020"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "030"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "030"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000012
+      ],
+      "type": "string",
+      "value": "100"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTON"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_DROPDOWN"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000013
+      ],
+      "type": "string",
+      "value": "OPTION_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "999999"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "999999"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "999999"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000014
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000015
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000016
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000014,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000003,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000015,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000055,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000016,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000017,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000018,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000114,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000012,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000008,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000004,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000019,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000020,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000021,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000009,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000022,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000023,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000024,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000025,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000026,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000027,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000028,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000029,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000030,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000031,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000032,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000033,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000034,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000113,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000035,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000013,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000036,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000037,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000047,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000048,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000049,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000050,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000051,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000052,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000053,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000054,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000038,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000010,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000117,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000005,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000011,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000045,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000046,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000039,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000040,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000041,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000002
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000003
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Coverages.traits[:]"
+    }
+  ]
+}

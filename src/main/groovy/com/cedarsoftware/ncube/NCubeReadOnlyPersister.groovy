@@ -43,6 +43,5 @@ interface NCubeReadOnlyPersister
     Set<String> getBranches(String tenant)
     Set<String> getBranches(ApplicationID appId)
 
-    List<AxisRef> getReferenceAxes(ApplicationID appId)
     String getTestData(ApplicationID appId, String cubeName)
 }

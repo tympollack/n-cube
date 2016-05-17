@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.sql.Connection
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
@@ -1683,7 +1684,50 @@ class NCubeManager
     {
         validateAppId(appId)
         assertPermissions(appId, null)
-        return getPersister().getReferenceAxes(appId)
+
+        // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
+        List<NCubeInfoDto> list = getPersister().search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<AxisRef> refAxes = new ArrayList<>()
+
+        for (NCubeInfoDto dto : list)
+        {
+            try
+            {
+                NCube source = getPersister().loadCubeById(dto.id as long)
+                for (Axis axis : source.getAxes())
+                {
+                    if (axis.isReference())
+                    {
+                        AxisRef ref = new AxisRef()
+                        ref.srcAppId = appId
+                        ref.srcCubeName = source.name
+                        ref.srcAxisName = axis.name
+
+                        ApplicationID refAppId = axis.getReferencedApp()
+                        ref.destApp = refAppId.app
+                        ref.destVersion = refAppId.version
+                        ref.destCubeName = axis.getMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME)
+                        ref.destAxisName = axis.getMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME)
+
+                        ApplicationID transformAppId = axis.getTransformApp()
+                        if (transformAppId)
+                        {
+                            ref.transformApp = transformAppId.app
+                            ref.transformVersion = transformAppId.version
+                            ref.transformCubeName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME)
+                            ref.transformMethodName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME)
+                        }
+
+                        refAxes.add(ref)
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LOG.warn('Unable to load cube: ' + dto.name + ', app: ' + dto.applicationID, e)
+            }
+        }
+        return refAxes
     }
 
     static void updateReferenceAxes(List<AxisRef> axisRefs, String username = getUserId())

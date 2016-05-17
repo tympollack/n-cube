@@ -68,46 +68,6 @@ class NCubeJdbcPersister
         return list
     }
 
-    List<AxisRef> getReferenceAxes(Connection c, ApplicationID appId)
-    {
-        // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
-        List<NCubeInfoDto> list = search(c, appId, null, null, [:])
-        List<AxisRef> refAxes = new ArrayList<>()
-
-        for (NCubeInfoDto dto : list)
-        {
-            NCube source = loadCubeById(c, dto.id as long)
-            for (Axis axis : source.getAxes())
-            {
-                if (axis.isReference())
-                {
-                    AxisRef ref = new AxisRef()
-                    ref.srcAppId = appId
-                    ref.srcCubeName = source.name
-                    ref.srcAxisName = axis.name
-
-                    ApplicationID refAppId = axis.getReferencedApp()
-                    ref.destApp = refAppId.app
-                    ref.destVersion = refAppId.version
-                    ref.destCubeName = axis.getMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME)
-                    ref.destAxisName = axis.getMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME)
-
-                    ApplicationID transformAppId = axis.getTransformApp()
-                    if (transformAppId)
-                    {
-                        ref.transformApp = transformAppId.app
-                        ref.transformVersion = transformAppId.version
-                        ref.transformCubeName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME)
-                        ref.transformMethodName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME)
-                    }
-
-                    refAxes.add(ref)
-                }
-            }
-        }
-        return refAxes
-    }
-
     NCube loadCube(Connection c, ApplicationID appId, String cubeName)
     {
         Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
