@@ -2129,6 +2129,20 @@ class NCubeManager
         return false
     }
 
+    static boolean isAdmin(ApplicationID appId)
+    {
+        NCube userCube = getCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
+        if (userCube == null)
+        {   // Allow everything if no permissions are set up.
+            return true
+        }
+        if (isUserInGroup(userCube, ROLE_ADMIN))
+        {
+            return true
+        }
+        throw new SecurityException(ERROR_NOT_ADMIN + appId)
+    }
+
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
