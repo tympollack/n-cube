@@ -1674,20 +1674,6 @@ class NCubeManager
         return readableCubes
     }
 
-    static boolean isAdmin(ApplicationID appId)
-    {
-        NCube userCube = getCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
-        if (userCube == null)
-        {   // Allow everything if no permissions are set up.
-            return true
-        }
-        if (isUserInGroup(userCube, ROLE_ADMIN))
-        {
-            return true
-        }
-        throw new SecurityException(ERROR_NOT_ADMIN + appId)
-    }
-
     /**
      * This API will hand back a List of AxisRef, which is a complete description of a Reference
      * Axis pointer. It includes the Source ApplicationID, source Cube Name, source Axis Name,
