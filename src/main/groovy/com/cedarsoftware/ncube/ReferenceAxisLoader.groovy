@@ -94,7 +94,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         Axis refAxis = getReferencedAxis(refCube, args[REF_AXIS_NAME] as String, axis)
 
         Map<String, Object> input = new CaseInsensitiveMap<>()
-        input.put("columns", refAxis.getColumnsWithoutDefault())
+        input.columns = refAxis.getColumnsWithoutDefault()
         Map<String, Object> output = new CaseInsensitiveMap<>()
 
         if (transformCube != null)
@@ -105,7 +105,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         }
         else
         {
-            output.put("columns", input.get("columns"))
+            output.columns = input.columns
         }
 
         axis.setName(axisName)
@@ -116,17 +116,17 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         // Bring over referenced axis meta properties
         for (Map.Entry<String, Object> entry : refAxis.getMetaProperties().entrySet())
         {
-            if (axis.getMetaProperty(entry.getKey()) == null)
+            if (axis.getMetaProperty(entry.key) == null)
             {   // only override properties not already set.
-                axis.setMetaProperty(entry.getKey(), entry.getValue())
+                axis.setMetaProperty(entry.key, entry.value)
             }
         }
 
         // Bring over columns
-        List<Column> columns = (List<Column>) output.get("columns")
+        List<Column> columns = output.columns as List
         for (Column column : columns)
         {
-            axis.addColumn(column.getValue(), column.getColumnName(), column.id)
+            axis.addColumn(column.value, column.columnName, column.id)
         }
     }
 

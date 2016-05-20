@@ -236,6 +236,22 @@ class Axis
     }
 
     /**
+     * @return String name of referenced cube (or null if this is not a reference axis)
+     */
+    String getReferenceCubeName()
+    {
+        return getMetaProperty(REF_CUBE_NAME)
+    }
+
+    /**
+     * @return String name of referenced cube axis (or null if this is not a reference axis)
+     */
+    String getReferenceAxisName()
+    {
+        return getMetaProperty(REF_AXIS_NAME)
+    }
+
+    /**
      * @return ApplicationID of the transformer cube (if this Axis is a reference Axis and it
      * specifies a transformer cube, otherwise null).
      */
@@ -251,6 +267,22 @@ class Axis
     }
 
     /**
+     * @return String name of referenced cube (or null if this is not a reference axis)
+     */
+    String getTransformCubeName()
+    {
+        return getMetaProperty(TRANSFORM_CUBE_NAME)
+    }
+
+    /**
+     * @return String method name of referenced transform method (or null if this is not a reference axis)
+     */
+    String getTransformMethodName()
+    {
+        return getMetaProperty(TRANSFORM_METHOD_NAME)
+    }
+
+    /**
      * @return boolean true if this Axis is a reference Axis AND there is a transformer app
      * specified for the reference.
      */
@@ -262,10 +294,11 @@ class Axis
                 StringUtilities.hasContent(getMetaProperty(TRANSFORM_VERSION) as String) &&
                 StringUtilities.hasContent(status) &&
                 StringUtilities.hasContent(branch) &&
-                StringUtilities.hasContent(getMetaProperty(TRANSFORM_CUBE_NAME) as String) &&
-                StringUtilities.hasContent(getMetaProperty(TRANSFORM_METHOD_NAME) as String)
+                StringUtilities.hasContent(getTransformCubeName()) &&
+                StringUtilities.hasContent(getTransformMethodName())
 
     }
+
     /**
      * @return boolean true if this Axis is a reference to another axis, not a 'real' axis.  A reference axis
      * cannot be modified.

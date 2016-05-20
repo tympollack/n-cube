@@ -975,6 +975,47 @@ class TestDelta
         assert delta.toString().contains('add')
     }
 
+    @Test
+    void testMergeSortedToNonSorted()
+    {
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getStatesNotSorted()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getStatesNotSorted()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getStatesNotSorted()
+
+        Axis state = cube1['state'] as Axis
+        assert state.columnOrder == Axis.DISPLAY
+        List cols = state.getColumns()
+        assert cols[0].value == 'OH'
+        assert cols[1].value == 'GA'
+        assert cols[2].value == 'TX'
+        state.columnOrder = Axis.SORTED
+
+        Map<String, Object> delta1 = DeltaProcessor.getDelta(orig, cube1)
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig, cube2)
+        boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2)
+        assert compatibleChange
+        DeltaProcessor.mergeDeltaSet(cube2, delta1)
+
+        state = cube2['state'] as Axis
+        assert state.columnOrder == Axis.SORTED      // sort indicator updated
+        cols = state.getColumns()
+        assert cols[0].value == 'GA'                 // actual sort order honored
+        assert cols[1].value == 'OH'
+        assert cols[2].value == 'TX'
+    }
+
+    @Test
+    void testMergeReferenceAxisVersionNumberChange()
+    {
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getStatesNotSorted()
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getStatesNotSorted()
+        NCube<String> orig = (NCube<String>) NCubeBuilder.getStatesNotSorted()
+        // TODO: Write many more reference axis tests
+        // auto-merge reference axis (number >, number =, number = with diff transform)
+        // conflict-merge reference axis (one of the components of the reference axis changed)
+        // conflict-merge reference axis (reference to non-reference)
+        // conflict-merge reference axis (non-reference to reference)
+    }
 
     static def getCellIgnoreRule(NCube ncube, Map coord)
     {

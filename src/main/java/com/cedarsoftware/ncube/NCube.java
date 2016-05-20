@@ -2384,22 +2384,25 @@ public class NCube<T>
             }
             sha1Digest.update(sep);
             boolean displayOrder = axis.getColumnOrder() == Axis.DISPLAY;
-            for (Column column : axis.getColumnsWithoutDefault())
+            if (!axis.isReference())
             {
-                Object v = column.getValue();
-                Object safeVal = (v == null) ? "" : v;
-                sha1Digest.update(safeVal.toString().getBytes());
-                sha1Digest.update(sep);
-                if (!MapUtilities.isEmpty(column.metaProps))
+                for (Column column : axis.getColumnsWithoutDefault())
                 {
-                    deepSha1(sha1Digest, column.metaProps, sep);
-                }
-                sha1Digest.update(sep);
-                if (displayOrder)
-                {
-                    String order = String.valueOf(column.getDisplayOrder());
-                    sha1Digest.update(order.getBytes());
+                    Object v = column.getValue();
+                    Object safeVal = (v == null) ? "" : v;
+                    sha1Digest.update(safeVal.toString().getBytes());
                     sha1Digest.update(sep);
+                    if (!MapUtilities.isEmpty(column.metaProps))
+                    {
+                        deepSha1(sha1Digest, column.metaProps, sep);
+                    }
+                    sha1Digest.update(sep);
+                    if (displayOrder)
+                    {
+                        String order = String.valueOf(column.getDisplayOrder());
+                        sha1Digest.update(order.getBytes());
+                        sha1Digest.update(sep);
+                    }
                 }
             }
         }
@@ -2572,8 +2575,8 @@ public class NCube<T>
             return false;
         }
 
-        CaseInsensitiveSet<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
-        CaseInsensitiveSet<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
+        Set<String> a1 = new CaseInsensitiveSet<>(axisList.keySet());
+        Set<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet());
         a1.removeAll(a2);
 
         if (!a1.isEmpty())

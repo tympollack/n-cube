@@ -4,6 +4,7 @@ import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 
 import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 /**
  * This class binds together Tenant, App, version, status, and branch.  These fields together
@@ -36,6 +37,7 @@ class ApplicationID
     public static final String TEST_BRANCH = 'TEST'
 
     public static final transient ApplicationID testAppId = new ApplicationID(DEFAULT_TENANT, DEFAULT_APP, DEFAULT_VERSION, DEFAULT_STATUS, TEST_BRANCH)
+    public static final Pattern VERSION_REGEX = ~/[.]/
 
     private final String tenant
     private final String app
@@ -350,5 +352,33 @@ class ApplicationID
                 StringUtilities.equalsIgnoreCase(status, that.status) &&
                 StringUtilities.equals(version, that.version)
 
+    }
+
+    /**
+     * @return long version as a number that can be compared.  It is one million times major, plus one
+     * thousand times minor, plus patch.
+     */
+    long getVersionValue()
+    {
+        return getVersionValue(version)
+    }
+
+    /**
+     * @param String version in "major.minor.patch" format where all three components are numeric and each one
+     * is less than 1,000.
+     * @return long version as a number that can be compared.  It is one million times major, plus one
+     * thousand times minor, plus patch.
+     */
+    static long getVersionValue(String version)
+    {
+        String[] pieces = VERSION_REGEX.split(version)
+        if (pieces.length != 3)
+        {
+            return 0
+        }
+        int major = Integer.valueOf(pieces[0]) * 1000 * 1000
+        int minor = Integer.valueOf(pieces[1]) * 1000
+        int patch = Integer.valueOf(pieces[2].split('-')[0])
+        return major + minor + patch
     }
 }

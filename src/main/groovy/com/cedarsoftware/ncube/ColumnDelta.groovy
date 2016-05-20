@@ -24,10 +24,10 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ColumnDelta
 {
-    public AxisType axisType
-    public Column column
-    public String changeType
-    public Comparable locatorKey
+    AxisType axisType
+    Column column
+    String changeType
+    Comparable locatorKey
 
     ColumnDelta(AxisType axisType, Column column, Comparable locatorKey, String changeType)
     {

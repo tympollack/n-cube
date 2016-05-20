@@ -1085,19 +1085,19 @@ class NCubeManager
                 {
                     NCube baseCube = getPersister().loadCubeBySha1(appId, info.name, info.headSha1)
 
-                    Map delta1 = DeltaProcessor.getDelta(baseCube, branchCube)
-                    Map delta2 = DeltaProcessor.getDelta(baseCube, headCube)
+                    Map branchDelta = DeltaProcessor.getDelta(baseCube, branchCube)
+                    Map headDelta = DeltaProcessor.getDelta(baseCube, headCube)
 
-                    if (DeltaProcessor.areDeltaSetsCompatible(delta1, delta2))
+                    if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, headDelta))
                     {
                         if (reverse)
                         {
-                            DeltaProcessor.mergeDeltaSet(headCube, delta1)
+                            DeltaProcessor.mergeDeltaSet(headCube, branchDelta)
                             return headCube
                         }
                         else
                         {
-                            DeltaProcessor.mergeDeltaSet(branchCube, delta2)
+                            DeltaProcessor.mergeDeltaSet(branchCube, headDelta)
                             return branchCube
                         }
                     }
@@ -1120,7 +1120,8 @@ class NCubeManager
         }
         catch (Exception e)
         {
-            map.diff = e.message
+            Delta delta = new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, e.message)
+            map.diff = [delta]
         }
         errors[info.name] = map
         return null
@@ -1156,12 +1157,12 @@ class NCubeManager
             }
         }
 
-        Map delta1 = DeltaProcessor.getDelta(baseCube, branchCube)
-        Map delta2 = DeltaProcessor.getDelta(baseCube, otherCube)
+        Map branchDelta = DeltaProcessor.getDelta(baseCube, branchCube)
+        Map otherBranchDelta = DeltaProcessor.getDelta(baseCube, otherCube)
 
-        if (DeltaProcessor.areDeltaSetsCompatible(delta1, delta2))
+        if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, otherBranchDelta))
         {
-            DeltaProcessor.mergeDeltaSet(otherCube, delta1)
+            DeltaProcessor.mergeDeltaSet(otherCube, branchDelta)
             return otherCube
         }
 
@@ -1240,11 +1241,11 @@ class NCubeManager
             throw new IllegalArgumentException('Name passed in matches more than one n-cube in branch (' + branch + '), no update performed. Name: ' + cubeName + ', app: ' + appId)
         }
 
-        NCubeInfoDto srcDto = srcRecords[0]    // Exact match, only 1
-        NCubeInfoDto info = records[0] // Exact match, only 1
+        NCubeInfoDto srcDto = srcRecords[0]     // Exact match, only 1 (See check right above here)
+        NCubeInfoDto info = records[0]          // ditto
 
-        long infoRev = (long) Converter.convert(info.revision, long.class)
-        long srcRev = (long) Converter.convert(srcDto.revision, long.class)
+        long infoRev = Converter.convert(info.revision, long.class) as long
+        long srcRev = Converter.convert(srcDto.revision, long.class) as long
         boolean activeStatusMatches = (infoRev < 0) == (srcRev < 0)
 
         if (branch.equalsIgnoreCase(ApplicationID.HEAD))

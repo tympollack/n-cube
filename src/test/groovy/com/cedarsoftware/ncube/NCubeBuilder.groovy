@@ -658,6 +658,64 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube getStatesNotSorted()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "States",
+  "axes": [
+    {
+      "name": "state",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000011,
+          "type": "string",
+          "value": "OH"
+        },
+        {
+          "id": 1000000000012,
+          "type": "string",
+          "value": "GA"
+        },
+        {
+          "id": 1000000000013,
+          "type": "string",
+          "value": "TX"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000011
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000012
+      ],
+      "type": "string",
+      "value": "2"
+    },
+    {
+      "id": [
+        1000000000013
+      ],
+      "type": "string",
+      "value": "3"
+    }
+  ]
+}''')
+    }
+
     static NCube getDiscrete1D()
     {
         return NCube.fromSimpleJson('''\
