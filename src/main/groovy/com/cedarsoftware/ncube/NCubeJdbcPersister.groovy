@@ -107,12 +107,12 @@ class NCubeJdbcPersister
         map.putAll([cube: buildName(c, cubeName), sha1: sha1])
         NCube cube = null
 
-        new Sql(c).eachRow(map, """
-            /* loadCubeBySha1 */
-            SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
-            FROM n_cube
-            WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND sha1 = :sha1
-            ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
+        new Sql(c).eachRow(map, """\
+/* loadCubeBySha1 */
+SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
+FROM n_cube
+WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND sha1 = :sha1
+ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
                 cube = buildCube(appId, row)
         })
         if (cube)
@@ -129,13 +129,13 @@ class NCubeJdbcPersister
         map.cube = buildName(c, cubeName)
         Sql sql = new Sql(c)
 
-        sql.eachRow(map, """
-                    /* getRevisions */
-                    SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
-                    FROM n_cube
-                    WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch
-                    ORDER BY abs(revision_number) DESC
-                    """, {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
+        sql.eachRow(map, """\
+/* getRevisions */
+SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
+FROM n_cube
+WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND status_cd = :status AND branch_id = :branch
+ORDER BY abs(revision_number) DESC
+""", {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
         if (records.isEmpty())
         {
@@ -151,12 +151,12 @@ class NCubeJdbcPersister
         PreparedStatement s = null
         try
         {
-            s = c.prepareStatement("""
-                /* ${methodName}.insertCube */
-                INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
-                sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """)
+            s = c.prepareStatement("""\
+/* ${methodName}.insertCube */
+INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""")
             long uniqueId = UniqueIdGenerator.getUniqueId()
             s.setLong(1, uniqueId)
             s.setString(2, appId.tenant)
@@ -219,12 +219,12 @@ class NCubeJdbcPersister
 
         try
         {
-            s = c.prepareStatement("""
-                /* ${methodName}.insertCube */
-                INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
-                sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """)
+            s = c.prepareStatement("""\
+/* ${methodName}.insertCube */
+INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""")
             s.setLong(1, uniqueId)
             s.setString(2, appId.tenant)
             s.setString(3, appId.app)
@@ -297,11 +297,11 @@ class NCubeJdbcPersister
                 return count > 0
             }
 
-            stmt = c.prepareStatement("""
-                /* deleteCubes */
-                INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
-                sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+            stmt = c.prepareStatement("""\
+/* deleteCubes */
+INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
 
             Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
@@ -340,12 +340,11 @@ class NCubeJdbcPersister
         try
         {
             c.setAutoCommit(false)
-            ins = c.prepareStatement("""
-            /* restoreCubes */
-            INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
-            sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-            )
+            ins = c.prepareStatement("""\
+/* restoreCubes */
+INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
+sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
             Map<String, Object> options = [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY): true,
                                            (NCubeManager.SEARCH_INCLUDE_CUBE_DATA)   : true,
@@ -787,7 +786,7 @@ class NCubeJdbcPersister
         try
         {
             c.setAutoCommit(false)
-            ins = c.prepareStatement("""
+            ins = c.prepareStatement("""\
 /* rollbackCubes */ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
  sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
@@ -869,12 +868,12 @@ class NCubeJdbcPersister
         map.putAll([cube: buildName(c, cubeName)])
         Long maxRev = null
 
-        sql.eachRow(map, """
-            /* rollbackCubes.findRollbackRev */
-            SELECT revision_number FROM n_cube
-            WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
-            AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
-            ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
+        sql.eachRow(map, """\
+/* rollbackCubes.findRollbackRev */
+SELECT revision_number FROM n_cube
+WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
+AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
+ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             maxRev = row.getLong("revision_number")
         });
         return maxRev
@@ -1070,22 +1069,22 @@ class NCubeJdbcPersister
 
         Sql sql = new Sql(c)
 
-        String select = """
-        /* ${methodName} */
-            SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1
-            ${testCondition}
-            ${cubeCondition}
-            ${notesCondition}
-            FROM n_cube n,
-            ( SELECT n_cube_nm, max(abs(revision_number)) AS max_rev
-            FROM n_cube
-            WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
-            ${nameCondition1}
-            GROUP BY n_cube_nm ) m
-            WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND n.tenant_cd = RPAD(:tenant, 10, ' ') AND n.branch_id = :branch
-            ${revisionCondition}
-            ${changedCondition}
-            ${nameCondition2}"""
+        String select = """\
+/* ${methodName} */
+    SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1
+    ${testCondition}
+    ${cubeCondition}
+    ${notesCondition}
+    FROM n_cube n,
+    ( SELECT n_cube_nm, max(abs(revision_number)) AS max_rev
+    FROM n_cube
+    WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
+    ${nameCondition1}
+    GROUP BY n_cube_nm ) m
+    WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND n.tenant_cd = RPAD(:tenant, 10, ' ') AND n.branch_id = :branch
+    ${revisionCondition}
+    ${changedCondition}
+    ${nameCondition2}"""
 
         if (max >= 1)
         {   // Use pre-closure to fiddle with batch fetchSize and to monitor row count
@@ -1280,12 +1279,11 @@ class NCubeJdbcPersister
                    branch: appId.getBranch(), rev: maxRev, cube: buildName(c, cubeName)]
         Sql sql = new Sql(c)
 
-        String update = """
-            /* updateTestData */
-            UPDATE n_cube SET test_data_bin=:testData
-            WHERE app_cd = :app AND ${buildNameCondition(c, 'n_cube_nm')} = :cube AND version_no_cd = :ver
-            AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev
-            """
+        String update = """\
+/* updateTestData */
+UPDATE n_cube SET test_data_bin=:testData
+WHERE app_cd = :app AND ${buildNameCondition(c, 'n_cube_nm')} = :cube AND version_no_cd = :ver
+AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev"""
 
         int rows = sql.executeUpdate(map, update)
         return rows == 1
@@ -1299,12 +1297,11 @@ class NCubeJdbcPersister
         byte[] testBytes = null
         boolean found = false
 
-        String select = """
-         /* getTestData */
-         SELECT test_data_bin FROM n_cube
-         WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
-         ORDER BY abs(revision_number) DESC
-        """
+        String select = """\
+/* getTestData */
+SELECT test_data_bin FROM n_cube
+WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
+ORDER BY abs(revision_number) DESC"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
             testBytes = row.getBytes(TEST_DATA_BIN)
@@ -1331,12 +1328,11 @@ class NCubeJdbcPersister
                     rev: maxRev, cube: buildName(c, cubeName)])
         Sql sql = new Sql(c)
 
-        int rows = sql.executeUpdate(map, """
-                    /* updateNotes */
-                    UPDATE n_cube SET notes_bin = :notes
-                    WHERE app_cd = :app AND ${buildNameCondition(c, 'n_cube_nm')} = :cube AND version_no_cd = :version
-                    AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev
-                    """)
+        int rows = sql.executeUpdate(map, """\
+/* updateNotes */
+UPDATE n_cube SET notes_bin = :notes
+WHERE app_cd = :app AND ${buildNameCondition(c, 'n_cube_nm')} = :cube AND version_no_cd = :version
+AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch AND revision_number = :rev""")
         return rows == 1
     }
 
@@ -1394,25 +1390,6 @@ class NCubeJdbcPersister
         return versions
     }
 
-    Set<String> getBranches(Connection c, String tenant)
-    {
-        if (StringUtilities.isEmpty(tenant))
-        {
-            throw new IllegalArgumentException('error calling getBranches(), tenant must not be null or empty')
-        }
-        Sql sql = new Sql(c)
-        Set<String> branches = new HashSet<>()
-
-        sql.eachRow("/* getBranches.all */ SELECT DISTINCT branch_id FROM n_cube WHERE tenant_cd = RPAD(:tenant, 10, ' ')", [tenant:tenant], { ResultSet row ->
-            if (row.getFetchSize() < FETCH_SIZE)
-            {
-                row.setFetchSize(FETCH_SIZE)
-            }
-            branches.add(row.getString('branch_id'))
-        })
-        return branches
-    }
-
     Set<String> getBranches(Connection c, ApplicationID appId)
     {
         Map map = appId as Map
@@ -1460,11 +1437,10 @@ class NCubeJdbcPersister
         Sql sql = new Sql(c)
         Long rev = null
 
-        String select = """
-            /* ${methodName}.maxRev */ SELECT revision_number FROM n_cube
-            WHERE ${buildNameCondition(c, "n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
-            ORDER BY abs(revision_number) DESC
-            """
+        String select = """\
+/* ${methodName}.maxRev */ SELECT revision_number FROM n_cube
+WHERE ${buildNameCondition(c, "n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch
+ORDER BY abs(revision_number) DESC"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
             rev = row.getLong('revision_number')
@@ -1522,7 +1498,6 @@ class NCubeJdbcPersister
         ncube.setApplicationID(appId)
         return ncube
     }
-
 
     // ------------------------------------------ local non-JDBC helper methods ----------------------------------------
 

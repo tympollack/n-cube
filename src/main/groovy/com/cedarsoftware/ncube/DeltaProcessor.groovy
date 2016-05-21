@@ -46,16 +46,20 @@ class DeltaProcessor
      * with the same names.  If those conditions are met, then this method will return a Map with keys for each delta
      * type.
      *
-     * The key DELTA_CELLS, will have an associated value that is a Map<Set<Long>, T> which are the cell contents
-     * that are different.  These cell differences when applied to 'this' will result in this cube's cells matching
-     * the passed in 'other'. If the value is NCUBE.REMOVE_CELL, then that indicates a cell that needs to be removed.
-     * All other cell values are actual cell value changes.
+     * The key DELTA_AXES, contains the non-column differences between the axes.  First, it contains a Map of axis
+     * name (case-insensitively) to a Map that records the differences.  This map may contain the key
+     * DELTA_AXIS_SORT_CHANGED, and if so, the associated value is the new int sort order for the axis.  This map may
+     * also contain the key DELTA_AXIS_REF_CHANGE.  If that key is present, then there is a reference axis difference,
+     * and all of the keys on the associated Map are the reference axis settings (and transform settings).
      *
      * The key DELTA_AXES_COLUMNS, contains the column differences.  The value associated to this key is a Map, that
      * maps axis name (case-insensitively) to a Map where the key is a column and the associated value is
      * either the 'true' (new) or false (if it should be removed).
      *
-     * In the future, meta-property differences may be reported.
+     * The key DELTA_CELLS, will have an associated value that is a Map<Set<Long>, T> which are the cell contents
+     * that are different.  These cell differences when applied to 'this' will result in this cube's cells matching
+     * the passed in 'other'. If the value is NCUBE.REMOVE_CELL, then that indicates a cell that needs to be removed.
+     * All other cell values are actual cell value changes.
      *
      * @param baseCube NCube considered the original
      * @param changeCube NCube proposing new changes
@@ -467,12 +471,7 @@ class DeltaProcessor
         Set<String> a1 = new CaseInsensitiveSet<>(axisNames1)
         Set<String> a2 = new CaseInsensitiveSet<>(axisNames2)
         a1.removeAll(a2)
-
-        if (!a1.isEmpty())
-        {   // Axis names must be all be the same (ignoring case)
-            return false
-        }
-        return true
+        return a1.isEmpty()
     }
 
     /**

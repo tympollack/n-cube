@@ -40,7 +40,6 @@ interface NCubeReadOnlyPersister
     List<NCubeInfoDto> getRevisions(ApplicationID appId, String cubeName)
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String searchValue, Map options)
 
-    Set<String> getBranches(String tenant)
     Set<String> getBranches(ApplicationID appId)
 
     String getTestData(ApplicationID appId, String cubeName)

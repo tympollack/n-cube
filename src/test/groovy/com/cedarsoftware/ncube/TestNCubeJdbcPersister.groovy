@@ -213,21 +213,6 @@ class TestNCubeJdbcPersister
         }
     }
 
-    @Test
-    void testGetBranchesWithNullTenant()
-    {
-        Connection c = getConnectionThatThrowsSQLException()
-        try
-        {
-            new NCubeJdbcPersister().getBranches(c, (String)null)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains('tenant must not be null or empty'))
-        }
-    }
-
     private static getConnectionThatThrowsSQLException = { ->
         Connection c = mock(Connection.class)
         when(c.prepareStatement(anyString())).thenThrow(SQLException.class)
@@ -292,14 +277,6 @@ class TestNCubeJdbcPersister
         try
         {
             adapter.getVersions(null, null)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        { }
-
-        try
-        {
-            adapter.getBranches((String)null)
             fail()
         }
         catch (IllegalArgumentException e)

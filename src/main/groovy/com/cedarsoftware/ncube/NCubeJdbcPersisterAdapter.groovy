@@ -85,11 +85,6 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         return (List<NCubeInfoDto>) jdbcOperation { Connection c -> persister.getRevisions(c, appId, cubeName) }
     }
 
-    Set<String> getBranches(String tenant)
-    {
-        return (Set<String>) jdbcOperation { Connection c -> persister.getBranches(c, tenant) }
-    }
-
     Set<String> getBranches(ApplicationID appId)
     {
         return (Set<String>) jdbcOperation { Connection c -> persister.getBranches(c, appId) }

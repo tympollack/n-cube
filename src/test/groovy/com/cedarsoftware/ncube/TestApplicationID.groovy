@@ -634,4 +634,12 @@ class TestApplicationID
             e.message.toLowerCase().contains('cannot convert')
         }
     }
+
+    @Test
+    void testVersionAsValue()
+    {
+        ApplicationID appId = ApplicationID.testAppId
+        assert appId.versionValue == 999 * 1000 * 1000 + 99 * 1000 + 9
+        assert ApplicationID.getVersionValue('5.6') == 0     // needs 3 parts
+    }
 }

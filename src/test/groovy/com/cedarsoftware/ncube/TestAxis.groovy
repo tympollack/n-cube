@@ -2668,6 +2668,8 @@ class TestAxis
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
         Axis axis = new Axis('stateSource', 1, false, refAxisLoader)
+        assert axis.getReferenceCubeName() == 'SimpleDiscrete'
+        assert axis.getReferenceAxisName() == 'state'
         NCube two = new NCube('Mongo')
         two.addAxis(axis)
 
