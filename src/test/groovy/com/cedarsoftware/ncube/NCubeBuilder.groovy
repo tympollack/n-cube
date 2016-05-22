@@ -658,11 +658,11 @@ class NCubeBuilder
 }''')
     }
 
-    static NCube getStatesNotSorted()
+    static NCube get3StatesNotSorted()
     {
         return NCube.fromSimpleJson('''\
 {
-  "ncube": "States",
+  "ncube": "SimpleDiscrete",
   "axes": [
     {
       "name": "state",
@@ -691,6 +691,76 @@ class NCubeBuilder
     }
   ],
   "cells": [
+    {
+      "id": [
+        1000000000011
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000012
+      ],
+      "type": "string",
+      "value": "2"
+    },
+    {
+      "id": [
+        1000000000013
+      ],
+      "type": "string",
+      "value": "3"
+    }
+  ]
+}''')
+    }
+
+    static NCube get4StatesNotSorted()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "SimpleDiscrete",
+  "axes": [
+    {
+      "name": "state",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000010,
+          "type": "string",
+          "value": "AL"
+        },
+        {
+          "id": 1000000000011,
+          "type": "string",
+          "value": "OH"
+        },
+        {
+          "id": 1000000000012,
+          "type": "string",
+          "value": "GA"
+        },
+        {
+          "id": 1000000000013,
+          "type": "string",
+          "value": "TX"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000010
+      ],
+      "type": "string",
+      "value": "0"
+    },
     {
       "id": [
         1000000000011
@@ -858,6 +928,49 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube getStateReferrer()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "States",
+  "axes": [
+    {
+      "name": "state",
+      "hasDefault": false,
+      "isRef": true,
+      "referenceTenant": "NONE",
+      "referenceApp": "DEFAULT_APP",
+      "referenceVersion": "1.0.0",
+      "referenceStatus": "RELEASE",
+      "referenceBranch": "HEAD",
+      "referenceCubeName": "SimpleDiscrete",
+      "referenceAxisName": "state",
+      "transformApp": null,
+      "transformVersion": null,
+      "transformStatus": null,
+      "transformBranch": null,
+      "transformCubeName": null,
+      "transformMethodName": null
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002
+      ],
+      "type": "string",
+      "value": "2"
+    }
+  ]
+}''')
+    }
     static NCube getHeadLessCommands()
     {
         return NCube.fromSimpleJson('''\

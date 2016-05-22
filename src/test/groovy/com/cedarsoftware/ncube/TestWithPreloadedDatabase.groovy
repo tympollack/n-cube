@@ -70,7 +70,6 @@ class TestWithPreloadedDatabase
         manager = null;
 
         NCubeManager.clearCache()
-
     }
 
     TestingDatabaseManager getTestingDatabaseManager()

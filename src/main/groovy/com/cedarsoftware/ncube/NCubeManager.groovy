@@ -1088,15 +1088,15 @@ class NCubeManager
                     Map branchDelta = DeltaProcessor.getDelta(baseCube, branchCube)
                     Map headDelta = DeltaProcessor.getDelta(baseCube, headCube)
 
-                    if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, headDelta))
+                    if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, headDelta, reverse))
                     {
                         if (reverse)
-                        {
+                        {   // Updating Branch with what is in HEAD
                             DeltaProcessor.mergeDeltaSet(headCube, branchDelta)
                             return headCube
                         }
                         else
-                        {
+                        {   // Updating HEAD with what is in branch
                             DeltaProcessor.mergeDeltaSet(branchCube, headDelta)
                             return branchCube
                         }
@@ -1160,7 +1160,7 @@ class NCubeManager
         Map branchDelta = DeltaProcessor.getDelta(baseCube, branchCube)
         Map otherBranchDelta = DeltaProcessor.getDelta(baseCube, otherCube)
 
-        if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, otherBranchDelta))
+        if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, otherBranchDelta, false))
         {
             DeltaProcessor.mergeDeltaSet(otherCube, branchDelta)
             return otherCube
@@ -1433,13 +1433,30 @@ class NCubeManager
         }
 
         lockApp(appId)
-        sleep(10000)
+        if (!isJUnitTest())
+        {   // Only sleep when running in production (not by JUnit)
+            sleep(10000)
+        }
         int rows = getPersister().releaseCubes(appId, newSnapVer)
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
         broadcast(appId)
         unlockApp(appId)
         return rows
+    }
+
+    private static boolean isJUnitTest()
+    {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace()
+        List<StackTraceElement> list = Arrays.asList(stackTrace)
+        for (StackTraceElement element : list)
+        {
+            if (element.getClassName().startsWith('org.junit.'))
+            {
+                return true
+            }
+        }
+        return false
     }
 
     static void changeVersionValue(ApplicationID appId, String newVersion)

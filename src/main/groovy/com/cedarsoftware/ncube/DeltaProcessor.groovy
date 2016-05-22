@@ -102,10 +102,11 @@ class DeltaProcessor
     /**
      * Merge the passed in cell change-set into this n-cube.  This will apply all of the cell changes
      * in the passed in change-set to the cells of this n-cube, including adds and removes.
+     * @param mergeTarget NCube that has a change-set being merged into it.
      * @param deltaSet Map containing cell change-set.  The cell change-set contains cell coordinates
      * mapped to the associated value to set (or remove) for the given coordinate.
      */
-    static <T> void mergeDeltaSet(NCube<T> target, Map<String, Object> deltaSet)
+    static <T> void mergeDeltaSet(NCube<T> mergeTarget, Map<String, Object> deltaSet)
     {
         // Step 1: Merge axis-level changes
         boolean wasReferenceAxisUpdated = false
@@ -117,7 +118,7 @@ class DeltaProcessor
 
             if (axisChanges.size() > 0)
             {   // There exist changes on the Axis itself, not including possible column changes (sorted, reference, etc)
-                Axis axis = target.getAxis(axisName)
+                Axis axis = mergeTarget.getAxis(axisName)
                 if (axisChanges.containsKey(DELTA_AXIS_SORT_CHANGED))
                 {
                     axis.columnOrder = axisChanges[DELTA_AXIS_SORT_CHANGED] as int
@@ -126,23 +127,23 @@ class DeltaProcessor
                 Map<String, Object> ref = axisChanges[DELTA_AXIS_REF_CHANGE] as Map
                 if (!ref.isEmpty())
                 {   // Merge the reference changes to target cube's axis.
-                    Map args = [:]
-                    args[ReferenceAxisLoader.REF_TENANT] = ref.ref_tenant
-                    args[ReferenceAxisLoader.REF_APP] = ref.ref_app
-                    args[ReferenceAxisLoader.REF_VERSION] = ref.ref_version
-                    args[ReferenceAxisLoader.REF_STATUS] = ref.ref_status
-                    args[ReferenceAxisLoader.REF_BRANCH] = ref.ref_branch
-                    args[ReferenceAxisLoader.REF_CUBE_NAME] = ref.ref_cube
-                    args[ReferenceAxisLoader.REF_AXIS_NAME] = ref.ref_axis
-                    args[ReferenceAxisLoader.TRANSFORM_APP] = ref.tx_app
-                    args[ReferenceAxisLoader.TRANSFORM_VERSION] = ref.tx_version
-                    args[ReferenceAxisLoader.TRANSFORM_STATUS] = ref.tx_status
-                    args[ReferenceAxisLoader.TRANSFORM_BRANCH] = ref.tx_branch
-                    args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = ref.tx_cube
-                    args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = ref.tx_method
-                    axis.clear()
-                    ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(target.name, axisName, args)
-                    refAxisLoader.load(axis)
+//                    Map args = [:]
+//                    args[ReferenceAxisLoader.REF_TENANT] = ref.ref_tenant
+//                    args[ReferenceAxisLoader.REF_APP] = ref.ref_app
+//                    args[ReferenceAxisLoader.REF_VERSION] = ref.ref_version
+//                    args[ReferenceAxisLoader.REF_STATUS] = ref.ref_status
+//                    args[ReferenceAxisLoader.REF_BRANCH] = ref.ref_branch
+//                    args[ReferenceAxisLoader.REF_CUBE_NAME] = ref.ref_cube
+//                    args[ReferenceAxisLoader.REF_AXIS_NAME] = ref.ref_axis
+//                    args[ReferenceAxisLoader.TRANSFORM_APP] = ref.tx_app
+//                    args[ReferenceAxisLoader.TRANSFORM_VERSION] = ref.tx_version
+//                    args[ReferenceAxisLoader.TRANSFORM_STATUS] = ref.tx_status
+//                    args[ReferenceAxisLoader.TRANSFORM_BRANCH] = ref.tx_branch
+//                    args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = ref.tx_cube
+//                    args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = ref.tx_method
+//                    axis.clear()
+//                    ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(target.name, axisName, args)
+//                    refAxisLoader.load(axis)
                     wasReferenceAxisUpdated = true
                 }
             }
@@ -159,7 +160,7 @@ class DeltaProcessor
                 for (ColumnDelta colDelta : colChanges.values())
                 {
                     Column column = colDelta.column
-                    Axis axis = target.getAxis(axisName)
+                    Axis axis = mergeTarget.getAxis(axisName)
 
                     if (DELTA_COLUMN_ADD == colDelta.changeType)
                     {
@@ -168,17 +169,17 @@ class DeltaProcessor
 
                         if (findCol == null)
                         {
-                            target.addColumn(axisName, column.value, column.columnName, column.id)
+                            mergeTarget.addColumn(axisName, column.value, column.columnName, column.id)
                         }
                     }
                     else if (DELTA_COLUMN_REMOVE == colDelta.changeType)
                     {
                         Comparable value = axis.getValueToLocateColumn(column)
-                        target.deleteColumn(axisName, value)
+                        mergeTarget.deleteColumn(axisName, value)
                     }
                     else if (DELTA_COLUMN_CHANGE == colDelta.changeType)
                     {
-                        target.updateColumn(column.id, column.value)
+                        mergeTarget.updateColumn(column.id, column.value)
                     }
                 }
             }
@@ -188,22 +189,22 @@ class DeltaProcessor
         Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet[DELTA_CELLS]
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
         cellDelta.each { k, v ->
-            Set<Long> cols = deltaCoordToSetOfLong(target, k)
+            Set<Long> cols = deltaCoordToSetOfLong(mergeTarget, k)
             if (cols != null && cols.size() > 0)
             {
                 T value = v
                 if (DELTA_CELL_REMOVE == value)
                 {   // Remove cell
-                    target.removeCellById(cols)
+                    mergeTarget.removeCellById(cols)
                 }
                 else
                 {   // Add/Update cell
-                    target.setCellById(value, cols)
+                    mergeTarget.setCellById(value, cols)
                 }
             }
         }
 
-        target.clearSha1()
+        mergeTarget.clearSha1()
     }
 
     /**
@@ -219,25 +220,27 @@ class DeltaProcessor
      * The 'headDelta' is the delta-between another person's branch and HEAD when merging between branches.
      * @param branchDelta Map of cell coordinates to values generated from comparing two cubes (A -> B)
      * @param headDelta Map of cell coordinates to values generated from comparing two cubes (A -> C)
+     * @param reverse = true (HEAD -> branch), false = (branch -> HEAD)
      * @return boolean true if the two cell change-sets are compatible, false otherwise.
      */
-    static boolean areDeltaSetsCompatible(Map<String, Object> branchDelta, Map<String, Object> headDelta)
+    static boolean areDeltaSetsCompatible(Map<String, Object> branchDelta, Map<String, Object> headDelta, boolean reverse)
     {
         if (branchDelta == null || headDelta == null)
         {
             return false
         }
 
-        return areAxisDifferencesOK(branchDelta, headDelta) &&
+        return areAxisDifferencesOK(branchDelta, headDelta, reverse) &&
                 areAxisColumnDifferencesOK(branchDelta, headDelta) &&
                 areCellDifferencesOK(branchDelta, headDelta)
     }
 
     /**
      * Verify that axis-level changes are OK.
+     * @param reverse = true (HEAD -> branch), false = (branch -> HEAD)
      * @return true if the axis level changes between the two change sets are non-conflicting, false otherwise.
      */
-    private static boolean areAxisDifferencesOK(Map<String, Object> branchDelta, Map<String, Object> headDelta)
+    private static boolean areAxisDifferencesOK(Map<String, Object> branchDelta, Map<String, Object> headDelta, boolean reverse)
     {
         Map<String, Object> branchAxisDelta = branchDelta[DELTA_AXES] as Map
         Map<String, Object> headAxisDelta = headDelta[DELTA_AXES] as Map
@@ -283,9 +286,19 @@ class DeltaProcessor
                 String bAxis = branchRef.ref_axis
                 String hAxis = headRef.ref_axis
 
+                boolean versionDirOk
+                if (reverse)
+                {
+                    versionDirOk = ApplicationID.getVersionValue(bVer) <= ApplicationID.getVersionValue(hVer)
+                }
+                else
+                {
+                    versionDirOk = ApplicationID.getVersionValue(bVer) >= ApplicationID.getVersionValue(hVer)
+                }
+
                 if (StringUtilities.equalsIgnoreCase(bTenant, hTenant) &&
                         StringUtilities.equalsIgnoreCase(bApp, hApp) &&
-                        ApplicationID.getVersionValue(bVer) >= ApplicationID.getVersionValue(hVer) &&
+                        versionDirOk &&
                         StringUtilities.equalsIgnoreCase(bStatus, hStatus) &&
                         StringUtilities.equalsIgnoreCase(bBranch, hBranch) &&
                         StringUtilities.equalsIgnoreCase(bCube, hCube) &&
