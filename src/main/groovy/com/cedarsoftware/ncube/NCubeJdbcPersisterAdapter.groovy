@@ -115,6 +115,11 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         return (int) jdbcOperation { Connection c -> persister.changeVersionValue(c, appId, newVersion) }
     }
 
+    int moveBranch(ApplicationID appId, String newSnapVer)
+    {
+        return (int) jdbcOperation { Connection c -> persister.moveBranch(c, appId, newSnapVer) }
+    }
+
     int releaseCubes(ApplicationID appId, String newSnapVer)
     {
         return (int) jdbcOperation { Connection c -> persister.releaseCubes(c, appId, newSnapVer) }
