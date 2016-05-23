@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.46</version>
+  <version>3.4.47</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.47
+ * Bug fix: Merging n-cubes with reference axes, need to handle both head to branch and branch to head.  More tests added.
 * 3.4.46
  * Bug fix: Merging n-cubes with reference axes was not working correctly.  The HEAD cube's reference axis was not getting updated with the updated reference version.  Also, the 'sorted/not sorted' setting was not being auto-merged. 
 * 3.4.45

@@ -40,6 +40,7 @@ class DeltaProcessor
 
     public static final String DELTA_AXIS_REF_CHANGE = 'axis-ref-changed'
     public static final String DELTA_AXIS_SORT_CHANGED = 'axis-sort-changed'
+    public static final String DELTA_AXIS_COLUMNS = 'axis-col-delta'
 
     /**
      * Fetch the difference between this cube and the passed in cube.  The two cubes must have the same number of axes
@@ -125,25 +126,9 @@ class DeltaProcessor
                 }
 
                 Map<String, Object> ref = axisChanges[DELTA_AXIS_REF_CHANGE] as Map
-                if (!ref.isEmpty())
-                {   // Merge the reference changes to target cube's axis.
-//                    Map args = [:]
-//                    args[ReferenceAxisLoader.REF_TENANT] = ref.ref_tenant
-//                    args[ReferenceAxisLoader.REF_APP] = ref.ref_app
-//                    args[ReferenceAxisLoader.REF_VERSION] = ref.ref_version
-//                    args[ReferenceAxisLoader.REF_STATUS] = ref.ref_status
-//                    args[ReferenceAxisLoader.REF_BRANCH] = ref.ref_branch
-//                    args[ReferenceAxisLoader.REF_CUBE_NAME] = ref.ref_cube
-//                    args[ReferenceAxisLoader.REF_AXIS_NAME] = ref.ref_axis
-//                    args[ReferenceAxisLoader.TRANSFORM_APP] = ref.tx_app
-//                    args[ReferenceAxisLoader.TRANSFORM_VERSION] = ref.tx_version
-//                    args[ReferenceAxisLoader.TRANSFORM_STATUS] = ref.tx_status
-//                    args[ReferenceAxisLoader.TRANSFORM_BRANCH] = ref.tx_branch
-//                    args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = ref.tx_cube
-//                    args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = ref.tx_method
-//                    axis.clear()
-//                    ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(target.name, axisName, args)
-//                    refAxisLoader.load(axis)
+                if (ref.size() > 1)
+                {   // Merge the reference changes to target cube's axis.  > 1 indicates a reference, the number of
+                    // fields to specify the reference is much more than 1.
                     wasReferenceAxisUpdated = true
                 }
             }
@@ -258,18 +243,14 @@ class DeltaProcessor
             Map<String, Object> branchRef = branchAxisDelta[axisName][DELTA_AXIS_REF_CHANGE] as Map
             Map<String, Object> headRef = headAxisDelta[axisName][DELTA_AXIS_REF_CHANGE] as Map
 
-            if (branchRef.isEmpty() && headRef.isEmpty())
-            {   // OK - skip, neither side's axis is a reference axis
-            }
-            else if (branchRef.isEmpty() && !headRef.isEmpty())
-            {   // conflict - user broke references
+            if (branchRef[DELTA_AXIS_COLUMNS] || headRef[DELTA_AXIS_COLUMNS])
+            {   // Delta marked it as conflicting
                 return false
             }
-            else if (!branchRef.isEmpty() && headRef.isEmpty())
-            {   // conflict - user converted axis to reference
-                return false
-            }
-            else // if (!branchRef.isEmpty() && !headRef.isEmpty())
+            branchRef.remove(DELTA_AXIS_COLUMNS)
+            headRef.remove(DELTA_AXIS_COLUMNS)
+
+            if (!branchRef.isEmpty() && !headRef.isEmpty())
             {   // Both are reference axes
                 String bTenant = branchRef.ref_tenant
                 String hTenant = headRef.ref_tenant
@@ -288,11 +269,11 @@ class DeltaProcessor
 
                 boolean versionDirOk
                 if (reverse)
-                {
+                {   // HEAD to branch
                     versionDirOk = ApplicationID.getVersionValue(bVer) <= ApplicationID.getVersionValue(hVer)
                 }
                 else
-                {
+                {   // branch to HEAD
                     versionDirOk = ApplicationID.getVersionValue(bVer) >= ApplicationID.getVersionValue(hVer)
                 }
 
@@ -400,7 +381,7 @@ class DeltaProcessor
     }
 
     /**
-     * Gather difference between two axis as pertaining only to the Axis properties itself, not
+     * Gather difference between two axes as pertaining only to the Axis properties itself, not
      * the associated columns.
      */
     private static Map<String, Object> getAxisDelta(Axis baseAxis, Axis changeAxis)
@@ -417,9 +398,8 @@ class DeltaProcessor
         Map ref = [:]
         axisDeltas[DELTA_AXIS_REF_CHANGE] = ref
 
-        if (changeAxis.isReference())
-        {   // See if reference is updated
-
+        if (changeAxis.isReference() && baseAxis.isReference())
+        {   // Record desired change reference axis info
             ref.ref_tenant = changeApp.tenant
             ref.ref_app = changeApp.app
             ref.ref_version = changeApp.version
@@ -447,23 +427,9 @@ class DeltaProcessor
                 ref.tx_method = null
             }
         }
-
-        if (baseAxis.isReference() && !changeAxis.isReference())
-        {   // Break reference being merged
-            ref.ref_tenant = null
-            ref.ref_app = null
-            ref.ref_version = null
-            ref.ref_status = null
-            ref.ref_branch = null
-            ref.ref_cube = null
-            ref.ref_axis = null
-
-            ref.tx_app = null
-            ref.tx_version = null
-            ref.tx_status = null
-            ref.tx_branch = null
-            ref.tx_cube = null
-            ref.tx_method = null
+        else if (changeAxis.isReference() != baseAxis.isReference())
+        {
+            ref[DELTA_AXIS_COLUMNS] = true
         }
 
         return axisDeltas

@@ -1065,6 +1065,62 @@ class TestDelta
         // Merge new cube in one branch to another branch, no cube in HEAD
     }
 
+    @Test
+    void testMergeBreakReferenceAxis()
+    {
+        setupLibrary()
+        setupLibraryReference()
+        ApplicationID appIdKpartlow = setupBranch('kpartlow', '1.0.1')
+        ApplicationID appIdjdereg = setupBranch('jdereg', '1.0.2')
+
+        // Commit a change in 'kpartlow' branch that moves HEAD 'states' cube from reference 1.0.0 to 1.0.1
+        List<NCubeInfoDto> list = NCubeManager.getBranchChangesFromDatabase(appIdKpartlow)
+        NCubeManager.commitBranch(appIdKpartlow, list as Object[])
+
+        NCube statesJdereg = NCubeManager.loadCube(appIdjdereg, 'States')
+        statesJdereg.breakAxisReference('state')
+        NCubeManager.updateCube(appIdjdereg, statesJdereg)
+
+        list = NCubeManager.getBranchChangesFromDatabase(appIdjdereg)
+        try
+        {
+            NCubeManager.commitBranch(appIdjdereg, list as Object[])
+            fail()
+        }
+        catch (BranchMergeException e)
+        { }
+    }
+
+    @Test
+    void testMergeBreakReferenceAxisFail()
+    {
+        setupLibrary()
+        setupLibraryReference()
+        ApplicationID appIdKpartlow = setupBranch('kpartlow', '1.0.1')
+        ApplicationID appIdjdereg = setupBranch('jdereg', '1.0.2')
+
+        // Commit a change in 'jdereg' branch that moves HEAD 'states' cube from reference 1.0.0 to 1.0.2
+        List<NCubeInfoDto> list = NCubeManager.getBranchChangesFromDatabase(appIdjdereg)
+        NCubeManager.commitBranch(appIdjdereg, list as Object[])
+
+        NCube statesKpartlow = NCubeManager.loadCube(appIdKpartlow, 'States')
+        statesKpartlow.breakAxisReference('state')
+        NCubeManager.updateCube(appIdKpartlow, statesKpartlow)
+
+        list = NCubeManager.getBranchChangesFromDatabase(appIdKpartlow)
+        try
+        {
+            NCubeManager.commitBranch(appIdKpartlow, list as Object[])
+            fail()
+        }
+        catch (BranchMergeException ignored)
+        { }
+    }
+
+    // TODO: Swap order of above test
+    // TODO: Have jdereg break reference and merge to HEAD
+    // TODO: Then, kpartlow should be able to updated from HEAD because it will have a super set of columns
+
     static void setupLibrary()
     {
         NCube<String> states4 = (NCube<String>) NCubeBuilder.get4StatesNotSorted()
