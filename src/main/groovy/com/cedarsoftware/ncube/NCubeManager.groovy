@@ -2037,20 +2037,21 @@ class NCubeManager
 
         if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
         {
-            LOG.info('sys.branch.permissions check')
-            LOG.warn('sys.branch.permissions check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action)
+            LOG.info('sys.branch.permissions check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action)
+            LOG.info(userCube.toFormattedJson())
+            LOG.info('-----------------------------------------------------------------------------------------------')
+            LOG.info(branchPermCube.toFormattedJson())
+            LOG.info('===============================================================================================')
             return false
         }
         if (!checkResourcePermissions(permCube, userCube, action, resource))
         {
-            LOG.info('sys.permissions check')
-            LOG.warn('sys.permissions check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action)
+            LOG.info('sys.permissions check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action)
             return false
         }
         if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
         {
-            LOG.info('sys.lock check')
-            LOG.warn('sys.lock check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action + ', locked by: ' + getAppLockedBy(appId))
+            LOG.info('sys.lock check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action + ', locked by: ' + getAppLockedBy(appId))
             return false
         }
         return true
