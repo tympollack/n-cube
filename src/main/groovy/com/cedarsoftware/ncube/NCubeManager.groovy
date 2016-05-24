@@ -14,7 +14,6 @@ import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import javafx.application.Application
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -54,8 +53,6 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeManager
 {
-    public static final String ERROR_CANNOT_MOVE_000 = 'Version 0.0.0 is for system configuration and cannot be move.'
-    public static final String ERROR_CANNOT_MOVE_TO_000 = 'Version 0.0.0 is for system configuration and branch cannot be moved to it.'
     public static final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
     public static final String ERROR_CANNOT_RELEASE_TO_000 = 'Version 0.0.0 is for system configuration and cannot be created from the release process.'
     public static final String ERROR_NOT_ADMIN = 'Operation not performed. You do not have admin permissions for '
@@ -1411,87 +1408,21 @@ class NCubeManager
     }
 
     /**
-     * Move the branch specified in the appId to the newer snapshot version (newSnapVer).
-     * @param ApplicationID indicating what to move
-     * @param newSnapVer String version to move cubes to
-     * @return number of rows moved (count includes revisions per cube).
-     */
-    static int moveBranch(ApplicationID appId, String newSnapVer)
-    {
-        validateAppId(appId)
-        if (ApplicationID.HEAD == appId.branch)
-        {
-            throw new IllegalArgumentException('Cannot move the HEAD branch')
-        }
-        if ('0.0.0' == appId.version)
-        {
-            throw new IllegalStateException(ERROR_CANNOT_MOVE_000)
-        }
-        if ('0.0.0' == newSnapVer)
-        {
-            throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
-        }
-        assertPermissions(appId, null, ACTION.RELEASE)
-        int rows = getPersister().moveBranch(appId, newSnapVer)
-        clearCacheForBranches(appId)
-        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
-        broadcast(appId)
-        unlockApp(appId)
-        return rows
-    }
-
-    static int releaseBranch(ApplicationID appId, String newSnapVer)
-    {
-//        validateAppId(appId)
-//        ApplicationID.validateVersion(newSnapVer)
-//        if ('0.0.0' == appId.version)
-//        {
-//            throw new IllegalStateException(ERROR_CANNOT_RELEASE_000)
-//        }
-//        if ('0.0.0' == newSnapVer)
-//        {
-//            throw new IllegalStateException(ERROR_CANNOT_RELEASE_TO_000)
-//        }
-//        assertPermissions(appId, null, ACTION.RELEASE)
-//        if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
-//        {
-//            throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
-//        }
-//        if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
-//        {
-//            throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)
-//        }
-//
-//        lockApp(appId)
-//        if (!isJUnitTest())
-//        {   // Only sleep when running in production (not by JUnit)
-//            sleep(10000)
-//        }
-//        int rows = getPersister().releaseCubes(appId, newSnapVer)
-//        clearCacheForBranches(appId)
-//        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
-//        broadcast(appId)
-//        unlockApp(appId)
-//        return rows
-    }
-
-    /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
     static int releaseCubes(ApplicationID appId, String newSnapVer)
     {
-        // Perform safety checks
+        assertPermissions(appId, null, ACTION.RELEASE)
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
-        if ('0.0.0' == appId.version)
+        if (appId.version == '0.0.0')
         {
             throw new IllegalStateException(ERROR_CANNOT_RELEASE_000)
         }
-        if ('0.0.0' == newSnapVer)
+        if (newSnapVer == '0.0.0')
         {
             throw new IllegalStateException(ERROR_CANNOT_RELEASE_TO_000)
         }
-        assertPermissions(appId, null, ACTION.RELEASE)
         if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
             throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
@@ -1501,18 +1432,6 @@ class NCubeManager
             throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)
         }
 
-        // Move branches
-        Set<String> branches = getBranches(appId)
-        for (String branch : branches)
-        {
-            if (ApplicationID.HEAD != branch)
-            {
-                ApplicationID branchId = appId.asBranch(branch)
-                getPersister().moveBranch(branchId, newSnapVer)
-            }
-        }
-
-        // Release n-cubes
         lockApp(appId)
         if (!isJUnitTest())
         {   // Only sleep when running in production (not by JUnit)

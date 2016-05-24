@@ -1179,30 +1179,20 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         return true
     }
 
-    int moveBranch(Connection c, ApplicationID appId, String newSnapVer)
-    {
-        if (ApplicationID.HEAD == appId.branch)
-        {
-            throw new IllegalArgumentException('Cannot use moveBranch() API on HEAD branch')
-        }
-
-        // Move SNAPSHOT branch cubes from one version to another version.
-        Map map = appId as Map
-        map.newVer = newSnapVer
-        Sql sql = new Sql(c)
-        return sql.executeUpdate(map, "/* moveBranch */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = :branch")
-    }
-
     int releaseCubes(Connection c, ApplicationID appId, String newSnapVer)
     {
-        // Step 1: Release cubes where branch == HEAD (change their status from SNAPSHOT to RELEASE)
-        Sql sql = new Sql(c)
+        // Step 1: Move everyone's SNAPSHOT version cubes to new version.
+        // (Update version number to new version where branch != HEAD (and rest of appId matches) ignore revision)
         Map map = appId as Map
-        map.newVer = newSnapVer
+        map.putAll([newVer: newSnapVer])
+        Sql sql = new Sql(c)
+        sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id != 'HEAD'")
+
+        // Step 2: Release cubes where branch == HEAD (change their status from SNAPSHOT to RELEASE)
         map.create_dt = new Timestamp(System.currentTimeMillis())
         int releaseCount = sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id = 'HEAD'")
 
-        // Step 2: Create new SNAPSHOT cubes from the HEAD RELEASE cubes (next version higher, started for development)
+        // Step 3: Create new SNAPSHOT cubes from the HEAD RELEASE cubes (next version higher, started for development)
         ApplicationID releaseId = appId.asRelease()
 
         Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
