@@ -2038,7 +2038,6 @@ class NCubeManager
         if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
         {
             LOG.info('sys.branch.permissions check, user id: ' + getUserId() + ', resource: ' + resource + ', action: ' + action)
-            LOG.info(userCube.toFormattedJson())
             LOG.info('-----------------------------------------------------------------------------------------------')
             LOG.info(branchPermCube.toFormattedJson())
             LOG.info('===============================================================================================')
@@ -2059,20 +2058,26 @@ class NCubeManager
 
     private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
     {
+        LOG.info('Entering checkResourcePermissions...')
         List<Column> resourceColumns = getResourcesToMatch(permCube, resource)
+        LOG.info('  resourceColumns: ' + resourceColumns)
         for (Column resourceColumn : resourceColumns)
         {
             Comparable columnVal = resourceColumn.getValue()
             String valueString = columnVal == null ? null : columnVal.toString()
             if (userCube == null && (action == ACTION.READ || doesUserHaveBranchAccessToResource(permCube, valueString)))
             {
+                LOG.info('  returning true from checkResourcePermissions')
                 return true
             }
             if (userCube != null && doesUserHaveAppAccessToResource(permCube, userCube, action.lower(), valueString))
             {
+                LOG.info('  returning true from checkResourcePermissions')
                 return true
             }
         }
+        LOG.info(permCube.toFormattedJson())
+        LOG.info('  returning false checkResourcePermissions')
         return false
     }
 
@@ -2122,11 +2127,24 @@ class NCubeManager
 
     private static boolean doesUserHaveBranchAccessToResource(NCube permCube, String resourceColumnName)
     {
+        LOG.info('Entering doesUserHaveBranchAccessToResource...')
+        LOG.info('  resourceColumnName: ' + resourceColumnName)
+        LOG.info('  user: ' + getUserId())
+        def resourceDefault = permCube.getCellNoExecute([(AXIS_USER): null, (AXIS_RESOURCE): resourceColumnName])
+        def resourceUserName = permCube.getCellNoExecute([(AXIS_USER): getUserId(), (AXIS_RESOURCE): resourceColumnName])
+        LOG.info('  resourceDefault: ' + resourceDefault)
+        LOG.info('  resourceUserName: ' + resourceUserName)
+        LOG.info('---------------------')
+        LOG.info(permCube.toFormattedJson())
+        LOG.info('---------------------')
         return permCube.getCell([(AXIS_USER): null, (AXIS_RESOURCE): resourceColumnName]) || permCube.getCell([(AXIS_USER): getUserId(), (AXIS_RESOURCE): resourceColumnName])
     }
 
     private static boolean doesUserHaveAppAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
     {
+        LOG.info('Entering doesUserHaveAppAccessToResource...')
+        LOG.info('  resourceColumnName:' + resourceColumnName)
+        LOG.info('  action:' + action)
         Axis groupAxis = permCube.getAxis(AXIS_ROLE)
         for (Column groupColumn : groupAxis.getColumns())
         {
@@ -2134,9 +2152,12 @@ class NCubeManager
             boolean isGroupActive = permCube.getCell([(AXIS_RESOURCE): resourceColumnName, (AXIS_ACTION): action, (AXIS_ROLE): colName])
             if (isGroupActive && isUserInGroup(userCube, colName))
             {
+                LOG.info('  colName:' + colName)
+                LOG.info('  returning true from doesUserHaveAppAccessToResource')
                 return true
             }
         }
+        LOG.info('  returning false from doesUserHaveAppAccessToResource')
         return false
     }
 
@@ -2156,7 +2177,21 @@ class NCubeManager
 
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
-        return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
+        LOG.info('Entering isUserInGroup...')
+        LOG.info('  groupName: ' + groupName)
+        LOG.info('  user: ' + getUserId())
+        def groupDefault = userCube.getCellNoExecute([(AXIS_ROLE): groupName, (AXIS_USER): null])
+        def groupUsername = userCube.getCellNoExecute([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
+        LOG.info('  groupDefault: ' + groupDefault)
+        LOG.info('  groupUsername: ' + groupUsername)
+        LOG.info('---------------------')
+        LOG.info(userCube.toFormattedJson())
+        LOG.info('---------------------')
+        boolean b1 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null])
+        boolean b2 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
+        LOG.info(' b1: ' + b1)
+        LOG.info(' b2: ' + b2)
+        return b1 || b2
     }
 
     private static void detectNewAppId(ApplicationID appId)
