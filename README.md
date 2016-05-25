@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.58</version>
+  <version>3.4.59</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.59
+ * Trim whitespace from userId in NCubeManager, because HTTP header source (or other sources) may surprise you with a trailing space, causing permissions lookups to fail.
 * 3.4.49-58
  * Deubgging versions
 * 3.4.48

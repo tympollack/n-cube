@@ -2034,17 +2034,14 @@ class NCubeManager
 
         if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
         {
-            LOG.info('*** Fail 1, userId: ' + getUserId() + ", resource: " + resource + ", action: " + action);
             return false
         }
         if (!checkResourcePermissions(permCube, userCube, action, resource))
         {
-            LOG.info('*** Fail 2, userId: ' + getUserId() + ", resource: " + resource + ", action: " + action);
             return false
         }
         if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
         {
-            LOG.info('*** Fail 3, userId: ' + getUserId() + ", resource: " + resource + ", action: " + action);
             return false
         }
         return true
@@ -2149,21 +2146,7 @@ class NCubeManager
 
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
-        boolean b1 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null])
-        if (!b1)
-        {
-            LOG.info('b1=false, userId: ' + getUserId())
-            LOG.info('calling userCube.getCell() 1')
-            userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null, 'debug':(Boolean.TRUE)])
-        }
-        boolean b2 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
-        if (!b2)
-        {
-            LOG.info('b2=false, userId: ' + getUserId())
-            LOG.info('calling userCube.getCell() 2')
-            userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId(), 'debug':(Boolean.TRUE)])
-        }
-        return  b1 || b2
+        return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
     }
 
     private static void detectNewAppId(ApplicationID appId)
@@ -2178,8 +2161,7 @@ class NCubeManager
     private static void addBranchPermissionsCube(ApplicationID appId)
     {
         ApplicationID permAppId = appId.asVersion('0.0.0')
-        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null)
-        {
+        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null) {
             return
         }
 

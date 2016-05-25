@@ -535,17 +535,12 @@ public class NCube<T>
      */
     public T getCell(final Map coordinate, final Map output, Object defaultValue)
     {
-        if (coordinate.containsKey("debug"))
-        {
-            LOG.info("debug.getCell()");
-        }
         final RuleInfo ruleInfo = getRuleInfo(output);
         Map input = validateCoordinate(coordinate, output);
         T lastStatementValue = null;
 
         if (!hasRuleAxis())
         {   // Perform fast bind and execute.
-            LOG.info("debug.getCell().calling getCellById()");
             lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue);
             ruleInfo.setLastExecutedStatement(lastStatementValue);
             output.put("return", lastStatementValue);
@@ -808,33 +803,34 @@ public class NCube<T>
             pushed = true;
             T cellValue;
 
-            if (coordinate.containsKey("debug"))
-            {   // Dump out all kinds of binding info
-                LOG.info("*** DEBUG getCellById() ***");
-                LOG.info("Axes:");
-                for (Axis axis : axisList.values())
-                {
-                    LOG.info("  axis name: " + axis.getName());
-                    LOG.info("  axis ID: " + axis.getId());
-                    LOG.info("  axis type: " + axis.getType());
-                    LOG.info("  axis valueType: " + axis.getValueType());
-                    LOG.info("  Columns:");
-                    for (Column column : axis.getColumns())
-                    {
-                        if (StringUtilities.hasContent(column.getColumnName()))
-                        {
-                            LOG.info("    column name: " + column.getColumnName());
-                        }
-                        LOG.info("    column value: " + column.getValue());
-                        LOG.info("    column id: " + column.getId());
-                    }
-                }
-                LOG.info("Cells:");
-                LOG.info("  " + cells);
-                LOG.info("Input:");
-                LOG.info("  coord IDs: " + idCoord);
-                LOG.info("  coord Map: " + coordinate);
-            }
+// Handy trick for debugging a failed binding (like space after an input)
+//            if (coordinate.containsKey("debug"))
+//            {   // Dump out all kinds of binding info
+//                LOG.info("*** DEBUG getCellById() ***");
+//                LOG.info("Axes:");
+//                for (Axis axis : axisList.values())
+//                {
+//                    LOG.info("  axis name: " + axis.getName());
+//                    LOG.info("  axis ID: " + axis.getId());
+//                    LOG.info("  axis type: " + axis.getType());
+//                    LOG.info("  axis valueType: " + axis.getValueType());
+//                    LOG.info("  Columns:");
+//                    for (Column column : axis.getColumns())
+//                    {
+//                        if (StringUtilities.hasContent(column.getColumnName()))
+//                        {
+//                            LOG.info("    column name: " + column.getColumnName());
+//                        }
+//                        LOG.info("    column value: " + column.getValue());
+//                        LOG.info("    column id: " + column.getId());
+//                    }
+//                }
+//                LOG.info("Cells:");
+//                LOG.info("  " + cells);
+//                LOG.info("Input:");
+//                LOG.info("  coord IDs: " + idCoord);
+//                LOG.info("  coord Map: " + coordinate);
+//            }
 
             if (cells.containsKey(idCoord))
             {   // If there is content at the given coordinate...
