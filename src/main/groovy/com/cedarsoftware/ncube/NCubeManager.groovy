@@ -104,11 +104,8 @@ class NCubeManager
         public String initialValue()
         {
             Map params = getSystemParams()
-            if (params.user instanceof String)
-            {
-                return params.user
-            }
-            return System.getProperty('user.name')
+            String userId = params.user instanceof String ? params.user : System.getProperty('user.name')
+            return userId?.trim()
         }
     }
 
@@ -2361,7 +2358,7 @@ class NCubeManager
      */
     static void setUserId(String user)
     {
-        userId.set(user)
+        userId.set(user?.trim())
     }
 
     /**
