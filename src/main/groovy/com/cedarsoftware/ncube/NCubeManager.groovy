@@ -2037,14 +2037,17 @@ class NCubeManager
 
         if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
         {
+            LOG.info('*** Fail 1')
             return false
         }
         if (!checkResourcePermissions(permCube, userCube, action, resource))
         {
+            LOG.info('*** Fail 2')
             return false
         }
         if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
         {
+            LOG.info('*** Fail 3')
             return false
         }
         return true
