@@ -2150,18 +2150,25 @@ class NCubeManager
     private static boolean isUserInGroup(NCube userCube, String groupName)
     {
         boolean b1 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null])
-        boolean b2 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
-        if (!b2)
+        if (!b1)
         {
-            if (ROLE_ADMIN == groupName)
-            {
-                if ("jdereg" == getUserId() ||
+            if ("jdereg" == getUserId() ||
                     "jderegnaucourt" == getUserId() ||
                     "jsnyder4" == getUserId() ||
                     "tpollack" == getUserId())
-                {
-                    userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId(), debug:Boolean.TRUE])
-                }
+            {
+                userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null, debug:Boolean.TRUE])
+            }
+        }
+        boolean b2 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
+        if (!b2)
+        {
+            if ("jdereg" == getUserId() ||
+                "jderegnaucourt" == getUserId() ||
+                "jsnyder4" == getUserId() ||
+                "tpollack" == getUserId())
+            {
+                userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId(), debug:Boolean.TRUE])
             }
         }
         return  b1 || b2
