@@ -808,7 +808,7 @@ public class NCube<T>
             pushed = true;
             T cellValue;
 
-            if (coordinate.get("debug") == Boolean.TRUE)
+            if (coordinate.containsKey("debug"))
             {   // Dump out all kinds of binding info
                 LOG.info("*** DEBUG getCellById() ***");
                 LOG.info("Axes:");
