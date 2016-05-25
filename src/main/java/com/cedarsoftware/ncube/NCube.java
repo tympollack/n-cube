@@ -802,6 +802,35 @@ public class NCube<T>
             stackFrame.push(entry);
             pushed = true;
             T cellValue;
+
+            if (coordinate.get("debug") == Boolean.TRUE)
+            {   // Dump out all kinds of binding info
+                LOG.info("*** DEBUG getCellById() ***");
+                LOG.info("Axes:");
+                for (Axis axis : axisList.values())
+                {
+                    LOG.info("  axis name: " + axis.getName());
+                    LOG.info("  axis ID: " + axis.getId());
+                    LOG.info("  axis type: " + axis.getType());
+                    LOG.info("  axis valueType: " + axis.getValueType());
+                    LOG.info("  Columns:");
+                    for (Column column : axis.getColumns())
+                    {
+                        if (StringUtilities.hasContent(column.getColumnName()))
+                        {
+                            LOG.info("    column name: " + column.getColumnName());
+                        }
+                        LOG.info("    column value: " + column.getValue());
+                        LOG.info("    column id: " + column.getId());
+                    }
+                }
+                LOG.info("Cells:");
+                LOG.info("  " + cells);
+                LOG.info("Input:");
+                LOG.info("  coord IDs: " + idCoord);
+                LOG.info("  coord Map: " + coordinate);
+            }
+
             if (cells.containsKey(idCoord))
             {   // If there is content at the given coordinate...
                 cellValue = cells.get(idCoord);
