@@ -2037,17 +2037,17 @@ class NCubeManager
 
         if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
         {
-            LOG.info('*** Fail 1')
+            LOG.info('*** Fail 1, userId: ' + getUserId() + ", resource: " + resource + ", action: " + action);
             return false
         }
         if (!checkResourcePermissions(permCube, userCube, action, resource))
         {
-            LOG.info('*** Fail 2')
+            LOG.info('*** Fail 2, userId: ' + getUserId() + ", resource: " + resource + ", action: " + action);
             return false
         }
         if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
         {
-            LOG.info('*** Fail 3')
+            LOG.info('*** Fail 3, userId: ' + getUserId() + ", resource: " + resource + ", action: " + action);
             return false
         }
         return true
