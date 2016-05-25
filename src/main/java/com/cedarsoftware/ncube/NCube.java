@@ -535,12 +535,17 @@ public class NCube<T>
      */
     public T getCell(final Map coordinate, final Map output, Object defaultValue)
     {
+        if (coordinate.containsKey("debug"))
+        {
+            LOG.info("debug.getCell()");
+        }
         final RuleInfo ruleInfo = getRuleInfo(output);
         Map input = validateCoordinate(coordinate, output);
         T lastStatementValue = null;
 
         if (!hasRuleAxis())
         {   // Perform fast bind and execute.
+            LOG.info("debug.getCell().calling getCellById()");
             lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue);
             ruleInfo.setLastExecutedStatement(lastStatementValue);
             output.put("return", lastStatementValue);

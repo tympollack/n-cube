@@ -2155,22 +2155,26 @@ class NCubeManager
         boolean b1 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null])
         if (!b1)
         {
+            LOG.info('b1=false')
             if ("jdereg" == getUserId() ||
                     "jderegnaucourt" == getUserId() ||
                     "jsnyder4" == getUserId() ||
                     "tpollack" == getUserId())
             {
+                LOG.info('calling userCube.getCell() 1')
                 userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null, debug:Boolean.TRUE])
             }
         }
         boolean b2 = userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
         if (!b2)
         {
+            LOG.info('b2=false')
             if ("jdereg" == getUserId() ||
                 "jderegnaucourt" == getUserId() ||
                 "jsnyder4" == getUserId() ||
                 "tpollack" == getUserId())
             {
+                LOG.info('calling userCube.getCell() 2')
                 userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId(), debug:Boolean.TRUE])
             }
         }
