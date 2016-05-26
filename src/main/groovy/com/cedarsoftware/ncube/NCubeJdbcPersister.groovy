@@ -433,7 +433,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                     String sha1 = row.getString('sha1')
                     String cubeName = row.getString('n_cube_nm')
                     Long revision = row.getLong('revision_number')
-                    long time = row.getTimestamp('create_dt').getTime()
+                    long time = System.currentTimeMillis()
                     String branch = row.getString('branch_id')
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
 
@@ -1139,7 +1139,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
                 insert.setLong(1, UniqueIdGenerator.getUniqueId())
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
-                insert.setTimestamp(4, row.getTimestamp('create_dt'))
+                insert.setTimestamp(4, new Timestamp(System.currentTimeMillis()))
                 insert.setString(5, row.getString('create_hid'))
                 insert.setString(6, appId.version)
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
@@ -1207,8 +1207,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             c.setAutoCommit(false)
             int count = 0
             insert = c.prepareStatement(
-                    "/* releaseCubes */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    "/* releaseCubes */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, sha1) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
             runSelectCubesStatement(c, releaseId, null, options, { ResultSet row ->
                 insert.setLong(1, UniqueIdGenerator.getUniqueId())
@@ -1224,6 +1224,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
                 insert.setString(11, appId.tenant)
                 insert.setString(12, ApplicationID.HEAD)
                 insert.setLong(13, 0) // New SNAPSHOT revision numbers start at 0, we don't move forward deleted records.
+                insert.setString(14, row.getString('sha1'))
                 insert.addBatch()
                 count++
                 if (count % EXECUTE_BATCH_CONSTANT == 0)
