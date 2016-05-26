@@ -145,7 +145,7 @@ ORDER BY abs(revision_number) DESC
     }
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, String name, Long revision, byte[] cubeData,
-                            byte[] testData, String notes, boolean changed, String sha1, String headSha1, long time,
+                            byte[] testData, String notes, boolean changed, String sha1, String headSha1,
                             String username, String methodName) throws SQLException
     {
         PreparedStatement s = null
@@ -168,7 +168,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             s.setLong(8, revision)
             s.setString(9, sha1)
             s.setString(10, headSha1)
-            Timestamp now = new Timestamp(time)
+            Timestamp now = new Timestamp(System.currentTimeMillis())
             s.setTimestamp(11, now)
             s.setString(12, username)
             s.setBytes(13, cubeData)
@@ -188,7 +188,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             dto.version = appId.version
             dto.status = appId.status
             dto.branch = appId.branch
-            dto.createDate = new Date(time)
+            dto.createDate = new Date(System.currentTimeMillis())
             dto.createHid = username
             dto.notes = note
             dto.revision = Long.toString(revision)
@@ -207,10 +207,10 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     }
 
     NCubeInfoDto insertCube(Connection c, ApplicationID appId, NCube cube, Long revision, byte[] testData, String notes,
-                            boolean changed, String headSha1, long time, String username, String methodName)
+                            boolean changed, String headSha1, String username, String methodName)
     {
         long uniqueId = UniqueIdGenerator.getUniqueId()
-        Timestamp now = new Timestamp(time)
+        Timestamp now = new Timestamp(System.currentTimeMillis())
         final Blob blob = c.createBlob()
         OutputStream out = blob.setBinaryStream(1L)
         OutputStream stream = new GZIPOutputStream(out, 8192)
@@ -254,7 +254,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             dto.version = appId.version
             dto.status = appId.status
             dto.branch = appId.branch
-            dto.createDate = new Date(time)
+            dto.createDate = new Date(System.currentTimeMillis())
             dto.createHid = username
             dto.notes = note
             dto.revision = Long.toString(revision)
@@ -433,7 +433,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                     String sha1 = row.getString('sha1')
                     String cubeName = row.getString('n_cube_nm')
                     Long revision = row.getLong('revision_number')
-                    long time = System.currentTimeMillis()
                     String branch = row.getString('branch_id')
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
 
@@ -454,7 +453,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                         maxRevision = Math.abs(maxRevision as long) + 1
                     }
 
-                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, 'updated from ' + branch, false, sha1, sha1, time, username, 'pullToBranch')
+                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, 'updated from ' + branch, false, sha1, sha1, username, 'pullToBranch')
                     infoRecs.add(dto)
                 }
             }
@@ -492,13 +491,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 return
             }
 
-            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "updated", true, headSha1, System.currentTimeMillis(), username, 'updateCube')
+            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "updated", true, headSha1, username, 'updateCube')
         })
 
         // No existing row found, then create a new cube (updateCube can be used for update or create)
         if (!rowFound)
         {
-            insertCube(c, appId, cube, 0L, null, "created", true, null, System.currentTimeMillis(), username, 'updateCube')
+            insertCube(c, appId, cube, 0L, null, "created", true, null, username, 'updateCube')
         }
     }
 
@@ -563,7 +562,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
         String notes = 'Cube duplicated from app: ' + oldAppId + ', name: ' + oldName
         Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
-        insertCube(c, newAppId, newName, rev, jsonBytes, oldTestData, notes, changed, sha1, sameExceptBranch ? headSha1 : null, System.currentTimeMillis(), username, 'duplicateCube')
+        insertCube(c, newAppId, newName, rev, jsonBytes, oldTestData, notes, changed, sha1, sameExceptBranch ? headSha1 : null, username, 'duplicateCube')
         return true
     }
 
@@ -620,8 +619,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         String notes = "renamed: " + oldName + " -> " + newName
 
         Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
-        insertCube(c, appId, ncube, rev, oldTestData, notes, true, newHeadSha1, System.currentTimeMillis(), username, 'renameCube')
-        insertCube(c, appId, oldName, -(oldRevision + 1), oldBytes, oldTestData, notes, true, oldSha1, oldHeadSha1, System.currentTimeMillis(), username, 'renameCube')
+        insertCube(c, appId, ncube, rev, oldTestData, notes, true, newHeadSha1, username, 'renameCube')
+        insertCube(c, appId, oldName, -(oldRevision + 1), oldBytes, oldTestData, notes, true, oldSha1, oldHeadSha1, username, 'renameCube')
         return true
     }
 
@@ -636,9 +635,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
             Long revision = row.getLong('revision_number')
             byte[] testData = row.getBytes(TEST_DATA_BIN)
-            long now = System.currentTimeMillis()
             revision = revision < 0 ? revision - 1 : revision + 1
-            result = insertCube(c, appId, cube, revision, testData, "merged", true, headSha1, now, username, 'commitMergedCubeToBranch')
+            result = insertCube(c, appId, cube, revision, testData, "merged", true, headSha1, username, 'commitMergedCubeToBranch')
         })
         return result
     }
@@ -674,13 +672,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             }
 
             byte[] testData = row.getBytes(TEST_DATA_BIN)
-            long now = System.currentTimeMillis()
             // ok to use this here, because we're writing out these bytes twice (once to head and once to branch)
             byte[] cubeData = cube.getCubeAsGzipJsonBytes()
             String sha1 = cube.sha1()
 
-            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "merged, committed", false, sha1, null, now, username, methodName)
-            result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, "merged", false, sha1, sha1, now, username,  methodName)
+            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, "merged, committed", false, sha1, null, username, methodName)
+            result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, "merged", false, sha1, sha1, username,  methodName)
         })
         return result
     }
@@ -751,10 +748,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 if (!skip)
                 {
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
-                    long now = System.currentTimeMillis()
-
-                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, now, username, 'commitCubes')
-                    def map1 = [head_sha1: sha1, create_dt: new Timestamp(now), id: cubeIds[i]]
+                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, username, 'commitCubes')
+                    def map1 = [head_sha1: sha1, create_dt: new Timestamp(System.currentTimeMillis()), id: cubeIds[i]]
                     Sql sql1 = new Sql(c)
 
                     sql1.executeUpdate(map1, '/* commitCubes */ UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id')
@@ -953,7 +948,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         String notes = 'merge: branch accepted over head'
         Long rev = Math.abs(newRevision as long) + 1L
-        insertCube(c, appId, cubeName, newRevision < 0 ? -rev : rev, myBytes, myTestData, notes, changed, tipBranchSha1, headSha1, System.currentTimeMillis(), username, 'mergeAcceptMine')
+        insertCube(c, appId, cubeName, newRevision < 0 ? -rev : rev, myBytes, myTestData, notes, changed, tipBranchSha1, headSha1, username, 'mergeAcceptMine')
         return true
     }
 
@@ -1006,7 +1001,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         String notes = 'merge: head accepted over branch'
         Long rev = Math.abs(newRevision as long) + 1L
-        insertCube(c, appId, cubeName, headRevision < 0 ? -rev : rev, headBytes, headTestData, notes, false, headSha1, headSha1, System.currentTimeMillis(), username, 'mergeAcceptTheirs')
+        insertCube(c, appId, cubeName, headRevision < 0 ? -rev : rev, headBytes, headTestData, notes, false, headSha1, headSha1, username, 'mergeAcceptTheirs')
         return true
     }
 

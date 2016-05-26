@@ -84,7 +84,7 @@ class JdbcTestingDatabaseManager implements TestingDatabaseManager
         try
         {
             byte[] cubeData = StringUtilities.getBytes(cube.toFormattedJson(), "UTF-8")
-            persister.insertCube(c, appId, cube.name, 0L, cubeData, (byte[]) null, "Inserted without sha1-1", (Boolean) false, (String) null, (String) null, System.currentTimeMillis(), username, 'insertCubeWithNoSha1')
+            persister.insertCube(c, appId, cube.name, 0L, cubeData, (byte[]) null, "Inserted without sha1-1", (Boolean) false, (String) null, (String) null, username, 'insertCubeWithNoSha1')
         }
         finally
         {
