@@ -66,7 +66,7 @@ class GroovyExpression extends GroovyBase
 
         StringBuilder groovyCodeWithoutImportStatements = new StringBuilder()
         Set<String> imports = getImports(theirGroovy, groovyCodeWithoutImportStatements)
-        StringBuilder groovy = new StringBuilder("""
+        StringBuilder groovy = new StringBuilder("""\
 package ncube.grv.exp
 import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.exception.*

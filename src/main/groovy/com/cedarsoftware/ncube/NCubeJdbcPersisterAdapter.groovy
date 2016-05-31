@@ -55,6 +55,11 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         }
     }
 
+    Connection getConnection()
+    {
+        return connectionProvider.getConnection()
+    }
+
     void updateCube(ApplicationID appId, NCube cube, final String username)
     {
         jdbcOperation { Connection c -> persister.updateCube(c, appId, cube, username) }
