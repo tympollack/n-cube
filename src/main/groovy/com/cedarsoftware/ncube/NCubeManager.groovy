@@ -53,6 +53,8 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeManager
 {
+    public static final String ERROR_CANNOT_MOVE_000 = 'Version 0.0.0 is for system configuration and cannot be move.'
+    public static final String ERROR_CANNOT_MOVE_TO_000 = 'Version 0.0.0 is for system configuration and branch cannot be moved to it.'
     public static final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
     public static final String ERROR_CANNOT_RELEASE_TO_000 = 'Version 0.0.0 is for system configuration and cannot be created from the release process.'
     public static final String ERROR_NOT_ADMIN = 'Operation not performed. You do not have admin permissions for '
@@ -226,7 +228,10 @@ class NCubeManager
         }
         applyAdvices(ncube.getApplicationID(), ncube)
         Map<String, Object> cubes = getCacheForApp(appId)
-        cubes[cubeName.toLowerCase()] = ncube     // Update cache
+        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
+        {
+            cubes[cubeName.toLowerCase()] = ncube     // Update cache
+        }
         return ncube
     }
 
@@ -1405,6 +1410,36 @@ class NCubeManager
     }
 
     /**
+     * Move the branch specified in the appId to the newer snapshot version (newSnapVer).
+     * @param ApplicationID indicating what to move
+     * @param newSnapVer String version to move cubes to
+     * @return number of rows moved (count includes revisions per cube).
+     */
+    static int moveBranch(ApplicationID appId, String newSnapVer)
+    {
+        validateAppId(appId)
+        if (ApplicationID.HEAD == appId.branch)
+        {
+            throw new IllegalArgumentException('Cannot move the HEAD branch')
+        }
+        if ('0.0.0' == appId.version)
+        {
+            throw new IllegalStateException(ERROR_CANNOT_MOVE_000)
+        }
+        if ('0.0.0' == newSnapVer)
+        {
+            throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
+        }
+        assertPermissions(appId, null, ACTION.RELEASE)
+        int rows = getPersister().moveBranch(appId, newSnapVer)
+        clearCacheForBranches(appId)
+        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
+        broadcast(appId)
+        unlockApp(appId)
+        return rows
+    }
+
+    /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
     static int releaseCubes(ApplicationID appId, String newSnapVer)
@@ -1412,11 +1447,11 @@ class NCubeManager
         assertPermissions(appId, null, ACTION.RELEASE)
         validateAppId(appId)
         ApplicationID.validateVersion(newSnapVer)
-        if (appId.version == '0.0.0')
+        if ('0.0.0' == appId.version)
         {
             throw new IllegalStateException(ERROR_CANNOT_RELEASE_000)
         }
-        if (newSnapVer == '0.0.0')
+        if ('0.0.0' == newSnapVer)
         {
             throw new IllegalStateException(ERROR_CANNOT_RELEASE_TO_000)
         }
@@ -2040,7 +2075,7 @@ class NCubeManager
         {
             return false
         }
-        if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && (action != ACTION.RELEASE || getAppLockedBy(appId) != getUserId()))
+        if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && getAppLockedBy(appId) != getUserId())
         {
             return false
         }
@@ -2149,7 +2184,7 @@ class NCubeManager
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
     }
 
-    private static void detectNewAppId(ApplicationID appId)
+    protected static void detectNewAppId(ApplicationID appId)
     {
         if (search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false]).size() == 0)
         {
@@ -2219,16 +2254,29 @@ class NCubeManager
      * Lock the given appId so that no changes can be made to any cubes within it
      * @param appId ApplicationID to lock
      */
-    static void lockApp(ApplicationID appId)
+    static boolean lockApp(ApplicationID appId)
     {
         String userId = getUserId()
         ApplicationID bootAppId = getBootAppId(appId)
+
+        String lockOwner = getAppLockedBy(appId)
+        if (userId == lockOwner)
+        {
+            return false
+        }
+        if (lockOwner != null)
+        {
+            throw new SecurityException('Application ' + appId + ' already locked by ' + lockOwner)
+        }
+
         NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
-        if (sysLockCube == null) {
-            return
+        if (sysLockCube == null)
+        {
+            return false
         }
         sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
         getPersister().updateCube(bootAppId, sysLockCube, userId)
+        return true
     }
 
     /**
@@ -2239,9 +2287,18 @@ class NCubeManager
     {
         ApplicationID bootAppId = getBootAppId(appId)
         NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
-        if (sysLockCube == null) {
+        if (sysLockCube == null)
+        {
             return
         }
+
+        String userId = getUserId()
+        String lockOwner = getAppLockedBy(appId)
+        if (userId != lockOwner)
+        {
+            throw new SecurityException('Application ' + appId + ' locked by ' + lockOwner)
+        }
+
         sysLockCube.removeCell([(AXIS_SYSTEM):null])
         getPersister().updateCube(bootAppId, sysLockCube, getUserId())
     }

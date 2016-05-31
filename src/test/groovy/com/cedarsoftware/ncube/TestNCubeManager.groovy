@@ -1862,14 +1862,21 @@ class TestNCubeManager
         // try creating a new cube in branch, should get exception
         NCube testCube = new NCube('test')
         testCube.setApplicationID(branchBootAppId)
-        try {
+        NCubeManager.updateCube(branchBootAppId, testCube)  // works without error because current user has the lock
+        String currUser = NCubeManager.getUserId()
+        NCubeManager.setUserId('garpley')                   // change user
+        try
+        {
             NCubeManager.updateCube(branchBootAppId, testCube)
             fail()
-        } catch (SecurityException e) {
+        }
+        catch (SecurityException e)
+        {
             assertTrue(e.message.contains('not performed'))
             assertTrue(e.message.contains(NCubeManager.ACTION.UPDATE.name()))
             assertTrue(e.message.contains(testCube.name))
         }
+        NCubeManager.setUserId(currUser)
     }
 
     @Test

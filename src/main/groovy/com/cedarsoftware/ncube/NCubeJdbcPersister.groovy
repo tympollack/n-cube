@@ -1174,6 +1174,20 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         return true
     }
 
+    int moveBranch(Connection c, ApplicationID appId, String newSnapVer)
+    {
+        if (ApplicationID.HEAD == appId.branch)
+        {
+            throw new IllegalArgumentException('Cannot use moveBranch() API on HEAD branch')
+        }
+
+        // Move SNAPSHOT branch cubes from one version to another version.
+        Map map = appId as Map
+        map.newVer = newSnapVer
+        Sql sql = new Sql(c)
+        return sql.executeUpdate(map, "/* moveBranch */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = RPAD(:tenant, 10, ' ') AND branch_id == :branch")
+    }
+
     int releaseCubes(Connection c, ApplicationID appId, String newSnapVer)
     {
         // Step 1: Move everyone's SNAPSHOT version cubes to new version.
