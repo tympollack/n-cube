@@ -57,7 +57,8 @@ class ApplicationID
 
     ApplicationID(String tenant, String app, String version, String status, String branch)
     {
-        this.tenant = tenant
+        validateTenant(tenant)
+        this.tenant = tenant.trim()
         this.app = app
         this.version = version
         this.status = status
