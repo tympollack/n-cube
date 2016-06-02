@@ -1,7 +1,7 @@
 CREATE TABLE if not exists n_cube (
   n_cube_id bigint(20) NOT NULL,
   n_cube_nm varchar(250) NOT NULL,
-  tenant_cd char(10) CHARACTER SET ascii NOT NULL DEFAULT 'NONE',
+  tenant_cd varchar(10) CHARACTER SET ascii NOT NULL DEFAULT 'NONE',
   cube_value_bin longblob,
   create_dt timestamp NOT NULL,
   create_hid varchar(20) DEFAULT NULL,

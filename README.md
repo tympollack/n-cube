@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.62</version>
+  <version>3.4.63</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.63
+ * tenant_cd compared with equals (=) and RPAD().  In a future release, the RPAD comparison will be dropped.
 * 3.4.62
  * Fixed release cubes to NOT set the SHA1 to null on the HEAD branch
  * CREATE_DT needs to always be now.
