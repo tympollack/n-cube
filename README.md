@@ -98,6 +98,7 @@ ___
 ### Version History
 * 3.4.63
  * tenant_cd compared with equals (=) and RPAD().  In a future release, the RPAD comparison will be dropped.
+ * moveBranch() and releaseVersion() added to NCubeManager so that the release process can be done iteratively (looping through branches before calling releaseVersion() to prevent massive database update).
 * 3.4.62
  * Fixed release cubes to NOT set the SHA1 to null on the HEAD branch
  * CREATE_DT needs to always be now.
