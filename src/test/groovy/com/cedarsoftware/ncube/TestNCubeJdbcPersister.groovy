@@ -74,7 +74,7 @@ class TestNCubeJdbcPersister
         ncube1.deleteAxis("bu")
         ApplicationID next = defaultSnapshotApp.createNewSnapshotId("0.2.0")
         persister.updateCube(defaultSnapshotApp, ncube1, USER_ID)
-        int numRelease = persister.releaseCubes(defaultSnapshotApp, "0.2.0")
+        int numRelease = NCubeManager.releaseCubes(defaultSnapshotApp, "0.2.0")
         assertEquals(0, numRelease)
 
         cubeList = NCubeManager.search(next, 'test.*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])

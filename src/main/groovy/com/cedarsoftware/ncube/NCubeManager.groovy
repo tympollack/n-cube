@@ -1430,12 +1430,49 @@ class NCubeManager
         {
             throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
         }
+        assertLockedByMe(appId)
         assertPermissions(appId, null, ACTION.RELEASE)
         int rows = getPersister().moveBranch(appId, newSnapVer)
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
         broadcast(appId)
-        unlockApp(appId)
+        return rows
+    }
+
+    /**
+     * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
+     */
+    static int releaseVersion(ApplicationID appId, String newSnapVer)
+    {
+        validateAppId(appId)
+        assertPermissions(appId, null, ACTION.RELEASE)
+        assertLockedByMe(appId)
+        ApplicationID.validateVersion(newSnapVer)
+        if ('0.0.0' == appId.version)
+        {
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000)
+        }
+        if ('0.0.0' == newSnapVer)
+        {
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
+        }
+        if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        {
+            throw new IllegalArgumentException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
+        }
+        if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        {
+            throw new IllegalArgumentException("A RELEASE version " + appId.version + " already exists, app: " + appId)
+        }
+
+        if (!isJUnitTest())
+        {   // Only sleep when running in production (not by JUnit)
+            sleep(10000)
+        }
+        int rows = getPersister().releaseCubes(appId, newSnapVer)
+        clearCacheForBranches(appId)
+        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
+        broadcast(appId)
         return rows
     }
 
@@ -1449,25 +1486,35 @@ class NCubeManager
         ApplicationID.validateVersion(newSnapVer)
         if ('0.0.0' == appId.version)
         {
-            throw new IllegalStateException(ERROR_CANNOT_RELEASE_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000)
         }
         if ('0.0.0' == newSnapVer)
         {
-            throw new IllegalStateException(ERROR_CANNOT_RELEASE_TO_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
         }
         if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
-            throw new IllegalStateException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
+            throw new IllegalArgumentException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
         }
         if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
-            throw new IllegalStateException("A RELEASE version " + appId.version + " already exists, app: " + appId)
+            throw new IllegalArgumentException("A RELEASE version " + appId.version + " already exists, app: " + appId)
         }
 
         lockApp(appId)
         if (!isJUnitTest())
         {   // Only sleep when running in production (not by JUnit)
             sleep(10000)
+        }
+
+        Set<String> branches = getBranches(appId)
+        for (String branch : branches)
+        {
+            if (!ApplicationID.HEAD.equalsIgnoreCase(branch))
+            {
+                ApplicationID branchAppId = appId.asBranch(branch)
+                moveBranch(branchAppId, newSnapVer)
+            }
         }
         int rows = getPersister().releaseCubes(appId, newSnapVer)
         clearCacheForBranches(appId)
@@ -2028,7 +2075,7 @@ class NCubeManager
     // --------------------------------------- Permissions -------------------------------------------------------------
 
     /**
-     *
+     * Assert that the requested permission is allowed.  Throw a SecurityException if not.
      */
     static boolean assertPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
     {
@@ -2037,6 +2084,22 @@ class NCubeManager
             return true
         }
         throw new SecurityException('Operation not performed.  You do not have ' + action.name() + ' permission to ' + resource + ', app: ' + appId)
+    }
+
+    private static void assertLockedByMe(ApplicationID appId)
+    {
+        NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
+        if (sysLockCube == null)
+        {   // If there is no sys.lock cube, then no permissions / locking being used.
+            return
+        }
+
+        String lockOwner = getAppLockedBy(getBootAppId(appId))
+        if (getUserId() == lockOwner)
+        {
+            return
+        }
+        throw new SecurityException('Application is not locked by you, app: ' + appId)
     }
 
     private static ApplicationID getBootAppId(ApplicationID appId)

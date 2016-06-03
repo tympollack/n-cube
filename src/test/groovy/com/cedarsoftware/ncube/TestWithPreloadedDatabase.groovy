@@ -1096,7 +1096,8 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    void testReleaseCubes() {
+    void testReleaseCubes()
+    {
         // load cube with same name, but different structure in TEST branch
         preloadCubes(head, "test.branch.1.json", "test.branch.age.1.json")
 
@@ -1117,7 +1118,8 @@ class TestWithPreloadedDatabase
         assertEquals(2, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
         testValuesOnBranch(branch1, "FOO")
 
-        assertEquals(2, NCubeManager.releaseCubes(head, "1.29.0"))
+        int rows = NCubeManager.releaseCubes(head, "1.29.0")
+        assertEquals(2, rows)
 
         Map<String, List<String>> versions = NCubeManager.getVersions(head.tenant, head.app)
         assert versions.size() == 2

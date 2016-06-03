@@ -638,7 +638,7 @@ class TestNCubeManager
         {
             NCubeManager.releaseCubes(defaultSnapshotApp, '1.0.0')
         }
-        catch (IllegalStateException e)
+        catch (IllegalArgumentException e)
         {
             assert e.message.toLowerCase().contains('1.0.0 already exists')
         }
@@ -658,7 +658,7 @@ class TestNCubeManager
         {
             NCubeManager.releaseCubes(defaultSnapshotApp, '1.2.3')
         }
-        catch (IllegalStateException e)
+        catch (IllegalArgumentException e)
         {
             assert e.message.toLowerCase().contains('1.0.0 already exists')
         }
@@ -2011,17 +2011,23 @@ class TestNCubeManager
     @Test
     void testCannotRelease000Version()
     {
-        try {
+        try
+        {
             NCubeManager.releaseCubes(defaultBootApp, '0.0.1')
             fail()
-        } catch (IllegalStateException e) {
+        }
+        catch (IllegalArgumentException e)
+        {
             assertTrue(e.message.contains(NCubeManager.ERROR_CANNOT_RELEASE_000))
         }
 
-        try {
+        try
+        {
             NCubeManager.releaseCubes(defaultSnapshotApp, '0.0.0')
             fail()
-        } catch (IllegalStateException e) {
+        }
+        catch (IllegalArgumentException e)
+        {
             assertTrue(e.message.contains(NCubeManager.ERROR_CANNOT_RELEASE_TO_000))
         }
     }
