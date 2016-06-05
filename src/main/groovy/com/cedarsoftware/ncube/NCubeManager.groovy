@@ -1456,19 +1456,11 @@ class NCubeManager
         {
             throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
         }
-        if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
-        {
-            throw new IllegalArgumentException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
-        }
         if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
             throw new IllegalArgumentException("A RELEASE version " + appId.version + " already exists, app: " + appId)
         }
 
-        if (!isJUnitTest())
-        {   // Only sleep when running in production (not by JUnit)
-            sleep(10000)
-        }
         int rows = getPersister().releaseCubes(appId, newSnapVer)
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
