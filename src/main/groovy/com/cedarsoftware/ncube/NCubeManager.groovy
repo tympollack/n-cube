@@ -1431,7 +1431,7 @@ class NCubeManager
             throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
         }
         assertLockedByMe(appId)
-        assertPermissions(appId, null, ACTION.RELEASE)
+        assertPermissions(appId.asHead(), null, ACTION.RELEASE)
         int rows = getPersister().moveBranch(appId, newSnapVer)
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
