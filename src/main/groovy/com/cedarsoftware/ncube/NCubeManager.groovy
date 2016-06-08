@@ -1431,7 +1431,7 @@ class NCubeManager
             throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
         }
         assertLockedByMe(appId)
-        assertPermissions(appId.asHead(), null, ACTION.RELEASE)
+        assertPermissions(appId, null, ACTION.RELEASE)
         int rows = getPersister().moveBranch(appId, newSnapVer)
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
@@ -2122,9 +2122,10 @@ class NCubeManager
         }
         NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
 
-        if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
-        {
-            return false
+        if (action != ACTION.RELEASE) {
+            if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource)) {
+                return false
+            }
         }
         if (!checkResourcePermissions(permCube, userCube, action, resource))
         {
