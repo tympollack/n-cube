@@ -1027,32 +1027,6 @@ class TestNCubeManager
         }
     }
 
-    @Test
-    void testEnsureLoadedOnCubeThatDoesNotExist()
-    {
-        try
-        {
-            // This API is now package friendly and only to be used by tests or NCubeManager implementation work.
-            NCubeInfoDto dto = new NCubeInfoDto()
-            dto.id = '0'
-            dto.name = 'does_not_exist'
-            dto.app = 'NONE'
-            dto.tenant = 'NONE'
-            dto.status = 'SNAPSHOT'
-            dto.version = '1.0.0'
-            dto.branch = 'HEAD'
-
-            NCubeManager.ensureLoaded(dto)
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.toLowerCase().contains('unable'))
-            assertTrue(e.message.toLowerCase().contains('find'))
-            assertTrue(e.message.toLowerCase().contains('cube'))
-        }
-    }
-
     @Test(expected = RuntimeException.class)
     void testGetNCubesFromResourceException()
     {
@@ -1622,21 +1596,6 @@ class TestNCubeManager
 //    }
 
     @Test
-    void testEnsureLoadedException()
-    {
-        try
-        {
-            NCubeManager.ensureLoaded(null)
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertTrue(e.message.toLowerCase().contains('failed'))
-            assertTrue(e.message.toLowerCase().contains('retrieve cube from cache'))
-        }
-    }
-
-    @Test
     void testMutateReleaseCube()
     {
         assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK))
@@ -1953,13 +1912,7 @@ class TestNCubeManager
     {
         assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS))
         NCubeManager.setUserId('bad')
-
-        try {
-            NCubeManager.isAdmin(defaultSnapshotApp)
-            fail()
-        } catch (SecurityException e) {
-            assertTrue(e.message.contains(NCubeManager.ERROR_NOT_ADMIN))
-        }
+        assert !NCubeManager.isAdmin(defaultSnapshotApp)
     }
 
     @Test
@@ -1975,16 +1928,17 @@ class TestNCubeManager
         assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS))
         assertNotNull(NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_LOCK))
 
-        //set bad user as having branch permissions
+        //set otheruser as having branch permissions
         NCube branchPermCube = NCubeManager.loadCube(branchBootApp, NCubeManager.SYS_BRANCH_PERMISSIONS)
         branchPermCube.getAxis(NCubeManager.AXIS_USER).addColumn(otherUser)
         branchPermCube.setCell(true, [(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_RESOURCE):null])
+        NCubeManager.updateCube(branchBootApp, branchPermCube)
 
-        //set bad user as no app permissions
-        NCube userCube = NCubeManager.loadCube(branchBootApp, NCubeManager.SYS_USERGROUPS)
+        //set otheruser as no app permissions
+        NCube userCube = NCubeManager.loadCube(defaultBootApp, NCubeManager.SYS_USERGROUPS)
         userCube.getAxis(NCubeManager.AXIS_USER).addColumn(otherUser)
         userCube.setCell(true, [(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_ROLE):NCubeManager.ROLE_READONLY])
-        NCubeManager.updateCube(branchBootApp, userCube)
+        NCubeManager.getPersister().updateCube(defaultBootApp, userCube, NCubeManager.getUserId())
         assertFalse(userCube.getCell([(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_ROLE):NCubeManager.ROLE_USER]))
         assertTrue(userCube.getCell([(NCubeManager.AXIS_USER):otherUser, (NCubeManager.AXIS_ROLE):NCubeManager.ROLE_READONLY]))
 
@@ -1994,16 +1948,21 @@ class TestNCubeManager
         NCubeManager.updateCube(defaultSnapshotApp, testCube)
 
         //try to update a cube from bad user
-        try {
+        try
+        {
             NCubeManager.setUserId(otherUser)
             testCube.setCell('testval', [(testAxisName):null])
             NCubeManager.updateCube(defaultSnapshotApp, testCube)
             fail()
-        } catch (SecurityException e) {
+        }
+        catch (SecurityException e)
+        {
             assertTrue(e.message.contains('not performed'))
             assertTrue(e.message.contains(NCubeManager.ACTION.UPDATE.name()))
             assertTrue(e.message.contains(testCube.name))
-        } finally {
+        }
+        finally
+        {
             NCubeManager.setUserId(origUser)
         }
     }
