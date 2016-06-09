@@ -595,7 +595,7 @@ class NCubeManager
      * by an NCube if more than the name is required.
      * one (1) character.  This is universal whether using a SQL perister or Mongo persister.
      */
-    static List<NCubeInfoDto> getBranchChangesFromDatabase(ApplicationID appId)
+    static List<NCubeInfoDto> getBranchChangesFromDatabase(ApplicationID appId, String otherBranch = ApplicationID.HEAD)
     {
         validateAppId(appId)
         if (appId.getBranch().equals(ApplicationID.HEAD))
@@ -603,15 +603,23 @@ class NCubeManager
             throw new IllegalArgumentException('Cannot get branch changes from HEAD')
         }
 
-        ApplicationID headAppId = appId.asHead()
+        // TODO: Need to get all 'appId' cubes
+        // TODO: Need to get all otherBranch cubes
+        // TODO: figure out:
+        // TODO: 1. How many you've added
+        // TODO: 2. How many you've deleted
+        // TODO: 3. How many you've changed
+        // TODO: 4. How many they've changed
+        // TODO: so on and so on.
+        ApplicationID otherBranchId = appId.asBranch(otherBranch)
         Map<String, NCubeInfoDto> headMap = new TreeMap<>()
 
         List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
-        List<NCubeInfoDto> headList = search(headAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> otherBranchList = search(otherBranchId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
         List<NCubeInfoDto> list = []
 
         //  build map of head objects for reference.
-        for (NCubeInfoDto info : headList)
+        for (NCubeInfoDto info : otherBranchList)
         {
             headMap[info.name] = info
         }
