@@ -8,6 +8,7 @@ import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UrlUtilities
@@ -72,20 +73,23 @@ class NCubeGroovyExpression
      * Fetch all cube names in the current application.
      * @return Set<String> cube names>
      */
-    Set<String> getCubeNames()
+    Set<String> getCubeNames(boolean activeOnly = true)
     {
-        return NCubeManager.getCubeNames(ncube.applicationID)
+        List<NCubeInfoDto> infoDtoList = NCubeManager.search(ncube.applicationID, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):activeOnly])
+        Set<String> names = new CaseInsensitiveSet()
+        infoDtoList.each {
+            names.add(it.name)
+        }
+        return names
     }
 
     /**
-     * Fetch active cube records that match the given pattern.
-     * @param pattern String text pattern or exact file name used to filter cube name(s)
-     * @return Object[] of NCubeInfoDto instances.
+     * @deprecated - Use search()
      */
-    List<NCubeInfoDto> getCubeRecords(String pattern)
+    @Deprecated
+    List<NCubeInfoDto> getCubeRecords(String pattern, boolean activeOnly = true)
     {
-        Map options = new HashMap()
-        options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY] = true
+        Map options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):activeOnly]
         return search(pattern, null, options)
     }
 
@@ -94,22 +98,18 @@ class NCubeGroovyExpression
      * @param namePattern String text pattern or exact file name used to filter cube name(s)
      * @param textPattern String text pattern filter cubes returned.  This is matched
      * against the JSON content (contains() search).
-     * @param options Map of NCubeManager.SEARCH_* options.
+     * @param options Map of NCubeManager.SEARCH_* options. Optional.  Defaults to active records only.
      * @return Object[] of NCubeInfoDto instances.
      */
-    List<NCubeInfoDto> search(String namePattern, String textPattern, Map options)
+    List<NCubeInfoDto> search(String namePattern, String textPattern, Map options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
     {
         return NCubeManager.search(ncube.applicationID, namePattern, textPattern, options)
     }
 
     /**
-     * Fetch the cell contents using the current input coordinate and specified n-cube,
-     * but first apply any updates from the passed in coordinate.
-     * @param cubeName String n-cube name.
-     * @param coord Map containing 'updates' to the current input coordinate.
-     * @return executed cell contents at the current input location and specified n-cube,
-     * but first apply updates to the current input coordinate from the passed in coord.
+     * @deprecated - use at()
      */
+    @Deprecated
     def getRelativeCubeCell(String cubeName, Map coord, def defaultValue = null)
     {
         input.putAll(coord)
@@ -117,11 +117,9 @@ class NCubeGroovyExpression
     }
 
     /**
-     * Run another rule cube
-     * @param cubeName String name of the other rule cube
-     * @param coord Map input coordinate
-     * @return is the return Map from the other rule cube
+     * @deprecated - use at()
      */
+    @Deprecated
     def runRuleCube(String cubeName, Map coord, def defaultValue = null)
     {
         input.putAll(coord)

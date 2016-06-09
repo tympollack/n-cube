@@ -55,7 +55,7 @@ class NCubeJdbcPersister
 
     List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchContent, Map<String, Object> options)
     {
-        List<NCubeInfoDto> list = new ArrayList<>()
+        List<NCubeInfoDto> list = []
         Pattern searchPattern = null
 
         if (StringUtilities.hasContent(searchContent))
@@ -104,14 +104,14 @@ class NCubeJdbcPersister
     NCube loadCubeBySha1(Connection c, ApplicationID appId, String cubeName, String sha1)
     {
         Map map = appId as Map
-        map.putAll([cube: buildName(c, cubeName), sha1: sha1])
+        map.putAll([cube: buildName(cubeName), sha1: sha1])
         NCube cube = null
 
         new Sql(c).eachRow(map, """\
 /* loadCubeBySha1 */
 SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
 FROM n_cube
-WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND sha1 = :sha1
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND sha1 = :sha1
 ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
                 cube = buildCube(appId, row)
         })
@@ -126,14 +126,14 @@ ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
     {
         List<NCubeInfoDto> records = new ArrayList<>()
         Map map = appId as Map
-        map.cube = buildName(c, cubeName)
+        map.cube = buildName(cubeName)
         Sql sql = new Sql(c)
 
         sql.eachRow(map, """\
 /* getRevisions */
 SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
 FROM n_cube
-WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND ${compareTenant()} AND status_cd = :status AND branch_id = :branch
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND ${compareTenant()} AND status_cd = :status AND branch_id = :branch
 ORDER BY abs(revision_number) DESC
 """, {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
@@ -282,13 +282,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             int count = 0
             if (allowDelete)
             {   // Not the most efficient, but this is only used for testing, never from running app.
-                String sqlCmd = "/* deleteCubes */ DELETE FROM n_cube WHERE app_cd = ? AND ${buildNameCondition(c, "n_cube_nm")} = ? AND version_no_cd = ? AND (tenant_cd = ? OR tenant_cd = RPAD(?, 10, ' ')) AND branch_id = ?"
+                String sqlCmd = "/* deleteCubes */ DELETE FROM n_cube WHERE app_cd = ? AND ${buildNameCondition("n_cube_nm")} = ? AND version_no_cd = ? AND (tenant_cd = ? OR tenant_cd = RPAD(?, 10, ' ')) AND branch_id = ?"
                 stmt = c.prepareStatement(sqlCmd)
                 for (int i = 0; i < cubeNames.length; i++)
                 {
 
                     stmt.setString(1, appId.app)
-                    stmt.setString(2, buildName(c, (String) cubeNames[i]))
+                    stmt.setString(2, buildName((String) cubeNames[i]))
                     stmt.setString(3, appId.version)
                     stmt.setString(4, appId.tenant)
                     stmt.setString(5, appId.tenant)
@@ -798,14 +798,14 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                     Long rollbackRev = findRollbackRevision(c, appId, cubeName)
                     boolean mustDelete = rollbackRev == null
                     Map map = appId as Map
-                    map.putAll([cube: buildName(c, cubeName), rev: (mustDelete ? maxRev : rollbackRev)])
+                    map.putAll([cube: buildName(cubeName), rev: (mustDelete ? maxRev : rollbackRev)])
                     Sql sql = new Sql(c)
 
                     sql.eachRow(map, """\
 /* rollbackCubes */
 SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
 FROM n_cube
-WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
 AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""", 0, 1, { ResultSet row ->
                         byte[] bytes = row.getBytes(CUBE_VALUE_BIN)
                         byte[] testData = row.getBytes(TEST_DATA_BIN)
@@ -860,13 +860,13 @@ AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""", 0,
     {
         Sql sql = new Sql(c)
         Map map = appId as Map
-        map.putAll([cube: buildName(c, cubeName)])
+        map.putAll([cube: buildName(cubeName)])
         Long maxRev = null
 
         sql.eachRow(map, """\
 /* rollbackCubes.findRollbackRev */
 SELECT revision_number FROM n_cube
-WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
 AND ${compareTenant()} AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
 ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             maxRev = row.getLong("revision_number")
@@ -1043,7 +1043,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             throw new IllegalArgumentException("activeRecordsOnly and deletedRecordsOnly are mutually exclusive options and cannot both be 'true'.")
         }
 
-        namePattern = convertPattern(buildName(c, namePattern))
+        namePattern = convertPattern(buildName(namePattern))
         boolean hasNamePattern = StringUtilities.hasContent(namePattern)
         String nameCondition1 = ''
         String nameCondition2 = ''
@@ -1052,8 +1052,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         if (hasNamePattern)
         {
-            nameCondition1 = ' AND ' + buildNameCondition(c, 'n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
-            nameCondition2 = ' AND ' + buildNameCondition(c, 'm.n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
+            nameCondition1 = ' AND ' + buildNameCondition('n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
+            nameCondition2 = ' AND ' + buildNameCondition('m.n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
         }
 
         String revisionCondition = activeRecordsOnly ? ' AND n.revision_number >= 0' : deletedRecordsOnly ? ' AND n.revision_number < 0' : ''
@@ -1277,13 +1277,13 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
 
         Map map = [testData: testData == null ? null : testData.getBytes("UTF-8"), tenant: appId.getTenant(),
                    app: appId.getApp(), ver: appId.getVersion(), status: ReleaseStatus.SNAPSHOT.name(),
-                   branch: appId.getBranch(), rev: maxRev, cube: buildName(c, cubeName)]
+                   branch: appId.getBranch(), rev: maxRev, cube: buildName(cubeName)]
         Sql sql = new Sql(c)
 
         String update = """\
 /* updateTestData */
 UPDATE n_cube SET test_data_bin=:testData
-WHERE app_cd = :app AND ${buildNameCondition(c, 'n_cube_nm')} = :cube AND version_no_cd = :ver
+WHERE app_cd = :app AND ${buildNameCondition('n_cube_nm')} = :cube AND version_no_cd = :ver
 AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev"""
 
         int rows = sql.executeUpdate(map, update)
@@ -1293,7 +1293,7 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
     String getTestData(Connection c, ApplicationID appId, String cubeName)
     {
         Map map = appId as Map
-        map.cube = buildName(c, cubeName)
+        map.cube = buildName(cubeName)
         Sql sql = new Sql(c)
         byte[] testBytes = null
         boolean found = false
@@ -1301,7 +1301,7 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
         String select = """\
 /* getTestData */
 SELECT test_data_bin FROM n_cube
-WHERE ${buildNameCondition(c, 'n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
 ORDER BY abs(revision_number) DESC"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
@@ -1326,13 +1326,13 @@ ORDER BY abs(revision_number) DESC"""
 
         Map map = appId as Map
         map.putAll([notes: notes == null ? null : notes.getBytes("UTF-8"), status: ReleaseStatus.SNAPSHOT.name(),
-                    rev: maxRev, cube: buildName(c, cubeName)])
+                    rev: maxRev, cube: buildName(cubeName)])
         Sql sql = new Sql(c)
 
         int rows = sql.executeUpdate(map, """\
 /* updateNotes */
 UPDATE n_cube SET notes_bin = :notes
-WHERE app_cd = :app AND ${buildNameCondition(c, 'n_cube_nm')} = :cube AND version_no_cd = :version
+WHERE app_cd = :app AND ${buildNameCondition('n_cube_nm')} = :cube AND version_no_cd = :version
 AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""")
         return rows == 1
     }
@@ -1434,13 +1434,13 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
     Long getMaxRevision(Connection c, ApplicationID appId, String cubeName, String methodName)
     {
         Map map = appId as Map
-        map.cube = buildName(c, cubeName)
+        map.cube = buildName(cubeName)
         Sql sql = new Sql(c)
         Long rev = null
 
         String select = """\
 /* ${methodName}.maxRev */ SELECT revision_number FROM n_cube
-WHERE ${buildNameCondition(c, "n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
+WHERE ${buildNameCondition("n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
 ORDER BY abs(revision_number) DESC"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
@@ -1530,34 +1530,17 @@ ORDER BY abs(revision_number) DESC"""
         return pattern
     }
 
-    static String buildNameCondition(Connection c, String name)
+    private static String buildNameCondition(String name)
     {
-        if (isOracle(c))
-        {
-            return ('LOWER(' + name + ')')
-        }
-        return name
+        return ('LOWER(' + name + ')')
     }
 
-    static String buildName(Connection c, String name)
+    private static String buildName(String name)
     {
-        if (isOracle(c))
-        {
-            return name == null ? null : name.toLowerCase()
-        }
-        return name
+        return name == null ? null : name.toLowerCase()
     }
 
-    static boolean isOracle(Connection c)
-    {
-        if (c == null)
-        {
-            return false
-        }
-        return Regexes.isOraclePattern.matcher(c.getMetaData().getDriverName()).matches()
-    }
-
-    static String compareTenant()
+    private static String compareTenant()
     {
         return " (tenant_cd = :tenant OR tenant_cd = RPAD(:tenant, 10, ' ')) "
     }

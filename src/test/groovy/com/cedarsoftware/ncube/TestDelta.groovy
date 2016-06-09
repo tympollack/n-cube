@@ -1148,7 +1148,7 @@ class TestDelta
 
     static void setupLibraryReference()
     {
-        NCube<String> statesRef = (NCube<String>) NCubeBuilder.getStateReferrer()
+        NCube<String> statesRef = NCubeBuilder.getStateReferrer()
 
         ApplicationID appId = ApplicationID.testAppId.asVersion('2.0.0')
         NCubeManager.updateCube(appId, statesRef)

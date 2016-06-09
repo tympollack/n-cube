@@ -66,7 +66,6 @@ class NCubeManager
     public static final String SEARCH_ACTIVE_RECORDS_ONLY = 'activeRecordsOnly'
     public static final String SEARCH_CHANGED_RECORDS_ONLY = 'changedRecordsOnly'
     public static final String SEARCH_EXACT_MATCH_NAME = 'exactMatchName'
-    public static final String SEARCH_CACHE_RESULT = 'cacheResult'
 
     public static final String BRANCH_UPDATES = 'updates'
     public static final String BRANCH_MERGES = 'merges'
@@ -181,17 +180,15 @@ class NCubeManager
      * @return Set < String >  n-cube names.  If an empty Set is returned,
      * then there are no persisted n-cubes for the passed in ApplicationID.
      */
-    static Set<String> getCubeNames(ApplicationID appId)
+    @Deprecated
+    protected static Set<String> getCubeNames(ApplicationID appId)
     {
         List<NCubeInfoDto> cubeInfos = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY): true])
         Set<String> names = new TreeSet<>()
 
         for (NCubeInfoDto info : cubeInfos)
-        {
-            if (checkPermissions(appId, info.name))
-            {   // Filter names by permission
-                names.add(info.name)
-            }
+        {   // Permission check happened in search()
+            names.add(info.name)
         }
 
         if (names.isEmpty())
@@ -202,10 +199,7 @@ class NCubeManager
                 if (value instanceof NCube)
                 {
                     NCube cube = (NCube) value
-                    if (checkPermissions(appId, cube.name))
-                    {   // filter by permission
-                        names.add(cube.getName())
-                    }
+                    names.add(cube.getName())
                 }
             }
         }
@@ -227,11 +221,7 @@ class NCubeManager
             return null
         }
         applyAdvices(ncube.getApplicationID(), ncube)
-        Map<String, Object> cubes = getCacheForApp(appId)
-        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
-        {
-            cubes[cubeName.toLowerCase()] = ncube     // Update cache
-        }
+        cacheCube(appId, ncube)
         return ncube
     }
 
@@ -257,7 +247,7 @@ class NCubeManager
         if (cubes.containsKey(lowerCubeName))
         {   // pull from cache
             final Object cube = cubes[lowerCubeName]
-            return Boolean.FALSE == cube ? null : ensureLoaded(cube)
+            return Boolean.FALSE == cube ? null : cube as NCube
         }
 
         // now even items with metaProperties(cache = 'false') can be retrieved
@@ -266,57 +256,30 @@ class NCubeManager
         // and then dto -> loadCube(id)
         NCube ncube = getPersister().loadCube(appId, cubeName)
         if (ncube == null)
-        {
+        {   // Associate 'failed to load' with Boolean.FALSE so no further attempts are made to load it
             cubes[lowerCubeName] = Boolean.FALSE
             return null
         }
         return prepareCube(ncube)
     }
 
-    static NCube loadCubeById(long id)
-    {
-        NCube ncube = getPersister().loadCubeById(id)
-        return ncube
-    }
-
-    protected static NCube ensureLoaded(Object value)
-    {
-        if (value instanceof NCube)
-        {
-            return (NCube)value
-        }
-
-        if (value instanceof NCubeInfoDto)
-        {   // Lazy load cube (make sure to apply any advices to it)
-            NCubeInfoDto dto = value as NCubeInfoDto
-            long id = (long) Converter.convert(dto.id, long.class)
-            return prepareCube(getPersister().loadCubeById(id))
-        }
-
-        throw new IllegalStateException('Failed to retrieve cube from cache, value: ' + value)
-    }
-
     private static NCube prepareCube(NCube cube)
     {
         applyAdvices(cube.getApplicationID(), cube)
-        String cubeName = cube.getName().toLowerCase()
-        if (!cube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(cube.getMetaProperty(PROPERTY_CACHE)))
-        {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
-            getCacheForApp(cube.getApplicationID())[cubeName] = cube
-        }
+        cacheCube(cube.getApplicationID(), cube)
         return cube
     }
 
     /**
-     * Testing API (Cache validation)
+     * Load the n-cube with the specified id.  This is useful in n-cube editors, where a user wants to pick
+     * an older revision and load / compare it.
+     * @param id long n-cube id.
+     * @return NCube that has the passed in id.
      */
-    static boolean isCubeCached(ApplicationID appId, String cubeName)
+    static NCube loadCubeById(long id)
     {
-        validateAppId(appId)
-        NCube.validateCubeName(cubeName)
-        Map<String, Object> ncubes = getCacheForApp(appId)
-        Object cachedItem = ncubes[cubeName.toLowerCase()]
-        return cachedItem instanceof NCube || cachedItem instanceof NCubeInfoDto
+        NCube ncube = getPersister().loadCubeById(id)
+        return prepareCube(ncube)
     }
 
     /**
@@ -386,15 +349,9 @@ class NCubeManager
         validateAppId(appId)
         validateCube(ncube)
 
-        String cubeName = ncube.name.toLowerCase()
-
-        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
-        {   // Allow cubes to not be cached by specified 'cache':false as a cube meta-property.
-            getCacheForApp(appId)[cubeName] = ncube
-        }
-
         // Apply any matching advices to it
         applyAdvices(appId, ncube)
+        cacheCube(appId, ncube)
     }
 
     /**
@@ -504,7 +461,7 @@ class NCubeManager
         Object cube = appCache[CLASSPATH_CUBE]
         if (cube instanceof NCube)
         {
-            NCube cpCube = (NCube) cube
+            NCube cpCube = cube as NCube
             for (Object content : cpCube.getCellMap().values())
             {
                 if (content instanceof UrlCommandCell)
@@ -542,7 +499,7 @@ class NCubeManager
         {
             if (value instanceof NCube)
             {   // apply advice to hydrated cubes
-                NCube ncube = (NCube) value
+                NCube ncube = value as NCube
                 if (checkPermissions(appId, ncube.name))
                 {
                     Axis axis = ncube.getAxis('method')
@@ -716,35 +673,7 @@ class NCubeManager
             }
         }
 
-        cacheCubes(appId, list)
         return list
-    }
-
-    private static void cacheCubes(ApplicationID appId, List<NCubeInfoDto> cubes)
-    {
-        Map<String, Object> appCache = getCacheForApp(appId)
-
-        for (NCubeInfoDto cubeInfo : cubes)
-        {
-            String key = cubeInfo.name.toLowerCase()
-
-            if (!cubeInfo.revision.startsWith('-'))
-            {
-                Object cachedItem = appCache[key]
-                if (cachedItem == null || cachedItem instanceof NCubeInfoDto)
-                {   // If cube not in cache or already in cache as infoDto, overwrite it
-                    appCache[key] = cubeInfo
-                }
-                else if (cachedItem instanceof NCube)
-                {   // If cube is already cached, make sure the SHA1's match - if not, then cache the new cubeInfo
-                    NCube ncube = cachedItem as NCube
-                    if (!ncube.sha1().equals(cubeInfo.sha1))
-                    {
-                        appCache[key] = cubeInfo
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -856,8 +785,7 @@ class NCubeManager
         }
         else
         {
-            Map<String, Object> appCache = getCacheForApp(newAppId)
-            appCache.remove(newName.toLowerCase())
+            removeCachedCube(newAppId, newName)
         }
 
         broadcast(newAppId)
@@ -882,7 +810,6 @@ class NCubeManager
         appId.validateBranchIsNotHead()
 
         final String cubeName = ncube.getName()
-
         detectNewAppId(appId)
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         getPersister().updateCube(appId, ncube, username)
@@ -919,7 +846,6 @@ class NCubeManager
         validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        Map<String, Object> appCache = getCacheForApp(appId)
         int count = 0
 
         for (Object cubeName : cubeNames)
@@ -927,7 +853,7 @@ class NCubeManager
             String cubeNameStr = cubeName as String
             assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
             getPersister().mergeAcceptMine(appId, cubeNameStr, username)
-            appCache.remove(cubeNameStr.toLowerCase())
+            removeCachedCube(appId, cubeNameStr)
             count++
         }
         return count
@@ -938,7 +864,6 @@ class NCubeManager
         validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        Map<String, Object> appCache = getCacheForApp(appId)
         int count = 0
 
         for (int i = 0; i < cubeNames.length; i++)
@@ -947,7 +872,7 @@ class NCubeManager
             String sha1 = branchSha1[i] as String
             assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
             getPersister().mergeAcceptTheirs(appId, cubeNameStr, sha1, username)
-            appCache.remove(cubeNameStr.toLowerCase())
+            removeCachedCube(appId, cubeNameStr)
             count++
         }
 
@@ -1576,9 +1501,8 @@ class NCubeManager
         }
         else
         {
-            Map<String, Object> appCache = getCacheForApp(appId)
-            appCache.remove(oldName.toLowerCase())
-            appCache.remove(newName.toLowerCase())
+            removeCachedCube(appId, oldName)
+            removeCachedCube(appId, newName)
         }
 
         broadcast(appId)
@@ -1625,10 +1549,9 @@ class NCubeManager
 
         if (getPersister().deleteCubes(appId, cubeNames, allowDelete, username))
         {
-            Map<String, Object> appCache = getCacheForApp(appId)
             for (int i=0; i < cubeNames.length; i++)
             {
-                appCache.remove(((String)cubeNames[i]).toLowerCase())
+                removeCachedCube(appId, cubeNames[i] as String)
             }
             broadcast(appId)
             return true
@@ -1744,22 +1667,8 @@ class NCubeManager
         }
 
         List<NCubeInfoDto> cubes = getPersister().search(appId, cubeNamePattern, content, options)
-        List<NCubeInfoDto> readableCubes = new ArrayList<NCubeInfoDto>()
-        Boolean result = (Boolean)options[SEARCH_CACHE_RESULT]
-
-        for (NCubeInfoDto info : cubes)
-        {
-            if (checkPermissions(appId, info.name))
-            {
-                readableCubes << info
-            }
-        }
-
-        if (result == null || result)
-        {
-            cacheCubes(appId, readableCubes)
-        }
-        return readableCubes
+        cubes.removeAll { !checkPermissions(appId, it.name)}
+        return cubes
     }
 
     /**
@@ -1836,7 +1745,7 @@ class NCubeManager
                 validateAppId(transformAppId)
                 assertPermissions(transformAppId, axisRef.transformCubeName, ACTION.READ)
             }
-            getCacheForApp(srcApp).remove(axisRef.getSrcCubeName().toLowerCase())
+            removeCachedCube(srcApp, axisRef.getSrcCubeName())
         }
 
         for (AxisRef axisRef : axisRefs)
@@ -2115,21 +2024,42 @@ class NCubeManager
         {   // Allow everything if no permissions are set up.
             return true
         }
-        NCube userCube = getCubeInternal(bootVersion, SYS_USERGROUPS)
-        if (userCube == null)
-        {   // Allow everything if no permissions are set up.
+
+        NCube userToRole = getCubeInternal(bootVersion, SYS_USERGROUPS)
+        if (userToRole == null)
+        {   // Allow everything if no user roles are set up.
             return true
         }
-        NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
 
-        if (branchPermCube != null && !isUserInGroup(userCube, ROLE_ADMIN) && !checkResourcePermissions(branchPermCube, null, action, resource))
+        // Step 1: Get user's roles
+        Set<String> roles = getRolesForUser(userToRole)
+
+        if (!roles.contains(ROLE_ADMIN) && action != ACTION.RELEASE)
+        {   // If user is not an admin, check branch permissions.
+            NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
+            if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
+            {
+                return false
+            }
+        }
+
+        // Step 2: Make sure one of the user's roles allows access
+        boolean accessGranted = false
+        String actionName = action.lower()
+        for (String role : roles)
+        {
+            if (checkResourcePermission(permCube, role, resource, actionName))
+            {
+                accessGranted = true
+                break
+            }
+        }
+        if (!accessGranted)
         {
             return false
         }
-        if (!checkResourcePermissions(permCube, userCube, action, resource))
-        {
-            return false
-        }
+
+        // Step 3: Make sure the applicationId is not locked.
         if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && getAppLockedBy(appId) != getUserId())
         {
             return false
@@ -2137,23 +2067,46 @@ class NCubeManager
         return true
     }
 
-    private static boolean checkResourcePermissions(NCube permCube, NCube userCube, ACTION action, String resource)
+    private static boolean checkBranchPermission(NCube branchPermissions, String resource)
     {
-        List<Column> resourceColumns = getResourcesToMatch(permCube, resource)
+        List<Column> resourceColumns = getResourcesToMatch(branchPermissions, resource)
+        String userId = getUserId()
         for (Column resourceColumn : resourceColumns)
         {
-            Comparable columnVal = resourceColumn.getValue()
-            String valueString = columnVal == null ? null : columnVal.toString()
-            if (userCube == null && (action == ACTION.READ || doesUserHaveBranchAccessToResource(permCube, valueString)))
-            {
-                return true
-            }
-            if (userCube != null && doesUserHaveAppAccessToResource(permCube, userCube, action.lower(), valueString))
+            if (branchPermissions.getCell([resource: resourceColumn.value, user: userId]))
             {
                 return true
             }
         }
         return false
+    }
+
+    private static boolean checkResourcePermission(NCube resourcePermissions, String role, String resource, String action)
+    {
+        List<Column> resourceColumns = getResourcesToMatch(resourcePermissions, resource)
+        for (Column resourceColumn : resourceColumns)
+        {
+            Map coord = [role: role, resource: resourceColumn.value, action: action]
+            if (resourcePermissions.getCell(coord))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static Set<String> getRolesForUser(NCube userGroups)
+    {
+        Axis role = userGroups.getAxis('role')
+        Set<String> groups = new HashSet()
+        for (Column column : role.columns)
+        {
+            if (userGroups.getCell([role: column.value, user: getUserId()]))
+            {
+                groups.add(column.value as String)
+            }
+        }
+        return groups
     }
 
     private static List<Column> getResourcesToMatch(NCube permCube, String resource)
@@ -2200,26 +2153,6 @@ class NCubeManager
         return p.matcher(text).matches()
     }
 
-    private static boolean doesUserHaveBranchAccessToResource(NCube permCube, String resourceColumnName)
-    {
-        return permCube.getCell([(AXIS_USER): null, (AXIS_RESOURCE): resourceColumnName]) || permCube.getCell([(AXIS_USER): getUserId(), (AXIS_RESOURCE): resourceColumnName])
-    }
-
-    private static boolean doesUserHaveAppAccessToResource(NCube permCube, NCube userCube, String action, String resourceColumnName)
-    {
-        Axis groupAxis = permCube.getAxis(AXIS_ROLE)
-        for (Column groupColumn : groupAxis.getColumns())
-        {
-            String colName = groupColumn.getValue()
-            boolean isGroupActive = permCube.getCell([(AXIS_RESOURCE): resourceColumnName, (AXIS_ACTION): action, (AXIS_ROLE): colName])
-            if (isGroupActive && isUserInGroup(userCube, colName))
-            {
-                return true
-            }
-        }
-        return false
-    }
-
     static boolean isAdmin(ApplicationID appId)
     {
         NCube userCube = getCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
@@ -2227,11 +2160,7 @@ class NCubeManager
         {   // Allow everything if no permissions are set up.
             return true
         }
-        if (isUserInGroup(userCube, ROLE_ADMIN))
-        {
-            return true
-        }
-        throw new SecurityException(ERROR_NOT_ADMIN + appId)
+        return isUserInGroup(userCube, ROLE_ADMIN)
     }
 
     private static boolean isUserInGroup(NCube userCube, String groupName)
@@ -2251,7 +2180,8 @@ class NCubeManager
     private static void addBranchPermissionsCube(ApplicationID appId)
     {
         ApplicationID permAppId = appId.asVersion('0.0.0')
-        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null) {
+        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null)
+        {
             return
         }
 
@@ -2446,6 +2376,36 @@ class NCubeManager
         getPersister().updateCube(appId, appPermCube, getUserId())
     }
 
+    /**
+     * Testing API (Cache validation)
+     */
+    static boolean isCubeCached(ApplicationID appId, String cubeName)
+    {
+        validateAppId(appId)
+        NCube.validateCubeName(cubeName)
+        Map<String, Object> ncubes = getCacheForApp(appId)
+        Object cachedItem = ncubes[cubeName.toLowerCase()]
+        return cachedItem instanceof NCube
+    }
+
+    private static void cacheCube(ApplicationID appId, NCube ncube)
+    {
+        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
+        {
+            Map<String, Object> cache = getCacheForApp(appId)
+            cache[ncube.name.toLowerCase()] = ncube
+        }
+    }
+
+    private static void removeCachedCube(ApplicationID appId, String cubeName)
+    {
+        if (StringUtilities.isEmpty(cubeName))
+        {
+            return
+        }
+        Map<String, Object> cache = getCacheForApp(appId)
+        cache.remove(cubeName.toLowerCase())
+    }
     /**
      * Set the user ID on the current thread
      * @param user String user Id
