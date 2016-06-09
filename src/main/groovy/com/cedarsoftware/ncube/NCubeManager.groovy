@@ -595,7 +595,7 @@ class NCubeManager
      * by an NCube if more than the name is required.
      * one (1) character.  This is universal whether using a SQL perister or Mongo persister.
      */
-    static List<NCubeInfoDto> getBranchChangesFromDatabase(ApplicationID appId)
+    static List<NCubeInfoDto> getBranchChangesFromDatabase(ApplicationID appId, String otherBranch = ApplicationID.HEAD)
     {
         validateAppId(appId)
         if (appId.getBranch().equals(ApplicationID.HEAD))
@@ -603,15 +603,23 @@ class NCubeManager
             throw new IllegalArgumentException('Cannot get branch changes from HEAD')
         }
 
-        ApplicationID headAppId = appId.asHead()
+        // TODO: Need to get all 'appId' cubes
+        // TODO: Need to get all otherBranch cubes
+        // TODO: figure out:
+        // TODO: 1. How many you've added
+        // TODO: 2. How many you've deleted
+        // TODO: 3. How many you've changed
+        // TODO: 4. How many they've changed
+        // TODO: so on and so on.
+        ApplicationID otherBranchId = appId.asBranch(otherBranch)
         Map<String, NCubeInfoDto> headMap = new TreeMap<>()
 
         List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
-        List<NCubeInfoDto> headList = search(headAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> otherBranchList = search(otherBranchId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
         List<NCubeInfoDto> list = []
 
         //  build map of head objects for reference.
-        for (NCubeInfoDto info : headList)
+        for (NCubeInfoDto info : otherBranchList)
         {
             headMap[info.name] = info
         }
@@ -1989,13 +1997,14 @@ class NCubeManager
 
     private static void assertLockedByMe(ApplicationID appId)
     {
-        NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
+        final ApplicationID bootAppId = getBootAppId(appId)
+        final NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {   // If there is no sys.lock cube, then no permissions / locking being used.
             return
         }
 
-        String lockOwner = getAppLockedBy(getBootAppId(appId))
+        final String lockOwner = getAppLockedBy(bootAppId)
         if (getUserId() == lockOwner)
         {
             return
@@ -2045,7 +2054,7 @@ class NCubeManager
 
         // Step 2: Make sure one of the user's roles allows access
         boolean accessGranted = false
-        String actionName = action.lower()
+        final String actionName = action.lower()
         for (String role : roles)
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
@@ -2060,48 +2069,32 @@ class NCubeManager
         }
 
         // Step 3: Make sure the applicationId is not locked.
-        if (action != ACTION.READ && resource != SYS_LOCK && getAppLockedBy(appId) != null && getAppLockedBy(appId) != getUserId())
-        {
-            return false
-        }
-        return true
+        final String lockedBy = getAppLockedBy(appId)
+        return action == ACTION.READ || resource == SYS_LOCK || lockedBy == null || lockedBy == getUserId()
     }
 
     private static boolean checkBranchPermission(NCube branchPermissions, String resource)
     {
-        List<Column> resourceColumns = getResourcesToMatch(branchPermissions, resource)
-        String userId = getUserId()
-        for (Column resourceColumn : resourceColumns)
-        {
-            if (branchPermissions.getCell([resource: resourceColumn.value, user: userId]))
-            {
-                return true
-            }
-        }
-        return false
+        final List<Column> resourceColumns = getResourcesToMatch(branchPermissions, resource)
+        final String userId = getUserId()
+        final Column column = resourceColumns.find { branchPermissions.getCell([resource: it.value, user: userId])}
+        return column != null
     }
 
     private static boolean checkResourcePermission(NCube resourcePermissions, String role, String resource, String action)
     {
-        List<Column> resourceColumns = getResourcesToMatch(resourcePermissions, resource)
-        for (Column resourceColumn : resourceColumns)
-        {
-            Map coord = [role: role, resource: resourceColumn.value, action: action]
-            if (resourcePermissions.getCell(coord))
-            {
-                return true
-            }
-        }
-        return false
+        final List<Column> resourceColumns = getResourcesToMatch(resourcePermissions, resource)
+        final Column column = resourceColumns.find {resourcePermissions.getCell([(AXIS_ROLE): role, resource: it.value, action: action]) }
+        return column != null
     }
 
     private static Set<String> getRolesForUser(NCube userGroups)
     {
-        Axis role = userGroups.getAxis('role')
+        Axis role = userGroups.getAxis(AXIS_ROLE)
         Set<String> groups = new HashSet()
         for (Column column : role.columns)
         {
-            if (userGroups.getCell([role: column.value, user: getUserId()]))
+            if (userGroups.getCell([(AXIS_ROLE): column.value, (AXIS_USER): getUserId()]))
             {
                 groups.add(column.value as String)
             }
@@ -2229,7 +2222,8 @@ class NCubeManager
     static String getAppLockedBy(ApplicationID appId)
     {
         NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)
-        if (sysLockCube == null) {
+        if (sysLockCube == null)
+        {
             return null
         }
         return sysLockCube.getCell([(AXIS_SYSTEM):null])
