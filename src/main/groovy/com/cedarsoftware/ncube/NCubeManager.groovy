@@ -495,12 +495,13 @@ class NCubeManager
         String regex = StringUtilities.wildcardToRegexString(wildcard)
         Map<String, Object> cubes = getCacheForApp(appId)
 
+        String lockedBy = getAppLockedBy(appId) // Get this outside the loop because this hits the database.
         for (Object value : cubes.values())
         {
             if (value instanceof NCube)
             {   // apply advice to hydrated cubes
                 NCube ncube = value as NCube
-                if (checkPermissions(appId, ncube.name))
+                if (checkPermissions(appId, ncube.name, ACTION.READ, lockedBy))
                 {
                     Axis axis = ncube.getAxis('method')
                     addAdviceToMatchedCube(advice, regex, ncube, axis)
@@ -578,9 +579,10 @@ class NCubeManager
 
         // TODO: Use explicit stack, NOT recursion
 
+        String lockedBy = getAppLockedBy(appId) // Hits sys.lock table, so get this answer before the loop.
         for (String cubeName : subCubeList)
         {
-            if (checkPermissions(appId, cubeName) && !refs.contains(cubeName))
+            if (checkPermissions(appId, cubeName, ACTION.READ, lockedBy) && !refs.contains(cubeName))
             {
                 refs.add(cubeName)
                 getReferencedCubeNames(appId, cubeName, refs)
@@ -702,9 +704,10 @@ class NCubeManager
             throw new IllegalArgumentException('Error, empty array of cube names passed in to be restored.')
         }
 
+        String lockedBy = getAppLockedBy(appId)
         for (String cubeName : cubeNames)
         {
-            assertPermissions(appId, cubeName, ACTION.UPDATE)
+            assertPermissions(appId, cubeName, ACTION.UPDATE, lockedBy)
         }
 
         // Batch restore
@@ -856,10 +859,11 @@ class NCubeManager
         appId.validateStatusIsNotRelease()
         int count = 0
 
+        String lockedBy = getAppLockedBy(appId)
         for (Object cubeName : cubeNames)
         {
             String cubeNameStr = cubeName as String
-            assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
+            assertPermissions(appId, cubeNameStr, ACTION.UPDATE, lockedBy)
             getPersister().mergeAcceptMine(appId, cubeNameStr, username)
             removeCachedCube(appId, cubeNameStr)
             count++
@@ -873,12 +877,13 @@ class NCubeManager
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
         int count = 0
+        String lockedBy = getAppLockedBy(appId)
 
         for (int i = 0; i < cubeNames.length; i++)
         {
             String cubeNameStr = cubeNames[i] as String
             String sha1 = branchSha1[i] as String
-            assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
+            assertPermissions(appId, cubeNameStr, ACTION.UPDATE, lockedBy)
             getPersister().mergeAcceptTheirs(appId, cubeNameStr, sha1, username)
             removeCachedCube(appId, cubeNameStr)
             count++
@@ -909,6 +914,7 @@ class NCubeManager
 
         List<NCubeInfoDto> dtosToUpdate = []
         List<NCubeInfoDto> dtosMerged = []
+        String lockedBy = getAppLockedBy(appId)
 
         Map<String, Map> errors = [:]
 
@@ -920,7 +926,7 @@ class NCubeManager
             {
                 continue
             }
-            assertPermissions(appId, branchCubeInfo.name, ACTION.COMMIT)
+            assertPermissions(appId, branchCubeInfo.name, ACTION.COMMIT, lockedBy)
             if (branchCubeInfo.sha1 == null)
             {
                 branchCubeInfo.sha1 = ""
@@ -1124,10 +1130,12 @@ class NCubeManager
         validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
+        String lockedBy = getAppLockedBy(appId)
+
         for (Object name : names)
         {
             String cubeName = name as String
-            assertPermissions(appId, cubeName, ACTION.UPDATE)
+            assertPermissions(appId, cubeName, ACTION.UPDATE, lockedBy)
         }
         int count = getPersister().rollbackCubes(appId, names, username)
         clearCache(appId)
@@ -1532,9 +1540,10 @@ class NCubeManager
     static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username = getUserId())
     {
         appId.validateBranchIsNotHead()
+        String lockedBy = getAppLockedBy(appId)
         for (Object name : cubeNames)
         {
-            assertPermissions(appId, name as String, ACTION.UPDATE)
+            assertPermissions(appId, name as String, ACTION.UPDATE, lockedBy)
         }
         return deleteCubes(appId, cubeNames, false, username)
     }
@@ -1550,9 +1559,10 @@ class NCubeManager
             }
         }
 
+        String lockedBy = getAppLockedBy(appId)
         for (Object name : cubeNames)
         {
-            assertPermissions(appId, name as String, ACTION.UPDATE)
+            assertPermissions(appId, name as String, ACTION.UPDATE, lockedBy)
         }
 
         if (getPersister().deleteCubes(appId, cubeNames, allowDelete, username))
@@ -1674,8 +1684,9 @@ class NCubeManager
             options = [:]
         }
 
+        String lockedBy = getAppLockedBy(appId) // Get value 1st, as this always hits the database
         List<NCubeInfoDto> cubes = getPersister().search(appId, cubeNamePattern, content, options)
-        cubes.removeAll { !checkPermissions(appId, it.name)}
+        cubes.removeAll { !checkPermissions(appId, it.name, ACTION.READ, lockedBy) }
         return cubes
     }
 
@@ -1986,9 +1997,9 @@ class NCubeManager
     /**
      * Assert that the requested permission is allowed.  Throw a SecurityException if not.
      */
-    static boolean assertPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
+    static boolean assertPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ, String lockedBy = getAppLockedBy(appId))
     {
-        if (checkPermissions(appId, resource, action))
+        if (checkPermissions(appId, resource, action, lockedBy))
         {
             return true
         }
@@ -2025,7 +2036,7 @@ class NCubeManager
      * @return boolean true if allowed, false if not.  If the permissions cubes restricting access have not yet been
      * added to the same App, then all access is granted.
      */
-    static boolean checkPermissions(ApplicationID appId, String resource, ACTION action = ACTION.READ)
+    static boolean checkPermissions(ApplicationID appId, String resource, ACTION action, String lockedBy = getAppLockedBy(appId))
     {
         ApplicationID bootVersion = getBootAppId(appId)
         NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
@@ -2069,7 +2080,6 @@ class NCubeManager
         }
 
         // Step 3: Make sure the applicationId is not locked.
-        final String lockedBy = getAppLockedBy(appId)
         return action == ACTION.READ || resource == SYS_LOCK || lockedBy == null || lockedBy == getUserId()
     }
 
@@ -2219,6 +2229,10 @@ class NCubeManager
         getPersister().updateCube(appId, sysLockCube, getUserId())
     }
 
+    /**
+     * Determine if the ApplicationID is locked.  This is an expensive call because it
+     * always hits the database.  Use judiciously (obtain value before loops, etc.)
+     */
     static String getAppLockedBy(ApplicationID appId)
     {
         NCube sysLockCube = getCubeInternal(getBootAppId(appId), SYS_LOCK)

@@ -1542,6 +1542,6 @@ ORDER BY abs(revision_number) DESC"""
 
     private static String compareTenant()
     {
-        return " (tenant_cd = :tenant OR tenant_cd = RPAD(:tenant, 10, ' ')) "
+        return " (tenant_cd = RPAD(:tenant, 10, ' ') OR tenant_cd = :tenant) "
     }
 }
