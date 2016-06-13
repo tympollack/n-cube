@@ -189,10 +189,9 @@ public class TestThreading
                 }
             }
 
-            def lock = new Object()
             LOG.debug '==>creating threads'
-            def threads = new ConcurrentLinkedQueue<Thread>()
-            def failures = new ConcurrentLinkedQueue<Exception>()
+            def threads = new ConcurrentLinkedQueue<>()
+            def failures = new ConcurrentLinkedQueue<>()
             load.times {
                 maxThreads.times { tid ->
                     def t = new Thread({
@@ -211,7 +210,7 @@ public class TestThreading
                                     Throwable rootCause = StackTraceUtils.extractRootCause(e)
                                     if (!rootCause.message.toLowerCase().contains('code cleared while getCell'))
                                     {
-                                        failures << StackTraceUtils.extractRootCause(e)
+                                        failures.add(StackTraceUtils.extractRootCause(e))
                                     }
                                 }
                             }
@@ -247,7 +246,7 @@ public class TestThreading
         assertEquals(0,allFailures.size())
     }
 
-    private void dumpFailures(ConcurrentLinkedQueue<Exception> failures) {
+    private static void dumpFailures(ConcurrentLinkedQueue<Exception> failures) {
         def uniqueFailures = [:]
         failures.each { f ->
             def msg = f.getMessage()
