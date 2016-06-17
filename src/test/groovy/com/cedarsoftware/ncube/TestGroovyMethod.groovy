@@ -79,7 +79,7 @@ class TestGroovyMethod
         NCubeManager.updateCube appId, cube
 
         NCubeManager.clearCache()
-        cube = NCubeManager.getCube appId, 'GroovyMethodClassPath1'
+        cube = NCubeManager.getCube(appId, 'GroovyMethodClassPath1')
 
         Object x = cube.getCell([method:'foo'])
         assertEquals 'foo', x

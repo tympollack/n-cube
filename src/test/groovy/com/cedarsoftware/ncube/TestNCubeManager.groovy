@@ -1831,9 +1831,7 @@ class TestNCubeManager
         }
         catch (SecurityException e)
         {
-            assertTrue(e.message.contains('not performed'))
-            assertTrue(e.message.contains(NCubeManager.ACTION.UPDATE.name()))
-            assertTrue(e.message.contains(testCube.name))
+            assertTrue(e.message.contains('not locked'))
         }
         NCubeManager.setUserId(currUser)
     }

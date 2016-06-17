@@ -636,7 +636,7 @@ class DeltaProcessor
         }
 
         thisCube.cellMap.each { key, value ->
-            LongHashSet newCellKey = (LongHashSet) key
+            LongHashSet newCellKey = key as LongHashSet
             Object newCellValue = value
 
             if (other.cellMap.containsKey(newCellKey))
@@ -660,7 +660,7 @@ class DeltaProcessor
         }
 
         other.cellMap.each { key, value ->
-            LongHashSet oldCellKey = (LongHashSet) key
+            LongHashSet oldCellKey = key as LongHashSet
 
             if (!thisCube.cellMap.containsKey(oldCellKey))
             {
