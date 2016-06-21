@@ -1079,7 +1079,7 @@ class TestDelta
 
         NCube statesJdereg = NCubeManager.loadCube(appIdjdereg, 'States')
         statesJdereg.breakAxisReference('state')
-        NCubeManager.updateCube(appIdjdereg, statesJdereg)
+        NCubeManager.updateCube(appIdjdereg, statesJdereg, true)
 
         list = NCubeManager.getBranchChangesFromDatabase(appIdjdereg)
         try
@@ -1105,7 +1105,7 @@ class TestDelta
 
         NCube statesKpartlow = NCubeManager.loadCube(appIdKpartlow, 'States')
         statesKpartlow.breakAxisReference('state')
-        NCubeManager.updateCube(appIdKpartlow, statesKpartlow)
+        NCubeManager.updateCube(appIdKpartlow, statesKpartlow, true)
 
         list = NCubeManager.getBranchChangesFromDatabase(appIdKpartlow)
         try
@@ -1128,19 +1128,19 @@ class TestDelta
         NCube<String> states2 = (NCube<String>) NCubeBuilder.getDiscrete1D()
 
         ApplicationID appId = ApplicationID.testAppId.asVersion('1.0.0')
-        NCubeManager.updateCube(appId, states2)
+        NCubeManager.updateCube(appId, states2, true)
         List<NCubeInfoDto> list = NCubeManager.getBranchChangesFromDatabase(appId)
         NCubeManager.commitBranch(appId, list as Object[])
         NCubeManager.releaseCubes(appId, '1.0.1')
 
         appId = ApplicationID.testAppId.asVersion('1.0.1')
-        NCubeManager.updateCube(appId, states3)
+        NCubeManager.updateCube(appId, states3, true)
         list = NCubeManager.getBranchChangesFromDatabase(appId)
         NCubeManager.commitBranch(appId, list as Object[])
         NCubeManager.releaseCubes(appId, '1.0.2')
 
         appId = ApplicationID.testAppId.asVersion('1.0.2')
-        NCubeManager.updateCube(appId, states4)
+        NCubeManager.updateCube(appId, states4, true)
         list = NCubeManager.getBranchChangesFromDatabase(appId)
         NCubeManager.commitBranch(appId, list as Object[])
         NCubeManager.releaseCubes(appId, '1.0.3')
@@ -1151,7 +1151,7 @@ class TestDelta
         NCube<String> statesRef = NCubeBuilder.getStateReferrer()
 
         ApplicationID appId = ApplicationID.testAppId.asVersion('2.0.0')
-        NCubeManager.updateCube(appId, statesRef)
+        NCubeManager.updateCube(appId, statesRef, true)
         List<NCubeInfoDto> list = NCubeManager.getBranchChangesFromDatabase(appId)
         NCubeManager.commitBranch(appId, list as Object[])
 
@@ -1171,7 +1171,7 @@ class TestDelta
         state.setMetaProperty(ReferenceAxisLoader.REF_VERSION, refVer)
         ApplicationID appId = ApplicationID.testAppId.asBranch(branch).asSnapshot().asVersion('2.0.0')
         NCubeManager.createBranch(appId)
-        NCubeManager.updateCube(appId, states)
+        NCubeManager.updateCube(appId, states, true)
         return appId
     }
 

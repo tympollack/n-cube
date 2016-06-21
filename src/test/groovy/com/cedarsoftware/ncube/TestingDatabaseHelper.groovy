@@ -126,9 +126,9 @@ class TestingDatabaseHelper
     public static void setupTestClassPaths()
     {
         NCube cp = NCubeManager.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, cp)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, cp, true)
         cp = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-        NCubeManager.updateCube(ApplicationID.testAppId, cp)
+        NCubeManager.updateCube(ApplicationID.testAppId, cp, true)
     }
 
     public static void tearDownDatabase()

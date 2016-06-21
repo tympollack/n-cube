@@ -1359,8 +1359,7 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
 
     Map<String, List<String>> getVersions(Connection c, String tenant, String app)
     {
-        if (StringUtilities.isEmpty(tenant) ||
-            StringUtilities.isEmpty(app))
+        if (StringUtilities.isEmpty(tenant) || StringUtilities.isEmpty(app))
         {
             throw new IllegalArgumentException('error calling getAppVersions() tenant (' + tenant + ') or app (' + app +') cannot be null or empty')
         }
