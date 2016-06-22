@@ -809,7 +809,7 @@ class NCubeManager
      * @param ncube      NCube to be updated.
      * @return boolean true on success, false otherwise
      */
-    static boolean updateCube(ApplicationID appId, NCube ncube, String username = getUserId())
+    static boolean updateCube(ApplicationID appId, NCube ncube, String username = getUserId(), boolean createPermCubesIfNeeded)
     {
         validateAppId(appId)
         validateCube(ncube)
@@ -822,7 +822,10 @@ class NCubeManager
         appId.validateBranchIsNotHead()
 
         final String cubeName = ncube.getName()
-        detectNewAppId(appId)
+        if (createPermCubesIfNeeded)
+        {
+            detectNewAppId(appId)
+        }
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         assertNotLockBlocked(appId)
         getPersister().updateCube(appId, ncube, username)
@@ -2445,6 +2448,7 @@ class NCubeManager
         Map<String, Object> cache = getCacheForApp(appId)
         cache.remove(cubeName.toLowerCase())
     }
+
     /**
      * Set the user ID on the current thread
      * @param user String user Id

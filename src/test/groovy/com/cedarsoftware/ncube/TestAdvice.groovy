@@ -54,8 +54,8 @@ class TestAdvice
     {
         NCube ncube2 = NCubeManager.getNCubeFromResource("urlPieces.json")
         final NCube ncube = NCubeManager.getNCubeFromResource("urlWithNcubeRefs.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube2)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube2, true)
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -112,7 +112,7 @@ class TestAdvice
     void testExpressionStopExpressionWithBeforeAdvice()
     {
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -141,7 +141,7 @@ class TestAdvice
     void testExpressionAfterAdviceThrows()
     {
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -180,7 +180,7 @@ class TestAdvice
     void testExpressionThatThrows()
     {
         final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -580,7 +580,7 @@ class TestAdvice
     void testMultiAdvice()
     {
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
 
         Advice advice1 = new Advice() {
             String getName()
@@ -699,7 +699,7 @@ class TestAdvice
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, "*()", advice2)
 
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
 
         def output = [:]
         ncube.getCell([method:'foo', state:'OH'] as Map, output)
@@ -772,7 +772,7 @@ class TestAdvice
         NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, "*()", advice2)
 
         NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube)
+        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
 
         def output = [:]
         try

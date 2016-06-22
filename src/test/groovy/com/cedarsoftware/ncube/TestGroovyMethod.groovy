@@ -73,10 +73,10 @@ class TestGroovyMethod
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'GroovyMethodCP', ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
         NCube cpCube = NCubeManager.getNCubeFromResource appId, 'sys.classpath.cp1.json'
-        NCubeManager.updateCube appId, cpCube
+        NCubeManager.updateCube appId, cpCube, true
 
         NCube cube = NCubeManager.getNCubeFromResource appId, 'GroovyMethodClassPath1.json'
-        NCubeManager.updateCube appId, cube
+        NCubeManager.updateCube appId, cube, true
 
         NCubeManager.clearCache()
         cube = NCubeManager.getCube(appId, 'GroovyMethodClassPath1')
@@ -91,7 +91,7 @@ class TestGroovyMethod
         assertEquals 'Bar', x
 
         cpCube = NCubeManager.getNCubeFromResource appId, 'sys.classpath.cp2.json'
-        NCubeManager.updateCube appId, cpCube
+        NCubeManager.updateCube appId, cpCube, true
 
         NCubeManager.clearCache()
         cube = NCubeManager.getCube appId, 'GroovyMethodClassPath1'
@@ -114,10 +114,10 @@ class TestGroovyMethod
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'GroovyMethodCP', ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.TEST_BRANCH)
 
         NCube cpCube = NCubeManager.getNCubeFromResource(appId, 'sys.classpath.cp1.json')
-        NCubeManager.updateCube(appId, cpCube)
+        NCubeManager.updateCube(appId, cpCube, true)
 
         NCube cube = NCubeManager.getNCubeFromResource(appId, 'GroovyMethodClassPath1.json')
-        NCubeManager.updateCube(appId, cube)
+        NCubeManager.updateCube(appId, cube, true)
 
         NCubeManager.clearCache(appId)
         cube = NCubeManager.getCube(appId, 'GroovyMethodClassPath1')
@@ -132,7 +132,7 @@ class TestGroovyMethod
         assertEquals('Bar', x)
 
         cpCube = NCubeManager.getNCubeFromResource(appId, 'sys.classpath.cp2.json')
-        NCubeManager.updateCube(appId, cpCube)
+        NCubeManager.updateCube(appId, cpCube, true)
 
         NCubeManager.clearCache(appId)
         cube = NCubeManager.getCube(appId, 'GroovyMethodClassPath1')
