@@ -502,11 +502,8 @@ class NCubeManager
             if (value instanceof NCube)
             {   // apply advice to hydrated cubes
                 NCube ncube = value as NCube
-                if (checkPermissions(appId, ncube.name, ACTION.READ))
-                {
-                    Axis axis = ncube.getAxis('method')
-                    addAdviceToMatchedCube(advice, regex, ncube, axis)
-                }
+                Axis axis = ncube.getAxis('method')
+                addAdviceToMatchedCube(advice, regex, ncube, axis)
             }
         }
     }
@@ -582,7 +579,7 @@ class NCubeManager
 
         for (String cubeName : subCubeList)
         {
-            if (checkPermissions(appId, cubeName, ACTION.READ) && !refs.contains(cubeName))
+            if (!refs.contains(cubeName))
             {
                 refs.add(cubeName)
                 getReferencedCubeNames(appId, cubeName, refs)
@@ -785,7 +782,10 @@ class NCubeManager
         }
 
         assertPermissions(oldAppId, oldName, ACTION.READ)
-        detectNewAppId(newAppId)
+        if (!oldAppId.equals(newAppId))
+        {   // Only see if branch permissions are needed to be created when destination cube is in a different ApplicationID
+            detectNewAppId(newAppId)
+        }
         assertPermissions(newAppId, newName, ACTION.UPDATE)
         assertNotLockBlocked(newAppId)
         getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, username)
@@ -809,7 +809,7 @@ class NCubeManager
      * @param ncube      NCube to be updated.
      * @return boolean true on success, false otherwise
      */
-    static boolean updateCube(ApplicationID appId, NCube ncube, String username = getUserId(), boolean createPermCubesIfNeeded)
+    static boolean updateCube(ApplicationID appId, NCube ncube, boolean createPermCubesIfNeeded = false)
     {
         validateAppId(appId)
         validateCube(ncube)
@@ -828,7 +828,7 @@ class NCubeManager
         }
         assertPermissions(appId, cubeName, ACTION.UPDATE)
         assertNotLockBlocked(appId)
-        getPersister().updateCube(appId, ncube, username)
+        getPersister().updateCube(appId, ncube, getUserId())
         ncube.setApplicationID(appId)
 
         if (CLASSPATH_CUBE.equalsIgnoreCase(cubeName))

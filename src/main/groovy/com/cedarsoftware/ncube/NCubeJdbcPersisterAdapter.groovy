@@ -1,6 +1,8 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 
 import java.sql.Connection
 /**
@@ -28,6 +30,7 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
 {
     private final NCubeJdbcPersister persister = new NCubeJdbcPersister()
     private final JdbcConnectionProvider connectionProvider
+    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterAdapter.class)
 
     NCubeJdbcPersisterAdapter(JdbcConnectionProvider provider)
     {
@@ -39,14 +42,10 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
         Connection c = connectionProvider.getConnection()
         try
         {
-//            long start = System.nanoTime()
+            long start = System.nanoTime()
             Object ret = closure(c)
-//            long end = System.nanoTime()
-//            long delta = end - start
-//            if (delta / 1000000 > 250)
-//            {   // Greater than 250ms, log as slow db query
-//                println 'slow DB operation: ' + (delta / 1000000)
-//            }
+            long end = System.nanoTime()
+            LOG.info('    [' + NCubeManager.getUserId() + '] '+ closure.getClass().getSimpleName() + " took " + ((end - start) / 1000000) + ' ms')
             return ret
         }
         finally

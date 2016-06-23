@@ -488,7 +488,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
             if (StringUtilities.equals(oldSha1, cube.sha1()) && revision >= 0)
             {
-                // SHA-1's are equals and both revision values are positive.  No need for new revision of record.
+                // SHA-1's are equal and both revision values are positive.  No need for new revision of record.
                 return
             }
 
