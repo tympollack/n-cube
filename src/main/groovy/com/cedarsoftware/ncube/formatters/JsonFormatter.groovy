@@ -390,7 +390,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     void writeCells(Map<Set<Long>, Object> cells, Map<String, Object> options) throws IOException
     {
         append('"cells":')
-        if (cells == null || cells.isEmpty())
+        if (cells == null || cells.isEmpty() || options.nocells)
         {
             options.indexFormat ? append('{}') : append("[]")
             return
