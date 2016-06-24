@@ -91,6 +91,8 @@ class NCubeManager
 
     public static final String PROPERTY_CACHE = 'cache'
 
+    // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
+    private static ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -1278,6 +1280,10 @@ class NCubeManager
         ApplicationID headAppId = appId.asHead()
 
         List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        if (records.isEmpty())
+        {
+            throw new IllegalArgumentException(appId.app + ' ' + appId.version + '-' + appId.status + ' (' + appId.branch + ' branch) is empty and cannot be updated.  Create branch first.')
+        }
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
 
         for (NCubeInfoDto info : records)
@@ -1697,8 +1703,12 @@ class NCubeManager
             options = [:]
         }
 
+        Map permInfo = getPermInfo(appId)
         List<NCubeInfoDto> cubes = getPersister().search(appId, cubeNamePattern, content, options)
-        cubes.removeAll { !checkPermissions(appId, it.name, ACTION.READ) }
+        if (!permInfo.skipPermCheck)
+        {
+            cubes.removeAll { !fastCheckPermissions(it.name, ACTION.READ, permInfo) }
+        }
         return cubes
     }
 
@@ -2103,18 +2113,78 @@ class NCubeManager
         }
 
         // Step 2: Make sure one of the user's roles allows access
-        boolean accessGranted = false
         final String actionName = action.lower()
         for (String role : roles)
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
             {
-                accessGranted = true
-                break
+                return true
             }
         }
 
-        return accessGranted
+        return false
+    }
+
+    /**
+     * Faster permissions check that should be used when filtering a list of n-cubes.  Before calling this
+     * API, call getPermInfo(AppId) to get the 'permInfo' Map to be used in this API.
+     */
+    static boolean fastCheckPermissions(String resource, ACTION action, Map permInfo)
+    {
+        if (ACTION.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
+        {
+            return true
+        }
+
+        Set<String> roles = permInfo.roles as Set
+        if (!roles.contains(ROLE_ADMIN) && CUBE_MUTATE_ACTIONS.contains(action))
+        {   // If user is not an admin, check branch permissions.
+            NCube branchPermCube = (NCube)permInfo.branchPermCube
+            if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
+            {
+                return false
+            }
+        }
+
+        // Step 2: Make sure one of the user's roles allows access
+        final String actionName = action.lower()
+        NCube permCube = permInfo.permCube as NCube
+        for (String role : roles)
+        {
+            if (checkResourcePermission(permCube, role, resource, actionName))
+            {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    private static Map getPermInfo(ApplicationID appId)
+    {
+        Map<String, Object> info = [skipPermCheck:false] as Map
+        ApplicationID bootVersion = getBootAppId(appId)
+        info.bootVersion = bootVersion
+        NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
+        if (permCube == null)
+        {   // Allow everything if no permissions are set up.
+            info.skipPermCheck = true
+        }
+        info.permCube = permCube
+
+        NCube userToRole = getCubeInternal(bootVersion, SYS_USERGROUPS)
+        if (userToRole == null)
+        {   // Allow everything if no user roles are set up.
+            info.skipPermCheck = true
+        }
+        else
+        {
+            info.roles = getRolesForUser(userToRole)
+        }
+
+        info.branch000 = bootVersion.asBranch(appId.branch)
+        info.branchPermCube = getCubeInternal((ApplicationID)info.branch000, SYS_BRANCH_PERMISSIONS)
+        return info
     }
 
     private static boolean checkBranchPermission(NCube branchPermissions, String resource)
@@ -2164,9 +2234,10 @@ class NCubeManager
                 boolean resourceIncludesAxis = curSplitResource.length > 1
                 String curResourceCube = curSplitResource[0]
                 String curResourceAxis = resourceIncludesAxis ? curSplitResource[1] : null
+                boolean resourceMatchesCurrentResource = doStringsWithWildCardsMatch(resourceCube, curResourceCube)
 
-                if ((shouldCheckAxis && doStringsWithWildCardsMatch(resourceCube, curResourceCube) && doStringsWithWildCardsMatch(resourceAxis, curResourceAxis))
-                        || (!shouldCheckAxis && !resourceIncludesAxis && doStringsWithWildCardsMatch(resourceCube, curResourceCube)))
+                if ((shouldCheckAxis && resourceMatchesCurrentResource && doStringsWithWildCardsMatch(resourceAxis, curResourceAxis))
+                        || (!shouldCheckAxis && !resourceIncludesAxis && resourceMatchesCurrentResource))
                 {
                     matches << resourcePermissionColumn
                 }
@@ -2185,8 +2256,16 @@ class NCubeManager
         {
             return false
         }
+
+        Pattern p = wildcards[pattern]
+        if (p != null)
+        {
+            return p.matcher(text).matches()
+        }
+
         String regexString = '(?i)' + StringUtilities.wildcardToRegexString(pattern)
-        Pattern p = Pattern.compile(regexString)
+        p = Pattern.compile(regexString)
+        wildcards[pattern] = p
         return p.matcher(text).matches()
     }
 

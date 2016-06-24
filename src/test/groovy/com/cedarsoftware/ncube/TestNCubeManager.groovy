@@ -1800,8 +1800,8 @@ class TestNCubeManager
         ApplicationID branchBootAppId = defaultBootApp.asBranch(userId)
         Map lockCoord = [(NCubeManager.AXIS_SYSTEM):null]
 
-        // update branch
-        NCubeManager.updateBranch(branchBootAppId)
+        // create branch
+        NCubeManager.createBranch(branchBootAppId)
 
         // update sys lock in branch
         NCube sysLockCube = NCubeManager.loadCube(branchBootAppId, NCubeManager.SYS_LOCK)
@@ -1831,7 +1831,7 @@ class TestNCubeManager
         }
         catch (SecurityException e)
         {
-            assertTrue(e.message.contains('not locked'))
+            assertTrue(e.message.contains('not performed'))
         }
         NCubeManager.setUserId(currUser)
     }
