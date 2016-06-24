@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.69</version>
+  <version>3.4.70</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,9 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.70
+ * Performance enhancement: Permissions checks are faster
+ * Persister logging showing method names and key arguments
 * 3.4.69
  * Performance enhancement: Duplicate cube does not test for need of creating permission cubes if source and target ApplicationID are the same
  * Log persister APIs and times to correlate to REST calls (1st cut)
