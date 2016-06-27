@@ -1509,6 +1509,18 @@ class TestNCubeManager
     }
 
     @Test
+    void testCopyBranch()
+    {
+        ApplicationID copyAppId = defaultSnapshotApp.asBranch('copy')
+        NCube cube = NCubeManager.getNCubeFromResource(defaultSnapshotApp, 'latlon.json')
+        NCubeManager.updateCube(defaultSnapshotApp, cube, true)
+
+        NCubeManager.copyBranch(defaultSnapshotApp, copyAppId)
+        NCube copiedCube = NCubeManager.loadCube(copyAppId, cube.name)
+        assertNotNull(copiedCube);
+    }
+
+    @Test
     void testLoadCubeByUsingNonExistingSha1()
     {
         NCube cube = createCube()
