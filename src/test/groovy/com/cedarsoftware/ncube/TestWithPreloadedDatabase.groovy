@@ -479,7 +479,7 @@ class TestWithPreloadedDatabase
 
         cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
         assertNotNull(cube)
-        NCubeManager.updateCube(branch1, cube, "jdirt", true)
+        NCubeManager.updateCube(branch1, cube, true)
 
 
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
@@ -1113,7 +1113,7 @@ class TestWithPreloadedDatabase
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
         assertNotNull(cube)
-        NCubeManager.updateCube(branch1, cube, "jdirt", true)
+        NCubeManager.updateCube(branch1, cube, true)
 
         assertEquals(2, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
         testValuesOnBranch(branch1, "FOO")

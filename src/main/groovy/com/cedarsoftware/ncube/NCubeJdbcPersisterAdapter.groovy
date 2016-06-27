@@ -1,6 +1,8 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 
 import java.sql.Connection
 /**
@@ -28,25 +30,22 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
 {
     private final NCubeJdbcPersister persister = new NCubeJdbcPersister()
     private final JdbcConnectionProvider connectionProvider
+    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterAdapter.class)
 
     NCubeJdbcPersisterAdapter(JdbcConnectionProvider provider)
     {
         connectionProvider = provider
     }
 
-    Object jdbcOperation(Closure closure)
+    Object jdbcOperation(Closure closure, String msg = closure.getClass().getSimpleName())
     {
         Connection c = connectionProvider.getConnection()
         try
         {
-//            long start = System.nanoTime()
+            long start = System.nanoTime()
             Object ret = closure(c)
-//            long end = System.nanoTime()
-//            long delta = end - start
-//            if (delta / 1000000 > 250)
-//            {   // Greater than 250ms, log as slow db query
-//                println 'slow DB operation: ' + (delta / 1000000)
-//            }
+            long end = System.nanoTime()
+            LOG.info('    [' + NCubeManager.getUserId() + '] '+ msg + " took " + ((end - start) / 1000000) + ' ms')
             return ret
         }
         finally
@@ -62,146 +61,175 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
 
     void updateCube(ApplicationID appId, NCube cube, final String username)
     {
-        jdbcOperation { Connection c -> persister.updateCube(c, appId, cube, username) }
+        jdbcOperation({ Connection c -> persister.updateCube(c, appId, cube, username) },
+                'updateCube(' + cube.name + ')')
     }
 
     NCube loadCubeById(long cubeId)
     {
-        return (NCube) jdbcOperation { Connection c -> persister.loadCubeById(c, cubeId) }
+        return (NCube) jdbcOperation({ Connection c -> persister.loadCubeById(c, cubeId) },
+                'loadCubeById(' + cubeId + ')')
     }
 
     NCube loadCube(ApplicationID appId, String name)
     {
-        return (NCube) jdbcOperation { Connection c -> persister.loadCube(c, appId, name) }
+        return (NCube) jdbcOperation({ Connection c -> persister.loadCube(c, appId, name) },
+                'loadCube(' + appId.cacheKey(name) + ')')
     }
 
     NCube loadCubeBySha1(ApplicationID appId, String name, String sha1)
     {
-        return (NCube) jdbcOperation { Connection c -> persister.loadCubeBySha1(c, appId, name, sha1) }
+        return (NCube) jdbcOperation({ Connection c -> persister.loadCubeBySha1(c, appId, name, sha1) },
+                'loadCubeBySha1(' + appId.cacheKey(name) + ', ' + sha1 + ')')
     }
 
     boolean restoreCubes(ApplicationID appId, Object[] names, String username)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.restoreCubes(c, appId, names, username) }
+        return (boolean) jdbcOperation({ Connection c -> persister.restoreCubes(c, appId, names, username) },
+                'restoreCubes(' + appId + ')')
     }
 
     List<NCubeInfoDto> getRevisions(ApplicationID appId, String cubeName)
     {
-        return (List<NCubeInfoDto>) jdbcOperation { Connection c -> persister.getRevisions(c, appId, cubeName) }
+        return (List<NCubeInfoDto>) jdbcOperation({ Connection c -> persister.getRevisions(c, appId, cubeName) },
+                'getRevisions(' + appId.cacheKey(cubeName) + ')')
     }
 
     Set<String> getBranches(ApplicationID appId)
     {
-        return (Set<String>) jdbcOperation { Connection c -> persister.getBranches(c, appId) }
+        return (Set<String>) jdbcOperation({ Connection c -> persister.getBranches(c, appId) },
+                'getBranches(' + appId + ')')
     }
 
     boolean deleteBranch(ApplicationID branchId)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.deleteBranch(c, branchId) }
+        return (boolean) jdbcOperation({ Connection c -> persister.deleteBranch(c, branchId) },
+                'deleteBranch(' + branchId + ')')
     }
 
     boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.deleteCubes(c, appId, cubeNames, allowDelete, username) }
+        return (boolean) jdbcOperation({ Connection c -> persister.deleteCubes(c, appId, cubeNames, allowDelete, username) },
+                'deleteCubes(' + appId + ')')
     }
 
     List<String> getAppNames(String tenant)
     {
-        return (List<String>) jdbcOperation { Connection c -> persister.getAppNames(c, tenant) }
+        return (List<String>) jdbcOperation({ Connection c -> persister.getAppNames(c, tenant) },
+                'getAppNames()')
     }
 
     Map<String, List<String>> getVersions(String tenant, String app)
     {
-        return (Map<String, List<String>>) jdbcOperation { Connection c -> persister.getVersions(c, tenant, app) }
+        return (Map<String, List<String>>) jdbcOperation({ Connection c -> persister.getVersions(c, tenant, app) },
+                'getVersions(' + app + ')')
     }
 
     int changeVersionValue(ApplicationID appId, String newVersion)
     {
-        return (int) jdbcOperation { Connection c -> persister.changeVersionValue(c, appId, newVersion) }
+        return (int) jdbcOperation({ Connection c -> persister.changeVersionValue(c, appId, newVersion) },
+                'changeVersionValue(' + appId + '->' + newVersion + ')')
     }
 
     int moveBranch(ApplicationID appId, String newSnapVer)
     {
-        return (int) jdbcOperation { Connection c -> persister.moveBranch(c, appId, newSnapVer) }
+        return (int) jdbcOperation({ Connection c -> persister.moveBranch(c, appId, newSnapVer) },
+                'moveBranch(' + appId + ', new snap: ' + newSnapVer + ')')
     }
 
     int releaseCubes(ApplicationID appId, String newSnapVer)
     {
-        return (int) jdbcOperation { Connection c -> persister.releaseCubes(c, appId, newSnapVer) }
+        return (int) jdbcOperation({ Connection c -> persister.releaseCubes(c, appId, newSnapVer) },
+                'releaseCubes(' + appId + ', new snap: ' + newSnapVer + ')')
     }
 
     int createBranch(ApplicationID appId)
     {
-        return (int) jdbcOperation { Connection c -> persister.createBranch(c, appId) }
+        return (int) jdbcOperation({ Connection c -> persister.createBranch(c, appId) },
+                'createBranch(' + appId + ')')
     }
 
     boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.renameCube(c, appId, oldName, newName, username) }
+        return (boolean) jdbcOperation({ Connection c -> persister.renameCube(c, appId, oldName, newName, username) },
+                'renameCube(' + appId.cacheKey(oldName) + '->' + newName + ')')
     }
 
     boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.mergeAcceptTheirs(c, appId, cubeName, branchSha1, username) }
+        return (boolean) jdbcOperation({ Connection c -> persister.mergeAcceptTheirs(c, appId, cubeName, branchSha1, username) },
+                'mergeAcceptTheirs(' + appId.cacheKey(cubeName) + ', ' + branchSha1 + ')')
     }
 
     boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.mergeAcceptMine(c, appId, cubeName, username) }
+        return (boolean) jdbcOperation({ Connection c -> persister.mergeAcceptMine(c, appId, cubeName, username) },
+                'mergeAcceptMine(' + appId.cacheKey(cubeName) + ')')
     }
 
     boolean duplicateCube(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.duplicateCube(c, oldAppId, newAppId, oldName, newName, username) }
+        return (boolean) jdbcOperation({ Connection c -> persister.duplicateCube(c, oldAppId, newAppId, oldName, newName, username) },
+                'duplicateCube(' + oldAppId.cacheKey(oldName) + '->' + newAppId.cacheKey(newName) + ')')
     }
 
     boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.updateNotes(c, appId, cubeName, notes) }
+        return (boolean) jdbcOperation({ Connection c -> persister.updateNotes(c, appId, cubeName, notes) },
+                'updateNotes(' + appId.cacheKey(cubeName) + ')')
     }
 
     boolean updateTestData(ApplicationID appId, String cubeName, String testData)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.updateTestData(c, appId, cubeName, testData) }
+        return (boolean) jdbcOperation({ Connection c -> persister.updateTestData(c, appId, cubeName, testData) },
+                'updateTestData(' + appId.cacheKey(cubeName) + ')')
     }
 
     String getTestData(ApplicationID appId, String cubeName)
     {
-        return (String) jdbcOperation { Connection c -> persister.getTestData(c, appId, cubeName) }
+        return (String) jdbcOperation({ Connection c -> persister.getTestData(c, appId, cubeName) },
+                'getTestData(' + appId.cacheKey(cubeName) + ')')
     }
 
     NCubeInfoDto commitMergedCubeToHead(ApplicationID appId, NCube cube, String username)
     {
-        return (NCubeInfoDto) jdbcOperation { Connection c -> persister.commitMergedCubeToHead(c, appId, cube, username) }
+        return (NCubeInfoDto) jdbcOperation({ Connection c -> persister.commitMergedCubeToHead(c, appId, cube, username) },
+                'commitMergedCubeToHead(' + appId.cacheKey(cube.name) + ')')
     }
 
     NCubeInfoDto commitMergedCubeToBranch(ApplicationID appId, NCube cube, String headSha1, String username)
     {
-        return (NCubeInfoDto) jdbcOperation { Connection c -> persister.commitMergedCubeToBranch(c, appId, cube, headSha1, username) }
+        return (NCubeInfoDto) jdbcOperation({ Connection c -> persister.commitMergedCubeToBranch(c, appId, cube, headSha1, username) },
+                'commitMergedCubeToBranch(' + appId.cacheKey(cube.name) + ', headSHA1=' + headSha1 + ')')
     }
 
     List<NCubeInfoDto> commitCubes(ApplicationID appId, Object[] cubeIds, String username)
     {
-        return (List<NCubeInfoDto>) jdbcOperation { Connection c -> persister.commitCubes(c, appId, cubeIds, username) }
+        return (List<NCubeInfoDto>) jdbcOperation({ Connection c -> persister.commitCubes(c, appId, cubeIds, username) },
+                'commitCubes(' + appId + ')')
     }
 
     int rollbackCubes(ApplicationID appId, Object[] names, String username)
     {
-        return (int) jdbcOperation { Connection c -> persister.rollbackCubes(c, appId, names, username) }
+        return (int) jdbcOperation({ Connection c -> persister.rollbackCubes(c, appId, names, username) },
+                'rollbackCubes(' + appId + ')')
     }
 
     List<NCubeInfoDto> pullToBranch(ApplicationID appId, Object[] cubeIds, String username)
     {
-        return (List<NCubeInfoDto>) jdbcOperation { Connection c -> persister.pullToBranch(c, appId, cubeIds, username) }
+        return (List<NCubeInfoDto>) jdbcOperation({ Connection c -> persister.pullToBranch(c, appId, cubeIds, username) },
+                'pullToBranch(' + appId + ')')
     }
 
     boolean updateBranchCubeHeadSha1(Long cubeId, String headSha1)
     {
-        return (boolean) jdbcOperation { Connection c -> persister.updateBranchCubeHeadSha1(c, cubeId, headSha1) }
+        return (boolean) jdbcOperation({ Connection c -> persister.updateBranchCubeHeadSha1(c, cubeId, headSha1) },
+                'updateBranchCubeHeadSha1(cubeId=' + cubeId + ', headSHA1=' + headSha1 + ')')
     }
 
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String searchValue, Map options)
     {
-        return (List<NCubeInfoDto>) jdbcOperation { Connection c -> persister.search(c, appId, cubeNamePattern, searchValue, options) }
+        return (List<NCubeInfoDto>) jdbcOperation({ Connection c -> persister.search(c, appId, cubeNamePattern, searchValue, options) },
+                'search(' + appId + ', ' + cubeNamePattern + ', ' + searchValue + ')')
     }
 }
