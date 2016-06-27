@@ -860,6 +860,28 @@ class NCubeManager
         return rows
     }
 
+    /**
+     * Copy branch from one app id to another
+     * @param origAppId Branch copied from
+     * @param copyAppId Branch copied to (must not exist)
+     * @return
+     */
+    static int copyBranch(ApplicationID origAppId, ApplicationID copyAppId)
+    {
+        validateAppId(origAppId)
+        validateAppId(copyAppId)
+        copyAppId.validateStatusIsNotRelease()
+        assertNotLockBlocked(copyAppId)
+        int rows = getPersister().copyBranch(origAppId, copyAppId)
+        if (!copyAppId.isHead())
+        {
+            addBranchPermissionsCube(copyAppId);
+        }
+        clearCache(copyAppId)
+        broadcast(copyAppId)
+        return rows
+    }
+
     static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames, String username = getUserId())
     {
         validateAppId(appId)
