@@ -1645,6 +1645,12 @@ class NCubeManager
         return getPersister().getBranches(appId)
     }
 
+    static int getBranchCount(ApplicationID appId)
+    {
+        Set<String> branches = getBranches(appId)
+        return branches.size()
+    }
+
     static ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
         ApplicationID.validateTenant(tenant)
