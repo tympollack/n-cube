@@ -1162,6 +1162,63 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         }
     }
 
+    int copyBranch(Connection c, ApplicationID origAppId, ApplicationID copyAppId)
+    {
+        if (doCubesExist(c, copyAppId, true, 'copyBranch'))
+        {
+            throw new IllegalStateException("Branch '" + copyAppId.branch + "' already exists, app: " + copyAppId)
+        }
+
+        Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
+                                       (METHOD_NAME) : 'copyBranch'] as Map
+        int count = 0
+        boolean autoCommit = c.getAutoCommit()
+        PreparedStatement insert = null
+        try
+        {
+            c.setAutoCommit(false)
+            insert = c.prepareStatement(
+                    "/* createBranch */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            runSelectCubesStatement(c, origAppId, null, options, { ResultSet row ->
+                String sha1 = row['sha1'] as String
+                insert.setLong(1, UniqueIdGenerator.getUniqueId())
+                insert.setString(2, row.getString('n_cube_nm'))
+                insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
+                insert.setTimestamp(4, new Timestamp(System.currentTimeMillis()))
+                insert.setString(5, row.getString('create_hid'))
+                insert.setString(6, copyAppId.version)
+                insert.setString(7, ReleaseStatus.SNAPSHOT.name())
+                insert.setString(8, copyAppId.app)
+                insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
+                insert.setBytes(10, ('branch ' + copyAppId.version + ' created').getBytes('UTF-8'))
+                insert.setString(11, copyAppId.tenant)
+                insert.setString(12, copyAppId.branch)
+                insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
+                insert.setBoolean(14, false)
+                insert.setString(15, sha1)
+                insert.setString(16, sha1)
+                insert.addBatch()
+                count++
+                if (count % EXECUTE_BATCH_CONSTANT == 0)
+                {
+                    insert.executeBatch()
+                }
+            })
+            if (count % EXECUTE_BATCH_CONSTANT != 0)
+            {
+                insert.executeBatch()
+            }
+            return count
+        }
+        finally
+        {
+            c.setAutoCommit(autoCommit)
+            insert?.close()
+        }
+    }
+
     boolean deleteBranch(Connection c, ApplicationID appId)
     {
         Map map = appId as Map
