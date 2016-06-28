@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.70</version>
+  <version>3.4.71</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,10 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.71
+ * NCubeManager.copyBranch() added - copy from one ApplicationID to another ApplicationID (all cubes).  The target branch is always copied to in SNAPSHOT mode.  The target branch must be empty.
+ * NCubeManager.getBranchCount() added.  This API will ask the persister directly how many n-cubes are in a particular branch.
+ * CellInfo as Map - Converts a CellInfo into a Map instance
 * 3.4.70
  * Performance enhancement: Permissions checks are faster
  * Persister logging showing method names and key arguments
@@ -112,7 +116,7 @@ ___
  * Simplified permissions checks
  * Changed NCubeManager cache to only cache NCube as opposed to NCube or NCubeInfoDto.
  * Changed NCubeManager cache - hid internals of .toLowerCase()
- * SQL quries always use LOWER() on n_cube_nm (use to only be Oracle)
+ * SQL quries always use LOWER() on n_cube_nm (used to only be Oracle)
  * Ensured that sys.lock is never cached
 * 3.4.64
  * NCubeManager.releaseVersion(), check for SNAPSHOT versions removed (SNAPSHOT version will exist when this is called.)  Release check is still made.  

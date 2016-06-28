@@ -862,23 +862,23 @@ class NCubeManager
 
     /**
      * Copy branch from one app id to another
-     * @param origAppId Branch copied from
-     * @param copyAppId Branch copied to (must not exist)
-     * @return
+     * @param srcAppId Branch copied from (source branch)
+     * @param targetAppId Branch copied to (must not exist)
+     * @return int number of n-cubes in branch (number copied - revision depth is not copied)
      */
-    static int copyBranch(ApplicationID origAppId, ApplicationID copyAppId)
+    static int copyBranch(ApplicationID srcAppId, ApplicationID targetAppId)
     {
-        validateAppId(origAppId)
-        validateAppId(copyAppId)
-        copyAppId.validateStatusIsNotRelease()
-        assertNotLockBlocked(copyAppId)
-        int rows = getPersister().copyBranch(origAppId, copyAppId)
-        if (!copyAppId.isHead())
+        validateAppId(srcAppId)
+        validateAppId(targetAppId)
+        targetAppId.validateStatusIsNotRelease()
+        assertNotLockBlocked(targetAppId)
+        int rows = getPersister().copyBranch(srcAppId, targetAppId)
+        if (!targetAppId.isHead())
         {
-            addBranchPermissionsCube(copyAppId);
+            addBranchPermissionsCube(targetAppId);
         }
-        clearCache(copyAppId)
-        broadcast(copyAppId)
+        clearCache(targetAppId)
+        broadcast(targetAppId)
         return rows
     }
 

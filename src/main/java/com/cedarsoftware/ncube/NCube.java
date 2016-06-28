@@ -515,6 +515,11 @@ public class NCube<T>
         return getCell(coordinate, output, null);
     }
 
+    public T at(final Map coordinate, final Map output, Object defaultValue)
+    {
+        return getCell(coordinate, output, defaultValue);
+    }
+
     /**
      * Fetch the contents of the cell at the location specified by the coordinate argument.
      * Be aware that if you have any rule cubes in the execution path, they can execute

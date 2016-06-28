@@ -311,6 +311,35 @@ class CellInfo
         return type
     }
 
+    Object asType(Class c)
+    {
+        if (Map.class.isAssignableFrom(c))
+        {
+            Map ret = [type: dataType]
+            if (isUrl)
+            {
+                ret.url = value
+            }
+            else
+            {
+                ret.value = value
+            }
+            if (isCached)
+            {   // Only add 'cache' to Map if cache=true
+                ret.cache = true
+            }
+            return ret
+        }
+        else if (CellInfo.isAssignableFrom(c))
+        {
+            return this
+        }
+        else
+        {
+            throw new IllegalArgumentException('Unknown type to convert CellInfo to: ' + c.getName())
+        }
+    }
+
     /**
      * Fetch the datatype of the passed in cell.  This is a cell from n-cube, not CellInfo.  It could have been
      * obtained from ncube.getCellNoExecute() in which case the answer will be perfectly accurate.  If the

@@ -279,6 +279,10 @@ class TestCellInfo
     {
         GroovyMethod method = (GroovyMethod) CellInfo.parseJsonValue("def [5]", null, "method", true)
         assertEquals(new GroovyMethod("def [5]", null, false), method)
+        CellInfo cellInfo = new CellInfo(method)
+        Map map = cellInfo as Map
+        assert map.type == "method"
+        assert map.value instanceof String
     }
 
     @Test
@@ -319,6 +323,9 @@ class TestCellInfo
         Range range = new Range('alpha', 'zooloo')
         CellInfo cellInfo = new CellInfo(range)
         assert "range" == cellInfo.getType(range)
+        Map map = cellInfo as Map
+        assert map.type == "range"
+        assert map.value instanceof String
     }
 
     @Test
@@ -328,6 +335,9 @@ class TestCellInfo
         set.add('kilo')
         CellInfo cellInfo = new CellInfo(set)
         assert "rangeset" == cellInfo.getType(set)
+        Map map = cellInfo as Map
+        assert map.type == "rangeset"
+        assert map.value instanceof String
     }
 
     @TypeChecked(TypeCheckingMode.SKIP)

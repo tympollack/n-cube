@@ -168,7 +168,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             s.setLong(8, revision)
             s.setString(9, sha1)
             s.setString(10, headSha1)
-            Timestamp now = new Timestamp(System.currentTimeMillis())
+            Timestamp now = nowAsTimestamp()
             s.setTimestamp(11, now)
             s.setString(12, username)
             s.setBytes(13, cubeData)
@@ -210,7 +210,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             boolean changed, String headSha1, String username, String methodName)
     {
         long uniqueId = UniqueIdGenerator.getUniqueId()
-        Timestamp now = new Timestamp(System.currentTimeMillis())
+        Timestamp now = nowAsTimestamp()
         final Blob blob = c.createBlob()
         OutputStream out = blob.setBinaryStream(1L)
         OutputStream stream = new GZIPOutputStream(out, 8192)
@@ -396,7 +396,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         stmt.setLong(8, rev)
         stmt.setString(9, sha1)
         stmt.setString(10, headSha1)
-        Timestamp now = new Timestamp(System.currentTimeMillis())
+        Timestamp now = nowAsTimestamp()
         stmt.setTimestamp(11, now)
         stmt.setString(12, username)
         stmt.setBytes(13, jsonBytes)
@@ -707,13 +707,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 Long maxRevision = getMaxRevision(c, headAppId, cubeName, 'commitCubes')
 
                 //  create case because max revision was not found.
-                String changeType
-                boolean skip = false
+                String changeType = null
                 if (maxRevision == null)
                 {
                     if (revision < 0)
                     {   // User created then deleted cube, but it has no HEAD corresponding cube, don't promote it
-                        skip = true
                     }
                     else
                     {
@@ -725,7 +723,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 {
                     if (maxRevision < 0)
                     {   // Deleted in both, don't promote it
-                        skip = true
                     }
                     else
                     {
@@ -746,11 +743,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                     maxRevision = Math.abs(maxRevision as long) + 1
                 }
 
-                if (!skip)
+                if (changeType)
                 {
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
                     NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, username, 'commitCubes')
-                    def map1 = [head_sha1: sha1, create_dt: new Timestamp(System.currentTimeMillis()), id: cubeIds[i]]
+                    Map map1 = [head_sha1: sha1, create_dt: nowAsTimestamp(), id: cubeIds[i]]
                     Sql sql1 = new Sql(c)
 
                     sql1.executeUpdate(map1, '/* commitCubes */ UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id')
@@ -826,7 +823,7 @@ AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""", 0,
                         ins.setLong(8, mustDelete ? -rev : rev)
                         ins.setString(9, sha1)
                         ins.setString(10, headSha1)
-                        Timestamp now = new Timestamp(System.currentTimeMillis())
+                        Timestamp now = nowAsTimestamp()
                         ins.setTimestamp(11, now)
                         ins.setString(12, username)
                         ins.setBytes(13, bytes)
@@ -1129,7 +1126,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setLong(1, UniqueIdGenerator.getUniqueId())
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
-                insert.setTimestamp(4, new Timestamp(System.currentTimeMillis()))
+                insert.setTimestamp(4, nowAsTimestamp())
                 insert.setString(5, row.getString('create_hid'))
                 insert.setString(6, appId.version)
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
@@ -1162,11 +1159,11 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         }
     }
 
-    int copyBranch(Connection c, ApplicationID origAppId, ApplicationID copyAppId)
+    int copyBranch(Connection c, ApplicationID srcAppId, ApplicationID targetAppId)
     {
-        if (doCubesExist(c, copyAppId, true, 'copyBranch'))
+        if (doCubesExist(c, targetAppId, true, 'copyBranch'))
         {
-            throw new IllegalStateException("Branch '" + copyAppId.branch + "' already exists, app: " + copyAppId)
+            throw new IllegalStateException("Branch '" + targetAppId.branch + "' already exists, app: " + targetAppId)
         }
 
         Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
@@ -1181,20 +1178,20 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
             insert = c.prepareStatement(
                     "/* createBranch */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            runSelectCubesStatement(c, origAppId, null, options, { ResultSet row ->
+            runSelectCubesStatement(c, srcAppId, null, options, { ResultSet row ->
                 String sha1 = row['sha1'] as String
                 insert.setLong(1, UniqueIdGenerator.getUniqueId())
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
-                insert.setTimestamp(4, new Timestamp(System.currentTimeMillis()))
+                insert.setTimestamp(4, nowAsTimestamp())
                 insert.setString(5, row.getString('create_hid'))
-                insert.setString(6, copyAppId.version)
+                insert.setString(6, targetAppId.version)
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
-                insert.setString(8, copyAppId.app)
+                insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ('branch ' + copyAppId.version + ' created').getBytes('UTF-8'))
-                insert.setString(11, copyAppId.tenant)
-                insert.setString(12, copyAppId.branch)
+                insert.setBytes(10, ('branch ' + targetAppId.version + ' copied from ' + srcAppId.app + ' / ' + srcAppId.version + '-' + srcAppId.status + ' / ' + srcAppId.branch).getBytes('UTF-8'))
+                insert.setString(11, targetAppId.tenant)
+                insert.setString(12, targetAppId.branch)
                 insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
                 insert.setBoolean(14, false)
                 insert.setString(15, sha1)
@@ -1246,7 +1243,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         Sql sql = new Sql(c)
         Map map = appId as Map
         map.newVer = newSnapVer
-        map.create_dt = new Timestamp(System.currentTimeMillis())
+        map.create_dt = nowAsTimestamp()
         int releaseCount = sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND ${compareTenant()} AND branch_id = 'HEAD'")
 
         // Step 2: Create new SNAPSHOT cubes from the HEAD RELEASE cubes (next version higher, started for development)
@@ -1271,7 +1268,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setLong(1, UniqueIdGenerator.getUniqueId())
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
-                insert.setTimestamp(4, new Timestamp(System.currentTimeMillis()))
+                insert.setTimestamp(4, nowAsTimestamp())
                 insert.setString(5, row.getString('create_hid'))
                 insert.setString(6, newSnapVer)
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
@@ -1599,5 +1596,10 @@ ORDER BY abs(revision_number) DESC"""
     private static String compareTenant()
     {
         return " (tenant_cd = RPAD(:tenant, 10, ' ') OR tenant_cd = :tenant) "
+    }
+
+    private static Timestamp nowAsTimestamp()
+    {
+        return new Timestamp(System.currentTimeMillis())
     }
 }
