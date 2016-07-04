@@ -110,7 +110,7 @@ public class NCube<T>
      */
     public Object getMetaProperty(String key)
     {
-        return metaProps.get(key)
+        return metaProps[key]
     }
 
     /**
@@ -240,7 +240,7 @@ public class NCube<T>
      */
     public List<Advice> getAdvices(String method)
     {
-        List<Advice> result = new ArrayList<>()
+        List<Advice> result = []
         method = '/' + method
         for (Map.Entry<String, Advice> entry : advices.entrySet())
         {
@@ -552,8 +552,8 @@ public class NCube<T>
 
                     for (final Axis axis: axisList.values())
                     {
-                        final String axisName = axis.getName()
-                        final Column boundColumn = columnToAxisBindings.get(axisName).get(counters.get(axisName) - 1)
+                        final String axisName = axis.name
+                        final Column boundColumn = columnToAxisBindings[axisName][counters[axisName] - 1]
 
                         if (axis.getType() == AxisType.RULE)
                         {
@@ -564,7 +564,7 @@ public class NCube<T>
 
                                 // If the cmd == null, then we are looking at a default column on a rule axis.
                                 // the conditionValue becomes 'true' for Default column when ruleAxisBindCount = 0
-                                final Integer count = conditionsFiredCountPerAxis.get(axisName)
+                                final Integer count = conditionsFiredCountPerAxis[axisName]
                                 conditionValue = cmd == null ? isZero(count) : executeExpression(ctx, cmd)
                                 final boolean conditionAnswer = isTrue(conditionValue)
                                 cachedConditionValues[boundColumn.id] = conditionAnswer
@@ -583,7 +583,7 @@ public class NCube<T>
                             }
                             else
                             {   // re-use condition on this rule axis (happens when more than one rule axis on an n-cube)
-                                conditionValue = cachedConditionValues.get(boundColumn.id)
+                                conditionValue = cachedConditionValues[boundColumn.id]
                             }
 
                             // A rule column on a given axis can be accessed more than once (example: A, B, C on
@@ -644,7 +644,7 @@ public class NCube<T>
         try
         {
             Object ret = cmd.execute(ctx)
-            trackInputKeysUsed((Map) ctx.get("input"), (Map) ctx.get("output"))
+            trackInputKeysUsed(ctx.input as Map, ctx.output as Map)
             return ret
         }
         catch (ThreadDeath | RuleStop | RuleJump e)
@@ -734,10 +734,10 @@ public class NCube<T>
         {
             if (axis.getType() == AxisType.RULE)
             {
-                Integer count = conditionsFiredCountPerAxis.get(axis.getName())
+                Integer count = conditionsFiredCountPerAxis[axis.name]
                 if (count == null || count < 1)
                 {
-                    throw new CoordinateNotFoundException("No conditions on the rule axis: " + axis.getName() + " fired, and there is no default column on this axis, cube: " + name + ", input: " + coordinate)
+                    throw new CoordinateNotFoundException("No conditions on the rule axis: " + axis.name + " fired, and there is no default column on this axis, cube: " + name + ", input: " + coordinate)
                 }
             }
         }
@@ -796,7 +796,7 @@ public class NCube<T>
 //                LOG.info("Axes:")
 //                for (Axis axis : axisList.values())
 //                {
-//                    LOG.info("  axis name: " + axis.getName())
+//                    LOG.info("  axis name: " + axis.name)
 //                    LOG.info("  axis ID: " + axis.getId())
 //                    LOG.info("  axis type: " + axis.getType())
 //                    LOG.info("  axis valueType: " + axis.getValueType())
@@ -847,7 +847,7 @@ public class NCube<T>
         }
     }
 
-    private void trackInputKeysUsed(Map input, Map output)
+    private static void trackInputKeysUsed(Map input, Map output)
     {
         if (input instanceof TrackingMap)
         {
@@ -1018,9 +1018,9 @@ public class NCube<T>
                 final Column column = axis.findColumn(value)
                 if (column == null)
                 {
-                    throw new CoordinateNotFoundException("Value '" + value + "' not found on axis: " + axis.getName() + ", cube: " + name)
+                    throw new CoordinateNotFoundException("Value '" + value + "' not found on axis: " + axis.name + ", cube: " + name)
                 }
-                List<Column> cols = new ArrayList<>()
+                List<Column> cols = []
                 cols.add(column)
                 bindings[axisName] = cols
             }
@@ -1249,11 +1249,11 @@ public class NCube<T>
         Set<Long> ids = new TreeSet<>()
         for (final Axis axis : axisList.values())
         {
-            final Object value = safeCoord.get(axis.getName())
+            final Object value = safeCoord.get(axis.name)
             final Column column = axis.findColumn((Comparable) value)
             if (column == null)
             {
-                throw new CoordinateNotFoundException("Value '" + coordinate + "' not found on axis: " + axis.getName() + ", cube: " + name)
+                throw new CoordinateNotFoundException("Value '" + coordinate + "' not found on axis: " + axis.name + ", cube: " + name)
             }
             ids.add(column.id)
         }
@@ -1305,8 +1305,8 @@ public class NCube<T>
      */
     private List<Column> getWildcardColumns(final Axis wildcardAxis, final Map coordinate)
     {
-        final List<Column> columns = new ArrayList<>()
-        final Set<Comparable> wildcardSet = (Set<Comparable>) coordinate.get(wildcardAxis.getName())
+        final List<Column> columns = []
+        final Set<Comparable> wildcardSet = (Set<Comparable>) coordinate[wildcardAxis.getName()]
 
         // To support '*', an empty Set is bound to the axis such that all columns are returned.
         if (wildcardSet.isEmpty())
@@ -1587,7 +1587,7 @@ public class NCube<T>
      */
     public void addAxis(final Axis axis)
     {
-        String axisName = axis.getName()
+        String axisName = axis.name
         if (axisList.containsKey(axisName))
         {
             throw new IllegalArgumentException("An axis with the name '" + axisName + "' already exists on cube: " + name)
@@ -1694,7 +1694,7 @@ public class NCube<T>
         {   // Use original axis name (not .toLowerCase() version)
             if (axis.hasDefaultColumn() || axis.getType() == AxisType.RULE)
             {   // Rule axis is always optional scope - it does not need a axisName to value binding like the other axis types.
-                optionalScope.add(axis.getName())
+                optionalScope.add(axis.name)
             }
         }
 
@@ -1735,7 +1735,7 @@ public class NCube<T>
         {   // Use original axis name (not .toLowerCase() version)
             if (!axis.hasDefaultColumn() && !(axis.getType() == AxisType.RULE))
             {
-                required.add(axis.getName())
+                required.add(axis.name)
             }
         }
         return required
@@ -1912,7 +1912,7 @@ public class NCube<T>
         String defType = jsonNCube.containsKey(DEFAULT_CELL_VALUE_TYPE) ? getString(jsonNCube, DEFAULT_CELL_VALUE_TYPE) : null
         String defUrl = jsonNCube.containsKey(DEFAULT_CELL_VALUE_URL) ? getString(jsonNCube, DEFAULT_CELL_VALUE_URL) : null
         boolean defCache = getBoolean(jsonNCube, DEFAULT_CELL_VALUE_CACHE)
-        ncube.defaultCellValue = CellInfo.parseJsonValue(jsonNCube.get(DEFAULT_CELL_VALUE), defUrl, defType, defCache)
+        ncube.defaultCellValue = CellInfo.parseJsonValue(jsonNCube[DEFAULT_CELL_VALUE], defUrl, defType, defCache)
 
         if (!jsonNCube.containsKey("axes"))
         {
@@ -2019,7 +2019,7 @@ public class NCube<T>
                     Long suggestedId = (id instanceof Long) ? (Long) id : null
                     if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
                     {
-                        colAdded = ncube.addColumn(axis.getName(), (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId)
+                        colAdded = ncube.addColumn(axis.name, (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId)
                     }
                     else if (type == AxisType.RANGE)
                     {
@@ -2030,7 +2030,7 @@ public class NCube<T>
                         }
                         Comparable low = (Comparable) CellInfo.parseJsonValue(rangeItems[0], null, colType, false)
                         Comparable high = (Comparable) CellInfo.parseJsonValue(rangeItems[1], null, colType, false)
-                        colAdded = ncube.addColumn(axis.getName(), new Range(low, high), colName, suggestedId)
+                        colAdded = ncube.addColumn(axis.name, new Range(low, high), colName, suggestedId)
                     }
                     else if (type == AxisType.SET)
                     {
@@ -2055,7 +2055,7 @@ public class NCube<T>
                                 rangeSet.add((Comparable)CellInfo.parseJsonValue(pt, null, colType, false))
                             }
                         }
-                        colAdded = ncube.addColumn(axis.getName(), rangeSet, colName, suggestedId)
+                        colAdded = ncube.addColumn(axis.name, rangeSet, colName, suggestedId)
                     }
                     else if (type == AxisType.RULE)
                     {
@@ -2064,7 +2064,7 @@ public class NCube<T>
                         {
                             cmd = new GroovyExpression("false", null, cache)
                         }
-                        colAdded = ncube.addColumn(axis.getName(), (CommandCell)cmd, colName, suggestedId)
+                        colAdded = ncube.addColumn(axis.name, (CommandCell)cmd, colName, suggestedId)
                     }
                     else
                     {
@@ -2131,7 +2131,7 @@ public class NCube<T>
                     {
                         ncube.setCellById(v, colIds)
                     }
-                    catch (CoordinateNotFoundException e)
+                    catch (CoordinateNotFoundException ignore)
                     {
                         LOG.debug("Orphaned cell on n-cube: " + cubeName + ", ids: " + colIds)
                     }
@@ -2152,7 +2152,7 @@ public class NCube<T>
                     {
                         ncube.setCell(v, keys)
                     }
-                    catch (CoordinateNotFoundException e)
+                    catch (CoordinateNotFoundException ignore)
                     {
                         LOG.debug("Orphaned cell on n-cube: " + cubeName + ", coord: " + keys)
                     }
@@ -2165,7 +2165,7 @@ public class NCube<T>
 
     private static void loadMetaProperties(Map props)
     {
-        List<MapEntry> entriesToUpdate = new ArrayList<>()
+        List<MapEntry> entriesToUpdate = []
         for (Map.Entry<String, Object> entry : props.entrySet() as Iterable<Map.Entry<String, Object>>)
         {
             if (entry.getValue() instanceof JsonObject)
@@ -2205,7 +2205,7 @@ public class NCube<T>
         {
             try
             {
-                return Long.parseLong((String)val)
+                return Long.parseLong(val as String)
             }
             catch(Exception ignored)
             { }
@@ -2238,7 +2238,7 @@ public class NCube<T>
      */
     public List<NCubeTest> generateNCubeTests()
     {
-        List<NCubeTest> tests = new ArrayList<>()
+        List<NCubeTest> tests = []
         LongHashSet colIds = new LongHashSet()
         int i=1
         for (LongHashSet pt : cells.keySet())
@@ -2317,7 +2317,7 @@ public class NCube<T>
      */
     public List<Map<String, T>> getPopulatedCellCoordinates()
     {
-        List<Map<String, T>> coords = new ArrayList<>()
+        List<Map<String, T>> coords = []
         for (Map.Entry<LongHashSet, T> entry : cells.entrySet())
         {
             LongHashSet colIds = entry.getKey()
@@ -2357,7 +2357,7 @@ public class NCube<T>
         for (Map.Entry<String, Axis> entry : sortedAxes.entrySet())
         {
             Axis axis = entry.getValue()
-            sha1Digest.update(axis.getName().toLowerCase().getBytes())
+            sha1Digest.update(axis.name.toLowerCase().getBytes())
             sha1Digest.update(sep)
             sha1Digest.update(String.valueOf(axis.getColumnOrder()).getBytes())
             sha1Digest.update(sep)
@@ -2410,7 +2410,7 @@ public class NCube<T>
 
         if (getNumCells() > 0)
         {
-            List<String> sha1s = new ArrayList<>()
+            List<String> sha1s = []
             MessageDigest tempDigest = EncryptionUtilities.getSHA1Digest()
 
             for (Map.Entry<LongHashSet, T> entry : cells.entrySet())
@@ -2435,7 +2435,7 @@ public class NCube<T>
 
     private String columnIdsToString(Set<Long> columns)
     {
-        List<String> list = new ArrayList<>()
+        List<String> list = []
         for (Long colId : columns)
         {
             Axis axis = getAxisFromColumnId(colId)
@@ -2580,7 +2580,7 @@ public class NCube<T>
 
         for (Axis axis : axisList.values())
         {
-            Axis otherAxis = other.getAxis(axis.getName())
+            Axis otherAxis = other.getAxis(axis.name)
             if (axis.getType() != otherAxis.getType())
             {   // Axes must be same type (DISCRETE, RANGE, SET, NEAREST, or RULE)
                 return false
@@ -2620,7 +2620,7 @@ public class NCube<T>
                 {
                     if (axisRef.contains(axis))
                     {
-                        throw new IllegalArgumentException("Cannot have more than one column ID per axis, axis: " + axis.getName() + ", cube: " + name)
+                        throw new IllegalArgumentException("Cannot have more than one column ID per axis, axis: " + axis.name + ", cube: " + name)
                     }
 
                     axisRef.add(axis)
@@ -2653,7 +2653,7 @@ public class NCube<T>
         {
             requiredScope = getRequiredScope(new HashMap(), new HashMap())
         }
-        catch (CoordinateNotFoundException e)
+        catch (CoordinateNotFoundException ignore)
         {
             requiredScope = getRequiredAxes()
         }
@@ -2671,7 +2671,7 @@ public class NCube<T>
             final StringBuilder s = new StringBuilder()
             for (Axis axis : axisRef)
             {
-                s.append(axis.getName())
+                s.append(axis.name)
             }
             throw new IllegalArgumentException("Column IDs missing for the axes: " + s + ", cube: " + name)
         }
@@ -2686,7 +2686,7 @@ public class NCube<T>
     {
         if (axis.getType() != AxisType.RULE)
         {
-            coord[axis.getName()] = new CellInfo(column.getValueThatMatches())
+            coord[axis.name] = new CellInfo(column.getValueThatMatches())
         }
     }
 
@@ -2716,11 +2716,11 @@ public class NCube<T>
             String name = column.getColumnName()
             if (name != null)
             {
-                properCoord[axis.getName()] = ("(" + name.toString() + "): " + value) as T
+                properCoord[axis.name] = ("(" + name.toString() + "): " + value) as T
             }
             else
             {
-                properCoord[axis.getName()] = value as T
+                properCoord[axis.name] = value as T
             }
         }
         return properCoord
@@ -2768,7 +2768,7 @@ public class NCube<T>
                 Column column = axis.getColumnById(colId)
                 value = column.getValueThatMatches()
             }
-            coord[axis.getName()] = value
+            coord[axis.name] = value
         }
         return coord
     }
@@ -2802,7 +2802,7 @@ public class NCube<T>
         {
             return JsonWriter.objectToJson(o)
         }
-        catch (Exception e)
+        catch (Exception ignore)
         {
             throw new IllegalStateException("Unable to convert value to JSON: " + o.toString())
         }
