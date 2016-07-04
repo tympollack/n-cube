@@ -232,7 +232,7 @@ class NCube<T>
      */
     protected void addAdvice(Advice advice, String method)
     {
-        advices[advice.getName() + '/' + method] = advice
+        advices[advice.name + '/' + method] = advice
     }
 
     /**
@@ -901,7 +901,7 @@ class NCube<T>
         final Axis wildcardAxis = getWildcardAxis(coord)
         final List<Column> columns = getWildcardColumns(wildcardAxis, coord)
         final Map<Object, T> result = [:]
-        final String axisName = wildcardAxis.getName()
+        final String axisName = wildcardAxis.name
 
         for (column in columns)
         {
@@ -1317,7 +1317,7 @@ class NCube<T>
                 final Column column = wildcardAxis.findColumn(value)
                 if (column == null)
                 {
-                    throw new CoordinateNotFoundException("Value '" + value + "' not found using Set on axis: " + wildcardAxis.getName() + ", cube: " + name)
+                    throw new CoordinateNotFoundException("Value '" + value + "' not found using Set on axis: " + wildcardAxis.name + ", cube: " + name)
                 }
 
                 columns.add(column)
@@ -2339,7 +2339,7 @@ class NCube<T>
 
         final byte sep = 0
         MessageDigest sha1Digest = EncryptionUtilities.getSHA1Digest()
-        sha1Digest.update(name == null ? ''.getBytes() : name.getBytes())
+        sha1Digest.update(name == null ? ''.bytes : name.bytes)
         sha1Digest.update(sep)
 
         deepSha1(sha1Digest, defaultCellValue, sep)
@@ -2353,13 +2353,13 @@ class NCube<T>
         for (entry in sortedAxes.entrySet())
         {
             Axis axis = entry.value
-            sha1Digest.update(axis.name.toLowerCase().getBytes())
+            sha1Digest.update(axis.name.toLowerCase().bytes)
             sha1Digest.update(sep)
-            sha1Digest.update(String.valueOf(axis.getColumnOrder()).getBytes())
+            sha1Digest.update(String.valueOf(axis.getColumnOrder()).bytes)
             sha1Digest.update(sep)
-            sha1Digest.update(axis.getType().name().getBytes())
+            sha1Digest.update(axis.getType().name().bytes)
             sha1Digest.update(sep)
-            sha1Digest.update(axis.getValueType().name().getBytes())
+            sha1Digest.update(axis.getValueType().name().bytes)
             sha1Digest.update(sep)
             sha1Digest.update(axis.hasDefaultColumn() ? 't'.bytes : 'f'.bytes)
             sha1Digest.update(sep)
@@ -2380,7 +2380,7 @@ class NCube<T>
                 {
                     Object v = column.value
                     Object safeVal = (v == null) ? '' : v
-                    sha1Digest.update(safeVal.toString().getBytes())
+                    sha1Digest.update(safeVal.toString().bytes)
                     sha1Digest.update(sep)
                     if (!MapUtilities.isEmpty(column.metaProps))
                     {
@@ -2390,7 +2390,7 @@ class NCube<T>
                     if (displayOrder)
                     {
                         String order = String.valueOf(column.getDisplayOrder())
-                        sha1Digest.update(order.getBytes())
+                        sha1Digest.update(order.bytes)
                         sha1Digest.update(sep)
                     }
                 }
@@ -2414,7 +2414,7 @@ class NCube<T>
                 String keySha1 = columnIdsToString(entry.key)
                 deepSha1(tempDigest, entry.value, sep)
                 String valueSha1 = StringUtilities.encode(tempDigest.digest())
-                sha1s.add(EncryptionUtilities.calculateSHA1Hash((keySha1 + valueSha1).getBytes()))
+                sha1s.add(EncryptionUtilities.calculateSHA1Hash((keySha1 + valueSha1).bytes))
                 tempDigest.reset()
             }
 
@@ -2422,7 +2422,7 @@ class NCube<T>
 
             for (sha_1 in sha1s)
             {
-                sha1Digest.update(sha_1.getBytes())
+                sha1Digest.update(sha_1.bytes)
             }
         }
         sha1 = StringUtilities.encode(sha1Digest.digest())
@@ -2469,15 +2469,15 @@ class NCube<T>
 
             if (value == null)
             {
-                md.update("null".getBytes())
+                md.update("null".bytes)
                 md.update(sep)
             }
             else if (value.getClass().isArray())
             {
                 int len = Array.getLength(value)
 
-                md.update("array".getBytes())
-                md.update(String.valueOf(len).getBytes())
+                md.update("array".bytes)
+                md.update(String.valueOf(len).bytes)
                 md.update(sep)
                 for (int i=0; i < len; i++)
                 {
@@ -2487,16 +2487,16 @@ class NCube<T>
             else if (value instanceof Collection)
             {
                 Collection col = (Collection) value
-                md.update("col".getBytes())
-                md.update(String.valueOf(col.size()).getBytes())
+                md.update("col".bytes)
+                md.update(String.valueOf(col.size()).bytes)
                 md.update(sep)
                 stack.addAll(col)
             }
             else if (value instanceof Map)
             {
                 Map map  = (Map) value
-                md.update("map".getBytes())
-                md.update(String.valueOf(map.size()).getBytes())
+                md.update("map".bytes)
+                md.update(String.valueOf(map.size()).bytes)
                 md.update(sep)
 
                 for (entry in map.entrySet())
@@ -2509,22 +2509,22 @@ class NCube<T>
             {
                 if (value instanceof String)
                 {
-                    md.update((value as String).getBytes())
+                    md.update((value as String).bytes)
                     md.update(sep)
                 }
                 else if (value instanceof CommandCell)
                 {
                     CommandCell cmdCell = value as CommandCell
-                    md.update(cmdCell.getClass().getName().getBytes())
+                    md.update(cmdCell.getClass().getName().bytes)
                     md.update(sep)
                     if (cmdCell.getUrl() != null)
                     {
-                        md.update(cmdCell.getUrl().getBytes())
+                        md.update(cmdCell.getUrl().bytes)
                         md.update(sep)
                     }
                     if (cmdCell.getCmd() != null)
                     {
-                        md.update(cmdCell.getCmd().getBytes())
+                        md.update(cmdCell.getCmd().bytes)
                         md.update(sep)
                     }
                     md.update(cmdCell.getUrl() != null ? 't'.bytes : 'f'.bytes)  // t (url) or f (no url)
@@ -2537,11 +2537,11 @@ class NCube<T>
                     String strKey = value.toString()
                     if (strKey.contains("@"))
                     {
-                        md.update(toJson(value).getBytes())
+                        md.update(toJson(value).bytes)
                     }
                     else
                     {
-                        md.update(strKey.getBytes())
+                        md.update(strKey.bytes)
                     }
                 }
                 md.update(sep)
