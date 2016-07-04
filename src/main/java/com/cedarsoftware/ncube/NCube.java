@@ -1074,50 +1074,29 @@ public class NCube<T>
         {
             coordinate = new HashSet<>();
         }
-
-        // Ensure that the specified coordinate matches a column on each axis
-        final Set<String> allAxes = new CaseInsensitiveSet<>(axisList.keySet());
-        final LongHashSet point = new LongHashSet();
-
-        for (Long colId : coordinate)
+        Set<Long> ids = new TreeSet<>();
+        for (Axis axis : axisList.values())
         {
-            Axis axis = getAxisFromColumnId(colId);
-            if (axis != null)
+            Column bindColumn = null;
+            for (Long id : coordinate)
             {
-                allAxes.remove(axis.getName());
-                point.add(colId);
+                bindColumn = axis.getColumnById(id);
+                if (bindColumn != null)
+                {
+                    break;
+                }
             }
-        }
-
-        if (allAxes.isEmpty())
-        {   // All were specified, exit early.
-            return point;
-        }
-
-        final Set<String> axesWithDefault = new CaseInsensitiveSet<>();
-
-        // Bind all Longs to Columns on an axis.  Allow for additional columns to be specified,
-        // but not more than one column ID per axis.  Also, too few can be supplied, if and
-        // only if, the axes that are not bound too have a Default column (which will be chosen).
-        for (final String axisName : allAxes)
-        {
-            Axis axis = axisList.get(axisName);
-            if (axis.hasDefaultColumn())
+            if (bindColumn == null)
             {
-                point.add(axis.getDefaultColId());
-                axesWithDefault.add(axisName);
+                bindColumn = axis.getDefaultColumn();
+                if (bindColumn == null)
+                {
+                    return null;
+                }
             }
+            ids.add(bindColumn.id);
         }
-
-        // Remove the referenced axes from allAxes set.  This leaves axes to be resolved.
-        allAxes.removeAll(axesWithDefault);
-
-        if (!allAxes.isEmpty())
-        {
-            return null;
-        }
-
-        return point;
+        return new LongHashSet(ids);
     }
 
     /**
