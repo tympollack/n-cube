@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.71</version>
+  <version>3.4.72</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,9 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.72
+ * Changed the internal storage of n-cube's cell keys to reduce their storage requirements.  Memory consumption by cell keys reduced by half.
+ * Groovified NCube (from .java to .groovy) [@CompileStatic used to maintain full execution speed]
 * 3.4.71
  * NCubeManager.copyBranch() added - copy from one ApplicationID to another ApplicationID (all cubes).  The target branch is always copied to in SNAPSHOT mode.  The target branch must be empty.
  * NCubeManager.getBranchCount() added.  This API will ask the persister directly how many n-cubes are in a particular branch.
