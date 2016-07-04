@@ -172,8 +172,8 @@ class NCube<T>
     {
         for (entry in allAtOnce.entrySet())
         {
-            final String key = entry.getKey()
-            metaProps[key] = entry.getValue()
+            final String key = entry.key
+            metaProps[key] = entry.value
         }
         clearSha1()
     }
@@ -213,9 +213,9 @@ class NCube<T>
             while (i.hasNext())
             {
                 Map.Entry<String, Object> coordinate = i.next()
-                s.append(coordinate.getKey())
+                s.append(coordinate.key)
                 s.append(':')
-                s.append(coordinate.getValue())
+                s.append(coordinate.value)
                 if (i.hasNext())
                 {
                     s.append(',')
@@ -245,9 +245,9 @@ class NCube<T>
         for (entry in advices.entrySet())
         {
             // Entry key = "AdviceName/MethodName"
-            if (entry.getKey().endsWith(method))
+            if (entry.key.endsWith(method))
             {   // Entry.Value = Advice instance
-                result.add(entry.getValue())
+                result.add(entry.value)
             }
         }
 
@@ -560,7 +560,7 @@ class NCube<T>
                             Object conditionValue
                             if (!cachedConditionValues.containsKey(boundColumn.id))
                             {   // Has the condition on the Rule axis been run this execution?  If not, run it and cache it.
-                                CommandCell cmd = (CommandCell) boundColumn.getValue()
+                                CommandCell cmd = (CommandCell) boundColumn.value
 
                                 // If the cmd == null, then we are looking at a default column on a rule axis.
                                 // the conditionValue becomes 'true' for Default column when ruleAxisBindCount = 0
@@ -807,7 +807,7 @@ class NCube<T>
 //                        {
 //                            LOG.info("    column name: " + column.getColumnName())
 //                        }
-//                        LOG.info("    column value: " + column.getValue())
+//                        LOG.info("    column value: " + column.value)
 //                        LOG.info("    column id: " + column.getId())
 //                    }
 //                }
@@ -906,7 +906,7 @@ class NCube<T>
         for (column in columns)
         {
             coord[axisName] = column.getValueThatMatches()
-            result[column.getValue()] = getCell(coord, output, defaultValue)
+            result[column.value] = getCell(coord, output, defaultValue)
         }
 
         return result
@@ -1001,8 +1001,8 @@ class NCube<T>
         Map<String, List<Column>> bindings = new CaseInsensitiveMap<>()
         for (entry in axisList.entrySet())
         {
-            final String axisName = entry.getKey()
-            final Axis axis = entry.getValue()
+            final String axisName = entry.key
+            final Axis axis = entry.value
             final Comparable value = (Comparable) input[axisName]
 
             if (axis.getType() == AxisType.RULE)
@@ -1184,10 +1184,10 @@ class NCube<T>
 
         for (entry in coordinate.entrySet())
         {
-            if (entry.getValue() instanceof Set)
+            if (entry.value instanceof Set)
             {
                 count++
-                wildcardAxis = axisList[entry.getKey()]      // intentional case insensitive match
+                wildcardAxis = axisList[entry.key]      // intentional case insensitive match
             }
         }
 
@@ -2142,7 +2142,7 @@ class NCube<T>
                     JsonObject<String, Object> keys = (JsonObject<String, Object>) cMap.get("key")
                     for (entry in keys.entrySet())
                     {
-                        keys[entry.getKey()] = CellInfo.parseJsonValue(entry.getValue(), null, null, false)
+                        keys[entry.key] = CellInfo.parseJsonValue(entry.value, null, null, false)
                     }
                     try
                     {
@@ -2164,18 +2164,18 @@ class NCube<T>
         List<MapEntry> entriesToUpdate = []
         for (entry in props.entrySet())
         {
-            if (entry.getValue() instanceof JsonObject)
+            if (entry.value instanceof JsonObject)
             {
-                JsonObject map = (JsonObject) entry.getValue()
+                JsonObject map = (JsonObject) entry.value
                 Boolean cache = (Boolean) map.get("cache")
                 Object value = CellInfo.parseJsonValue(map.get("value"), (String) map.get("url"), (String) map.get("type"), cache == null ? false : cache)
-                entriesToUpdate.add(new MapEntry(entry.getKey(), value))
+                entriesToUpdate.add(new MapEntry(entry.key, value))
             }
         }
 
         for (entry in entriesToUpdate)
         {
-            props[entry.getKey()] = entry.getValue()
+            props[entry.key] = entry.value
         }
     }
 
@@ -2265,7 +2265,7 @@ class NCube<T>
         int i=0
         for (entry in coord.entrySet())
         {
-            list[i++] = (new StringValuePair<>(entry.getKey(), entry.getValue()))
+            list[i++] = (new StringValuePair<>(entry.key, entry.value))
         }
         return list
     }
@@ -2316,7 +2316,7 @@ class NCube<T>
         List<Map<String, T>> coords = []
         for (entry in cells.entrySet())
         {
-            LongHashSet colIds = entry.getKey()
+            LongHashSet colIds = entry.key
             Map<String, T> coord = (Map<String, T>) getCoordinateFromIds(colIds)
             coords.add(coord)
         }
@@ -2352,7 +2352,7 @@ class NCube<T>
 
         for (entry in sortedAxes.entrySet())
         {
-            Axis axis = entry.getValue()
+            Axis axis = entry.value
             sha1Digest.update(axis.name.toLowerCase().getBytes())
             sha1Digest.update(sep)
             sha1Digest.update(String.valueOf(axis.getColumnOrder()).getBytes())
@@ -2378,7 +2378,7 @@ class NCube<T>
             {
                 for (column in axis.getColumnsWithoutDefault())
                 {
-                    Object v = column.getValue()
+                    Object v = column.value
                     Object safeVal = (v == null) ? '' : v
                     sha1Digest.update(safeVal.toString().getBytes())
                     sha1Digest.update(sep)
@@ -2411,8 +2411,8 @@ class NCube<T>
 
             for (entry in cells.entrySet())
             {
-                String keySha1 = columnIdsToString(entry.getKey())
-                deepSha1(tempDigest, entry.getValue(), sep)
+                String keySha1 = columnIdsToString(entry.key)
+                deepSha1(tempDigest, entry.value, sep)
                 String valueSha1 = StringUtilities.encode(tempDigest.digest())
                 sha1s.add(EncryptionUtilities.calculateSHA1Hash((keySha1 + valueSha1).getBytes()))
                 tempDigest.reset()
@@ -2438,8 +2438,8 @@ class NCube<T>
             if (axis != null)
             {   // Rare case where a column has an invalid ID.
                 Column column = axis.getColumnById(colId)
-                Object value = column.getValue()
-                list.add(value == null ? 'null' : column.getValue().toString())
+                Object value = column.value
+                list.add(value == null ? 'null' : column.value.toString())
             }
         }
         Collections.sort(list)
@@ -2499,10 +2499,10 @@ class NCube<T>
                 md.update(String.valueOf(map.size()).getBytes())
                 md.update(sep)
 
-                for (Map.Entry entry : (Iterable<Map.Entry>) map.entrySet())
+                for (entry in map.entrySet())
                 {
-                    stack.addFirst(entry.getValue())
-                    stack.addFirst(entry.getKey())
+                    stack.addFirst(entry.value)
+                    stack.addFirst(entry.key)
                 }
             }
             else
