@@ -64,11 +64,11 @@ public class NCube<T>
     private String name
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
-    final Map<LongHashSet, T> cells = new LinkedHashMap<>()
+    final Map<LongHashSet, T> cells = [:]
     private T defaultCellValue
     public static final String validCubeNameChars = "0-9a-zA-Z._-"
     public static final String RULE_EXEC_INFO = "_rule"
-    private final Map<String, Advice> advices = new LinkedHashMap<>()
+    private final Map<String, Advice> advices = [:]
     private Map metaProps = new CaseInsensitiveMap<>()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
@@ -120,7 +120,7 @@ public class NCube<T>
      */
     public Object extractMetaPropertyValue(Object value)
     {
-        return extractMetaPropertyValue(value, new HashMap(), new HashMap())
+        return extractMetaPropertyValue(value, [:], [:])
     }
 
     /**
@@ -471,7 +471,7 @@ public class NCube<T>
      */
     public T getCell(final Map coordinate)
     {
-        return getCell(coordinate, new HashMap(), null)
+        return getCell(coordinate, [:], null)
     }
 
     /**
@@ -876,7 +876,7 @@ public class NCube<T>
      */
     public Map<Object, T> getMap(final Map coordinate)
     {
-        return getMap(coordinate, new HashMap(), null)
+        return getMap(coordinate, [:], null)
     }
 
     /**
@@ -901,10 +901,10 @@ public class NCube<T>
      */
     public Map<Object, T> getMap(final Map coordinate, Map output, Object defaultValue)
     {
-        final Map coord = validateCoordinate(coordinate, new HashMap())
+        final Map coord = validateCoordinate(coordinate, [:])
         final Axis wildcardAxis = getWildcardAxis(coord)
         final List<Column> columns = getWildcardColumns(wildcardAxis, coord)
-        final Map<Object, T> result = new LinkedHashMap<>()
+        final Map<Object, T> result = [:]
         final String axisName = wildcardAxis.getName()
 
         for (final Column column : columns)
@@ -924,7 +924,7 @@ public class NCube<T>
         final RuleInfo ruleInfo
         if (output.containsKey(RULE_EXEC_INFO))
         {   // RULE_EXEC_INFO Map already exists, must be a recursive call.
-            return (RuleInfo) output.get(RULE_EXEC_INFO)
+            return (RuleInfo) output[RULE_EXEC_INFO]
         }
         // RULE_EXEC_INFO Map does not exist, create it.
         ruleInfo = new RuleInfo()
@@ -1007,11 +1007,11 @@ public class NCube<T>
         {
             final String axisName = entry.getKey()
             final Axis axis = entry.getValue()
-            final Comparable value = (Comparable) input.get(axisName)
+            final Comparable value = (Comparable) input[axisName]
 
             if (axis.getType() == AxisType.RULE)
             {   // For RULE axis, all possible columns must be added (they are tested later during execution)
-                bindings[axisName] = axis.getRuleColumnsStartingAt((String) input.get(axisName))
+                bindings[axisName] = axis.getRuleColumnsStartingAt((String) input[axisName])
             }
             else
             {   // Find the single column that binds to the input coordinate on a regular axis.
@@ -1156,8 +1156,8 @@ public class NCube<T>
         while (true)
         {
             final String axisName = axisNames[digit]
-            final int count = counters.get(axisName)
-            final List<Column> cols = bindings.get(axisName)
+            final int count = counters[axisName]
+            final List<Column> cols = bindings[axisName]
 
             if (count >= cols.size())
             {   // Reach max value for given dimension (digit)
@@ -1191,7 +1191,7 @@ public class NCube<T>
             if (entry.getValue() instanceof Set)
             {
                 count++
-                wildcardAxis = axisList.get(entry.getKey())      // intentional case insensitive match
+                wildcardAxis = axisList[entry.getKey()]      // intentional case insensitive match
             }
         }
 
@@ -2651,7 +2651,7 @@ public class NCube<T>
         Set<String> requiredScope
         try
         {
-            requiredScope = getRequiredScope(new HashMap(), new HashMap())
+            requiredScope = getRequiredScope([:], [:])
         }
         catch (CoordinateNotFoundException ignore)
         {

@@ -218,17 +218,30 @@ class LongHashSet implements Set<Long>
         {
             return true
         }
-        if (!(other instanceof LongHashSet))
-        {
-            return false
-        }
-        long[] otherElems = ((LongHashSet) other).elems
-        if (otherElems.length != elems.length)
+        if (!(other instanceof Set))
         {
             return false
         }
 
-        return containsAll(other)
+        Set that = other as Set
+        if (that.size() != size())
+        {
+            return false
+        }
+
+        if (isEmpty())
+        {
+            return true
+        }
+
+        for (int i=0; i < elems.length; i++)
+        {
+            if (!that.contains(elems[i]))
+            {
+                return false
+            }
+        }
+        return true
     }
 
     int hashCode()
