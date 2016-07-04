@@ -57,27 +57,27 @@ import java.util.zip.GZIPOutputStream
 public class NCube<T>
 {
     private static final Logger LOG = LogManager.getLogger(NCube.class)
-    public static final String DEFAULT_CELL_VALUE_TYPE = "defaultCellValueType";
-    public static final String DEFAULT_CELL_VALUE = "defaultCellValue";
-    public static final String DEFAULT_CELL_VALUE_URL = "defaultCellValueUrl";
-    public static final String DEFAULT_CELL_VALUE_CACHE = "defaultCellValueCache";
-    private String name;
-    private String sha1;
+    public static final String DEFAULT_CELL_VALUE_TYPE = "defaultCellValueType"
+    public static final String DEFAULT_CELL_VALUE = "defaultCellValue"
+    public static final String DEFAULT_CELL_VALUE_URL = "defaultCellValueUrl"
+    public static final String DEFAULT_CELL_VALUE_CACHE = "defaultCellValueCache"
+    private String name
+    private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
     final Map<LongHashSet, T> cells = new LinkedHashMap<>()
-    private T defaultCellValue;
-    public static final String validCubeNameChars = "0-9a-zA-Z._-";
-    public static final String RULE_EXEC_INFO = "_rule";
+    private T defaultCellValue
+    public static final String validCubeNameChars = "0-9a-zA-Z._-"
+    public static final String RULE_EXEC_INFO = "_rule"
     private final Map<String, Advice> advices = new LinkedHashMap<>()
     private Map metaProps = new CaseInsensitiveMap<>()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
-    private transient ApplicationID appId = ApplicationID.testAppId;
+    private transient ApplicationID appId = ApplicationID.testAppId
     private static final ThreadLocal<Deque<StackEntry>> executionStack = new ThreadLocal<Deque<StackEntry>>() {
         public Deque<StackEntry> initialValue()
         {
             return new ArrayDeque<>()
         }
-    };
+    }
 
     /**
      * Creata a new NCube instance with the passed in name
@@ -89,7 +89,7 @@ public class NCube<T>
         {   // If name is null, likely being instantiated via serialization
             validateCubeName(name)
         }
-        this.name = name;
+        this.name = name
     }
 
     /**
@@ -136,10 +136,10 @@ public class NCube<T>
             {
                 input = new TrackingMap(input)
             }
-            CommandCell cmd = (CommandCell) value;
+            CommandCell cmd = (CommandCell) value
             value = executeExpression(prepareExecutionContext(input, output), cmd)
         }
-        return value;
+        return value
     }
 
     /**
@@ -151,7 +151,7 @@ public class NCube<T>
     public Object setMetaProperty(String key, Object value)
     {
         clearSha1()
-        return metaProps.put(key, value)
+        return metaProps[key] = value
     }
 
     /**
@@ -161,7 +161,7 @@ public class NCube<T>
     {
         Object prop =  metaProps.remove(key)
         clearSha1()
-        return prop;
+        return prop
     }
 
     /**
@@ -173,7 +173,7 @@ public class NCube<T>
         for (Map.Entry<String, Object> entry : allAtOnce.entrySet())
         {
             final String key = entry.getKey()
-            metaProps.put(key, entry.getValue())
+            metaProps[key] = entry.getValue()
         }
         clearSha1()
     }
@@ -194,13 +194,13 @@ public class NCube<T>
      */
     private static class StackEntry
     {
-        final String cubeName;
-        final Map coord;
+        final String cubeName
+        final Map coord
 
         public StackEntry(String name, Map coordinate)
         {
-            cubeName = name;
-            coord = coordinate;
+            cubeName = name
+            coord = coordinate
         }
 
         public String toString()
@@ -232,7 +232,7 @@ public class NCube<T>
      */
     void addAdvice(Advice advice, String method)
     {
-        advices.put(advice.getName() + '/' + method, advice)
+        advices[advice.getName() + '/' + method] = advice
     }
 
     /**
@@ -241,7 +241,7 @@ public class NCube<T>
     public List<Advice> getAdvices(String method)
     {
         List<Advice> result = new ArrayList<>()
-        method = '/' + method;
+        method = '/' + method
         for (Map.Entry<String, Advice> entry : advices.entrySet())
         {
             // Entry key = "AdviceName/MethodName"
@@ -251,7 +251,7 @@ public class NCube<T>
             }
         }
 
-        return result;
+        return result
     }
 
     /**
@@ -285,12 +285,12 @@ public class NCube<T>
      */
     public ApplicationID getApplicationID()
     {
-        return appId;
+        return appId
     }
 
     public void setApplicationID(ApplicationID appId)
     {
-        this.appId = appId;
+        this.appId = appId
     }
 
     /**
@@ -302,7 +302,7 @@ public class NCube<T>
      */
     void setSha1(String sha1)
     {
-        this.sha1 = sha1;
+        this.sha1 = sha1
     }
 
     /**
@@ -310,7 +310,7 @@ public class NCube<T>
      */
     public String getName()
     {
-        return name;
+        return name
     }
 
     /**
@@ -339,7 +339,7 @@ public class NCube<T>
         LongHashSet ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
-            return null;
+            return null
         }
         return cells.remove(ids)
     }
@@ -375,7 +375,7 @@ public class NCube<T>
         {
             if (defaultCellValue != null)
             {
-                return true;
+                return true
             }
         }
         LongHashSet cols = getCoordinateKey(coordinate)
@@ -410,7 +410,7 @@ public class NCube<T>
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.")
         }
         clearSha1()
-        return cells.put(getCoordinateKey(coordinate), value)
+        return cells[getCoordinateKey(coordinate)] = value
     }
 
     /**
@@ -429,7 +429,7 @@ public class NCube<T>
         {
             throw new CoordinateNotFoundException("Unable to setCellById() into n-cube: " + name + " using coordinate: " + coordinate)
         }
-        return cells.put(ids, value)
+        return cells[ids] = value
     }
 
     /**
@@ -441,7 +441,7 @@ public class NCube<T>
     public T getCellByIdNoExecute(final Set<Long> coordinate)
     {
         LongHashSet ids = ensureFullCoordinate(coordinate)
-        return cells.get(ids)
+        return cells[ids]
     }
 
     /**
@@ -457,7 +457,7 @@ public class NCube<T>
     public T getCellNoExecute(final Map coordinate)
     {
         LongHashSet ids = getCoordinateKey(coordinate)
-        return cells.get(ids)
+        return cells[ids]
     }
 
     /**
@@ -519,17 +519,17 @@ public class NCube<T>
     {
         final RuleInfo ruleInfo = getRuleInfo(output)
         Map input = validateCoordinate(coordinate, output)
-        T lastStatementValue = null;
+        T lastStatementValue = null
 
         if (!hasRuleAxis())
         {   // Perform fast bind and execute.
             lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue)
             ruleInfo.setLastExecutedStatement(lastStatementValue)
-            output.put("return", lastStatementValue)
-            return lastStatementValue;
+            output.return = lastStatementValue
+            return lastStatementValue
         }
 
-        boolean run = true;
+        boolean run = true
         final List<Binding> bindings = ruleInfo.getAxisBindings()
         final int depth = executionStack.get().size()
         final int dimensions = getNumDimensions()
@@ -537,7 +537,7 @@ public class NCube<T>
 
         while (run)
         {
-            run = false;
+            run = false
             final Map<String, List<Column>> columnToAxisBindings = bindCoordinateToAxisColumns(input)
             final Map<String, Integer> counters = getCountersPerAxis(axisNames)
             final Map<Long, Object> cachedConditionValues = new HashMap<>()
@@ -557,7 +557,7 @@ public class NCube<T>
 
                         if (axis.getType() == AxisType.RULE)
                         {
-                            Object conditionValue;
+                            Object conditionValue
                             if (!cachedConditionValues.containsKey(boundColumn.id))
                             {   // Has the condition on the Rule axis been run this execution?  If not, run it and cache it.
                                 CommandCell cmd = (CommandCell) boundColumn.getValue()
@@ -567,17 +567,17 @@ public class NCube<T>
                                 final Integer count = conditionsFiredCountPerAxis.get(axisName)
                                 conditionValue = cmd == null ? isZero(count) : executeExpression(ctx, cmd)
                                 final boolean conditionAnswer = isTrue(conditionValue)
-                                cachedConditionValues.put(boundColumn.id, conditionAnswer)
+                                cachedConditionValues[boundColumn.id] = conditionAnswer
 
                                 if (conditionAnswer)
                                 {   // Rule fired
-                                    conditionsFiredCountPerAxis.put(axisName, count == null ? 1 : count + 1)
+                                    conditionsFiredCountPerAxis[axisName] = count == null ? 1 : count + 1
                                     if (!axis.isFireAll())
                                     {   // Only fire one condition on this axis (fireAll is false)
-                                        counters.put(axisName, 1)
-                                        List<Column> boundCols = new ArrayList<>()
+                                        counters[axisName] = 1
+                                        List<Column> boundCols = []
                                         boundCols.add(boundColumn)
-                                        columnToAxisBindings.put(axisName, boundCols)
+                                        columnToAxisBindings[axisName] = boundCols
                                     }
                                 }
                             }
@@ -635,7 +635,7 @@ public class NCube<T>
         }
 
         ruleInfo.setLastExecutedStatement(lastStatementValue)
-        output.put("return", lastStatementValue)
+        output.return = lastStatementValue
         return lastStatementValue
     }
 
@@ -676,23 +676,23 @@ public class NCube<T>
             final Set<Long> colIds = binding.getIdCoordinate()
             T statementValue = getCellById(colIds, input, output)
             binding.setValue(statementValue)
-            return statementValue;
+            return statementValue
         }
         catch (RuleStop e)
         {   // Statement threw at RuleStop
             binding.setValue("[RuleStop]")
             // Mark that RULE_STOP occurred
             ruleInfo.ruleStopThrown()
-            throw e;
+            throw e
         }
         catch(RuleJump e)
         {   // Statement threw at RuleJump
             binding.setValue("[RuleJump]")
-            throw e;
+            throw e
         }
         catch (Exception e)
         {
-            Throwable t = e;
+            Throwable t = e
             while (t.getCause() != null)
             {
                 t = t.getCause()
@@ -703,7 +703,7 @@ public class NCube<T>
                 msg = t.getClass().getName()
             }
             binding.setValue("[" + msg + "]")
-            throw e;
+            throw e
         }
     }
 
@@ -865,9 +865,9 @@ public class NCube<T>
     protected Map prepareExecutionContext(final Map coord, final Map output)
     {
         final Map ctx = new HashMap<>()
-        ctx.put("input", coord)   // Input coordinate is already a duplicate at this point
-        ctx.put("output", output)
-        ctx.put("ncube", this)
+        ctx.input = coord   // Input coordinate is already a duplicate at this point
+        ctx.output = output
+        ctx.ncube = this
         return ctx
     }
 
@@ -909,8 +909,8 @@ public class NCube<T>
 
         for (final Column column : columns)
         {
-            coord.put(axisName, column.getValueThatMatches())
-            result.put(column.getValue(), getCell(coord, output, defaultValue))
+            coord[axisName] = column.getValueThatMatches()
+            result[column.getValue()] = getCell(coord, output, defaultValue)
         }
 
         return result
@@ -928,7 +928,7 @@ public class NCube<T>
         }
         // RULE_EXEC_INFO Map does not exist, create it.
         ruleInfo = new RuleInfo()
-        output.put(RULE_EXEC_INFO, ruleInfo)
+        output[RULE_EXEC_INFO] = ruleInfo
         return ruleInfo
     }
 
@@ -1011,7 +1011,7 @@ public class NCube<T>
 
             if (axis.getType() == AxisType.RULE)
             {   // For RULE axis, all possible columns must be added (they are tested later during execution)
-                bindings.put(axisName, axis.getRuleColumnsStartingAt((String) input.get(axisName)))
+                bindings[axisName] = axis.getRuleColumnsStartingAt((String) input.get(axisName))
             }
             else
             {   // Find the single column that binds to the input coordinate on a regular axis.
@@ -1022,11 +1022,11 @@ public class NCube<T>
                 }
                 List<Column> cols = new ArrayList<>()
                 cols.add(column)
-                bindings.put(axisName, cols)
+                bindings[axisName] = cols
             }
         }
 
-        return bindings;
+        return bindings
     }
 
     private static Map<String, Integer> getCountersPerAxis(final String[] axisNames)
@@ -1036,9 +1036,9 @@ public class NCube<T>
         // Set counters to 1
         for (final String axisName : axisNames)
         {
-            counters.put(axisName, 1)
+            counters[axisName] = 1
         }
-        return counters;
+        return counters
     }
 
     /**
@@ -1057,13 +1057,13 @@ public class NCube<T>
         Set<Long> ids = new TreeSet<>()
         for (Axis axis : axisList.values())
         {
-            Column bindColumn = null;
+            Column bindColumn = null
             for (Long id : coordinate)
             {
                 bindColumn = axis.getColumnById(id)
                 if (bindColumn != null)
                 {
-                    break;
+                    break
                 }
             }
             if (bindColumn == null)
@@ -1071,7 +1071,7 @@ public class NCube<T>
                 bindColumn = axis.getDefaultColumn()
                 if (bindColumn == null)
                 {
-                    return null;
+                    return null
                 }
             }
             ids.add(bindColumn.id)
@@ -1107,14 +1107,14 @@ public class NCube<T>
                 final Object fieldValue = field.get(o)
                 if (newCoord.containsKey(fieldName))
                 {   // This can happen if field name is same between parent and child class (dumb, but possible)
-                    newCoord.put(field.getDeclaringClass().getName() + '.' + fieldName, fieldValue)
+                    newCoord[field.getDeclaringClass().getName() + '.' + fieldName] = fieldValue
                 }
                 else
                 {
-                    newCoord.put(fieldName, fieldValue)
+                    newCoord[fieldName] = fieldValue
                 }
             }
-            return newCoord;
+            return newCoord
         }
         catch (Exception e)
         {
@@ -1151,11 +1151,11 @@ public class NCube<T>
                                                        final Map<String, List<Column>> bindings,
                                                        final String[] axisNames)
     {
-        int digit = axisNames.length - 1;
+        int digit = axisNames.length - 1
 
         while (true)
         {
-            final String axisName = axisNames[digit];
+            final String axisName = axisNames[digit]
             final int count = counters.get(axisName)
             final List<Column> cols = bindings.get(axisName)
 
@@ -1163,14 +1163,14 @@ public class NCube<T>
             {   // Reach max value for given dimension (digit)
                 if (digit == 0)
                 {   // we have reached the max radix for the most significant digit - we are done
-                    return false;
+                    return false
                 }
-                counters.put(axisNames[digit--], 1)
+                counters[axisNames[digit--]] = 1
             }
             else
             {
-                counters.put(axisName, count + 1)  // increment counter
-                return true;
+                counters[axisName] = count + 1  // increment counter
+                return true
             }
         }
     }
@@ -1183,14 +1183,14 @@ public class NCube<T>
      */
     private Axis getWildcardAxis(final Map<String, Object> coordinate)
     {
-        int count = 0;
-        Axis wildcardAxis = null;
+        int count = 0
+        Axis wildcardAxis = null
 
         for (Map.Entry<String, Object> entry : coordinate.entrySet())
         {
             if (entry.getValue() instanceof Set)
             {
-                count++;
+                count++
                 wildcardAxis = axisList.get(entry.getKey())      // intentional case insensitive match
             }
         }
@@ -1205,7 +1205,7 @@ public class NCube<T>
             throw new IllegalArgumentException("More than one 'Set' found as value within input coordinate, cube: " + name)
         }
 
-        return wildcardAxis;
+        return wildcardAxis
     }
 
     /**
@@ -1223,18 +1223,18 @@ public class NCube<T>
      */
     public LongHashSet getCoordinateKey(final Map coordinate)
     {
-        Map safeCoord;
+        Map safeCoord
 
         if (coordinate instanceof CaseInsensitiveMap)
         {
-            safeCoord = coordinate;
+            safeCoord = coordinate
         }
         else if (coordinate instanceof TrackingMap)
         {
             TrackingMap trackMap = coordinate as TrackingMap
             if (trackMap.getWrappedMap() instanceof CaseInsensitiveMap)
             {
-                safeCoord = coordinate;
+                safeCoord = coordinate
             }
             else
             {
@@ -1328,7 +1328,7 @@ public class NCube<T>
             }
         }
 
-        return columns;
+        return columns
     }
 
     /**
@@ -1339,7 +1339,7 @@ public class NCube<T>
      */
     public T getDefaultCellValue()
     {
-        return defaultCellValue;
+        return defaultCellValue
     }
 
     /**
@@ -1351,7 +1351,7 @@ public class NCube<T>
      */
     public void setDefaultCellValue(final T defaultCellValue)
     {
-        this.defaultCellValue = defaultCellValue;
+        this.defaultCellValue = defaultCellValue
         clearSha1()
     }
 
@@ -1405,7 +1405,7 @@ public class NCube<T>
         }
         Column newCol = axis.addColumn(value, colName, suggestedId)
         clearSha1()
-        return newCol;
+        return newCol
     }
 
     /**
@@ -1423,7 +1423,7 @@ public class NCube<T>
             throw new IllegalArgumentException("Could not delete column. Axis name '" + axisName + "' was not found on cube: " + name)
         }
 
-        Column column;
+        Column column
         if (axis.getType() == AxisType.RULE)
         {   // Rule axes are deleted by ID, name, or null (default - can be deleted with null or ID).
             if (value instanceof Long)
@@ -1444,7 +1444,7 @@ public class NCube<T>
             }
             else
             {
-                return false;
+                return false
             }
         }
         else
@@ -1453,12 +1453,11 @@ public class NCube<T>
         }
         if (column == null)
         {
-            return false;
+            return false
         }
 
         clearSha1()
-
-        long colId = column.id;
+        long colId = column.id
 
         // Remove all cells that reference the deleted column
         final Iterator<LongHashSet> i = cells.keySet().iterator()
@@ -1472,7 +1471,7 @@ public class NCube<T>
                 i.remove()
             }
         }
-        return true;
+        return true
     }
 
     /**
@@ -1525,14 +1524,14 @@ public class NCube<T>
                     if (cols.contains(id))
                     {   // If cell referenced deleted column, drop the cell
                         i.remove()
-                        break;
+                        break
                     }
                 }
             }
         }
 
         clearSha1()
-        return colsToDel;
+        return colsToDel
     }
 
     /**
@@ -1547,10 +1546,10 @@ public class NCube<T>
         {
             if (axis.getColumnById(id) != null)
             {
-                return axis;
+                return axis
             }
         }
-        return null;
+        return null
     }
 
     /**
@@ -1603,7 +1602,7 @@ public class NCube<T>
         }
 
         cells.clear()
-        axisList.put(axisName, axis)
+        axisList[axisName] = axis
         clearSha1()
     }
 
@@ -1629,7 +1628,7 @@ public class NCube<T>
         }
         axisList.remove(oldName)
         axis.setName(newName)
-        axisList.put(newName, axis)
+        axisList[newName] = axis
         clearSha1()
     }
 
@@ -1650,7 +1649,7 @@ public class NCube<T>
     {
         cells.clear()
         clearSha1()
-        return axisList.remove(axisName) != null;
+        return axisList.remove(axisName) != null
     }
 
     /**
@@ -1701,7 +1700,7 @@ public class NCube<T>
 
         Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("optionalScopeKeys"), input, output)
         optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
-        return optionalScope;
+        return optionalScope
     }
 
     /**
@@ -1720,7 +1719,7 @@ public class NCube<T>
     {
         final Set<String> requiredScope = getRequiredAxes()
         requiredScope.addAll(getDeclaredScope(input, output))
-        return requiredScope;
+        return requiredScope
     }
 
     /**
@@ -1739,7 +1738,7 @@ public class NCube<T>
                 required.add(axis.getName())
             }
         }
-        return required;
+        return required
     }
 
     /**
@@ -1768,7 +1767,7 @@ public class NCube<T>
         {
             if (cell instanceof CommandCell)
             {
-                final CommandCell cmdCell = (CommandCell) cell;
+                final CommandCell cmdCell = (CommandCell) cell
                 cmdCell.getCubeNamesFromCommandText(cubeNames)
             }
         }
@@ -1788,10 +1787,10 @@ public class NCube<T>
         // If the DefaultCellValue references another n-cube, add it into the dependency list.
         if (defaultCellValue instanceof CommandCell)
         {
-            CommandCell cmd = (CommandCell) defaultCellValue;
+            CommandCell cmd = (CommandCell) defaultCellValue
             cmd.getCubeNamesFromCommandText(cubeNames)
         }
-        return cubeNames;
+        return cubeNames
     }
 
     /**
@@ -1847,13 +1846,13 @@ public class NCube<T>
         try
         {
             Map options = new HashMap<>()
-            options.put(JsonReader.USE_MAPS, true)
+            options[JsonReader.USE_MAPS] = true
             Map jsonNCube = (Map) JsonReader.jsonToJava(json, options)
             return hydrateCube(jsonNCube)
         }
         catch (RuntimeException | ThreadDeath e)
         {
-            throw e;
+            throw e
         }
         catch (Throwable e)
         {
@@ -1874,13 +1873,13 @@ public class NCube<T>
         try
         {
             Map options = new HashMap<>()
-            options.put(JsonReader.USE_MAPS, true)
+            options[JsonReader.USE_MAPS] = true
             Map jsonNCube = (Map) JsonReader.jsonToJava(stream, options)
             return hydrateCube(jsonNCube)
         }
         catch (RuntimeException | ThreadDeath e)
         {
-            throw e;
+            throw e
         }
         catch (Throwable e)
         {
@@ -1910,8 +1909,8 @@ public class NCube<T>
         ncube.metaProps.remove("sha1")
         loadMetaProperties(ncube.metaProps)
 
-        String defType = jsonNCube.containsKey(DEFAULT_CELL_VALUE_TYPE) ? getString(jsonNCube, DEFAULT_CELL_VALUE_TYPE) : null;
-        String defUrl = jsonNCube.containsKey(DEFAULT_CELL_VALUE_URL) ? getString(jsonNCube, DEFAULT_CELL_VALUE_URL) : null;
+        String defType = jsonNCube.containsKey(DEFAULT_CELL_VALUE_TYPE) ? getString(jsonNCube, DEFAULT_CELL_VALUE_TYPE) : null
+        String defUrl = jsonNCube.containsKey(DEFAULT_CELL_VALUE_URL) ? getString(jsonNCube, DEFAULT_CELL_VALUE_URL) : null
         boolean defCache = getBoolean(jsonNCube, DEFAULT_CELL_VALUE_CACHE)
         ncube.defaultCellValue = CellInfo.parseJsonValue(jsonNCube.get(DEFAULT_CELL_VALUE), defUrl, defType, defCache)
 
@@ -1928,12 +1927,12 @@ public class NCube<T>
         }
 
         Map<Object, Long> userIdToUniqueId = new CaseInsensitiveMap<>()
-        long idBase = 1;
+        long idBase = 1
 
         // Read axes
         for (Object item : axes)
         {
-            final Map jsonAxis = (Map) item;
+            final Map jsonAxis = (Map) item
             final String axisName = getString(jsonAxis, "name")
             final boolean hasDefault = getBoolean(jsonAxis, "hasDefault")
             boolean isRef = getBoolean(jsonAxis, "isRef")
@@ -1944,7 +1943,7 @@ public class NCube<T>
                 ncube.addAxis(newAxis)
                 for (Column column : newAxis.getColumns())
                 {
-                    userIdToUniqueId.put(column.id, column.id)
+                    userIdToUniqueId[column.id] = column.id
                 }
             }
             else
@@ -1952,7 +1951,7 @@ public class NCube<T>
                 AxisType type = AxisType.valueOf(getString(jsonAxis, "type"))
                 AxisValueType valueType = AxisValueType.valueOf(getString(jsonAxis, "valueType"))
                 final int preferredOrder = getLong(jsonAxis, "preferredOrder").intValue()
-                boolean fireAll = true;
+                boolean fireAll = true
                 if (jsonAxis.containsKey("fireAll"))
                 {
                     fireAll = getBoolean(jsonAxis, "fireAll")
@@ -1974,7 +1973,7 @@ public class NCube<T>
 
                 if (axis.metaProps.size() < 1)
                 {
-                    axis.metaProps = null;
+                    axis.metaProps = null
                 }
                 else
                 {
@@ -1990,7 +1989,7 @@ public class NCube<T>
                 Object[] cols = (Object[]) jsonAxis.get("columns")
                 for (Object col : cols)
                 {
-                    Map jsonColumn = (Map) col;
+                    Map jsonColumn = (Map) col
                     Object value = jsonColumn.get("value")
                     String url = (String)jsonColumn.get("url")
                     String colType = (String) jsonColumn.get("type")
@@ -2005,26 +2004,26 @@ public class NCube<T>
                         }
                         else
                         {   // Allows you to skip setting both id and value to the same value.
-                            value = id;
+                            value = id
                         }
                     }
 
-                    boolean cache = false;
+                    boolean cache = false
 
                     if (jsonColumn.containsKey("cache"))
                     {
                         cache = getBoolean(jsonColumn, "cache")
                     }
 
-                    Column colAdded;
-                    Long suggestedId = (id instanceof Long) ? (Long) id : null;
+                    Column colAdded
+                    Long suggestedId = (id instanceof Long) ? (Long) id : null
                     if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
                     {
                         colAdded = ncube.addColumn(axis.getName(), (Comparable) CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId)
                     }
                     else if (type == AxisType.RANGE)
                     {
-                        Object[] rangeItems = (Object[])value;
+                        Object[] rangeItems = (Object[])value
                         if (rangeItems.length != 2)
                         {
                             throw new IllegalArgumentException("Range must have exactly two items, axis: " + axisName +", cube: " + cubeName)
@@ -2035,13 +2034,13 @@ public class NCube<T>
                     }
                     else if (type == AxisType.SET)
                     {
-                        Object[] rangeItems = (Object[])value;
+                        Object[] rangeItems = (Object[])value
                         RangeSet rangeSet = new RangeSet()
                         for (Object pt : rangeItems)
                         {
                             if (pt instanceof Object[])
                             {
-                                Object[] rangeValues = (Object[]) pt;
+                                Object[] rangeValues = (Object[]) pt
                                 if (rangeValues.length != 2)
                                 {
                                     throw new IllegalArgumentException("Set Ranges must have two values only, range length: " + rangeValues.length + ", axis: " + axisName + ", cube: " + cubeName)
@@ -2074,7 +2073,7 @@ public class NCube<T>
 
                     if (id != null)
                     {
-                        userIdToUniqueId.put(id, colAdded.id)
+                        userIdToUniqueId[id] = colAdded.id
                     }
 
                     colAdded.metaProps = new CaseInsensitiveMap<>()
@@ -2087,7 +2086,7 @@ public class NCube<T>
 
                     if (colAdded.metaProps.size() < 1)
                     {
-                        colAdded.metaProps = null;
+                        colAdded.metaProps = null
                     }
                     else
                     {
@@ -2104,11 +2103,11 @@ public class NCube<T>
 
             for (Object cell : cells)
             {
-                JsonObject cMap = (JsonObject) cell;
+                JsonObject cMap = (JsonObject) cell
                 Object ids = cMap.get("id")
                 String type = (String) cMap.get("type")
                 String url = (String) cMap.get("url")
-                boolean cache = false;
+                boolean cache = false
 
                 if (cMap.containsKey("cache"))
                 {
@@ -2124,7 +2123,7 @@ public class NCube<T>
                     {
                         if (!userIdToUniqueId.containsKey(id))
                         {
-                            continue;
+                            continue
                         }
                         colIds.add(userIdToUniqueId.get(id))
                     }
@@ -2147,7 +2146,7 @@ public class NCube<T>
                     JsonObject<String, Object> keys = (JsonObject<String, Object>) cMap.get("key")
                     for (Map.Entry<String, Object> entry : keys.entrySet())
                     {
-                        keys.put(entry.getKey(), CellInfo.parseJsonValue(entry.getValue(), null, null, false))
+                        keys[entry.getKey()] = CellInfo.parseJsonValue(entry.getValue(), null, null, false)
                     }
                     try
                     {
@@ -2161,7 +2160,7 @@ public class NCube<T>
             }
         }
 
-        return ncube;
+        return ncube
     }
 
     private static void loadMetaProperties(Map props)
@@ -2180,7 +2179,7 @@ public class NCube<T>
 
         for (MapEntry entry : entriesToUpdate)
         {
-            props.put(entry.getKey(), entry.getValue())
+            props[entry.getKey()] = entry.getValue()
         }
     }
 
@@ -2189,7 +2188,7 @@ public class NCube<T>
         Object val = obj.get(key)
         if (val instanceof String)
         {
-            return (String) val;
+            return (String) val
         }
         String clazz = val == null ? "null" : val.getClass().getName()
         throw new IllegalArgumentException("Expected 'String' for key '" + key + "' but instead found: " + clazz)
@@ -2220,7 +2219,7 @@ public class NCube<T>
         Object val = obj.get(key)
         if (val instanceof Boolean)
         {
-            return (Boolean) val;
+            return (Boolean) val
         }
         if (val instanceof String)
         {
@@ -2228,7 +2227,7 @@ public class NCube<T>
         }
         if (val == null)
         {
-            return false;
+            return false
         }
         String clazz = val.getClass().getName()
         throw new IllegalArgumentException("Expected 'Boolean' for key '" + key + "' but instead found: " + clazz)
@@ -2241,7 +2240,7 @@ public class NCube<T>
     {
         List<NCubeTest> tests = new ArrayList<>()
         LongHashSet colIds = new LongHashSet()
-        int i=1;
+        int i=1
         for (LongHashSet pt : cells.keySet())
         {
             colIds.clear()
@@ -2254,25 +2253,25 @@ public class NCube<T>
             String testName = String.format("test-%03d", i)
             CellInfo[] result = [new CellInfo("exp", "output.return", false, false)] as CellInfo[]
             tests.add(new NCubeTest(testName, convertCoordToList(coord), result))
-            i++;
+            i++
         }
-        return tests;
+        return tests
     }
 
     private static StringValuePair<CellInfo>[] convertCoordToList(Map<String, CellInfo> coord)
     {
         int size = coord == null ? 0 : coord.size()
-        StringValuePair<CellInfo>[] list = new StringValuePair[size];
+        StringValuePair<CellInfo>[] list = new StringValuePair[size]
         if (size == 0)
         {
-            return list;
+            return list
         }
-        int i=0;
+        int i=0
         for (Map.Entry<String, CellInfo> entry : coord.entrySet())
         {
             list[i++] = (new StringValuePair<>(entry.getKey(), entry.getValue()))
         }
-        return list;
+        return list
     }
 
     /**
@@ -2326,7 +2325,7 @@ public class NCube<T>
             coords.add(coord)
         }
 
-        return coords;
+        return coords
     }
 
     /**
@@ -2339,10 +2338,10 @@ public class NCube<T>
         // In order to cache it successfully, all mutable operations on n-cube must clear the SHA1.
         if (StringUtilities.hasContent(sha1))
         {
-            return sha1;
+            return sha1
         }
 
-        final byte sep = 0;
+        final byte sep = 0
         MessageDigest sha1Digest = EncryptionUtilities.getSHA1Digest()
         sha1Digest.update(name == null ? ''.getBytes() : name.getBytes())
         sha1Digest.update(sep)
@@ -2378,13 +2377,13 @@ public class NCube<T>
                 deepSha1(sha1Digest, new TreeMap<>(axis.metaProps), sep)
             }
             sha1Digest.update(sep)
-            boolean displayOrder = axis.getColumnOrder() == Axis.DISPLAY;
+            boolean displayOrder = axis.getColumnOrder() == Axis.DISPLAY
             if (!axis.isReference())
             {
                 for (Column column : axis.getColumnsWithoutDefault())
                 {
                     Object v = column.getValue()
-                    Object safeVal = (v == null) ? '' : v;
+                    Object safeVal = (v == null) ? '' : v
                     sha1Digest.update(safeVal.toString().getBytes())
                     sha1Digest.update(sep)
                     if (!MapUtilities.isEmpty(column.metaProps))
@@ -2431,7 +2430,7 @@ public class NCube<T>
             }
         }
         sha1 = StringUtilities.encode(sha1Digest.digest())
-        return sha1;
+        return sha1
     }
 
     private String columnIdsToString(Set<Long> columns)
@@ -2468,7 +2467,7 @@ public class NCube<T>
             value = stack.removeFirst()
             if (visited.contains(value))
             {
-                continue;
+                continue
             }
             visited.add(value)
 
@@ -2491,7 +2490,7 @@ public class NCube<T>
             }
             else if (value instanceof Collection)
             {
-                Collection col = (Collection) value;
+                Collection col = (Collection) value
                 md.update("col".getBytes())
                 md.update(String.valueOf(col.size()).getBytes())
                 md.update(sep)
@@ -2499,7 +2498,7 @@ public class NCube<T>
             }
             else if (value instanceof Map)
             {
-                Map map  = (Map) value;
+                Map map  = (Map) value
                 md.update("map".getBytes())
                 md.update(String.valueOf(map.size()).getBytes())
                 md.update(sep)
@@ -2567,7 +2566,7 @@ public class NCube<T>
     {
         if (getNumDimensions() != other.getNumDimensions())
         {   // Must have same dimensionality
-            return false;
+            return false
         }
 
         Set<String> a1 = new CaseInsensitiveSet<>(axisList.keySet())
@@ -2576,7 +2575,7 @@ public class NCube<T>
 
         if (!a1.isEmpty())
         {   // Axis names must be all be the same (ignoring case)
-            return false;
+            return false
         }
 
         for (Axis axis : axisList.values())
@@ -2584,15 +2583,15 @@ public class NCube<T>
             Axis otherAxis = other.getAxis(axis.getName())
             if (axis.getType() != otherAxis.getType())
             {   // Axes must be same type (DISCRETE, RANGE, SET, NEAREST, or RULE)
-                return false;
+                return false
             }
             if (axis.getValueType() != otherAxis.getValueType())
             {   // Axes must be same value type (LONG, DOUBLE, DATE, etc.)
-                return false;
+                return false
             }
         }
 
-        return true;
+        return true
     }
 
     /**
@@ -2607,7 +2606,7 @@ public class NCube<T>
         // Ensure that the specified coordinate matches a column on each axis
         final Set<Axis> axisRef = new HashSet<>()
         final Set<Axis> allAxes = new HashSet<>(axisList.values())
-        final Map<String, CellInfo> coord = new CaseInsensitiveMap<>()
+        final Map coord = [:] as CaseInsensitiveMap
 
         // Bind all Longs to Columns on an axis.  Allow for additional columns to be specified,
         // but not more than one column ID per axis.  Also, too few can be supplied, if and
@@ -2649,7 +2648,7 @@ public class NCube<T>
         }
 
         // Add in all required scope keys to the [optional] passed in coord
-        Set<String> requiredScope;
+        Set<String> requiredScope
         try
         {
             requiredScope = getRequiredScope(new HashMap(), new HashMap())
@@ -2663,7 +2662,7 @@ public class NCube<T>
         {
             if (!coord.containsKey(scopeKey))
             {
-                coord.put(scopeKey, null)
+                coord[scopeKey] = null
             }
         }
 
@@ -2677,7 +2676,7 @@ public class NCube<T>
             throw new IllegalArgumentException("Column IDs missing for the axes: " + s + ", cube: " + name)
         }
 
-        return coord;
+        return coord
     }
 
     /**
@@ -2687,7 +2686,7 @@ public class NCube<T>
     {
         if (axis.getType() != AxisType.RULE)
         {
-            coord.put(axis.getName(), new CellInfo(column.getValueThatMatches()))
+            coord[axis.getName()] = new CellInfo(column.getValueThatMatches())
         }
     }
 
@@ -2711,20 +2710,20 @@ public class NCube<T>
             Object value = column.getValueThatMatches()
             if (value == null)
             {
-                value = "default column";
+                value = "default column"
             }
 
             String name = column.getColumnName()
             if (name != null)
             {
-                properCoord.put(axis.getName(), (T) ("(" + name.toString() + "): " + value))
+                properCoord[axis.getName()] = ("(" + name.toString() + "): " + value) as T
             }
             else
             {
-                properCoord.put(axis.getName(), (T) value)
+                properCoord[axis.getName()] = value as T
             }
         }
-        return properCoord;
+        return properCoord
     }
 
     /**
@@ -2748,20 +2747,20 @@ public class NCube<T>
             Axis axis = getAxisFromColumnId(colId)
             if (axis == null)
             {
-                return coord;
+                return coord
             }
-            Object value;
+            Object value
             if (axis.getType() == AxisType.RULE)
             {   // Favor rule name first, then use column ID if no rule name exists.
                 Column column = axis.getColumnById(colId)
                 String name = column.getColumnName()
                 if (name != null)
                 {
-                    value = name;
+                    value = name
                 }
                 else
                 {
-                    value = colId;
+                    value = colId
                 }
             }
             else
@@ -2769,9 +2768,9 @@ public class NCube<T>
                 Column column = axis.getColumnById(colId)
                 value = column.getValueThatMatches()
             }
-            coord.put(axis.getName(), value)
+            coord[axis.getName()] = value
         }
-        return coord;
+        return coord
     }
 
     /**
@@ -2781,23 +2780,23 @@ public class NCube<T>
      */
     public long getMaxAxisId()
     {
-        long max = 0;
+        long max = 0
         for (Axis axis : axisList.values())
         {
             long axisId = axis.getId()
             if (axisId > max)
             {
-                max = axisId;
+                max = axisId
             }
         }
-        return max;
+        return max
     }
 
     static String toJson(Object o)
     {
         if (o == null)
         {
-            return "null";
+            return "null"
         }
         try
         {
@@ -2824,7 +2823,7 @@ public class NCube<T>
         Matcher m = Regexes.validCubeName.matcher(cubeName)
         if (m.matches())
         {
-            return;
+            return
         }
         throw new IllegalArgumentException("Invalid n-cube name: '" + cubeName + "'. Name can only contain a-z, A-Z, 0-9, '.', '_', '-'")
     }
@@ -2850,8 +2849,8 @@ public class NCube<T>
             throw new IllegalArgumentException("Stream cannot be null to create cube.")
         }
 
-        InputStream newStream = null;
-        byte[] header = new byte[2];
+        InputStream newStream = null
+        byte[] header = new byte[2]
 
         try
         {
@@ -2865,7 +2864,7 @@ public class NCube<T>
             }
 
             newStream.reset()
-            newStream = ByteUtilities.isGzipped(header) ? new GZIPInputStream(newStream) : newStream;
+            newStream = ByteUtilities.isGzipped(header) ? new GZIPInputStream(newStream) : newStream
             return fromSimpleJson(newStream)
         }
         catch (Exception e)
@@ -2884,7 +2883,7 @@ public class NCube<T>
     public byte[] getCubeAsGzipJsonBytes()
     {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream()
-        OutputStream gzipOut = null;
+        OutputStream gzipOut = null
 
         try
         {
@@ -2908,7 +2907,7 @@ public class NCube<T>
      */
     public void setName(String name)
     {
-        this.name = name;
+        this.name = name
         clearSha1()
     }
 
