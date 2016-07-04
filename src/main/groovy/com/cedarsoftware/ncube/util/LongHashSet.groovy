@@ -99,8 +99,10 @@ class LongHashSet implements Set<Long>
         {
             return [] as Object[]
         }
+
         final int len = elems.length
         Object[] array = new Object[len]
+
         for (int i=0; i < len; i++)
         {
             array[i] = elems[i]
@@ -118,10 +120,9 @@ class LongHashSet implements Set<Long>
         else
         {
             int origSize = size()
-            int len = elems.length
-            long[] newElems = new long[len + 1]
-            System.arraycopy(elems, 0, newElems, 0, len)
-            newElems[len] = o
+            long[] newElems = new long[origSize + 1]
+            System.arraycopy(elems, 0, newElems, 0, origSize)
+            newElems[origSize] = o
             elems = newElems
             return size() != origSize
         }

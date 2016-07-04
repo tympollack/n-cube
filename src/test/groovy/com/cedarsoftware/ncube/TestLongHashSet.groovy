@@ -104,4 +104,17 @@ class TestLongHashSet
         set.remove(7)
         assert set.size() == 0
     }
+
+    @Test
+    void testToArray()
+    {
+        LongHashSet set = new LongHashSet()
+        set.add(7)
+        set.add(8)
+        set.add(9)
+        Object[] nums = set.toArray()
+        assert nums[0] == 7
+        assert nums[1] == 8
+        assert nums[2] == 9
+    }
 }

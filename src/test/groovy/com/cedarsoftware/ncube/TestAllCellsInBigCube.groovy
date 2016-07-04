@@ -112,7 +112,7 @@ class TestAllCellsInBigCube
         long start = System.nanoTime()
         NCube<Long> ncube = new NCube("bigCube")
 
-        int size = 23
+        int size = 24
 
         for (int i = 0; i < 5; i++)
         {

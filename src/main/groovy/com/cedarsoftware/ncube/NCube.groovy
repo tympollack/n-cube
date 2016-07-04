@@ -856,7 +856,6 @@ class NCube<T>
         }
     }
 
-
     /**
      * Prepare the execution context by providing it with references to
      * important items like the input coordinate, output map, stack,
@@ -1915,7 +1914,7 @@ class NCube<T>
             throw new IllegalArgumentException("Must specify a list of axes for the ncube, under the key 'axes' as [{axis 1}, {axis 2}, ... {axis n}], cube: " + cubeName)
         }
 
-        Object[] axes = (Object[]) jsonNCube.get("axes")
+        Object[] axes = (Object[]) jsonNCube["axes"]
 
         if (ArrayUtilities.isEmpty(axes))
         {
@@ -1976,21 +1975,21 @@ class NCube<T>
                     loadMetaProperties(axis.metaProps)
                 }
 
-                if (!jsonAxis.containsKey("columns"))
+                if (!jsonAxis.containsKey('columns'))
                 {
                     throw new IllegalArgumentException("'columns' must be specified, axis: " + axisName + ", cube: " + cubeName)
                 }
 
                 // Read columns
-                Object[] cols = (Object[]) jsonAxis.get("columns")
+                Object[] cols = (Object[]) jsonAxis['columns']
                 for (col in cols)
                 {
                     Map jsonColumn = (Map) col
-                    Object value = jsonColumn.get("value")
-                    String url = (String)jsonColumn.get("url")
-                    String colType = (String) jsonColumn.get("type")
-                    Object id = jsonColumn.get("id")
-                    String colName = (String) jsonColumn.get(Column.NAME)
+                    Object value = jsonColumn['value']
+                    String url = (String)jsonColumn['url']
+                    String colType = (String) jsonColumn['type']
+                    Object id = jsonColumn['id']
+                    String colName = (String) jsonColumn[Column.NAME]
 
                     if (value == null)
                     {
@@ -2006,9 +2005,9 @@ class NCube<T>
 
                     boolean cache = false
 
-                    if (jsonColumn.containsKey("cache"))
+                    if (jsonColumn.containsKey('cache'))
                     {
-                        cache = getBoolean(jsonColumn, "cache")
+                        cache = getBoolean(jsonColumn, 'cache')
                     }
 
                     Column colAdded
@@ -2058,7 +2057,7 @@ class NCube<T>
                         Object cmd = CellInfo.parseJsonValue(value, url, colType, cache)
                         if (!(cmd instanceof CommandCell))
                         {
-                            cmd = new GroovyExpression("false", null, cache)
+                            cmd = new GroovyExpression('false', null, cache)
                         }
                         colAdded = ncube.addColumn(axis.name, (CommandCell)cmd, colName, suggestedId)
                     }
@@ -2074,11 +2073,11 @@ class NCube<T>
 
                     colAdded.metaProps = new CaseInsensitiveMap<>()
                     colAdded.metaProps.putAll(jsonColumn)
-                    colAdded.metaProps.remove("id")
-                    colAdded.metaProps.remove("value")
-                    colAdded.metaProps.remove("type")
-                    colAdded.metaProps.remove("url")
-                    colAdded.metaProps.remove("cache")
+                    colAdded.metaProps.remove('id')
+                    colAdded.metaProps.remove('value')
+                    colAdded.metaProps.remove('type')
+                    colAdded.metaProps.remove('url')
+                    colAdded.metaProps.remove('cache')
 
                     if (colAdded.metaProps.size() < 1)
                     {
@@ -2095,22 +2094,22 @@ class NCube<T>
         // Read cells
         if (jsonNCube.containsKey("cells"))
         {   // Allow JSON to have no cells - empty cube
-            Object[] cells = (Object[]) jsonNCube.get("cells")
+            Object[] cells = (Object[]) jsonNCube['cells']
 
             for (cell in cells)
             {
                 JsonObject cMap = (JsonObject) cell
-                Object ids = cMap.get("id")
-                String type = (String) cMap.get("type")
-                String url = (String) cMap.get("url")
+                Object ids = cMap['id']
+                String type = (String) cMap['type']
+                String url = (String) cMap['url']
                 boolean cache = false
 
-                if (cMap.containsKey("cache"))
+                if (cMap.containsKey('cache'))
                 {
-                    cache = getBoolean(cMap, "cache")
+                    cache = getBoolean(cMap, 'cache')
                 }
 
-                Object v = CellInfo.parseJsonValue(cMap.get("value"), url, type, cache)
+                Object v = CellInfo.parseJsonValue(cMap['value'], url, type, cache)
 
                 if (ids instanceof Object[])
                 {   // If specified as ID array, build coordinate that way
@@ -2134,12 +2133,12 @@ class NCube<T>
                 }
                 else
                 {
-                    if (!(cMap.get("key") instanceof JsonObject))
+                    if (!(cMap['key'] instanceof JsonObject))
                     {
                         throw new IllegalArgumentException("'key' must be a JSON object {}, cube: " + cubeName)
                     }
 
-                    JsonObject<String, Object> keys = (JsonObject<String, Object>) cMap.get("key")
+                    JsonObject<String, Object> keys = (JsonObject<String, Object>) cMap['key']
                     for (entry in keys.entrySet())
                     {
                         keys[entry.key] = CellInfo.parseJsonValue(entry.value, null, null, false)
@@ -2167,8 +2166,8 @@ class NCube<T>
             if (entry.value instanceof JsonObject)
             {
                 JsonObject map = (JsonObject) entry.value
-                Boolean cache = (Boolean) map.get("cache")
-                Object value = CellInfo.parseJsonValue(map.get("value"), (String) map.get("url"), (String) map.get("type"), cache == null ? false : cache)
+                Boolean cache = (Boolean) map['cache']
+                Object value = CellInfo.parseJsonValue(map['value'], (String) map['url'], (String) map['type'], cache == null ? false : cache)
                 entriesToUpdate.add(new MapEntry(entry.key, value))
             }
         }
