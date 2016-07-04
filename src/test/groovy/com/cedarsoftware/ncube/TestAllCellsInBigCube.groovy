@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.Test
 
 import static org.junit.Assert.assertTrue
@@ -32,7 +33,7 @@ class TestAllCellsInBigCube
     @Test
     void testAllCellsInBigCube()
     {
-        for (int qq=0; qq < 1; qq++)
+        for (int qq = 0; qq < 1; qq++)
         {
             long start = System.nanoTime()
             NCube<Long> ncube = new NCube("bigCube")
@@ -103,5 +104,59 @@ class TestAllCellsInBigCube
             double diff = (stop - start) / 1000000.0
             println("time to build and read allCellsInBigCube = " + diff)
         }
+    }
+
+    @Ignore
+    void testCubeToBlowupMemory()
+    {
+        long start = System.nanoTime()
+        NCube<Long> ncube = new NCube("bigCube")
+
+        int size = 23
+
+        for (int i = 0; i < 5; i++)
+        {
+            Axis axis = new Axis("axis" + i, AxisType.DISCRETE, AxisValueType.LONG, i % 2 == 0)
+            ncube.addAxis(axis)
+            for (int j = 0; j < size; j++)
+            {
+                if (j % 2 == 0)
+                {
+                    axis.addColumn(j)
+                }
+                else
+                {
+                    ncube.addColumn("axis" + i, j)
+                }
+            }
+        }
+
+        Map coord = [:]
+        for (int a = 1; a <= size + 1; a++)
+        {
+            coord.axis0 = a - 1
+            for (int b = 1; b <= size; b++)
+            {
+                coord.axis1 = b - 1
+                for (int c = 1; c <= size + 1; c++)
+                {
+                    coord.axis2 = c - 1
+                    for (int d = 1; d <= size; d++)
+                    {
+                        coord.axis3 = d - 1
+                        for (long e = 1; e <= size + 1; e++)
+                        {
+                            coord.axis4 = e - 1
+                            ncube.setCell(a * b * c * d * e, coord)
+                        }
+                    }
+                }
+            }
+            println a
+        }
+        println ncube.numCells
+        long stop = System.nanoTime()
+        double diff = (stop - start) / 1000000.0
+        println("time to build and read allCellsInBigCube = " + diff)
     }
 }

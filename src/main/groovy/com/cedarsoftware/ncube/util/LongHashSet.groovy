@@ -3,8 +3,7 @@ package com.cedarsoftware.ncube.util
 import groovy.transform.CompileStatic
 
 /**
- * Special Set instance that hashes the Set<Long> column IDs with
- * excellent dispersion.
+ * Special Set instance that hashes the Set<Long> column IDs with excellent dispersion.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -23,31 +22,229 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-class LongHashSet extends TreeSet<Long>
+class LongHashSet implements Set<Long>
 {
+    private long[] elems = null
+
     LongHashSet()
+    { }
+
+    LongHashSet(Collection<? extends Long> col)
     {
-        super()
+        elems = new long[col.size()]
+        int idx = 0
+        for (item in col)
+        {
+            elems[idx++] = item
+        }
     }
 
-    LongHashSet(Collection<? extends Long> c)
+    int size()
     {
-        super(c)
+        return elems == null ? 0 : elems.length
+    }
+
+    boolean isEmpty()
+    {
+        return elems == null || elems.length == 0
+    }
+
+    boolean contains(Object item)
+    {
+        if (isEmpty())
+        {
+            return false
+        }
+
+        for (x in elems)
+        {
+            if (x == item)
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    Iterator iterator()
+    {
+        Iterator it = new Iterator() {
+            private int currentIndex = 0
+
+            public boolean hasNext()
+            {
+                if (elems == null)
+                {
+                    return false
+                }
+                return currentIndex < elems.length
+            }
+
+            public Long next()
+            {
+                return elems[currentIndex++]
+            }
+
+            public void remove()
+            {
+                throw new UnsupportedOperationException()
+            }
+        }
+        return it
+    }
+
+    Object[] toArray()
+    {
+        if (isEmpty())
+        {
+            return [] as Object[]
+        }
+        final int len = elems.length
+        Object[] array = new Object[len]
+        for (int i=0; i < len; i++)
+        {
+            array[i] = elems[i]
+        }
+        return array
+    }
+
+    boolean add(Long o)
+    {
+        if (elems == null)
+        {
+            elems = [o] as long[]
+            return true
+        }
+        else
+        {
+            int origSize = size()
+            int len = elems.length
+            long[] newElems = new long[len + 1]
+            System.arraycopy(elems, 0, newElems, 0, len)
+            newElems[len] = o
+            elems = newElems
+            return size() != origSize
+        }
+    }
+
+    boolean remove(Object o)
+    {
+        if (isEmpty())
+        {
+            return false
+        }
+        long itemToRemove = o as long
+        int len = elems.length
+
+        for (int i=0; i < len; i++)
+        {
+            if (elems[i] == itemToRemove)
+            {
+                long[] newElems = new long[len - 1]
+                System.arraycopy(elems, i + 1, elems, i, len - i - 1)
+                System.arraycopy(elems, 0, newElems, 0, len - 1)
+                elems = newElems
+                return true
+            }
+        }
+        return false
+    }
+
+    boolean addAll(Collection<? extends Long> col)
+    {
+        int origSize = size()
+        for (o in col)
+        {
+            add(o)
+        }
+        return size() != origSize
+    }
+
+    void clear()
+    {
+        elems = null
+    }
+
+    boolean removeAll(Collection col)
+    {
+        int origSize = size()
+        for (o in col)
+        {
+            remove(o)
+        }
+        return size() != origSize
+    }
+
+    boolean retainAll(Collection col)
+    {
+        int origSize = size()
+        Set<Long> keep = new LinkedHashSet<Long>()
+        for (item in col)
+        {
+            if (contains(item))
+            {
+                keep.add(item as Long)
+            }
+        }
+        elems = new long[keep.size()]
+        int idx = 0
+        for (item in keep)
+        {
+            elems[idx++] = item
+        }
+        return size() != origSize
+    }
+
+    boolean containsAll(Collection col)
+    {
+        for (item in col)
+        {
+            if (!contains(item))
+            {
+                return false
+            }
+        }
+        return true
+    }
+
+    Object[] toArray(Object[] a)
+    {
+        return toArray()
+    }
+
+    boolean equals(Object other)
+    {
+        if (other == this)
+        {
+            return true
+        }
+        if (!(other instanceof LongHashSet))
+        {
+            return false
+        }
+        long[] otherElems = ((LongHashSet) other).elems
+        if (otherElems.length != elems.length)
+        {
+            return false
+        }
+
+        return containsAll(other)
     }
 
     int hashCode()
     {
         int h = 0
-        for (Long value : this)
+
+        // This must be an order insensitive hash
+        for (x in elems)
         {
-            long x = value
             // do not change the formula below.  It is been hand crafted and tested for performance.
             // If this does not hash well, ncube breaks down in performance.  The BigCube tests are
             // greatly slowed down as proper hashing is vital or cells will be really slow to access
             // when there are a lot of them in the ncube.
 
             // Original hash function  (John)
-//                h += (int)(x * 347 ^ (x >>> 32) * 7)
+//            h += (int)(x * 347 ^ (x >>> 32) * 7)
 
             // Better (from Stack overflow)
 //            x = ((x >> 16) ^ x) * 0x45d9f3b
@@ -60,17 +257,7 @@ class LongHashSet extends TreeSet<Long>
             x *= 0x2127599bf4325c37L
             x ^= x >> 47
             h += (int) x
-
-            // Yet another good hashing function
-//                x = (~x) + (x << 18) // key = (key << 18) - key - 1
-//                x = x ^ (x >>> 31)
-//                x = x * 21; // key = (key + (key << 2)) + (key << 4)
-//                x = x ^ (x >>> 11)
-//                x = x + (x << 6)
-//                x = x ^ (x >>> 22)
-//                h += (int) x
         }
-
         return h
     }
 }

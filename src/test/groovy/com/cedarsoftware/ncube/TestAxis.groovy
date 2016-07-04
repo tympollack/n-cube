@@ -1361,14 +1361,14 @@ class TestAxis
         Axis bu = cube.getAxis("BU")
         Column b = bu.findColumn("SHS")
 
-        Set<Long> longCoord = new LongHashSet()
-        longCoord.add(t.id)
-        longCoord.add(v.id)
-        longCoord.add(b.id)
+        LongHashSet longCoord = new LongHashSet()
+        longCoord.add(t.id as Long)
+        longCoord.add(v.id as Long)
+        longCoord.add(b.id as Long)
 
         // Make sure all columns are bound correctly
         def coord = new CaseInsensitiveMap()
-        Set<Long> boundCols = cube.ensureFullCoordinate(longCoord)
+        LongHashSet boundCols = cube.ensureFullCoordinate(longCoord)
         for (Long colId : boundCols)
         {
             assertTrue(colId == t.id || colId == v.id || colId == b.id)
@@ -1381,7 +1381,7 @@ class TestAxis
         }
 
         Column t2 = trailor.findColumn("L3A")
-        longCoord.add(t2.id)
+        longCoord.add(t2.id as Long)
         try
         {
             coord = cube.getTestInputCoordinateFromIds(longCoord)
@@ -1397,7 +1397,7 @@ class TestAxis
         {
             longCoord.remove(t2.id)
             longCoord.remove(t.id)
-            coord = cube.getTestInputCoordinateFromIds(longCoord)
+            cube.getTestInputCoordinateFromIds(longCoord)
             fail()
         }
         catch (IllegalArgumentException e)

@@ -32,7 +32,7 @@ class Binding
     private final String cubeName
     private final int depth
     private final Map<String, Column> coord = new CaseInsensitiveMap<>()
-    private final Set<Long> idCoord = new LongHashSet()
+    private final LongHashSet idCoord = new LongHashSet()
     private Object value
     private static final String newLine = "\n"
 
@@ -73,7 +73,7 @@ class Binding
         return idCoord.size()
     }
 
-    Set<Long> getIdCoordinate()
+    LongHashSet getIdCoordinate()
     {
         return idCoord
     }

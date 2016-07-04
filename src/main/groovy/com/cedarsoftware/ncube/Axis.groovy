@@ -872,7 +872,7 @@ class Axis
             throw new IllegalStateException('You cannot update columns on a reference Axis, axis: ' + name)
         }
 
-        Set<Long> colsToDelete = new LongHashSet()
+        LongHashSet colsToDelete = new LongHashSet()
         Map<Long, Column> newColumnMap = new LinkedHashMap<>()
 
         // Step 1. Map all columns from passed in Collection by ID
@@ -911,7 +911,7 @@ class Axis
             {   // Delete case - existing column id no longer found
                 if (col.value != null)
                 {
-                    colsToDelete.add(col.id)
+                    colsToDelete.add(col.id as Long)
                     i.remove()
                 }
             }
@@ -1373,7 +1373,7 @@ class Axis
      * @return Column that 'matches' the passed in value, or null if no column
      * found.  'Matches' because matches depends on AxisType.
      */
-    Column findColumn(Comparable value)
+    Column findColumn(final Comparable value)
     {
         if (value == null)
         {   // By returning defaultCol, this lets null match it if there is one, or null if there is none.
@@ -1392,10 +1392,6 @@ class Axis
             Column column = rangeToCol.get(promotedValue)
             return column == null ? defaultCol : column
         }
-        else if (type == AxisType.NEAREST)
-        {   // The NEAREST axis type must be searched linearly O(n)
-            return findNearest(promotedValue)
-        }
         else if (type == AxisType.RULE)
         {
             if (promotedValue instanceof Long)
@@ -1411,6 +1407,10 @@ class Axis
             {
                 throw new IllegalArgumentException("A column on a rule axis can only be located by the 'name' attribute (String) or ID (long), axis: " + name + ", value: " + promotedValue)
             }
+        }
+        else if (type == AxisType.NEAREST)
+        {   // The NEAREST axis type must be searched linearly O(n)
+            return findNearest(promotedValue)
         }
         else
         {

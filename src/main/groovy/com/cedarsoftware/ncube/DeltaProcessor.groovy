@@ -174,7 +174,7 @@ class DeltaProcessor
         Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet[DELTA_CELLS]
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
         cellDelta.each { k, v ->
-            Set<Long> cols = deltaCoordToSetOfLong(mergeTarget, k)
+            LongHashSet cols = deltaCoordToSetOfLong(mergeTarget, k)
             if (cols != null && cols.size() > 0)
             {
                 T value = v
@@ -515,7 +515,7 @@ class DeltaProcessor
         // Now, compute cell deltas.
         other.cellMap.each { key, value ->
             Map<String, Object> deltaCoord = other.getCoordinateFromIds(key)
-            Set<Long> idKey = deltaCoordToSetOfLong(other, deltaCoord)
+            LongHashSet idKey = deltaCoordToSetOfLong(other, deltaCoord)
             if (idKey != null)
             {   // Was able to bind deltaCoord between cubes
                 T content = thisCube.getCellByIdNoExecute(idKey)
@@ -747,10 +747,9 @@ class DeltaProcessor
      * @return Set<Long> that can be used with any n-cube API that binds by ID (getCellById, etc.) or null
      * if the deltaCoord could not bind to this n-cube.
      */
-    private static <T> Set<Long> deltaCoordToSetOfLong(NCube<T> target, final Map<String, Object> deltaCoord)
+    private static <T> LongHashSet deltaCoordToSetOfLong(NCube<T> target, final Map<String, Object> deltaCoord)
     {
-        final Set<Long> key = new LongHashSet()
-
+        Set<Long> set = new TreeSet<>()
         for (final Axis axis : target.axes)
         {
             final Object value = deltaCoord[axis.name]
@@ -759,9 +758,9 @@ class DeltaProcessor
             {
                 return null
             }
-            key.add(column.id)
+            set.add(column.id)
         }
-        return key
+        return new LongHashSet(set)
     }
 
     private static StringBuilder makeMap(Map<String, Object> newMeta, Set<String> addedKeys)
