@@ -540,8 +540,8 @@ public class NCube<T>
             run = false
             final Map<String, List<Column>> columnToAxisBindings = bindCoordinateToAxisColumns(input)
             final Map<String, Integer> counters = getCountersPerAxis(axisNames)
-            final Map<Long, Object> cachedConditionValues = new HashMap<>()
-            final Map<String, Integer> conditionsFiredCountPerAxis = new HashMap<>()
+            final Map<Long, Object> cachedConditionValues = [:]
+            final Map<String, Integer> conditionsFiredCountPerAxis = [:]
 
             try
             {
@@ -864,11 +864,7 @@ public class NCube<T>
      */
     protected Map prepareExecutionContext(final Map coord, final Map output)
     {
-        final Map ctx = new HashMap<>()
-        ctx.input = coord   // Input coordinate is already a duplicate at this point
-        ctx.output = output
-        ctx.ncube = this
-        return ctx
+        return [input: coord, output: output, ncube: this]  // Input coordinate is already a duplicate at this point
     }
 
     /**
@@ -1249,7 +1245,7 @@ public class NCube<T>
         Set<Long> ids = new TreeSet<>()
         for (final Axis axis : axisList.values())
         {
-            final Object value = safeCoord.get(axis.name)
+            final Object value = safeCoord[axis.name]
             final Column column = axis.findColumn((Comparable) value)
             if (column == null)
             {
@@ -1509,7 +1505,7 @@ public class NCube<T>
             throw new IllegalArgumentException("No axis exists with the name: " + axisName + ", cube: " + name)
         }
 
-        final Axis axisToUpdate = axisList.get(axisName)
+        final Axis axisToUpdate = axisList[axisName]
         final Set<Long> colsToDel = axisToUpdate.updateColumns(newCols)
         Iterator<LongHashSet> i = cells.keySet().iterator()
 
@@ -1577,7 +1573,7 @@ public class NCube<T>
      */
     public Axis getAxis(final String axisName)
     {
-        return axisList.get(axisName)
+        return axisList[axisName]
     }
 
     /**
@@ -1845,7 +1841,7 @@ public class NCube<T>
     {
         try
         {
-            Map options = new HashMap<>()
+            Map options = [:]
             options[JsonReader.USE_MAPS] = true
             Map jsonNCube = (Map) JsonReader.jsonToJava(json, options)
             return hydrateCube(jsonNCube)
@@ -1872,7 +1868,7 @@ public class NCube<T>
     {
         try
         {
-            Map options = new HashMap<>()
+            Map options = [:]
             options[JsonReader.USE_MAPS] = true
             Map jsonNCube = (Map) JsonReader.jsonToJava(stream, options)
             return hydrateCube(jsonNCube)
@@ -2185,7 +2181,7 @@ public class NCube<T>
 
     protected static String getString(Map obj, String key)
     {
-        Object val = obj.get(key)
+        Object val = obj[key]
         if (val instanceof String)
         {
             return (String) val
@@ -2196,7 +2192,7 @@ public class NCube<T>
 
     protected static Long getLong(Map obj, String key)
     {
-        Object val = obj.get(key)
+        Object val = obj[key]
         if (val instanceof Number)
         {
             return ((Number) val).longValue()
@@ -2216,7 +2212,7 @@ public class NCube<T>
 
     static Boolean getBoolean(Map obj, String key)
     {
-        Object val = obj.get(key)
+        Object val = obj[key]
         if (val instanceof Boolean)
         {
             return (Boolean) val
@@ -2919,6 +2915,6 @@ public class NCube<T>
      */
     public Axis get(String axisName)
     {
-        return axisList.get(axisName)
+        return axisList[axisName]
     }
 }
