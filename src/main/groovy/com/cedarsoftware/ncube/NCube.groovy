@@ -345,31 +345,19 @@ class NCube<T>
     }
 
     /**
-     * Test to see if a value is mapped at the given coordinate.  This API ignores any
-     * n-cube level default value.  If you want that to be considered, use containsCell
-     * with boolean true as the 2nd argument.
-     * @param coordinate Map (coordinate) of a cell
-     * @return boolean true if a cell has been mapped at the specified coordinate,
-     * false otherwise.  For RULE axes, the name of the Rule Axis must be
-     * bound to a rule name (e.g. the 'name' attribute on the Column expression).
-     */
-    public boolean containsCell(final Map coordinate)
-    {
-        return containsCell(coordinate, false)
-    }
-
-    /**
      * Test to see if a value is mapped at the given coordinate.  The 2nd argument allows
      * you to take into account the n-cube level Default Cell value or not. Set to true
      * to have the default value considered, false otherwise.
      * @param coordinate Map (coordinate) of a cell
+     * @param useDefault (optional, defaults to false. Set to true, then if a non-default
+     * value for the n-cube is set, this method will return true).
      * @return 1. boolean true if a defaultValue is set (non-null) and useDefault is true
      * 2. boolean true if a cell is located at the specified coordinate in the
      * sparse cell map.
      * For RULE axes, the name of the Rule Axis must be bound to a rule name
      * (e.g. the 'name' attribute on the Column expression).
      */
-    public boolean containsCell(final Map coordinate, boolean useDefault)
+    public boolean containsCell(final Map coordinate, boolean useDefault = false)
     {
         if (useDefault)
         {
@@ -464,35 +452,21 @@ class NCube<T>
      * Fetch the contents of the cell at the location specified by the coordinate argument.
      * Be aware that if you have any rule cubes in the execution path, they can execute
      * more than one cell.  The cell value returned is the value of the last cell executed.
-     * @param coordinate Map of String keys to values meant to bind to each axis of the n-cube.
-     * @return Cell pinpointed by the input coordinate.  If there is nothing stored at this
-     * location, then the n-cube's default value will be returned (which is null if not set,
-     * but can be set to any value, including a GroovyExpression).
-     */
-    public T getCell(final Map coordinate)
-    {
-        return getCell(coordinate, [:], null)
-    }
-
-    /**
-     * Fetch the contents of the cell at the location specified by the coordinate argument.
-     * Be aware that if you have any rule cubes in the execution path, they can execute
-     * more than one cell.  The cell value returned is the value of the last cell executed.
      * Typically, in a rule cube, you are writing to specific keys within the rule cube, and
      * the calling code then accesses the 'output' Map to fetch the values at these specific
      * keys.
      * @param coordinate Map of String keys to values meant to bind to each axis of the n-cube.
      * @param output Map that can be written to by the code within the the n-cubes (for example,
      *               GroovyExpressions.
+     * @param defaultValue Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.
      * @return Cell pinpointed by the input coordinate.  If there is nothing stored at this
-     * location, then the n-cube's default value will be returned.
+     * location, then the n-cube's default value will be returned. If defaultValue is null,
+     * then then n-cube defaultValue will be returned.
      */
-    public T getCell(final Map coordinate, final Map output)
-    {
-        return getCell(coordinate, output, null)
-    }
-
-    public T at(final Map coordinate, final Map output, Object defaultValue)
+    public T at(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
         return getCell(coordinate, output, defaultValue)
     }
@@ -515,7 +489,7 @@ class NCube<T>
      * then the passed in defaultValue will be returned if it is not-null.  If defaultValue is null,
      * then then n-cube defaultValue will be returned.
      */
-    public T getCell(final Map coordinate, final Map output, Object defaultValue)
+    public T getCell(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
         final RuleInfo ruleInfo = getRuleInfo(output)
         Map input = validateCoordinate(coordinate, output)
@@ -754,28 +728,10 @@ class NCube<T>
      * is set.
      * REQUIRED: The coordinate passed to this method must have already been run
      * through validateCoordinate(), which duplicates the coordinate and ensures the
-     * coordinate has at least an entry for each axis.
-     */
-    protected T getCellById(final Set<Long> idCoord, final Map coordinate, final Map output)
-    {
-        return getCellById(idCoord, coordinate, output, null)
-    }
-
-    /**
-     * The lowest level cell fetch.  This method uses the Set<Long> to fetch an
-     * exact cell, while maintaining the original input coordinate that the location
-     * was derived from (required because a given input coordinate could map to more
-     * than one cell).  Once the cell is located, it is executed and the value from
-     * the executed cell is returned. In the case of Command Cells, it is the return
-     * value of the execution, otherwise the return is the value stored in the cell,
-     * and if there is no cell, the defaultCellValue from NCube is returned, if one
-     * is set.
-     * REQUIRED: The coordinate passed to this method must have already been run
-     * through validateCoordinate(), which duplicates the coordinate and ensures the
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    protected T getCellById(final Set<Long> idCoord, final Map coordinate, final Map output, Object defaultValue)
+    protected T getCellById(final Set<Long> idCoord, final Map coordinate, final Map output, Object defaultValue = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = executionStack.get()
@@ -867,14 +823,6 @@ class NCube<T>
     }
 
     /**
-     * See getMap(coordinate, output, defaultValue)
-     */
-    public Map<Object, T> getMap(final Map coordinate)
-    {
-        return getMap(coordinate, [:], null)
-    }
-
-    /**
      * Get a Map of column values and corresponding cell values where all axes
      * but one are held to a fixed (single) column, and one axis allows more than
      * one value to match against it.
@@ -886,15 +834,15 @@ class NCube<T>
      * on the 'wildcard' axis that match the values in the set will be returned (along
      * with the corresponding cell values).
      * @param output Map that can be written to by the code within the the n-cubes (for example,
-     *               GroovyExpressions.
+     *               GroovyExpressions.  Optional.
      * @param defaultValue Object placed here will be returned if there is no cell at the location
      *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
      *                     n-cube is returned, but if this parameter is passed a non-null value,
-     *                     then it will be returned.
+     *                     then it will be returned.  Optional.
      * @return a Map containing Axis names and values to bind to those axes.  One of the
      * axes must have a Set bound to it.
      */
-    public Map<Object, T> getMap(final Map coordinate, Map output, Object defaultValue)
+    public Map<Object, T> getMap(final Map coordinate, Map output = [:], Object defaultValue = null)
     {
         final Map coord = validateCoordinate(coordinate, [:])
         final Axis wildcardAxis = getWildcardAxis(coord)
@@ -1363,35 +1311,12 @@ class NCube<T>
      * Add a column to the n-cube
      * @param axisName String name of the Axis to which the column will be added.
      * @param value Comparable that will be the value for the given column.  Cannot be null.
-     * @return Column the added Column.
-     */
-    public Column addColumn(final String axisName, final Comparable value)
-    {
-        return addColumn(axisName, value, null, null)
-    }
-
-    /**
-     * Add a column to the n-cube
-     * @param axisName String name of the Axis to which the column will be added.
-     * @param value Comparable that will be the value for the given column.  Cannot be null.
-     * @param colName The optional name of the column, useful for RULE axis columns.
-     * @return Column the added Column.
-     */
-    public Column addColumn(final String axisName, final Comparable value, String colName)
-    {
-        return addColumn(axisName, value, colName, null)
-    }
-
-    /**
-     * Add a column to the n-cube
-     * @param axisName String name of the Axis to which the column will be added.
-     * @param value Comparable that will be the value for the given column.  Cannot be null.
-     * @param colName The optional name of the column, useful for RULE axis columns.
+     * @param colName The optional name of the column, useful for RULE axis columns.  Optional.
      * @param suggestedId Long id.  If id is not valid for the column (unique id, and axis portion matches axis on which
-     *                    it is added), then the ID will be generated.
+     *                    it is added), then the ID will be generated.  Optional.
      * @return Column the added Column.
      */
-    public Column addColumn(final String axisName, final Comparable value, String colName, Long suggestedId)
+    public Column addColumn(final String axisName, final Comparable value, String colName = null, Long suggestedId = null)
     {
         final Axis axis = getAxis(axisName)
         if (axis == null)
@@ -1554,6 +1479,19 @@ class NCube<T>
     public int getNumCells()
     {
         return cells.size()
+    }
+
+    /**
+     * @return long number of potential cells this n-cube potentially has
+     */
+    public long getNumPotentialCells()
+    {
+        long space = 1
+        for (axis in axisList.values())
+        {
+            space *= axis.size()
+        }
+        return space
     }
 
     /**
@@ -1800,21 +1738,12 @@ class NCube<T>
     }
 
     /**
-     * @return String JSON representing this entire n-cube.  This JSON format is designed to withstand changes to
-     * retain backward and forward compatibility.
-     */
-    public String toFormattedJson()
-    {
-        return new JsonFormatter().format(this)
-    }
-
-    /**
      * Format this n-cube into JSON using the passed in 'options' Map to control the desired output.
      * See the JsonFormatter's format() API for available options.
      * @return String JSON representing this entire n-cube, in the format controlled by the passed
      * in options Map.
      */
-    public String toFormattedJson(Map options)
+    public String toFormattedJson(Map options = null)
     {
         return new JsonFormatter().format(this, options)
     }
@@ -2468,14 +2397,14 @@ class NCube<T>
 
             if (value == null)
             {
-                md.update("null".bytes)
+                md.update('null'.bytes)
                 md.update(sep)
             }
             else if (value.getClass().isArray())
             {
                 int len = Array.getLength(value)
 
-                md.update("array".bytes)
+                md.update('array'.bytes)
                 md.update(String.valueOf(len).bytes)
                 md.update(sep)
                 for (int i=0; i < len; i++)
@@ -2486,15 +2415,15 @@ class NCube<T>
             else if (value instanceof Collection)
             {
                 Collection col = (Collection) value
-                md.update("col".bytes)
+                md.update('col'.bytes)
                 md.update(String.valueOf(col.size()).bytes)
                 md.update(sep)
                 stack.addAll(col)
             }
             else if (value instanceof Map)
             {
-                Map map  = (Map) value
-                md.update("map".bytes)
+                Map map = value as Map
+                md.update('map'.bytes)
                 md.update(String.valueOf(map.size()).bytes)
                 md.update(sep)
 

@@ -56,7 +56,7 @@ class NCubeGroovyExpression
         NCube cube = NCubeManager.getCube(ncube.applicationID, name)
         if (cube == null)
         {
-            throw new IllegalArgumentException('n-cube: ' + name + ' not loaded into NCubeManager, make sure to load all n-cubes first.')
+            throw new IllegalArgumentException('n-cube: ' + name + ' not found.')
         }
         return cube
     }
@@ -151,9 +151,13 @@ class NCubeGroovyExpression
      * example) from which the running cube exists.
      * @return executed cell contents at the given coordinate.
      */
-    def go(Map coord, String cubeName = ncube.name, def defaultValue = null, ApplicationID appId)
+    def go(Map coord, String cubeName, def defaultValue, ApplicationID appId)
     {
         NCube target = NCubeManager.getCube(appId, cubeName)
+        if (target == null)
+        {
+            throw new IllegalArgumentException('n-cube: ' + cubeName + ' not found, app: ' + appId)
+        }
         return target.getCell(coord, output, defaultValue)
     }
 
@@ -187,9 +191,13 @@ class NCubeGroovyExpression
      * @return executed cell contents at the current input location and specified n-cube,
      * but first apply updates to the current input coordinate from the passed in coord.
      */
-    def at(Map coord, String cubeName = ncube.name, def defaultValue = null, ApplicationID appId)
+    def at(Map coord, String cubeName, def defaultValue, ApplicationID appId)
     {
         NCube target = NCubeManager.getCube(appId, cubeName)
+        if (target == null)
+        {
+            throw new IllegalArgumentException('n-cube: ' + cubeName + ' not found, app: ' + appId)
+        }
         input.putAll(coord)
         return target.getCell(input, output, defaultValue)
     }

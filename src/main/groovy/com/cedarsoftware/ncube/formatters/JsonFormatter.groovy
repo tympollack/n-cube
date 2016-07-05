@@ -57,15 +57,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     /**
      * Use this API to generate JSON view of this NCube.
      */
-    public String format(NCube ncube)
-    {
-        return format(ncube, null)
-    }
-
-    /**
-     * Use this API to generate JSON view of this NCube.
-     */
-    public String format(NCube ncube, Map<String, Object> options)
+    public String format(NCube ncube, Map<String, Object> options = null)
     {
         if (!(builder instanceof StringWriter))
         {

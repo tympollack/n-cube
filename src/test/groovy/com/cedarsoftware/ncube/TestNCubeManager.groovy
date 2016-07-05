@@ -1506,6 +1506,8 @@ class TestNCubeManager
         assert versions['SNAPSHOT'].contains('1.0.0')
         assert versions['SNAPSHOT'].contains('1.1.0')
         assert versions['RELEASE'].size() == 0
+
+        assert 1 == NCubeManager.getBranchCount(johnAppId)
     }
 
     @Test

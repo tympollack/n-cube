@@ -4850,6 +4850,37 @@ class TestNCube
         NCube ncube5 = NCubeBuilder.get5DTestCube()
         assert ncube5.toHtml() != null
     }
+
+    @Test
+    void testPotentialCells()
+    {
+        NCube ncube = NCubeBuilder.get5DTestCube()
+        assert 48 == ncube.getNumPotentialCells()
+
+        ncube = NCubeBuilder.getDiscrete1D()
+        assert 2 == ncube.getNumPotentialCells()
+
+        ncube = NCubeBuilder.getTestNCube3D_Boolean()
+        assert 144 == ncube.getNumPotentialCells()
+
+        ncube = NCubeBuilder.getTrackingTestCube()
+        assert 4 == ncube.getNumPotentialCells()
+    }
+
+    @Test
+    void testAt()
+    {
+        NCube ncube = NCubeBuilder.getDiscrete1DEmptyWithDefault()
+        ncube.setCell(1, [state:'OH'])
+        ncube.setCell(2, [state:'TX'])
+
+        assert 1 == ncube.at([state:'OH'])
+        assert 2 == ncube.at([state: 'TX'], [:])
+        assert '999' == ncube.at([state: 'AZ'], [:], '999')
+        ncube.setCell(888, [state:'HI'])
+        assert 888 == ncube.at([state: 'AZ'], [:], '999')
+    }
+
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 

@@ -326,6 +326,18 @@ abstract class GroovyBase extends UrlCommandCell
         {
             cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
         }
+
+        m = Regexes.groovyExplicitAtPattern.matcher(text)
+        while (m.find())
+        {
+            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
+        }
+
+        m = Regexes.groovyExplicitGoPattern.matcher(text)
+        while (m.find())
+        {
+            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
+        }
     }
 
     /**

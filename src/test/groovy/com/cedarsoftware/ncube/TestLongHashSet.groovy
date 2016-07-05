@@ -58,6 +58,7 @@ class TestLongHashSet
         set.add(7)
         set.add(8)
         set.add(9)
+        assert !set.remove(10)
         set.remove(7)
 
         assert set.size() == 2
@@ -116,5 +117,75 @@ class TestLongHashSet
         assert nums[0] == 7
         assert nums[1] == 8
         assert nums[2] == 9
+
+        int[] array = set.toArray([] as int[])
+        assert array.length == 3
+        assert array[0] == 7
+        assert array[1] == 8
+        assert array[2] == 9
+
+        assert array instanceof int[]
+    }
+
+    @Test
+    void testEqualsGarbage()
+    {
+        LongHashSet set = new LongHashSet()
+        set.add(1)
+        set.add(2)
+        assert set != 'foo'
+    }
+
+    @Test
+    void testEqualsNotSameSize()
+    {
+        LongHashSet set1 = new LongHashSet()
+        set1.add(1)
+
+        LongHashSet set2 = new LongHashSet()
+        set2.add(1)
+        set2.add(2)
+        assert !set1.equals(set2)
+        assert !set2.equals(set1)
+    }
+
+    @Test
+    void testEmptyStuff()
+    {
+        LongHashSet set1 = new LongHashSet()
+        LongHashSet set2 = new LongHashSet()
+        assert set1 == set2
+        assert !set1.contains(9)
+        Object[] array = set1.toArray()
+        assert array.length == 0
+        assert !set1.remove(5)
+    }
+
+    @Test
+    void testAddRemoveAll()
+    {
+        LongHashSet set = new LongHashSet()
+        set.addAll([7, 8, 9])
+        assert set.size() == 3
+        assert set.contains(7)
+        assert set.contains(8)
+        assert set.contains(9)
+
+        set.removeAll([8, 9])
+        assert set.contains(7)
+        set.removeAll([7])
+        assert set.isEmpty()
+    }
+
+    @Test
+    void testRetainsContainsAll()
+    {
+        LongHashSet set1 = new LongHashSet([7, 8, 9])
+        LongHashSet set2 = new LongHashSet([5, 6, 7])
+        assert set1.retainAll(set2)
+        assert set1.size() == 1
+        assert set1.contains(7)
+        assert set2.containsAll(set1)
+        assert !set1.containsAll(set2)
     }
 }

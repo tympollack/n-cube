@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import jdk.nashorn.internal.runtime.regexp.joni.Regex
 import org.junit.Test
 
 import java.util.regex.Matcher
@@ -394,6 +395,104 @@ println 'is it going to count input.what have we got here'
 
         name = "@SuppressWarnings(\"foo\")"
         m = Regexes.groovyRelRefCubeCellPattern.matcher(name)
+        assertFalse m.find()
+    }
+
+    @Test
+    void testAtPattern()
+    {
+        String src = "at(coord, 'foo', null, new ApplicationID()) && at([:],'bar')"
+        Matcher m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        m.find()
+        assert 'foo' == m.group(2)
+
+        m.find()
+        assert 'bar' == m.group(2)
+
+        src = "if (at(coord, 'foo', null, new ApplicationID()) && at([:],'bar'))"
+        m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        m.find()
+        assert 'foo' == m.group(2)
+
+        m.find()
+        assert 'bar' == m.group(2)
+
+        src = "if (at(coord, cubeName, null, new ApplicationID()) && at([:],'bar'))"
+        m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        m.find()
+        assert 'bar' == m.group(2)
+
+        src = "if (at([:], 'foo'))"
+        m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        m.find()
+        assert 'foo' == m.group(2)
+
+        src = "if (at([:], cubeName))"
+        m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        assertFalse m.find()
+
+        src = "if (cat([:], 'foo'))"
+        m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        assertFalse m.find()
+
+        src = "cat([:], 'foo')"
+        m = Regexes.groovyExplicitAtPattern.matcher(src)
+
+        assertFalse m.find()
+    }
+
+    @Test
+    void testGoPattern()
+    {
+        String src = "go(coord, 'foo', null, new ApplicationID()) && go([:],'bar')"
+        Matcher m = Regexes.groovyExplicitGoPattern.matcher(src)
+
+        m.find()
+        assert 'foo' == m.group(2)
+
+        m.find()
+        assert 'bar' == m.group(2)
+
+        src = "if (go(coord, 'foo', null, new ApplicationID()) && go([:],'bar'))"
+        m = Regexes.groovyExplicitGoPattern.matcher(src)
+
+        m.find()
+        assert 'foo' == m.group(2)
+
+        m.find()
+        assert 'bar' == m.group(2)
+
+        src = "if (go(coord, cubeName, null, new ApplicationID()) && go([:],'bar'))"
+        m = Regexes.groovyExplicitGoPattern.matcher(src)
+
+        m.find()
+        assert 'bar' == m.group(2)
+
+        src = "if (go([:], 'foo'))"
+        m = Regexes.groovyExplicitGoPattern.matcher(src)
+
+        m.find()
+        assert 'foo' == m.group(2)
+
+        src = "if (go([:], cubeName))"
+        m = Regexes.groovyExplicitGoPattern.matcher(src)
+
+        assertFalse m.find()
+
+        src = "if (ego([:], 'foo'))"
+        m = Regexes.groovyExplicitGoPattern.matcher(src)
+
+        assertFalse m.find()
+
+        src = "ego([:], 'foo')"
+        m = Regexes.groovyExplicitGoPattern.matcher(src)
+
         assertFalse m.find()
     }
 }
