@@ -1170,7 +1170,7 @@ class TestDelta
         Axis state = states.getAxis('state')
         state.setMetaProperty(ReferenceAxisLoader.REF_VERSION, refVer)
         ApplicationID appId = ApplicationID.testAppId.asBranch(branch).asSnapshot().asVersion('2.0.0')
-        NCubeManager.createBranch(appId)
+        NCubeManager.copyBranch(appId.asHead(), appId)
         NCubeManager.updateCube(appId, states, true)
         return appId
     }

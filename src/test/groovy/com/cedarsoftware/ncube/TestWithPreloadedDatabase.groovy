@@ -166,11 +166,11 @@ class TestWithPreloadedDatabase
         ApplicationID branch3 = new ApplicationID('NONE', 'test', '1.29.0', 'SNAPSHOT', 'someoneelse')
         ApplicationID branch4 = new ApplicationID('NONE', 'test', '1.28.0', 'SNAPSHOT', 'someoneelse')
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
-        assertEquals(2, NCubeManager.createBranch(branch2))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch2.asHead(), branch2))
         // version doesn't match one in head, nothing created.
-        assertEquals(0, NCubeManager.createBranch(branch3))
-        assertEquals(2, NCubeManager.createBranch(branch4))
+        assertEquals(0, NCubeManager.copyBranch(branch3.asHead(), branch3))
+        assertEquals(2, NCubeManager.copyBranch(branch4.asHead(), branch4))
 
         // showing we only rely on tenant and branch to get app names.
         assertEquals(3, NCubeManager.getAppNames('NONE').size())
@@ -288,7 +288,7 @@ class TestWithPreloadedDatabase
     void testRollbackBranchWithDeletedCube() {
         preloadCubes(head, "test.branch.1.json")
 
-        NCubeManager.createBranch(branch1)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
 
         assertEquals(1, NCubeManager.search(head, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, NCubeManager.search(branch1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
@@ -369,8 +369,8 @@ class TestWithPreloadedDatabase
     {
         preloadCubes(head, "test.branch.1.json")
 
-        NCubeManager.createBranch(branch1)
-        NCubeManager.createBranch(branch2)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
+        NCubeManager.copyBranch(branch2.asHead(), branch2)
         NCubeManager.deleteCubes(branch2, ['TestBranch'].toArray())
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch2)
@@ -394,8 +394,8 @@ class TestWithPreloadedDatabase
     {
         preloadCubes(head, "test.branch.1.json")
 
-        NCubeManager.createBranch(branch1)
-        NCubeManager.createBranch(branch2)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
+        NCubeManager.copyBranch(branch2.asHead(), branch2)
         NCubeManager.deleteCubes(branch2, ['TestBranch'].toArray())
         NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray())
 
@@ -435,7 +435,7 @@ class TestWithPreloadedDatabase
             assertNull(dto.headSha1)
         }
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         assertEquals(cube1Sha1, NCubeManager.getCube(branch1, "TestBranch").sha1())
         assertEquals(cube2Sha1, NCubeManager.getCube(branch1, "TestAge").sha1())
@@ -466,7 +466,7 @@ class TestWithPreloadedDatabase
         assertNull(NCubeManager.getCube(head, "TestAge"))
 
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
-        assertEquals(1, NCubeManager.createBranch(branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         cube = NCubeManager.getCube(head, "TestBranch")
         assertEquals("ABC", cube.getCell(["Code": -10]))
@@ -515,8 +515,8 @@ class TestWithPreloadedDatabase
         assertNull(NCubeManager.getCube(branch2, "TestAge"))
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
@@ -596,7 +596,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, cube.getCellMap().size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         //  test values on branch
         testValuesOnBranch(branch1)
@@ -680,7 +680,7 @@ class TestWithPreloadedDatabase
         // pre-branch, cubes don't exist
         assertNull(NCubeManager.getCube(branch1, "TestAge"))
 
-        assertEquals(1, NCubeManager.createBranch(branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
@@ -723,7 +723,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, cube.getCellMap().size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         cube = NCubeManager.getCube(branch1, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
@@ -769,7 +769,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, cube.getCellMap().size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         //  test values on branch
         testValuesOnBranch(branch1)
@@ -848,7 +848,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, cube.getCellMap().size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         //  test values on branch
         testValuesOnBranch(branch1)
@@ -907,7 +907,7 @@ class TestWithPreloadedDatabase
         testValuesOnBranch(head)
 
         //  delete and re-add these cubes.
-        assertEquals(4, NCubeManager.createBranch(branch1))
+        assertEquals(4, NCubeManager.copyBranch(branch1.asHead(), branch1))
         NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray())
         NCubeManager.deleteCubes(branch1, ['TestAge'].toArray())
 
@@ -1015,7 +1015,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, cube.getCellMap().size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         //  test values on branch
         testValuesOnBranch(branch1)
@@ -1084,11 +1084,11 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json", "test.branch.age.1.json")
 
         //1) should work
-        NCubeManager.createBranch(branch1)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
 
         try {
             //2) should already be created.
-            NCubeManager.createBranch(branch1)
+            NCubeManager.copyBranch(branch1.asHead(), branch1)
             fail()
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("already exists"))
@@ -1106,7 +1106,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1152,7 +1152,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1182,7 +1182,7 @@ class TestWithPreloadedDatabase
         assertNull(NCubeManager.getCube(appId, "TestBranch"))
         assertNull(NCubeManager.getCube(appId, "TestAge"))
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1203,12 +1203,12 @@ class TestWithPreloadedDatabase
         // load cube with same name, but different structure in TEST branch
         preloadCubes(head, "test.branch.1.json")
 
-        assertEquals(1, NCubeManager.createBranch(branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
         assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray()))
 
         try
         {
-            NCubeManager.duplicate(branch1, appId, "TestBranch", "TestBranch")
+    NCubeManager.duplicate(branch1, appId, "TestBranch", "TestBranch")
             fail()
         }
         catch (Exception e)
@@ -1223,12 +1223,12 @@ class TestWithPreloadedDatabase
         // load cube with same name, but different structure in TEST branch
         preloadCubes(head, "test.branch.1.json")
 
-        assertEquals(1, NCubeManager.createBranch(branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
         assertTrue(NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray()))
 
         try
         {
-            NCubeManager.renameCube(branch1, "TestBranch", "Foo")
+    NCubeManager.renameCube(branch1, "TestBranch", "Foo")
             fail()
         }
         catch (Exception e)
@@ -1245,14 +1245,14 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
 
         try
         {
-            NCubeManager.duplicate(branch1, branch1, "TestBranch", "TestAge")
+    NCubeManager.duplicate(branch1, branch1, "TestBranch", "TestAge")
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1273,14 +1273,14 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
 
         try
         {
-            NCubeManager.renameCube(branch1, "TestBranch", "TestAge")
+    NCubeManager.renameCube(branch1, "TestBranch", "TestAge")
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1299,7 +1299,7 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestAge").size())
         assertEquals(0, getDeletedCubesFromDatabase(head, "*").size())
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestAge").size())
@@ -1424,7 +1424,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1452,7 +1452,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1480,7 +1480,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1514,7 +1514,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1550,7 +1550,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch))
+        assertEquals(2, NCubeManager.copyBranch(branch.asHead(), branch))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch)
@@ -1602,7 +1602,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch))
+        assertEquals(2, NCubeManager.copyBranch(branch.asHead(), branch))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch)
@@ -1685,7 +1685,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1754,7 +1754,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1767,14 +1767,14 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         }
         catch (IllegalArgumentException e) { }
 
         try
         {
-            NCubeManager.getRevisionHistory(branch1, "TestBranch2")
+    NCubeManager.getRevisionHistory(branch1, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) { }
 
@@ -1796,7 +1796,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) { }
 
@@ -1821,7 +1821,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         }
         catch (IllegalArgumentException e) { }
@@ -1842,7 +1842,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) { }
 
@@ -1871,7 +1871,7 @@ class TestWithPreloadedDatabase
 
         testValuesOnBranch(head)
 
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
@@ -1883,13 +1883,13 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
 
         try {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) {
         }
 
         try {
-            NCubeManager.getRevisionHistory(branch1, "TestBranch2")
+    NCubeManager.getRevisionHistory(branch1, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) {
         }
@@ -1915,13 +1915,13 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
 
         try {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) {
         }
 
         try {
-            NCubeManager.getRevisionHistory(branch2, "TestBranch")
+    NCubeManager.getRevisionHistory(branch2, "TestBranch")
             fail()
         } catch (IllegalArgumentException e) {
         }
@@ -1945,13 +1945,13 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
 
         try {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) {
         }
 
         try {
-            NCubeManager.getRevisionHistory(branch1, "TestBranch2")
+    NCubeManager.getRevisionHistory(branch1, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) {
         }
@@ -1973,7 +1973,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, NCubeManager.getRevisionHistory(branch2, "TestBranch2").size())
 
         try {
-            NCubeManager.getRevisionHistory(head, "TestBranch2")
+    NCubeManager.getRevisionHistory(head, "TestBranch2")
             fail()
         } catch (IllegalArgumentException e) {
         }
@@ -1995,7 +1995,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.getRevisionHistory(branch2, "TestBranch")
+    NCubeManager.getRevisionHistory(branch2, "TestBranch")
             fail()
         } catch (IllegalArgumentException e) { }
 
@@ -2009,7 +2009,7 @@ class TestWithPreloadedDatabase
     {
         try
         {
-            NCubeManager.duplicate(head, branch1, "foo", "bar")
+    NCubeManager.duplicate(head, branch1, "foo", "bar")
             fail()
         }
         catch (IllegalArgumentException e)
@@ -2023,11 +2023,11 @@ class TestWithPreloadedDatabase
     void testDuplicateCubeWhenTargetExists()
     {
         preloadCubes(head, "test.branch.1.json")
-        NCubeManager.createBranch(branch1)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
 
         try
         {
-            NCubeManager.duplicate(head, branch1, "TestBranch", "TestBranch")
+    NCubeManager.duplicate(head, branch1, "TestBranch", "TestBranch")
             fail()
         } catch (IllegalArgumentException e)
         {
@@ -2040,14 +2040,14 @@ class TestWithPreloadedDatabase
     void testOverwriteHeadWhenHeadDoesntExist()
     {
         preloadCubes(head, "test.branch.1.json")
-        NCubeManager.createBranch(branch1)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
         NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray())
 
         assertNull(NCubeManager.getCube(branch1, "TestBranch"))
 
         try
         {
-            NCubeManager.duplicate(head, branch1, "TestBranch", "TestBranch")
+    NCubeManager.duplicate(head, branch1, "TestBranch", "TestBranch")
             assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
             assertEquals(3, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
         } catch (IllegalArgumentException e)
@@ -2063,14 +2063,14 @@ class TestWithPreloadedDatabase
     void testDuplicateCubeWhenSourceCubeIsADeletedCube()
     {
         preloadCubes(head, "test.branch.1.json")
-        NCubeManager.createBranch(branch1)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
         NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray())
 
         assertNull(NCubeManager.getCube(branch1, "TestBranch"))
 
         try
         {
-            NCubeManager.duplicate(head, branch1, "TestBranch", "TestBranch")
+    NCubeManager.duplicate(head, branch1, "TestBranch", "TestBranch")
             assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
             assertEquals(3, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
         }
@@ -2094,7 +2094,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray())
+    NCubeManager.deleteCubes(branch1, ['TestBranch'].toArray())
         }
         catch (IllegalArgumentException e)
         {
@@ -2117,8 +2117,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2138,7 +2138,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos)
+    NCubeManager.commitBranch(branch1, dtos)
             fail()
         }
         catch (BranchMergeException e)
@@ -2161,13 +2161,13 @@ class TestWithPreloadedDatabase
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         cube = NCubeManager.getCube(branch1, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         cube = NCubeManager.getCube(branch2, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
@@ -2223,7 +2223,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos)
+    NCubeManager.commitBranch(branch1, dtos)
             fail()
         }
         catch (BranchMergeException e) {
@@ -2251,8 +2251,8 @@ class TestWithPreloadedDatabase
 
         preloadCubes(head, "test.branch.3.json")
 
-        NCubeManager.createBranch(branch1)
-        NCubeManager.createBranch(branch2)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
+         NCubeManager.copyBranch(branch2.asHead(), branch2)
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2281,7 +2281,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos)
+    NCubeManager.commitBranch(branch1, dtos)
             fail()
         }
         catch (BranchMergeException e)
@@ -2346,7 +2346,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos)
+    NCubeManager.commitBranch(branch1, dtos)
             fail()
         }
         catch (BranchMergeException e)
@@ -2394,8 +2394,8 @@ class TestWithPreloadedDatabase
     {
         preloadCubes(head, "test.branch.3.json")
 
-        NCubeManager.createBranch(branch1)
-        NCubeManager.createBranch(branch2)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
+         NCubeManager.copyBranch(branch2.asHead(), branch2)
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2422,7 +2422,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos)
+    NCubeManager.commitBranch(branch1, dtos)
             fail()
         }
         catch (BranchMergeException e)
@@ -2469,7 +2469,7 @@ class TestWithPreloadedDatabase
     {
         try
         {
-            NCubeManager.mergeAcceptMine(appId, ["TestBranch"] as Object[])
+    NCubeManager.mergeAcceptMine(appId, ["TestBranch"] as Object[])
             fail()
         }
         catch (IllegalStateException e)
@@ -2484,7 +2484,7 @@ class TestWithPreloadedDatabase
         try
         {
             preloadCubes(branch1, "test.branch.1.json")
-            NCubeManager.mergeAcceptMine(appId, ["TestBranch"] as Object[])
+    NCubeManager.mergeAcceptMine(appId, ["TestBranch"] as Object[])
             fail()
         }
         catch (IllegalStateException e)
@@ -2497,7 +2497,7 @@ class TestWithPreloadedDatabase
     void testOverwriteBranchCubeWhenBranchDoesNotExist()
     {
         try {
-            NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], ["foo"] as Object[])
+    NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], ["foo"] as Object[])
             fail()
         }
         catch (IllegalStateException e)
@@ -2512,7 +2512,7 @@ class TestWithPreloadedDatabase
     {
         try {
             preloadCubes(branch1, "test.branch.1.json")
-            NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], ["foo"] as Object[])
+    NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], ["foo"] as Object[])
             fail()
         }
         catch (IllegalStateException e)
@@ -2547,8 +2547,8 @@ class TestWithPreloadedDatabase
         assert cube1.getNumCells() == 5
 
 
-        NCubeManager.createBranch(branch1)
-        NCubeManager.createBranch(branch2)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
+         NCubeManager.copyBranch(branch2.asHead(), branch2)
 
         cube1 = NCubeManager.getNCubeFromResource("merge1.json")
         cube1.setName('merge2')
@@ -2564,7 +2564,7 @@ class TestWithPreloadedDatabase
 
         try {
             Object[] branch2Changes = NCubeManager.getBranchChangesFromDatabase(branch2)
-            NCubeManager.commitBranch(branch2, branch2Changes)
+    NCubeManager.commitBranch(branch2, branch2Changes)
             fail()
         } catch (BranchMergeException bme) {
             assertTrue(bme.getMessage().contains('Update your branch'))
@@ -2597,8 +2597,8 @@ class TestWithPreloadedDatabase
         assert cube1.getNumCells() == 5
 
 
-        NCubeManager.createBranch(branch1)
-        NCubeManager.createBranch(branch2)
+        NCubeManager.copyBranch(branch1.asHead(), branch1)
+         NCubeManager.copyBranch(branch2.asHead(), branch2)
 
         cube1 = NCubeManager.getCube(branch1, "merge1")
         cube1.setCell(3.14159, [row:3, column:'C'])
@@ -2642,8 +2642,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2661,7 +2661,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos as Object[])
+    NCubeManager.commitBranch(branch1, dtos as Object[])
             fail()
         }
         catch (BranchMergeException e)
@@ -2693,8 +2693,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1, NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2735,8 +2735,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2784,8 +2784,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getCube(branch2, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
@@ -2822,8 +2822,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getCube(branch2, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
@@ -2847,7 +2847,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.commitBranch(branch1, dtos)
+    NCubeManager.commitBranch(branch1, dtos)
             fail()
         }
         catch (BranchMergeException e)
@@ -2864,7 +2864,7 @@ class TestWithPreloadedDatabase
     void testUpdateBranchWithItemThatWasChangedOnHeadAndInBranchWithNonConflictingChanges()
     {
         testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts({
-            NCubeManager.updateBranch(branch1)
+    NCubeManager.updateBranch(branch1)
         })
     }
 
@@ -2872,7 +2872,7 @@ class TestWithPreloadedDatabase
     void testUpdateBranchWithItemThatWasChangedOnHeadAndInBranchWithNonConflictingChanges2()
     {
         testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts({
-            NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD)
+    NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD)
         })
     }
 
@@ -2881,8 +2881,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getCube(branch2, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
@@ -2932,8 +2932,8 @@ class TestWithPreloadedDatabase
         preloadCubes(head, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, NCubeManager.createBranch(branch1))
-        assertEquals(1, NCubeManager.createBranch(branch2))
+        assertEquals(1, NCubeManager.copyBranch(branch1.asHead(), branch1))
+        assertEquals(1,  NCubeManager.copyBranch(branch2.asHead(), branch2))
 
         NCube cube = NCubeManager.getCube(branch2, "TestBranch")
         assertEquals(3, cube.getCellMap().size())
@@ -2957,7 +2957,7 @@ class TestWithPreloadedDatabase
 
         try
         {
-            NCubeManager.updateBranch(branch1)
+    NCubeManager.updateBranch(branch1)
             // TODO: Need better assertion
 //            fail()
         }
@@ -2987,7 +2987,7 @@ class TestWithPreloadedDatabase
         assertEquals(3, cube.getCellMap().size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, NCubeManager.createBranch(branch1))
+        assertEquals(2, NCubeManager.copyBranch(branch1.asHead(), branch1))
 
         Object[] dtos = NCubeManager.getBranchChangesFromDatabase(branch1)
         assertEquals(0, dtos.length)
@@ -3599,7 +3599,7 @@ class TestWithPreloadedDatabase
         // Will fail because cube is not RELEASE / HEAD
         try
         {
-            NCubeManager.updateReferenceAxes([axisRef] as List) // Update
+    NCubeManager.updateReferenceAxes([axisRef] as List) // Update
             fail();
         }
         catch (IllegalArgumentException e)
@@ -3613,7 +3613,7 @@ class TestWithPreloadedDatabase
 //        axisRef.destAxisName = 'BadAxe'
 //        try
 //        {
-//            NCubeManager.updateReferenceAxes([axisRef] as List) // Update
+//    NCubeManager.updateReferenceAxes([axisRef] as List) // Update
 //            fail();
 //        }
 //        catch (IllegalArgumentException e)
@@ -3631,7 +3631,7 @@ class TestWithPreloadedDatabase
 //        axisRef.transformMethodName = axisRef.destAxisName
 //        try
 //        {
-//            NCubeManager.updateReferenceAxes([axisRef] as List) // Update
+//    NCubeManager.updateReferenceAxes([axisRef] as List) // Update
 //            fail();
 //        }
 //        catch (IllegalArgumentException e)
@@ -3645,7 +3645,7 @@ class TestWithPreloadedDatabase
 //        axisRef.transformMethodName = 'nonexist'
 //        try
 //        {
-//            NCubeManager.updateReferenceAxes([axisRef] as List) // Update
+//    NCubeManager.updateReferenceAxes([axisRef] as List) // Update
 //            fail();
 //        }
 //        catch (IllegalArgumentException e)

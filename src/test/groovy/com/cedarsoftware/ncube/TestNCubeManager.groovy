@@ -1443,7 +1443,7 @@ class TestNCubeManager
         List<NCubeInfoDto> cubes = NCubeManager.getBranchChangesFromDatabase(johnAppId)
         NCubeManager.commitBranch(johnAppId, cubes.toArray())
         ApplicationID kenAppId  = new ApplicationID('ibm', 'deep.blue', '1.0.0', 'SNAPSHOT', 'ken')
-        NCubeManager.createBranch(kenAppId)
+        NCubeManager.copyBranch(kenAppId.asHead(), kenAppId)
 
         // At this point, there are three branches, john, ken, HEAD.  1 cube in all, same state
         cubes = NCubeManager.search(johnAppId, null, null, null)
@@ -1815,7 +1815,7 @@ class TestNCubeManager
         Map lockCoord = [(NCubeManager.AXIS_SYSTEM):null]
 
         // create branch
-        NCubeManager.createBranch(branchBootAppId)
+        NCubeManager.copyBranch(branchBootAppId.asHead(), branchBootAppId)
 
         // update sys lock in branch
         NCube sysLockCube = NCubeManager.loadCube(branchBootAppId, NCubeManager.SYS_LOCK)
@@ -1854,7 +1854,7 @@ class TestNCubeManager
     void testBranchPermissionsCubeCreatedOnNewBranch()
     {
         ApplicationID branchAppId = defaultSnapshotApp.asBranch('newBranch')
-        NCubeManager.createBranch(branchAppId)
+        NCubeManager.copyBranch(branchAppId.asHead(), branchAppId)
         NCube branchPermCube = NCubeManager.loadCube(branchAppId.asVersion('0.0.0'), NCubeManager.SYS_BRANCH_PERMISSIONS)
         Axis userAxis = branchPermCube.getAxis(NCubeManager.AXIS_USER)
         Axis resourceAxis = branchPermCube.getAxis(NCubeManager.AXIS_RESOURCE)
@@ -1876,7 +1876,7 @@ class TestNCubeManager
         ApplicationID appId = defaultSnapshotApp.asBranch(origUser)
 
         //create new branch and make sure of permissions
-        NCubeManager.createBranch(appId)
+        NCubeManager.copyBranch(appId.asHead(), appId)
         NCube branchPermCube = NCubeManager.loadCube(defaultBootApp.asBranch(origUser), NCubeManager.SYS_BRANCH_PERMISSIONS)
         Axis userAxis = branchPermCube.getAxis(NCubeManager.AXIS_USER)
         List<Column> columnList = userAxis.getColumnsWithoutDefault()

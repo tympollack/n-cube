@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.73</version>
+  <version>3.4.74</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,9 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.74
+ * getCube(cubeName) API available to expression cells (inherited from NCubeGroovyExpression) now allows an optional 2nd argument whether the API should return null or throw an exception if the named cube does not exist.
+ * Reduced the amount of memory used to store the Columns on an Axis.
 * 3.4.73
  * 'at()' and 'go()' added to Regular expressions that scan for n-cube names
  * Used Groovy default arguments to eliminate multi-argument overloaded methods

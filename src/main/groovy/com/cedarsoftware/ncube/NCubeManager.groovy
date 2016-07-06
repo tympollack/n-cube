@@ -844,23 +844,6 @@ class NCubeManager
     }
 
     /**
-     * Create a branch off of a SNAPSHOT for the given ApplicationIDs n-cubes.
-     */
-    static int createBranch(ApplicationID appId)
-    {
-        validateAppId(appId)
-        appId.validateBranchIsNotHead()
-        appId.validateStatusIsNotRelease()
-        assertPermissions(appId, null, ACTION.UPDATE)
-        assertNotLockBlocked(appId)
-        int rows = getPersister().createBranch(appId)
-        addBranchPermissionsCube(appId);
-        clearCache(appId)
-        broadcast(appId)
-        return rows
-    }
-
-    /**
      * Copy branch from one app id to another
      * @param srcAppId Branch copied from (source branch)
      * @param targetAppId Branch copied to (must not exist)
@@ -1438,6 +1421,7 @@ class NCubeManager
         }
 
         int rows = getPersister().releaseCubes(appId, newSnapVer)
+        getPersister().copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
         broadcast(appId)
@@ -1485,6 +1469,7 @@ class NCubeManager
             }
         }
         int rows = getPersister().releaseCubes(appId, newSnapVer)
+        getPersister().copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
         broadcast(appId)

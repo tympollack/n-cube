@@ -205,7 +205,7 @@ class TestNCubeJdbcPersister
 
         try
         {
-            new NCubeJdbcPersister().createBranch(c, defaultSnapshotApp)
+            new NCubeJdbcPersister().copyBranch(c, defaultSnapshotApp.asHead(), defaultSnapshotApp)
             fail()
         }
         catch (NullPointerException e)

@@ -1101,64 +1101,6 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         }
     }
 
-    int createBranch(Connection c, ApplicationID appId)
-    {
-        if (doCubesExist(c, appId, true, 'createBranch'))
-        {
-            throw new IllegalStateException("Branch '" + appId.branch + "' already exists, app: " + appId)
-        }
-
-        ApplicationID headId = appId.asHead()
-        Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                       (METHOD_NAME) : 'createBranch'] as Map
-        int count = 0
-        boolean autoCommit = c.getAutoCommit()
-        PreparedStatement insert = null
-        try
-        {
-            c.setAutoCommit(false)
-            insert = c.prepareStatement(
-                    "/* createBranch */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            runSelectCubesStatement(c, headId, null, options, { ResultSet row ->
-                String sha1 = row['sha1'] as String
-                insert.setLong(1, UniqueIdGenerator.getUniqueId())
-                insert.setString(2, row.getString('n_cube_nm'))
-                insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
-                insert.setTimestamp(4, nowAsTimestamp())
-                insert.setString(5, row.getString('create_hid'))
-                insert.setString(6, appId.version)
-                insert.setString(7, ReleaseStatus.SNAPSHOT.name())
-                insert.setString(8, appId.app)
-                insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ('branch ' + appId.version + ' created').getBytes('UTF-8'))
-                insert.setString(11, appId.tenant)
-                insert.setString(12, appId.branch)
-                insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
-                insert.setBoolean(14, false)
-                insert.setString(15, sha1)
-                insert.setString(16, sha1)
-                insert.addBatch()
-                count++
-                if (count % EXECUTE_BATCH_CONSTANT == 0)
-                {
-                    insert.executeBatch()
-                }
-            })
-            if (count % EXECUTE_BATCH_CONSTANT != 0)
-            {
-                insert.executeBatch()
-            }
-            return count
-        }
-        finally
-        {
-            c.setAutoCommit(autoCommit)
-            insert?.close()
-        }
-    }
-
     int copyBranch(Connection c, ApplicationID srcAppId, ApplicationID targetAppId)
     {
         if (doCubesExist(c, targetAppId, true, 'copyBranch'))
@@ -1195,7 +1137,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
                 insert.setBoolean(14, false)
                 insert.setString(15, sha1)
-                insert.setString(16, sha1)
+                insert.setString(16, targetAppId.branch == 'HEAD' ? null : sha1)    // HEAD branch's HEAD_SHA1 column should always contain null
                 insert.addBatch()
                 count++
                 if (count % EXECUTE_BATCH_CONSTANT == 0)
@@ -1244,61 +1186,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         Map map = appId as Map
         map.newVer = newSnapVer
         map.create_dt = nowAsTimestamp()
-        int releaseCount = sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND ${compareTenant()} AND branch_id = 'HEAD'")
-
-        // Step 2: Create new SNAPSHOT cubes from the HEAD RELEASE cubes (next version higher, started for development)
-        ApplicationID releaseId = appId.asRelease()
-
-        Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (METHOD_NAME) : 'releaseCubes'] as Map
-
-        boolean autoCommit = c.getAutoCommit()
-        PreparedStatement insert = null
-        try
-        {
-            c.setAutoCommit(false)
-            int count = 0
-            insert = c.prepareStatement(
-                    "/* releaseCubes */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, sha1) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-
-            runSelectCubesStatement(c, releaseId, null, options, { ResultSet row ->
-                insert.setLong(1, UniqueIdGenerator.getUniqueId())
-                insert.setString(2, row.getString('n_cube_nm'))
-                insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
-                insert.setTimestamp(4, nowAsTimestamp())
-                insert.setString(5, row.getString('create_hid'))
-                insert.setString(6, newSnapVer)
-                insert.setString(7, ReleaseStatus.SNAPSHOT.name())
-                insert.setString(8, appId.app)
-                insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ('SNAPSHOT ' + newSnapVer + ' created').getBytes("UTF-8"))
-                insert.setString(11, appId.tenant)
-                insert.setString(12, ApplicationID.HEAD)
-                insert.setLong(13, 0) // New SNAPSHOT revision numbers start at 0, we don't move forward deleted records.
-                insert.setString(14, row.getString('sha1'))
-                insert.addBatch()
-                count++
-                if (count % EXECUTE_BATCH_CONSTANT == 0)
-                {
-                    insert.executeBatch()
-                }
-            })
-
-            if (count % EXECUTE_BATCH_CONSTANT != 0)
-            {
-                insert.executeBatch()
-                c.commit()
-            }
-            return releaseCount
-        }
-        finally
-        {
-            c.setAutoCommit(autoCommit)
-            insert?.close()
-        }
+        return sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND ${compareTenant()} AND branch_id = 'HEAD'")
     }
 
     int changeVersionValue(Connection c, ApplicationID appId, String newVersion)

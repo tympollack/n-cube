@@ -143,12 +143,6 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 'releaseCubes(' + appId + ', new snap: ' + newSnapVer + ')')
     }
 
-    int createBranch(ApplicationID appId)
-    {
-        return (int) jdbcOperation({ Connection c -> persister.createBranch(c, appId) },
-                'createBranch(' + appId + ')')
-    }
-
     int copyBranch(ApplicationID srcAppId, ApplicationID targetAppId)
     {
         return (int) jdbcOperation({ Connection c -> persister.copyBranch(c, srcAppId, targetAppId) },
