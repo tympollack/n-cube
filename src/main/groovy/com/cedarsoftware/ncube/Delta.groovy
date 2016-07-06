@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic;
 
 /**
@@ -24,7 +25,7 @@ import groovy.transform.CompileStatic;
  *         limitations under the License.
  */
 @CompileStatic
-class Delta
+class Delta implements Comparable
 {
     private final String desc
     private final Location loc
@@ -74,5 +75,68 @@ class Delta
     String toString()
     {
         return desc
+    }
+
+    int hashCode()
+    {
+        if (StringUtilities.isEmpty(desc))
+        {
+            return 0
+        }
+        return desc.hashCode()
+    }
+
+    boolean equals(Object other)
+    {
+        if (this == other)
+        {
+            return true
+        }
+        if (!(other instanceof Delta))
+        {
+            return false
+        }
+        Delta that = (Delta) other
+        return desc == that.desc && loc == that.loc && type == that.type
+    }
+
+    int compareTo(Object other)
+    {
+        if (other == null || !(other instanceof Delta))
+        {
+            return 1
+        }
+
+        Delta that = (Delta) other
+
+        if (loc < that.loc)
+        {
+            return -1
+        }
+        if (loc > that.loc)
+        {
+            return 1
+        }
+
+        // Location is the same, now look at type
+        if (type < that.type)
+        {
+            return -1
+        }
+        if (type > that.type)
+        {
+            return 1
+        }
+
+        // Location and Type are the same, order by description
+        if (StringUtilities.isEmpty(desc))
+        {
+            if (StringUtilities.isEmpty(that.desc))
+            {
+                return 0
+            }
+            return -1
+        }
+        return desc.compareToIgnoreCase(that.desc)
     }
 }

@@ -66,7 +66,7 @@ class NCube<T>
     private String name
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
-    protected final Map<LongHashSet, T> cells = [:]
+    protected final Map<LongHashSet, T> cells = new HashMap<>()
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
     private Map metaProps = new CaseInsensitiveMap<>()

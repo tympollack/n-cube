@@ -12,6 +12,7 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonReader
 import com.google.common.collect.RangeMap
 import com.google.common.collect.TreeRangeMap
+import gnu.trove.map.hash.TLongObjectHashMap
 import groovy.transform.CompileStatic
 
 import java.util.concurrent.atomic.AtomicLong
@@ -82,7 +83,7 @@ class Axis
     private boolean isRef
 
     // Internal indexes
-    private final Map<Long, Column> idToCol = new HashMap<>()
+    private final TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>(16, 0.8f)   // Setting load factor to 0.8 because trove uses 0.5 (uses too much memory)
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
     private transient NavigableMap<Comparable, Column> valueToCol = new TreeMap<>()
@@ -438,7 +439,7 @@ class Axis
      */
     Column getColumnById(long colId)
     {
-        return idToCol[colId]
+        return idToCol.get(colId)
     }
 
     /**
@@ -448,7 +449,7 @@ class Axis
     private void indexColumn(Column column)
     {
         // 1: Index columns by ID
-        idToCol[column.id] = column
+        idToCol.put(column.id, column)
 
         // 2: Index columns by name (if they have one) - held in CaseInsensitiveMap
         String colName = column.getColumnName()
@@ -773,7 +774,7 @@ class Axis
             throw new IllegalStateException('You cannot delete columns from a reference Axis, axis: ' + name)
         }
 
-        Column col = idToCol[colId]
+        Column col = idToCol.get(colId)
         if (col == null)
         {
             return null
@@ -841,7 +842,7 @@ class Axis
             throw new IllegalStateException('You cannot update columns on a reference Axis, axis: ' + name)
         }
 
-        Column col = idToCol[colId]
+        Column col = idToCol.get(colId)
         deleteColumnById(colId)
         Column newCol = createColumnFromValue(value, colId)     // re-use ID
         ensureUnique(newCol.getValue())
@@ -1195,7 +1196,7 @@ class Axis
             value = promoteValue(valueType, value)
             if (!getColumnsWithoutDefault().isEmpty())
             {
-                Column col = idToCol.values()[0]
+                Column col = (Column) idToCol.values().first()
                 if (value.getClass() != col.value.getClass())
                 {
                     throw new IllegalArgumentException("Value '" + value.getClass().getName() + "' cannot be added to axis '" + name + "' where the values are of type: " + col.getValue().getClass().getName())
@@ -1396,7 +1397,7 @@ class Axis
         {
             if (promotedValue instanceof Long)
             {
-                return idToCol[promotedValue as Long]
+                return idToCol.get(promotedValue)
             }
             else if (promotedValue instanceof String)
             {

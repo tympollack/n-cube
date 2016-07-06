@@ -632,6 +632,7 @@ class DeltaProcessor
         // Different dimensionality, don't compare cells
         if (axesChanged)
         {
+            Collections.sort(changes)
             return changes
         }
 
@@ -685,6 +686,7 @@ class DeltaProcessor
                 }
             }
         }
+        Collections.sort(changes)
         return changes
     }
 

@@ -107,47 +107,78 @@ class TestAllCellsInBigCube
     }
 
     @Ignore
-    void testCubeToBlowupMemory()
+    void testLarge1D()
     {
         long start = System.nanoTime()
-        NCube<Long> ncube = new NCube("bigCube")
-
-        int size = 24
-
-        for (int i = 0; i < 5; i++)
+        NCube<Boolean> ncube = new NCube("bigCube")
+        Axis axis = new Axis("axis", AxisType.DISCRETE, AxisValueType.LONG, false)
+        ncube.addAxis(axis)
+        int max = 6000000
+        for (int j = 0; j < max; j++)
         {
-            Axis axis = new Axis("axis" + i, AxisType.DISCRETE, AxisValueType.LONG, i % 2 == 0)
-            ncube.addAxis(axis)
-            for (int j = 0; j < size; j++)
+            ncube.addColumn("axis", j)
+        }
+        Map coord = [:]
+
+        for (int e = 0; e < max; e++)
+        {
+            coord.axis = e
+            ncube.setCell(true, coord)
+            if (e % 1000000 == 0)
             {
-                if (j % 2 == 0)
-                {
-                    axis.addColumn(j)
-                }
-                else
-                {
-                    ncube.addColumn("axis" + i, j)
-                }
+                println e
             }
         }
 
+        println ncube.numCells
+        println ncube.numPotentialCells
+        long stop = System.nanoTime()
+        double diff = (stop - start) / 1000000.0
+        println("time to build and read allCellsInBigCube = " + diff)
+    }
+
+    @Ignore
+    void testCubeToBlowupMemory()
+    {
+        long start = System.nanoTime()
+        NCube<Boolean> ncube = new NCube("bigCube")
+
+        int size = 10
+        int last = 1300    // 1300 = 13 million cells, 1400 = 14 million cells, ...
+
+        for (int i = 0; i < 4; i++)
+        {
+            Axis axis = new Axis("axis" + i, AxisType.DISCRETE, AxisValueType.LONG, false)
+            ncube.addAxis(axis)
+            for (int j = 0; j < size; j++)
+            {
+                ncube.addColumn("axis" + i, j)
+            }
+        }
+        Axis axis = new Axis("axis4", AxisType.DISCRETE, AxisValueType.LONG, false)
+        ncube.addAxis(axis)
+        for (int j = 0; j < last; j++)
+        {
+            ncube.addColumn("axis4", j)
+        }
+
         Map coord = [:]
-        for (int a = 1; a <= size + 1; a++)
+        for (int a = 1; a <= size; a++)
         {
             coord.axis0 = a - 1
             for (int b = 1; b <= size; b++)
             {
                 coord.axis1 = b - 1
-                for (int c = 1; c <= size + 1; c++)
+                for (int c = 1; c <= size; c++)
                 {
                     coord.axis2 = c - 1
                     for (int d = 1; d <= size; d++)
                     {
                         coord.axis3 = d - 1
-                        for (long e = 1; e <= size + 1; e++)
+                        for (long e = 1; e <= last; e++)
                         {
                             coord.axis4 = e - 1
-                            ncube.setCell(a * b * c * d * e, coord)
+                            ncube.setCell(true, coord)
                         }
                     }
                 }
@@ -155,6 +186,7 @@ class TestAllCellsInBigCube
             println a
         }
         println ncube.numCells
+        println ncube.numPotentialCells
         long stop = System.nanoTime()
         double diff = (stop - start) / 1000000.0
         println("time to build and read allCellsInBigCube = " + diff)

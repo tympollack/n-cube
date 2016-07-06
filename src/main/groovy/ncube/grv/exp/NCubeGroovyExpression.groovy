@@ -47,14 +47,14 @@ class NCubeGroovyExpression
      * @param name String n-cube name.
      * @return NCube with the given name.
      */
-    NCube getCube(String name)
+    NCube getCube(String name, boolean quiet = false)
     {
         if (StringUtilities.equalsIgnoreCase(ncube.name, name))
         {
             return ncube
         }
         NCube cube = NCubeManager.getCube(ncube.applicationID, name)
-        if (cube == null)
+        if (cube == null && !quiet)
         {
             throw new IllegalArgumentException('n-cube: ' + name + ' not found.')
         }
