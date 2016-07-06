@@ -1421,7 +1421,6 @@ class NCubeManager
         }
 
         int rows = getPersister().releaseCubes(appId, newSnapVer)
-        getPersister().copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
         clearCacheForBranches(appId)
         //TODO:  Does broadcast need to send all branches that have changed as a result of this?
         broadcast(appId)
