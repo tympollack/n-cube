@@ -48,7 +48,7 @@ class NCubeTest
 
     Map<String, Object> createCoord()
     {
-        Map<String, Object> actuals = new LinkedHashMap<>()
+        Map<String, Object> actuals = [:]
         for (StringValuePair item : this.coord)
         {
             actuals.put(item.getKey(), ((CellInfo)item.getValue()).recreate())
@@ -63,7 +63,7 @@ class NCubeTest
 
     List<GroovyExpression> createAssertions()
     {
-        List<GroovyExpression> actuals = new ArrayList<>()
+        List<GroovyExpression> actuals = []
         for (CellInfo item : this.expected)
         {
             actuals.add((GroovyExpression) item.recreate())

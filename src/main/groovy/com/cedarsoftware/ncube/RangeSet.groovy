@@ -27,7 +27,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class RangeSet implements Comparable<RangeSet>
 {
-    protected final List<Comparable> items = new ArrayList<>()
+    protected final List<Comparable> items = []
 
     RangeSet() { }
     RangeSet(Comparable c)

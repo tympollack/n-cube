@@ -459,7 +459,7 @@ class DeltaProcessor
     private static Map<Comparable, ColumnDelta> getColumnDelta(Axis baseAxis, Axis changeAxis)
     {
         Map<Comparable, ColumnDelta> deltaColumns = new CaseInsensitiveMap<>()
-        Map<Comparable, Column> copyColumns = new LinkedHashMap<>()
+        Map<Comparable, Column> copyColumns = [:]
 
         for (Column baseColumn : baseAxis.columns)
         {
@@ -695,7 +695,7 @@ class DeltaProcessor
      */
     protected static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName)
     {
-        List<Delta> changes = new ArrayList<>()
+        List<Delta> changes = []
         Set<String> oldKeys = new CaseInsensitiveSet<>(oldMeta.keySet())
         Set<String> sameKeys = new CaseInsensitiveSet<>(newMeta.keySet())
         sameKeys.retainAll(oldKeys)

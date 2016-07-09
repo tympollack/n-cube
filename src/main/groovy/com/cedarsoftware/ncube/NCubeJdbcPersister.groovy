@@ -124,7 +124,7 @@ ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
 
     List<NCubeInfoDto> getRevisions(Connection c, ApplicationID appId, String cubeName)
     {
-        List<NCubeInfoDto> records = new ArrayList<>()
+        List<NCubeInfoDto> records = []
         Map map = appId as Map
         map.cube = buildName(cubeName)
         Sql sql = new Sql(c)
@@ -412,7 +412,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
     List<NCubeInfoDto> pullToBranch(Connection c, ApplicationID appId, Object[] cubeIds, String username)
     {
-        List<NCubeInfoDto> infoRecs = new ArrayList<>()
+        List<NCubeInfoDto> infoRecs = []
         if (ArrayUtilities.isEmpty(cubeIds))
         {
             return infoRecs
@@ -685,7 +685,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
     List<NCubeInfoDto> commitCubes(Connection c, ApplicationID appId, Object[] cubeIds, String username)
     {
-        List<NCubeInfoDto> infoRecs = new ArrayList<>()
+        List<NCubeInfoDto> infoRecs = []
         if (ArrayUtilities.isEmpty(cubeIds))
         {
             return infoRecs

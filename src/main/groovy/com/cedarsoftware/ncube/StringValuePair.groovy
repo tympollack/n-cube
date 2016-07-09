@@ -71,7 +71,7 @@ class StringValuePair<V> implements Map.Entry<String,V> {
     }
 
     String toString() {
-        return key + ":" + value
+        return key + ':' + value
     }
 
     String getKey() {

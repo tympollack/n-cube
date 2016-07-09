@@ -98,29 +98,9 @@ class Axis
     }
 
     // for testing
-    protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault)
-    {
-        this(name, type, valueType, hasDefault, SORTED)
-    }
-
-    // for testing
-    protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order)
+    protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order = SORTED)
     {
         this(name, type, valueType, hasDefault, order, baseAxisIdForTesting.getAndIncrement())
-    }
-
-    /**
-     * Use this constructor for non-rule Axes.
-     * @param name String Axis name
-     * @param type AxisType (DISCRETE, RANGE, SET, NEAREST, RULE)
-     * @param valueType AxisValueType (STRING, LONG, BIG_DECIMAL, DOUBLE, DATE, EXPRESSION, COMPARABLE)
-     * @param hasDefault boolean set to true to have a Default column that will match when no other columns match
-     * @param order SORTED or DISPLAY (insertion order)
-     * @param id long id of Axis.  Ask n-cube for max ID, then add 1 to it, and use that.
-     */
-    Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order, long id)
-    {
-        this(name, type, valueType, hasDefault, order, id, true)
     }
 
     /**
@@ -135,7 +115,7 @@ class Axis
      * statements executed.  If set to false, the first condition that evaluates to true will be executed, but
      * then no conditions on the RULE axis will be evaluated.
      */
-    Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order, long id, boolean fireAll)
+    Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order, long id, boolean fireAll = true)
     {
         isRef = false
         this.id = id
@@ -334,7 +314,7 @@ class Axis
     protected long getNextColId()
     {
         long baseAxisId = id * BASE_AXIS_ID
-        while (idToCol.containsKey(++colIdBase + baseAxisId)) { }
+        while (idToCol.containsKey(++colIdBase + baseAxisId));
         return baseAxisId + colIdBase
     }
 
@@ -743,7 +723,7 @@ class Axis
 
         // New columns are always added at the end in terms of displayOrder.
         int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
-        column == defaultCol ? column.setDisplayOrder(Integer.MAX_VALUE) : column.setDisplayOrder(order)
+        column.isDefault() ? column.setDisplayOrder(Integer.MAX_VALUE) : column.setDisplayOrder(order)
         indexColumn(column)
         return column
     }
@@ -874,7 +854,7 @@ class Axis
         }
 
         LongHashSet colsToDelete = new LongHashSet()
-        Map<Long, Column> newColumnMap = new LinkedHashMap<>()
+        Map<Long, Column> newColumnMap = [:]
 
         // Step 1. Map all columns from passed in Collection by ID
         for (Column col : newCols)
@@ -1330,7 +1310,7 @@ class Axis
             return getColumns()
         }
 
-        List<Column> cols = new ArrayList<>()
+        List<Column> cols = []
         Column firstRule = findColumn(ruleName)
         if (firstRule == null)
         {   // A name was specified for a rule, but did not match any rule names and there is no default column.

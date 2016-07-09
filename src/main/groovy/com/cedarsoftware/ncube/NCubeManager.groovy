@@ -1738,7 +1738,7 @@ class NCubeManager
 
         // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
         List<NCubeInfoDto> list = getPersister().search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
-        List<AxisRef> refAxes = new ArrayList<>()
+        List<AxisRef> refAxes = []
 
         for (NCubeInfoDto dto : list)
         {

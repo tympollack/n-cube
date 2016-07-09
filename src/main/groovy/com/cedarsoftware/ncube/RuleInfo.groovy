@@ -40,7 +40,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
     {
         // For speed, we are using the String (no function call - this code gets executed frequently)
         // Key = RuleMetaKeys.RULES_EXECUTED.name()
-        put(RULES_EXECUTED, new ArrayList<MapEntry>())
+        put(RULES_EXECUTED, [])
     }
 
     /**
@@ -129,7 +129,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         {
             return (List<Binding>)get(AXIS_BINDINGS)
         }
-        List<Binding> bindings = new ArrayList<>()
+        List<Binding> bindings = []
         put(AXIS_BINDINGS, bindings)
         return bindings
     }
@@ -139,7 +139,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         Set keysUsed = (Set)get(INPUT_KEYS_USED)
         if (keysUsed == null)
         {
-            keysUsed = [] as CaseInsensitiveSet
+            keysUsed = new CaseInsensitiveSet()
             put(INPUT_KEYS_USED, keysUsed)
         }
         return keysUsed
