@@ -1226,48 +1226,58 @@ class Axis
      */
     static Comparable promoteValue(AxisValueType srcValueType, Comparable value)
     {
-        switch(srcValueType)
+        if (AxisValueType.STRING == srcValueType)
         {
-            case AxisValueType.STRING:
-                return (String) Converter.convert(value, String.class)
-            case AxisValueType.LONG:
-                return (Long) Converter.convert(value, Long.class)
-            case AxisValueType.BIG_DECIMAL:
-                return (BigDecimal) Converter.convert(value, BigDecimal.class)
-            case AxisValueType.DOUBLE:
-                return (Double) Converter.convert(value, Double.class)
-            case AxisValueType.DATE:
-                return (Date) Converter.convert(value, Date.class)
-            case AxisValueType.COMPARABLE:
-                if (value instanceof String)
-                {
-                    Matcher m = Regexes.valid2Doubles.matcher((String) value)
-                    if (m.matches())
-                    {   // No way to determine if it was supposed to be a Point2D. Specify as JSON for Point2D
-                        return new LatLon((Double)Converter.convert(m.group(1), double.class), (Double)Converter.convert(m.group(2), double.class))
-                    }
-
-                    m = Regexes.valid3Doubles.matcher((String) value)
-                    if (m.matches())
-                    {
-                        return new Point3D((Double)Converter.convert(m.group(1), double.class), (Double)Converter.convert(m.group(2), double.class), (Double)Converter.convert(m.group(3), double.class))
-                    }
-
-                    try
-                    {   // Try as JSON
-                        return (Comparable) JsonReader.jsonToJava((String) value)
-                    }
-                    catch (Exception ignored)
-                    {
-                        return value
-                    }
-                }
-                return value
-            case AxisValueType.EXPRESSION:
-                return value
-            default:
-                throw new IllegalArgumentException("AxisValueType '" + srcValueType + "' added but no code to support it.")
+            return (String) Converter.convert(value, String.class)
         }
+        else if (AxisValueType.LONG == srcValueType)
+        {
+            return (Long) Converter.convert(value, Long.class)
+        }
+        else if (AxisValueType.BIG_DECIMAL == srcValueType)
+        {
+            return (BigDecimal) Converter.convert(value, BigDecimal.class)
+        }
+        else if (AxisValueType.DATE == srcValueType)
+        {
+            return (Date) Converter.convert(value, Date.class)
+        }
+        else if (AxisValueType.DOUBLE == srcValueType)
+        {
+            return (Double) Converter.convert(value, Double.class)
+        }
+        else if (AxisValueType.EXPRESSION == srcValueType)
+        {
+            return value
+        }
+        else if (AxisValueType.COMPARABLE == srcValueType)
+        {
+            if (value instanceof String)
+            {
+                Matcher m = Regexes.valid2Doubles.matcher((String) value)
+                if (m.matches())
+                {   // No way to determine if it was supposed to be a Point2D. Specify as JSON for Point2D
+                    return new LatLon((Double)Converter.convert(m.group(1), double.class), (Double)Converter.convert(m.group(2), double.class))
+                }
+
+                m = Regexes.valid3Doubles.matcher((String) value)
+                if (m.matches())
+                {
+                    return new Point3D((Double)Converter.convert(m.group(1), double.class), (Double)Converter.convert(m.group(2), double.class), (Double)Converter.convert(m.group(3), double.class))
+                }
+
+                try
+                {   // Try as JSON
+                    return (Comparable) JsonReader.jsonToJava((String) value)
+                }
+                catch (Exception ignored)
+                {
+                    return value
+                }
+            }
+            return value
+        }
+        throw new IllegalArgumentException("AxisValueType '" + srcValueType + "' added but no code to support it.")
     }
 
     /**
@@ -1574,22 +1584,11 @@ class Axis
     {
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
-            List<Column> cols = new ArrayList<>(size())
-            if (preferredOrder == SORTED)
-            {
-                cols.addAll(valueToCol.values())
-            }
-            else
-            {
-                cols.addAll(displayOrder.values())
-            }
-            return cols
+            return new ArrayList<>((preferredOrder == SORTED) ? valueToCol.values() : displayOrder.values())
         }
         else if (type == AxisType.RULE)
         {
-            List<Column> cols = new ArrayList<>(size())
-            cols.addAll(displayOrder.values())
-            return cols
+            return new ArrayList<>(displayOrder.values())
         }
         else if (type == AxisType.RANGE || type == AxisType.SET)
         {

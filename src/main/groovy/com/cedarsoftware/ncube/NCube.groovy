@@ -1168,11 +1168,7 @@ class NCube<T>
     {
         Map safeCoord
 
-        if (coordinate instanceof CaseInsensitiveMap)
-        {
-            safeCoord = coordinate
-        }
-        else if (coordinate instanceof TrackingMap)
+        if (coordinate instanceof TrackingMap)
         {
             TrackingMap trackMap = coordinate as TrackingMap
             if (trackMap.getWrappedMap() instanceof CaseInsensitiveMap)
@@ -1183,6 +1179,10 @@ class NCube<T>
             {
                 safeCoord = new CaseInsensitiveMap<>(coordinate)
             }
+        }
+        else if (coordinate instanceof CaseInsensitiveMap)
+        {
+            safeCoord = coordinate
         }
         else
         {
@@ -1217,7 +1217,8 @@ class NCube<T>
         }
 
         // Duplicate input coordinate
-        final Map copy = new CaseInsensitiveMap<>(coordinate)
+        final Map copy = new CaseInsensitiveMap<>()
+        copy.putAll(coordinate)
 
         // Ensure required scope is supplied within the input coordinate
         Set<String> requiredScope = getRequiredScope(coordinate, output)
