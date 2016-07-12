@@ -2,6 +2,8 @@ package com.cedarsoftware.ncube.util
 
 import groovy.transform.CompileStatic
 
+import java.nio.ByteBuffer
+
 /**
  * Special Set instance that hashes the Set<Long> column IDs with excellent dispersion.
  *
@@ -24,29 +26,29 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class LongHashSet implements Set<Long>
 {
-    private long[] elems = null
+    private byte[] elems = (byte[]) null
 
     LongHashSet()
     { }
 
     LongHashSet(Collection<? extends Long> col)
     {
-        elems = new long[col.size()]
+        elems = new byte[col.size() * 5]
         int idx = 0
         for (item in col)
         {
-            elems[idx++] = item
+            setElem(idx++, item)
         }
     }
 
     int size()
     {
-        return elems == null ? 0 : elems.length
+        return elems == null ? 0i : elems.length / 5.0d
     }
 
     boolean isEmpty()
     {
-        return elems == null || elems.length == 0
+        return size() == 0i
     }
 
     boolean contains(Object item)
@@ -56,9 +58,10 @@ class LongHashSet implements Set<Long>
             return false
         }
 
-        for (x in elems)
+        int len = size()
+        for (int i=0; i < len; i++)
         {
-            if (x == item)
+            if (getElem(i) == item)
             {
                 return true
             }
@@ -77,12 +80,12 @@ class LongHashSet implements Set<Long>
                 {
                     return false
                 }
-                return currentIndex < elems.length
+                return currentIndex < LongHashSet.this.size()
             }
 
             public Long next()
             {
-                return elems[currentIndex++]
+                return getElem(currentIndex++)
             }
 
             public void remove()
@@ -100,12 +103,12 @@ class LongHashSet implements Set<Long>
             return [] as Object[]
         }
 
-        final int len = elems.length
+        final int len = size()
         Object[] array = new Object[len]
 
         for (int i=0; i < len; i++)
         {
-            array[i] = elems[i]
+            array[i] = getElem(i)
         }
         return array
     }
@@ -114,16 +117,17 @@ class LongHashSet implements Set<Long>
     {
         if (elems == null)
         {
-            elems = [o] as long[]
+            elems = new byte[5]
+            setElem(0, o)
             return true
         }
         else
         {
             int origSize = size()
-            long[] newElems = new long[origSize + 1]
-            System.arraycopy(elems, 0, newElems, 0, origSize)
-            newElems[origSize] = o
+            byte[] newElems = new byte[(origSize + 1i) * 5i]
+            System.arraycopy(elems, 0, newElems, 0, origSize * 5)
             elems = newElems
+            setElem(origSize, o)
             return size() != origSize
         }
     }
@@ -134,16 +138,15 @@ class LongHashSet implements Set<Long>
         {
             return false
         }
-        long itemToRemove = o as long
-        int len = elems.length
+        int len = size()
 
         for (int i=0; i < len; i++)
         {
-            if (elems[i] == itemToRemove)
+            if (getElem(i) == o)
             {
-                long[] newElems = new long[len - 1]
-                System.arraycopy(elems, i + 1, elems, i, len - i - 1)
-                System.arraycopy(elems, 0, newElems, 0, len - 1)
+                byte[] newElems = new byte[(len - 1) * 5]
+                System.arraycopy(elems, (i + 1) * 5, elems, i * 5, (len - i - 1) * 5)
+                System.arraycopy(elems, 0, newElems, 0, (len - 1) * 5)
                 elems = newElems
                 return true
             }
@@ -163,7 +166,7 @@ class LongHashSet implements Set<Long>
 
     void clear()
     {
-        elems = null
+        elems = (byte[]) null
     }
 
     boolean removeAll(Collection col)
@@ -187,11 +190,11 @@ class LongHashSet implements Set<Long>
                 keep.add(item as Long)
             }
         }
-        elems = new long[keep.size()]
+        elems = new byte[keep.size() * 5]
         int idx = 0
         for (item in keep)
         {
-            elems[idx++] = item
+            setElem(idx++, item as Long)
         }
         return size() != origSize
     }
@@ -235,9 +238,10 @@ class LongHashSet implements Set<Long>
             return true
         }
 
-        for (int i=0; i < elems.length; i++)
+        int len = size()
+        for (int i=0; i < len; i++)
         {
-            if (!that.contains(elems[i]))
+            if (!that.contains(getElem(i)))
             {
                 return false
             }
@@ -250,8 +254,10 @@ class LongHashSet implements Set<Long>
         int h = 0
 
         // This must be an order insensitive hash
-        for (x in elems)
+        int len = size()
+        for (int i=0; i < len; i++)
         {
+            long x = getElem(i)
             // do not change the formula below.  It is been hand crafted and tested for performance.
             // If this does not hash well, ncube breaks down in performance.  The BigCube tests are
             // greatly slowed down as proper hashing is vital or cells will be really slow to access
@@ -273,5 +279,36 @@ class LongHashSet implements Set<Long>
             h += (int) x
         }
         return h
+    }
+
+    void setElem(int index, Long value)
+    {
+        byte[] bytes = longToBytes(value)
+        System.arraycopy(bytes, 0, elems, index * 5, 5)
+    }
+
+    long getElem(int i)
+    {
+        byte[] bytes = new byte[5]
+        System.arraycopy(elems, i * 5, bytes, 0, 5)
+        return bytesToLong(bytes)
+    }
+
+    static long bytesToLong(final byte[] bytes)
+    {
+        return bytes[4] * 1000000000000L | (bytes[3] & 0xff) | ((bytes[2] & 0xff) << 8) | ((bytes[1] & 0xff) << 16) | ((bytes[0] & 0xff) << 24)
+    }
+
+    static byte[] longToBytes(long value)
+    {
+        long axisId = (long) (value / 1000000000000.0D)
+        int columnId = (int) (value % 1000000000000.0D)
+        byte[] bytes = new byte[5]
+        bytes[4] = (byte)axisId
+        bytes[3] = (byte)(columnId & 0x000000ff)
+        bytes[2] = (byte)(columnId & 0x0000ff00) >> 8
+        bytes[1] = (byte)(columnId & 0x00ff0000) >> 16
+        bytes[0] = (byte)(columnId & 0xff000000) >> 24
+        return bytes
     }
 }
