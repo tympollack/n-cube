@@ -499,8 +499,7 @@ class NCube<T>
         {   // Perform fast bind and execute.
             lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue)
             ruleInfo.setLastExecutedStatement(lastStatementValue)
-            output.return = lastStatementValue
-            return lastStatementValue
+            return output.return = lastStatementValue
         }
 
         boolean run = true
@@ -688,7 +687,7 @@ class NCube<T>
     {
         for (axis in axisList.values())
         {
-            if (axis.getType() == AxisType.RULE)
+            if (AxisType.RULE == axis.getType())
             {
                 return true
             }
@@ -706,7 +705,7 @@ class NCube<T>
     {
         for (axis in axisList.values())
         {
-            if (axis.getType() == AxisType.RULE)
+            if (AxisType.RULE == axis.getType())
             {
                 Integer count = conditionsFiredCountPerAxis[axis.name]
                 if (count == null || count < 1)
@@ -952,7 +951,7 @@ class NCube<T>
             final Axis axis = entry.value
             final Comparable value = (Comparable) input[axisName]
 
-            if (axis.getType() == AxisType.RULE)
+            if (AxisType.RULE == axis.getType())
             {   // For RULE axis, all possible columns must be added (they are tested later during execution)
                 bindings[axisName] = axis.getRuleColumnsStartingAt((String) input[axisName])
             }
@@ -963,9 +962,7 @@ class NCube<T>
                 {
                     throw new CoordinateNotFoundException("Value '" + value + "' not found on axis: " + axis.name + ", cube: " + name)
                 }
-                List<Column> cols = []
-                cols.add(column)
-                bindings[axisName] = cols
+                bindings[axisName] = [column]    // Binding is a List of one column on non-rule axis
             }
         }
 
@@ -1189,11 +1186,13 @@ class NCube<T>
             safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate)
         }
 
-        Set<Long> ids = new TreeSet<>()
-        for (axis in axisList.values())
+        Set<Long> ids = new HashSet<>()
+        Iterator<Axis> i = axisList.values().iterator()
+        while (i.hasNext())
         {
-            final Object value = safeCoord[axis.name]
-            final Column column = axis.findColumn((Comparable) value)
+            Axis axis = (Axis) i.next()
+            final Comparable value = (Comparable) safeCoord[axis.name]
+            final Column column = (Column) axis.findColumn(value)
             if (column == null)
             {
                 throw new CoordinateNotFoundException("Value '" + coordinate + "' not found on axis: " + axis.name + ", cube: " + name)
@@ -1632,7 +1631,7 @@ class NCube<T>
             }
         }
 
-        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("optionalScopeKeys"), input, output)
+        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
         optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
         return optionalScope
     }
@@ -1667,7 +1666,7 @@ class NCube<T>
 
         for (axis in axisList.values())
         {   // Use original axis name (not .toLowerCase() version)
-            if (!axis.hasDefaultColumn() && !(axis.getType() == AxisType.RULE))
+            if (!axis.hasDefaultColumn() && !(AxisType.RULE == axis.getType()))
             {
                 required.add(axis.name)
             }
@@ -2531,7 +2530,7 @@ class NCube<T>
         // Ensure that the specified coordinate matches a column on each axis
         final Set<Axis> axisRef = new HashSet<>()
         final Set<Axis> allAxes = new HashSet<>(axisList.values())
-        final Map coord = [:] as CaseInsensitiveMap
+        final Map coord = new CaseInsensitiveMap()
 
         // Bind all Longs to Columns on an axis.  Allow for additional columns to be specified,
         // but not more than one column ID per axis.  Also, too few can be supplied, if and

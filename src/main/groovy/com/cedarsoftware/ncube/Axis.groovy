@@ -1228,23 +1228,23 @@ class Axis
     {
         if (AxisValueType.STRING == srcValueType)
         {
-            return (String) Converter.convert(value, String.class)
+            return (Comparable) Converter.convert(value, String.class)
         }
         else if (AxisValueType.LONG == srcValueType)
         {
-            return (Long) Converter.convert(value, Long.class)
+            return (Comparable) Converter.convert(value, Long.class)
         }
         else if (AxisValueType.BIG_DECIMAL == srcValueType)
         {
-            return (BigDecimal) Converter.convert(value, BigDecimal.class)
+            return (Comparable) Converter.convert(value, BigDecimal.class)
         }
         else if (AxisValueType.DATE == srcValueType)
         {
-            return (Date) Converter.convert(value, Date.class)
+            return (Comparable) Converter.convert(value, Date.class)
         }
         else if (AxisValueType.DOUBLE == srcValueType)
         {
-            return (Double) Converter.convert(value, Double.class)
+            return (Comparable) Converter.convert(value, Double.class)
         }
         else if (AxisValueType.EXPRESSION == srcValueType)
         {

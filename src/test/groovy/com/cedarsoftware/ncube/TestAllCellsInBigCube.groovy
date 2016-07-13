@@ -33,7 +33,7 @@ class TestAllCellsInBigCube
     @Test
     void testAllCellsInBigCube()
     {
-        for (int qq = 0; qq < 1; qq++)
+        for (int qq = 0; qq < 20; qq++)
         {
             long start = System.nanoTime()
             NCube<Long> ncube = new NCube("bigCube")
@@ -130,11 +130,12 @@ class TestAllCellsInBigCube
             }
         }
 
-        println ncube.numCells
-        println ncube.numPotentialCells
+        println 'num Cells = ' + ncube.numCells
+        println 'num Potential Cells = ' + ncube.numPotentialCells
+        assert ncube.numCells == ncube.numPotentialCells
         long stop = System.nanoTime()
         double diff = (stop - start) / 1000000.0
-        println("time to build and read allCellsInBigCube = " + diff)
+        println("time to test large 1D = " + diff)
     }
 
     @Ignore
@@ -144,7 +145,7 @@ class TestAllCellsInBigCube
         NCube<Boolean> ncube = new NCube("bigCube")
 
         int size = 10
-        int last = 1300    // 1300 = 13 million cells, 1400 = 14 million cells, ...
+        int last = 1400    // 1300 = 13 million cells, 1400 = 14 million cells, ...
 
         for (int i = 0; i < 4; i++)
         {
@@ -182,6 +183,7 @@ class TestAllCellsInBigCube
                         }
                     }
                 }
+                println '  ' + b
             }
             println a
         }
