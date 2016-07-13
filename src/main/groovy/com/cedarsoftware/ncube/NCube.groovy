@@ -733,7 +733,7 @@ class NCube<T>
     protected T getCellById(final Set<Long> idCoord, final Map coordinate, final Map output, Object defaultValue = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
-        Deque<StackEntry> stackFrame = executionStack.get()
+        Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
         boolean pushed = false
         try
         {
@@ -785,7 +785,7 @@ class NCube<T>
             if (cellValue instanceof CommandCell)
             {
                 Map ctx = prepareExecutionContext(coordinate, output)
-                return (T) executeExpression(ctx, cellValue as CommandCell)
+                return (T) executeExpression(ctx, cellValue)
             }
             else
             {

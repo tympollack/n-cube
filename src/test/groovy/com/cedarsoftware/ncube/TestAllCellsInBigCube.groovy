@@ -33,7 +33,7 @@ class TestAllCellsInBigCube
     @Test
     void testAllCellsInBigCube()
     {
-        for (int qq = 0; qq < 20; qq++)
+        for (int qq = 0; qq < 1; qq++)
         {
             long start = System.nanoTime()
             NCube<Long> ncube = new NCube("bigCube")
