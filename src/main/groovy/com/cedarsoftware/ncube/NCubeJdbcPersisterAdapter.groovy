@@ -45,7 +45,15 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
             long start = System.nanoTime()
             Object ret = closure(c)
             long end = System.nanoTime()
-            LOG.info('    [' + NCubeManager.getUserId() + '] '+ msg + " took " + ((end - start) / 1000000) + ' ms')
+            long time = Math.round((end - start) / 1000000.0D)
+            if (time > 1000)
+            {
+                LOG.info('    [' + NCubeManager.getUserId() + '] '+ msg + " took " + time + ' ms [SLOW]')\
+            }
+            else
+            {
+                LOG.info('    [' + NCubeManager.getUserId() + '] '+ msg + " took " + time + ' ms')
+            }
             return ret
         }
         finally

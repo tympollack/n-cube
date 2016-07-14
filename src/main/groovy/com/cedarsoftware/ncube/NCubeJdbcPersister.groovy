@@ -18,6 +18,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Timestamp
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import java.util.zip.GZIPOutputStream
@@ -52,6 +53,7 @@ class NCubeJdbcPersister
     private static final long EXECUTE_BATCH_CONSTANT = 35
     private static final int FETCH_SIZE = 1000
     private static final String METHOD_NAME = '~method~'
+    private static volatile AtomicBoolean isOracle = null
 
     List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchContent, Map<String, Object> options)
     {
@@ -104,14 +106,16 @@ class NCubeJdbcPersister
     NCube loadCubeBySha1(Connection c, ApplicationID appId, String cubeName, String sha1)
     {
         Map map = appId as Map
-        map.putAll([cube: buildName(cubeName), sha1: sha1])
+        map.cube = buildName(cubeName)
+        map.sha1 = sha1
+        map.tenant = padTenant(c, appId.tenant)
         NCube cube = null
 
         new Sql(c).eachRow(map, """\
 /* loadCubeBySha1 */
 SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
 FROM n_cube
-WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND sha1 = :sha1
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = :sha1
 ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
                 cube = buildCube(appId, row)
         })
@@ -126,6 +130,7 @@ ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
     {
         List<NCubeInfoDto> records = []
         Map map = appId as Map
+        map.tenant = padTenant(c, appId.tenant)
         map.cube = buildName(cubeName)
         Sql sql = new Sql(c)
 
@@ -133,7 +138,7 @@ ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
 /* getRevisions */
 SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
 FROM n_cube
-WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND ${compareTenant()} AND status_cd = :status AND branch_id = :branch
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND tenant_cd = :tenant AND status_cd = :status AND branch_id = :branch
 ORDER BY abs(revision_number) DESC
 """, {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
@@ -784,6 +789,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
  sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
+            // TODO: Extract AppId to Map outside .each
+            Map map = appId as Map
+            map.tenant = padTenant(c, appId.tenant)
             names.each { String cubeName ->
                 Long maxRev = getMaxRevision(c, appId, cubeName, 'rollbackCubes')
                 if (maxRev == null)
@@ -794,8 +802,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 {
                     Long rollbackRev = findRollbackRevision(c, appId, cubeName)
                     boolean mustDelete = rollbackRev == null
-                    Map map = appId as Map
-                    map.putAll([cube: buildName(cubeName), rev: (mustDelete ? maxRev : rollbackRev)])
+                    map.cube = buildName(cubeName)
+                    map.rev = mustDelete ? maxRev : rollbackRev
                     Sql sql = new Sql(c)
 
                     sql.eachRow(map, """\
@@ -803,7 +811,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
 FROM n_cube
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
-AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""", 0, 1, { ResultSet row ->
+AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0, 1, { ResultSet row ->
                         byte[] bytes = row.getBytes(CUBE_VALUE_BIN)
                         byte[] testData = row.getBytes(TEST_DATA_BIN)
                         String sha1 = row.getString('sha1')
@@ -857,14 +865,15 @@ AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""", 0,
     {
         Sql sql = new Sql(c)
         Map map = appId as Map
-        map.putAll([cube: buildName(cubeName)])
+        map.cube = buildName(cubeName)
+        map.tenant = padTenant(c, appId.tenant)
         Long maxRev = null
 
         sql.eachRow(map, """\
 /* rollbackCubes.findRollbackRev */
 SELECT revision_number FROM n_cube
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
-AND ${compareTenant()} AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
+AND tenant_cd = :tenant AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
 ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             maxRev = row.getLong("revision_number")
         });
@@ -1045,7 +1054,9 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         String nameCondition1 = ''
         String nameCondition2 = ''
         Map map = appId as Map
-        map.putAll([name:namePattern, changed:changedRecordsOnly])
+        map.name = namePattern
+        map.changed = changedRecordsOnly
+        map.tenant = padTenant(c, appId.tenant)
 
         if (hasNamePattern)
         {
@@ -1067,10 +1078,10 @@ SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.statu
 FROM n_cube n,
 ( SELECT n_cube_nm, max(abs(revision_number)) AS max_rev
  FROM n_cube
- WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
+ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
  ${nameCondition1}
  GROUP BY n_cube_nm ) m
-WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND ${compareTenant()} AND n.branch_id = :branch
+WHERE m.n_cube_nm = n.n_cube_nm AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND tenant_cd = :tenant AND n.branch_id = :branch
 ${revisionCondition} ${changedCondition} ${nameCondition2}"""
 
         if (max >= 1)
@@ -1161,7 +1172,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
     boolean deleteBranch(Connection c, ApplicationID appId)
     {
         Map map = appId as Map
-        new Sql(c).execute(map, "/* deleteBranch */ DELETE FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND ${compareTenant()} AND branch_id = :branch")
+        map.tenant = padTenant(c, appId.tenant)
+        new Sql(c).execute(map, "/* deleteBranch */ DELETE FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = :tenant AND branch_id = :branch")
         return true
     }
 
@@ -1175,8 +1187,9 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         // Move SNAPSHOT branch cubes from one version to another version.
         Map map = appId as Map
         map.newVer = newSnapVer
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
-        return sql.executeUpdate(map, "/* moveBranch */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND ${compareTenant()} AND branch_id = :branch")
+        return sql.executeUpdate(map, "/* moveBranch */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = :tenant AND branch_id = :branch")
     }
 
     int releaseCubes(Connection c, ApplicationID appId, String newSnapVer)
@@ -1186,7 +1199,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         Map map = appId as Map
         map.newVer = newSnapVer
         map.create_dt = nowAsTimestamp()
-        return sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND ${compareTenant()} AND branch_id = 'HEAD'")
+        return sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND tenant_cd = :tenant AND branch_id = 'HEAD'")
     }
 
     int changeVersionValue(Connection c, ApplicationID appId, String newVersion)
@@ -1198,9 +1211,11 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         }
 
         Map map = appId as Map
-        map.putAll([newVer: newVersion, status: 'SNAPSHOT'])
+        map.newVer = newVersion
+        map.status = 'SNAPSHOT'
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
-        int count = sql.executeUpdate(map, "/* changeVersionValue */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch")
+        int count = sql.executeUpdate(map, "/* changeVersionValue */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch")
         if (count < 1)
         {
             throw new IllegalArgumentException("No SNAPSHOT n-cubes found with version " + appId.version + ", therefore no versions updated, app: " + appId)
@@ -1217,7 +1232,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
             throw new IllegalArgumentException("Cannot update test data, cube: " + cubeName + " does not exist in app: " + appId)
         }
 
-        Map map = [testData: testData == null ? null : testData.getBytes("UTF-8"), tenant: appId.getTenant(),
+        Map map = [testData: testData == null ? null : testData.getBytes("UTF-8"), tenant: padTenant(c, appId.getTenant()),
                    app: appId.getApp(), ver: appId.getVersion(), status: ReleaseStatus.SNAPSHOT.name(),
                    branch: appId.getBranch(), rev: maxRev, cube: buildName(cubeName)]
         Sql sql = new Sql(c)
@@ -1226,7 +1241,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
 /* updateTestData */
 UPDATE n_cube SET test_data_bin=:testData
 WHERE app_cd = :app AND ${buildNameCondition('n_cube_nm')} = :cube AND version_no_cd = :ver
-AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev"""
+AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev"""
 
         int rows = sql.executeUpdate(map, update)
         return rows == 1
@@ -1236,6 +1251,7 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
     {
         Map map = appId as Map
         map.cube = buildName(cubeName)
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
         byte[] testBytes = null
         boolean found = false
@@ -1243,7 +1259,7 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
         String select = """\
 /* getTestData */
 SELECT test_data_bin FROM n_cube
-WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
 ORDER BY abs(revision_number) DESC"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
@@ -1267,15 +1283,18 @@ ORDER BY abs(revision_number) DESC"""
         }
 
         Map map = appId as Map
-        map.putAll([notes: notes == null ? null : notes.getBytes("UTF-8"), status: ReleaseStatus.SNAPSHOT.name(),
-                    rev: maxRev, cube: buildName(cubeName)])
+        map.notes = notes == null ? null : notes.getBytes("UTF-8")
+        map.status = ReleaseStatus.SNAPSHOT.name()
+        map.rev = maxRev
+        map.cube = buildName(cubeName)
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
 
         int rows = sql.executeUpdate(map, """\
 /* updateNotes */
 UPDATE n_cube SET notes_bin = :notes
 WHERE app_cd = :app AND ${buildNameCondition('n_cube_nm')} = :cube AND version_no_cd = :version
-AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revision_number = :rev""")
+AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""")
         return rows == 1
     }
 
@@ -1285,11 +1304,11 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
         {
             throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + ') cannot be null or empty')
         }
-        Map map = [tenant:tenant]
+        Map map = [tenant: padTenant(c, tenant)]
         Sql sql = new Sql(c)
         List<String> apps = []
 
-        sql.eachRow("/* getAppNames */ SELECT DISTINCT app_cd FROM n_cube WHERE ${compareTenant()}", map, { ResultSet row ->
+        sql.eachRow("/* getAppNames */ SELECT DISTINCT app_cd FROM n_cube WHERE tenant_cd = :tenant", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)
@@ -1306,12 +1325,12 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
             throw new IllegalArgumentException('error calling getAppVersions() tenant (' + tenant + ') or app (' + app +') cannot be null or empty')
         }
         Sql sql = new Sql(c)
-        Map map = [tenant:tenant, app:app]
+        Map map = [tenant: padTenant(c, tenant), app:app]
         List<String> releaseVersions = []
         List<String> snapshotVersions = []
         Map<String, List<String>> versions = [:]
 
-        sql.eachRow("/* getVersions */ SELECT DISTINCT version_no_cd, status_cd FROM n_cube WHERE app_cd = :app AND ${compareTenant()}", map, { ResultSet row ->
+        sql.eachRow("/* getVersions */ SELECT DISTINCT version_no_cd, status_cd FROM n_cube WHERE app_cd = :app AND tenant_cd = :tenant", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)
@@ -1335,10 +1354,11 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
     Set<String> getBranches(Connection c, ApplicationID appId)
     {
         Map map = appId as Map
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
         Set<String> branches = new HashSet<>()
 
-        sql.eachRow("/* getBranches.appVerStat */ SELECT DISTINCT branch_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()}", map, { ResultSet row ->
+        sql.eachRow("/* getBranches.appVerStat */ SELECT DISTINCT branch_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant", map, { ResultSet row ->
             if (row.getFetchSize() < FETCH_SIZE)
             {
                 row.setFetchSize(FETCH_SIZE)
@@ -1358,8 +1378,9 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
     boolean doCubesExist(Connection c, ApplicationID appId, boolean ignoreStatus, String methodName)
     {
         Map map = appId as Map
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
-        String statement = "/* ${methodName}.doCubesExist */ SELECT DISTINCT n_cube_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND ${compareTenant()} AND branch_id = :branch"
+        String statement = "/* ${methodName}.doCubesExist */ SELECT DISTINCT n_cube_id FROM n_cube WHERE app_cd = :app AND version_no_cd = :version AND tenant_cd = :tenant AND branch_id = :branch"
 
         if (!ignoreStatus)
         {
@@ -1376,12 +1397,13 @@ AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch AND revis
     {
         Map map = appId as Map
         map.cube = buildName(cubeName)
+        map.tenant = padTenant(c, appId.tenant)
         Sql sql = new Sql(c)
         Long rev = null
 
         String select = """\
 /* ${methodName}.maxRev */ SELECT revision_number FROM n_cube
-WHERE ${buildNameCondition("n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ${compareTenant()} AND branch_id = :branch
+WHERE ${buildNameCondition("n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
 ORDER BY abs(revision_number) DESC"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
@@ -1481,13 +1503,28 @@ ORDER BY abs(revision_number) DESC"""
         return name == null ? null : name.toLowerCase()
     }
 
-    private static String compareTenant()
-    {
-        return " (tenant_cd = RPAD(:tenant, 10, ' ') OR tenant_cd = :tenant) "
-    }
-
     private static Timestamp nowAsTimestamp()
     {
         return new Timestamp(System.currentTimeMillis())
+    }
+
+    private static String padTenant(Connection c, String tenant)
+    {
+        return isOracle(c) ? tenant.padRight(10, ' ') : tenant
+    }
+
+    static boolean isOracle(Connection c)
+    {
+        if (c == null)
+        {
+            return false
+        }
+
+        if (isOracle == null)
+        {
+            isOracle = new AtomicBoolean(Regexes.isOraclePattern.matcher(c.getMetaData().getDriverName()).matches())
+            LOG.info('Oracle JDBC driver: ' + isOracle.get())
+        }
+        return isOracle.get()
     }
 }
