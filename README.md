@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.75</version>
+  <version>3.4.76</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.76
+ * Transaction ID added to all batch queries (Commit, Rollback, Delete, Restore, Update).  The ID is a unique ID that is added to the notes of each n-cube involved in the transaction.  This allows searching for all n-cubes with the same transaction ID.
 * 3.4.75
  * Many performance optimizations
 * 3.4.74

@@ -291,7 +291,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 stmt = c.prepareStatement(sqlCmd)
                 for (int i = 0; i < cubeNames.length; i++)
                 {
-
                     stmt.setString(1, appId.app)
                     stmt.setString(2, buildName((String) cubeNames[i]))
                     stmt.setString(3, appId.version)
@@ -309,7 +308,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
 sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
-
+            long txId = UniqueIdGenerator.getUniqueId()
             Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
                                            (NCubeManager.SEARCH_INCLUDE_CUBE_DATA)  : true,
                                            (NCubeManager.SEARCH_INCLUDE_TEST_DATA)  : true,
@@ -319,7 +318,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 Long revision = null
                 runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
                     revision = row.getLong('revision_number')
-                    addBatchInsert(stmt, row, appId, cubeName, -(revision + 1), "deleted", username, ++count)
+                    addBatchInsert(stmt, row, appId, cubeName, -(revision + 1), "deleted, txId: " + txId, username, ++count)
                 })
                 if (revision == null)
                 {
@@ -358,11 +357,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                                            (NCubeManager.SEARCH_EXACT_MATCH_NAME)    : true,
                                            (METHOD_NAME) : 'restoreCubes'] as Map
             int count = 0
+            long txId = UniqueIdGenerator.getUniqueId()
             names.each { String cubeName ->
                 Long revision = null
                 runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
                     revision = row.getLong('revision_number')
-                    addBatchInsert(ins, row, appId, cubeName, Math.abs(revision as long) + 1, "restored", username, ++count)
+                    addBatchInsert(ins, row, appId, cubeName, Math.abs(revision as long) + 1, "restored, txId: " + txId, username, ++count)
                 })
 
                 if (revision == null)
@@ -428,6 +428,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         try
         {
             stmt = c.prepareStatement(sql)
+            long txId = UniqueIdGenerator.getUniqueId()
+
             for (int i = 0; i < cubeIds.length; i++)
             {
                 stmt.setLong(1, (Long) Converter.convert(cubeIds[i], Long.class))
@@ -459,7 +461,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                         maxRevision = Math.abs(maxRevision as long) + 1
                     }
 
-                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, 'updated from ' + branch, false, sha1, sha1, username, 'pullToBranch')
+                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, 'updated from ' + branch + ', txId: ' + txId, false, sha1, sha1, username, 'pullToBranch')
                     infoRecs.add(dto)
                 }
             }
@@ -699,6 +701,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         ApplicationID headAppId = appId.asHead()
         Sql sql = new Sql(c)
         def map = [:]
+        long txId = UniqueIdGenerator.getUniqueId()
 
         for (int i = 0; i < cubeIds.length; i++)
         {
@@ -751,7 +754,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 if (changeType)
                 {
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
-                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed', false, sha1, null, username, 'commitCubes')
+                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, 'committed, txId: ' + txId, false, sha1, null, username, 'commitCubes')
                     Map map1 = [head_sha1: sha1, create_dt: nowAsTimestamp(), id: cubeIds[i]]
                     Sql sql1 = new Sql(c)
 
@@ -792,6 +795,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             // TODO: Extract AppId to Map outside .each
             Map map = appId as Map
             map.tenant = padTenant(c, appId.tenant)
+            long txId = UniqueIdGenerator.getUniqueId()
+            String notes = 'rolled back, txId: ' + txId
+
             names.each { String cubeName ->
                 Long maxRev = getMaxRevision(c, appId, cubeName, 'rollbackCubes')
                 if (maxRev == null)
@@ -817,7 +823,6 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
                         String sha1 = row.getString('sha1')
                         String headSha1 = row.getString('head_sha1')
 
-                        String notes = "rolled back"
                         Long rev = Math.abs(maxRev as long) + 1L
 
                         long uniqueId = UniqueIdGenerator.getUniqueId()
@@ -837,7 +842,7 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
                         ins.setBytes(13, bytes)
                         ins.setBytes(14, testData)
                         String note = createNote(username, now, notes)
-                        ins.setBytes(15, StringUtilities.getBytes(note, "UTF-8"))
+                        ins.setBytes(15, StringUtilities.getUTF8Bytes(note))
                         ins.setInt(16, 0)
                         ins.addBatch()
                         count++
