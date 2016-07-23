@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
 
 /**
@@ -26,10 +27,10 @@ import groovy.transform.CompileStatic
 class NCubeTest
 {
     private final String name
-    private final Object[] coord
+    private final Map<String, CellInfo> coord
     private final CellInfo[] expected
 
-    NCubeTest(String name, Object[] coord, CellInfo[] expected)
+    NCubeTest(String name, Map<String, CellInfo> coord, CellInfo[] expected)
     {
         this.name = name
         this.coord = coord
@@ -41,18 +42,19 @@ class NCubeTest
         return name
     }
 
-    Object[] getCoord()
+    Map<String, CellInfo> getCoord()
     {
         return this.coord
     }
 
-    Map<String, Object> createCoord()
+    Map<String, Object> getCoordWithValues()
     {
-        Map<String, Object> actuals = [:]
+        Map<String, Object> actuals = new CaseInsensitiveMap<>()
         for (item in coord)
         {
-            MapEntry entry = (MapEntry) item
-            actuals.put((String)entry.key, ((CellInfo)entry.value).recreate())
+            Map.Entry entry = item
+            CellInfo cellInfo = (CellInfo) entry.value
+            actuals.put((String)entry.key, cellInfo.recreate())
         }
         return actuals
     }

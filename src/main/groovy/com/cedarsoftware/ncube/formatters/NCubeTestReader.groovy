@@ -2,8 +2,8 @@ package com.cedarsoftware.ncube.formatters
 
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.StringValuePair
 import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
@@ -44,20 +44,20 @@ class NCubeTestReader
         {
             JsonObject item = (JsonObject) o
             String name = (String) item['name']
-            List coord = createCoord((Object[]) item['coord'])
+            Map<String, CellInfo> coord = createCoord((Object[]) item['coord'])
             List<CellInfo> assertions = createAssertions((Object[]) item['assertions'])
-            NCubeTest test = new NCubeTest(name, coord.toArray(new StringValuePair[coord.size()]), assertions.toArray(new CellInfo[assertions.size()]))
+            NCubeTest test = new NCubeTest(name, coord, assertions.toArray(new CellInfo[assertions.size()]))
             list.add(test)
         }
         return list
     }
 
-    static List<StringValuePair> createCoord(Object[] inputs)
+    static Map<String, CellInfo> createCoord(Object[] inputs)
     {
-        List<StringValuePair> list = []
+        Map<String, CellInfo> coord = new CaseInsensitiveMap<>()
         if (ArrayUtilities.isEmpty(inputs))
         {
-            return list
+            return coord
         }
 
         for (Object item : inputs)
@@ -65,11 +65,11 @@ class NCubeTestReader
             JsonObject<String, Object> input = (JsonObject<String, Object>) item
             for (entry in input.entrySet())
             {
-                list.add(new StringValuePair(entry.key, createCellInfo((JsonObject) entry.value)))
+                coord.put(entry.key, createCellInfo((JsonObject) entry.value))
             }
         }
 
-        return list
+        return coord
     }
 
     static CellInfo createCellInfo(JsonObject o)

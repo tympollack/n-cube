@@ -2,7 +2,6 @@ package com.cedarsoftware.ncube.formatters
 
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.StringValuePair
 
 /**
  * @author Ken Partlow (kpartlow@gmail.com)
@@ -55,21 +54,21 @@ public class NCubeTestWriter extends BaseJsonFormatter
         endObject()
     }
 
-    private void writeCoord(StringValuePair[] coord)
+    private void writeCoord(Map coord)
     {
         startArray()
-        if (coord != null && coord.length > 0)
+        if (coord != null && coord.size() > 0)
         {
             boolean firstPass = true
-            for (StringValuePair parameter : coord)
+            for (entry in coord)
             {
                 if (!firstPass)
                 {
                     comma()
                 }
                 startObject()
-                writeObjectKey((String) parameter.key)
-                writeCellInfo((CellInfo) parameter.value)
+                writeObjectKey((String) entry.key)
+                writeCellInfo((CellInfo) entry.value)
                 endObject()
                 firstPass = false
             }
