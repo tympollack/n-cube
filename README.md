@@ -100,6 +100,7 @@ ___
  * Transaction ID shared across persister APIs when necessary to bundle persister calls into same transaction.
  * Removed code related to generating multiple n-cube tests at once.
  * Converted NCubeTest code to Groovy
+ * Removed StringValuePair class. NCubeTests now use CaseInsensitiveMap instead of Array of Map Entries.
 * 3.4.76
  * Transaction ID added to all batch queries (Commit, Rollback, Delete, Restore, Update).  The ID is a unique ID that is added to the notes of each n-cube involved in the transaction.  This allows searching for all n-cubes with the same transaction ID.
 * 3.4.75
