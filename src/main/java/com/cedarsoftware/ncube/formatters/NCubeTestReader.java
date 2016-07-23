@@ -48,7 +48,7 @@ public class NCubeTestReader
         {
             JsonObject item = (JsonObject)o;
             String name = (String)item.get("name");
-            List<StringValuePair<CellInfo>> coord = createCoord((Object[])item.get("coord"));
+            List<StringValuePair> coord = createCoord((Object[])item.get("coord"));
             List<CellInfo> assertions = createAssertions((Object[]) item.get("assertions"));
             NCubeTest test = new NCubeTest(name, coord.toArray(new StringValuePair[coord.size()]), assertions.toArray(new CellInfo[assertions.size()]));
             list.add(test);
@@ -56,9 +56,9 @@ public class NCubeTestReader
         return list;
     }
 
-    public static List<StringValuePair<CellInfo>> createCoord(Object[] inputs)
+    public static List<StringValuePair> createCoord(Object[] inputs)
     {
-        List<StringValuePair<CellInfo>> list = new ArrayList<>();
+        List<StringValuePair> list = new ArrayList<>();
         if (ArrayUtilities.isEmpty(inputs))
         {
             return list;

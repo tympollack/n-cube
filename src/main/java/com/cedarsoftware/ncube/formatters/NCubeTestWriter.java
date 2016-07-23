@@ -55,19 +55,19 @@ public class NCubeTestWriter extends BaseJsonFormatter
         endObject();
     }
 
-    private void writeCoord(StringValuePair<CellInfo>[] coord) throws IOException {
+    private void writeCoord(StringValuePair[] coord) throws IOException {
         startArray();
         if (coord != null && coord.length > 0)
         {
             boolean firstPass = true;
-            for (StringValuePair<CellInfo> parameter : coord)
+            for (StringValuePair parameter : coord)
             {
                 if (!firstPass) {
                     comma();
                 }
                 startObject();
-                writeObjectKey(parameter.getKey());
-                writeCellInfo(parameter.getValue());
+                writeObjectKey((String)parameter.getKey());
+                writeCellInfo((CellInfo)parameter.getValue());
                 endObject();
                 firstPass = false;
             }

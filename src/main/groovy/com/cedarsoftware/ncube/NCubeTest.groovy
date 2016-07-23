@@ -26,10 +26,10 @@ import groovy.transform.CompileStatic
 class NCubeTest
 {
     private final String name
-    private final StringValuePair<CellInfo>[] coord
+    private final StringValuePair[] coord
     private final CellInfo[] expected
 
-    NCubeTest(String name, StringValuePair<CellInfo>[] coord, CellInfo[] expected)
+    NCubeTest(String name, StringValuePair[] coord, CellInfo[] expected)
     {
         this.name = name
         this.coord = coord
@@ -41,7 +41,7 @@ class NCubeTest
         return name
     }
 
-    StringValuePair<CellInfo>[] getCoord()
+    StringValuePair[] getCoord()
     {
         return this.coord
     }
@@ -51,7 +51,7 @@ class NCubeTest
         Map<String, Object> actuals = [:]
         for (StringValuePair item : this.coord)
         {
-            actuals.put(item.getKey(), ((CellInfo)item.getValue()).recreate())
+            actuals.put((String)item.getKey(), ((CellInfo)item.getValue()).recreate())
         }
         return actuals
     }

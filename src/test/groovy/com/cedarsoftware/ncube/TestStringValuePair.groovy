@@ -25,42 +25,18 @@ import static org.junit.Assert.assertNotEquals
 class TestStringValuePair
 {
     @Test
-    void testStringValuePair()
-    {
-        StringValuePair one = new StringValuePair('foo', 'bar')
-        StringValuePair two = new StringValuePair('boo', 'far')
-
-        assertEquals 'foo', one.key
-        assertEquals 'bar', one.value
-
-        assertEquals 'boo', two.key
-        assertEquals 'far', two.value
-
-        assertEquals 'foo:bar', one.toString()
-
-        assertNotEquals one, two
-        two.value = 'bar'
-        assertNotEquals one, two
-        two.key = 'foo'
-        assertEquals one, two
-        assertNotEquals one, new Integer(3)
-
-        // keys only need to be the same.
-        two.value = 'far'
-        assertEquals one, two
-
-        assertEquals two.key.hashCode(), two.hashCode()
-
-        two.key = null
-        assertEquals 0xbabe, two.hashCode()
-    }
-
-    @Test
     void testEquals()
     {
-        StringValuePair one = new StringValuePair('foo', 'bar')
-        assert one.equals(one)
+        StringValuePair one = new StringValuePair('foo', null)
+        StringValuePair two = new StringValuePair('FOO', null)
+        assert one.equals(two)
 
-        assert one == 'foo'
+        one = new StringValuePair('Foo', new CellInfo("string", "hey", false, false))
+        two = new StringValuePair('FOO', new CellInfo("string", "hey", false, false))
+        assert one.equals(two)
+
+        one = new StringValuePair('Foo', new CellInfo("string", "hey", false, false))
+        two = new StringValuePair('FOO', new CellInfo("string", "hi", false, false))
+        assert !one.equals(two)
     }
 }

@@ -19,8 +19,7 @@ import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 
 /**
- * Class used to carry the NCube meta-information
- * to the client.
+ * Class used to carry one entry of the coordinate for NCube test input.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -39,62 +38,42 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-class StringValuePair<V> implements Map.Entry<String,V> {
+class StringValuePair extends MapEntry
+{
+    StringValuePair(String key, CellInfo value)
+    {
+        super(key, value)
+    }
 
-    private String key
-    private V value
+    int hashCode()
+    {
+        return hash(((String)key).toLowerCase()) ^ hash(value)
+    }
 
-    StringValuePair(String key, V value) {
-        this.key = key
-        this.value = value
+    boolean equals(StringValuePair that)
+    {
+        if (that == this)
+        {
+            return true
+        }
+
+        if (!StringUtilities.equalsIgnoreCase((String)key, (String)that.key))
+        {
+            return false
+        }
+        if (value == null || that.value == null)
+        {
+            return value == null && that.value == null
+        }
+        return value.equals(that.value)
     }
 
     boolean equals(Object that)
     {
-        if (this.is(that))
+        if (!(that instanceof StringValuePair))
         {
-            return true
+            return false
         }
-        if (that instanceof String)
-        {
-            return StringUtilities.equalsIgnoreCase(key, (String)that)
-        }
-        if (that instanceof StringValuePair)
-        {
-            return StringUtilities.equalsIgnoreCase(key, ((StringValuePair) that).key)
-        }
-        return false
-    }
-
-    int hashCode() {
-        return hash(key)
-    }
-
-    String toString() {
-        return key + ':' + value
-    }
-
-    String getKey() {
-        return key
-    }
-
-    void setKey(String key) {
-        this.key = key
-    }
-
-    V getValue() {
-        return value
-    }
-
-    V setValue(V value) {
-        this.value = value
-        return value
-    }
-
-    /**
-     * Helper method to handle object hashes for possibly null values
-     */
-    protected static int hash(Object object) {
-        return (object == null) ? 0xbabe : object.hashCode()
+        return equals((StringValuePair)that)
     }
 }
