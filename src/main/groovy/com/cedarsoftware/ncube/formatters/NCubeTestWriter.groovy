@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube.formatters
 
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.NCubeTest
+import groovy.transform.CompileStatic
 
 /**
  * @author Ken Partlow (kpartlow@gmail.com)
@@ -20,9 +21,10 @@ import com.cedarsoftware.ncube.NCubeTest
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class NCubeTestWriter extends BaseJsonFormatter
+@CompileStatic
+class NCubeTestWriter extends BaseJsonFormatter
 {
-    public String format(Object[] tests)
+    String format(Object[] tests)
     {
         startArray()
         if (tests != null && tests.length > 0)
@@ -95,7 +97,7 @@ public class NCubeTestWriter extends BaseJsonFormatter
         endArray()
     }
 
-    public void writeCellInfo(CellInfo info)
+    private void writeCellInfo(CellInfo info)
     {
         startObject()
         if (info != null)
