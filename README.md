@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, CDN 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.78</version>
+  <version>3.4.79</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.79
+ * Converted remaining .java files to .groovy
 * 3.4.78 
  * Transaction ID shared across persister APIs when necessary to bundle persister calls into same transaction.
  * Removed code related to generating multiple n-cube tests at once.
