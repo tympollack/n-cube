@@ -1063,7 +1063,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         if (hasNamePattern)
         {
-            nameCondition1 = ' AND ' + buildNameCondition('n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
+            nameCondition1 = ' AND ' + buildNameCondition('b.n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
             nameCondition2 = ' AND ' + buildNameCondition('a.n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
         }
 
