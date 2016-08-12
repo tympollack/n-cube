@@ -996,6 +996,39 @@ class TestWithPreloadedDatabase
     }
 
     @Test
+    void testSearchWildCardAndBrackets()
+    {
+        String cubeName = 'bracketsInString'
+        preloadCubes(head, cubeName + '.json')
+
+        Map map = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true]
+
+        NCube cube = NCubeManager.getCube(head, cubeName)
+        String value = cube.getCell([axis1: 'column1', axis2: 'column2'])
+        assertEquals('testValue[A]', value)
+
+        //Test search with content value containing brackets, with or without wildcard
+        assertEquals(1, NCubeManager.search(head, cubeName, 'testValue[A]', map).size())
+        assertEquals(1, NCubeManager.search(head, cubeName, 'testValue', map).size())
+        assertEquals(1, NCubeManager.search(head, cubeName, 'Value[A]', map).size())
+        assertEquals(1, NCubeManager.search(head, cubeName, '*Value*', map).size())
+        assertEquals(1, NCubeManager.search(head, cubeName, '*', map).size())
+        assertEquals(1, NCubeManager.search(head, cubeName, null, map).size())
+        assertEquals(0, NCubeManager.search(head, cubeName, 'somethingElse', map).size())
+
+        //Test search with cube name pattern, with or without wildcard, not exact match
+        assertEquals(1, NCubeManager.search(head, '*racketsIn*', null, map).size())
+        assertEquals(1, NCubeManager.search(head, 'racketsIn', null, map).size())
+
+        //Test search with cube name pattern, with or without wildcard, exact match
+        map[NCubeManager.SEARCH_EXACT_MATCH_NAME] = true
+        assertEquals(1, NCubeManager.search(head, cubeName, null, map).size())
+        assertEquals(0, NCubeManager.search(head, '*racketsIn*', null, map).size())
+        assertEquals(0, NCubeManager.search(head, 'racketsIn', null, map).size())
+    }
+
+
+    @Test
     void testUpdateBranchAfterDelete()
     {
         // load cube with same name, but different structure in TEST branch
