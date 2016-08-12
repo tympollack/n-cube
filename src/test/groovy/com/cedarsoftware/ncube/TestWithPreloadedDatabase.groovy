@@ -117,7 +117,7 @@ class TestWithPreloadedDatabase
         URLClassLoader loader = NCubeManager.getUrlClassLoader(appId, input)
         assertEquals(1, loader.URLs.length)
         assertEquals(2, NCubeManager.getCacheForApp(appId).size())
-        assertEquals(new URL("http://www.cedarsoftware.com/tests/ncube/cp1/"), loader.URLs[0])
+        assertEquals(new URL("http://files.cedarsoftware.com/tests/ncube/cp1/"), loader.URLs[0])
 
         Map<String, Object> cache = NCubeManager.getCacheForApp(appId)
         assertEquals(2, cache.size())
@@ -3203,15 +3203,15 @@ class TestWithPreloadedDatabase
         System.setProperty('NCUBE_PARAMS', '{"foo", "bar"}')
 
         CdnClassLoader devLoader = cube.getCell([env:"DEV"])
-        assertEquals('http://www.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', devLoader.URLs[0].toString())
-        assertEquals('http://www.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', devLoader.URLs[1].toString())
-        assertEquals('http://www.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', devLoader.URLs[2].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', devLoader.URLs[0].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', devLoader.URLs[1].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', devLoader.URLs[2].toString())
 
         // Check INT
         CdnClassLoader intLoader = cube.getCell([env:"INT"])
-        assertEquals('http://www.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', intLoader.URLs[0].toString())
-        assertEquals('http://www.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', intLoader.URLs[1].toString())
-        assertEquals('http://www.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', intLoader.URLs[2].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', intLoader.URLs[0].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', intLoader.URLs[1].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', intLoader.URLs[2].toString())
 
         // Check with overload
 
@@ -3251,9 +3251,9 @@ class TestWithPreloadedDatabase
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
         URLClassLoader loader = cube.getCell([env:"SAND"])
-        assertEquals('http://www.cedarsoftware.com/foo/1.28.0/public/', loader.URLs[0].toString())
-        assertEquals('http://www.cedarsoftware.com/foo/1.28.0/private/', loader.URLs[1].toString())
-        assertEquals('http://www.cedarsoftware.com/foo/1.28.0/private/groovy/', loader.URLs[2].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/public/', loader.URLs[0].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/', loader.URLs[1].toString())
+        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/groovy/', loader.URLs[2].toString())
     }
 
     @Test
@@ -3418,7 +3418,7 @@ class TestWithPreloadedDatabase
 
         // Test HtmlFormatter - that it properly handles the URLClassLoader in the sys.classpath cube
         String html = cp1.toHtml()
-        assert html.contains('http://www.cedarsoftware.com')
+        assert html.contains('http://files.cedarsoftware.com')
     }
 
     @Test

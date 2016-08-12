@@ -72,7 +72,6 @@ class CdnClassLoader extends GroovyClassLoader
                 throw new IllegalArgumentException("added url was malformed: " + url, e)
             }
         }
-
     }
 
     /**
