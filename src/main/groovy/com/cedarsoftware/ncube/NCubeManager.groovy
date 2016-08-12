@@ -336,7 +336,7 @@ class NCubeManager
         GroovyClassLoader gcl = localClassLoaders[appId]
         if (gcl == null)
         {
-            gcl = new GroovyClassLoader()
+            gcl = new CdnClassLoader(NCubeManager.class.getClassLoader(), true, true)
             GroovyClassLoader classLoaderRef = localClassLoaders.putIfAbsent(appId, gcl)
             if (classLoaderRef != null)
             {
