@@ -29,14 +29,14 @@ class TestCdnClassLoader
     void testLocalResources()
     {
         CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true)
-        assert testLoader1.isLocalOnlyResource("META-INF/org.codehaus.groovy.transform.ASTTransformation")
+        assert !testLoader1.isLocalOnlyResource("META-INF/org.codehaus.groovy.transform.ASTTransformation")
         assert testLoader1.isLocalOnlyResource("ncube/grv/exp/GroovyExpression")
         assert testLoader1.isLocalOnlyResource("ncube/grv/method/GroovyMethod")
         assert testLoader1.isLocalOnlyResource("FooBeanInfo.groovy")
         assert testLoader1.isLocalOnlyResource("FooCustomizer.groovy")
 
         CdnClassLoader testLoader2 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, false, false)
-        assert testLoader2.isLocalOnlyResource("META-INF/org.codehaus.groovy.transform.ASTTransformation")
+        assert !testLoader2.isLocalOnlyResource("META-INF/org.codehaus.groovy.transform.ASTTransformation")
         assert testLoader2.isLocalOnlyResource("ncube/grv/exp/NCubeGroovyExpression.groovy")
         assert testLoader2.isLocalOnlyResource("ncube/grv/method/NCubeGroovyController.groovy")
         assert !testLoader2.isLocalOnlyResource("FooBeanInfo.groovy")

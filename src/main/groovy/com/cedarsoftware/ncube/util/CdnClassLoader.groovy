@@ -25,6 +25,7 @@ class CdnClassLoader extends GroovyClassLoader
 {
     private final boolean _preventRemoteBeanInfo
     private final boolean _preventRemoteCustomizer
+    private final ClassLoader parentClassLoader = super.getParent()
 
     /**
      * creates a GroovyClassLoader using the given ClassLoader as parent
@@ -42,6 +43,38 @@ class CdnClassLoader extends GroovyClassLoader
         addURLs(list)
     }
 
+    protected Class<?> findClass(final String name) throws ClassNotFoundException
+    {
+        if (name.startsWith('ncube.grv.') ||
+                name.startsWith('ncube.grv$') ||
+                name.startsWith('ncube$grv$') ||
+                name.startsWith('java.') ||
+                name.startsWith('javax.') ||
+                name.startsWith('groovy.') ||
+                name.startsWith('org.codehaus.groovy.') ||
+                name.startsWith('com.google.') ||
+                name.startsWith('com.cedarsoftware.') ||
+                name.startsWith('com.cedarsoftware$'))
+        {
+            if (!name.startsWith('ncube.grv.closure'))
+            {   // local only
+                return parentClassLoader.loadClass(name)
+            }
+        }
+
+        if (_preventRemoteBeanInfo && name.endsWith('BeanInfo'))
+        {   // local only
+            return parentClassLoader.loadClass(name)
+        }
+
+        if (_preventRemoteCustomizer && name.endsWith('Customizer'))
+        {   // local only
+            return parentClassLoader.loadClass(name)
+        }
+
+        return super.findClass(name)
+    }
+
     private void addURLs(List<String> list)
     {
         for (url in list)
@@ -54,18 +87,11 @@ class CdnClassLoader extends GroovyClassLoader
     {
         if (url)
         {
-            try
+            if (!url.endsWith("/"))
             {
-                if (!url.endsWith("/"))
-                {
-                    url += '/'
-                }
-                addURL(new URL(url))
+                url += '/'
             }
-            catch (MalformedURLException e)
-            {
-                throw new IllegalArgumentException("added url was malformed: " + url, e)
-            }
+            addURL(new URL(url))
         }
     }
 
@@ -75,32 +101,34 @@ class CdnClassLoader extends GroovyClassLoader
      */
     protected boolean isLocalOnlyResource(String name)
     {
-        if (name.startsWith("ncube/grv/") ||
-            name.startsWith("java/") ||
-            name.startsWith("groovy/") ||
-            name.startsWith("com/cedarsoftware/"))
+        if (name.endsWith(".class"))
         {
-            if (name.startsWith("ncube/grv/closure/"))
+            return true
+        }
+
+        if (name.startsWith('ncube/grv/') ||
+            name.startsWith('java/') ||
+            name.startsWith('javax/') ||
+            name.startsWith('groovy/') ||
+            name.startsWith('org/codehaus/groovy/') ||
+            name.startsWith('com/google/') ||
+            name.startsWith('com/cedarsoftware/'))
+        {
+            if (name.startsWith('ncube/grv/closure/'))
             {
                 return false
             }
             return true
         }
 
-        if (_preventRemoteBeanInfo)
+        if (_preventRemoteBeanInfo && name.endsWith('BeanInfo.groovy'))
         {
-            if (name.endsWith("BeanInfo.groovy"))
-            {
-                return true
-            }
+            return true
         }
 
-        if (_preventRemoteCustomizer)
+        if (_preventRemoteCustomizer && name.endsWith('Customizer.groovy'))
         {
-            if (name.endsWith("Customizer.groovy"))
-            {
-                return true
-            }
+            return true
         }
 
         return false
@@ -122,7 +150,7 @@ class CdnClassLoader extends GroovyClassLoader
                 }
             }
         }
-        return super.getResources(name)
+        return super.getResources(name);
     }
 
     URL getResource(String name)
@@ -131,6 +159,6 @@ class CdnClassLoader extends GroovyClassLoader
         {
             return null
         }
-        return super.getResource(name)
+        return super.getResource(name);
     }
 }
