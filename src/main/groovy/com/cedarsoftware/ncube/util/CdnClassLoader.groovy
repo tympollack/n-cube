@@ -56,23 +56,24 @@ class CdnClassLoader extends GroovyClassLoader
             Class clazz = classCache[name]
             if (Class.class.is(clazz))
             {
-                println '=====> findClass: [cached ClassNotFoundException] ' + name
+//                println '=====> findClass: [cached ClassNotFoundException] ' + name
                 throw new ClassNotFoundException('Class not found in classpath, name: ' + name)
             }
-            println '=====> findClass: [cacheHit] ' + name
+//            println '=====> findClass: [cacheHit] ' + name
             return clazz
         }
 
+        // NOTE: This list needs to match (weed out) imports automatically brought in by Groovy as well as
+        // those GroovyExpression adds to the source file.
         if (name.startsWith('ncube.grv.') ||
             name.startsWith('ncube.grv$') ||
             name.startsWith('ncube$grv$') ||
             name.startsWith('java.') ||
             name.startsWith('javax.') ||
             name.startsWith('groovy.') ||
-            name.startsWith('org.codehaus.groovy.') ||
-            name.startsWith('com.google.') ||
-            name.startsWith('com.cedarsoftware.') ||
-            name.startsWith('com.cedarsoftware$'))
+            name.startsWith('com.google.common.') ||
+            name.startsWith('com.cedarsoftware$') ||
+            name.startsWith('com.cedarsoftware.'))
         {
             if (!name.startsWith('ncube.grv.closure'))
             {   // local only
@@ -93,12 +94,12 @@ class CdnClassLoader extends GroovyClassLoader
         try
         {
             Class clazz = super.findClass(name)
-            println '=====> findClass: ' + name + ', class cache size: ' + classCache.size()
+//            println '=====> findClass: ' + name + ', class cache size: ' + classCache.size()
             return classCache[name] = clazz
         }
         catch (ClassNotFoundException e)
         {
-            println '=====> findClass: [classNotFoundException] + ' + name
+//            println '=====> findClass: [classNotFoundException] + ' + name
             classCache[name] = Class.class
             throw e
         }
@@ -135,12 +136,13 @@ class CdnClassLoader extends GroovyClassLoader
             return true
         }
 
+        // NOTE: This list needs to match (weed out) imports automatically brought in by Groovy as well as
+        // those GroovyExpression adds to the source file.  Must be in 'path' form (using slashes)
         if (name.startsWith('ncube/grv/') ||
             name.startsWith('java/') ||
             name.startsWith('javax/') ||
             name.startsWith('groovy/') ||
-            name.startsWith('org/codehaus/groovy/') ||
-            name.startsWith('com/google/') ||
+            name.startsWith('com/google/common/') ||
             name.startsWith('com/cedarsoftware/'))
         {
             if (name.startsWith('ncube/grv/closure/'))
@@ -210,5 +212,6 @@ class CdnClassLoader extends GroovyClassLoader
         resourceCache.clear()
         resourcesCache.clear()
         classCache.clear()
+        super.clearCache()
     }
 }
