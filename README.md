@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.82</version>
+  <version>3.4.83</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,11 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.83
+ * `CdnClassLoader` updated to allow Groovy Grape annotations to fetch external content.
+ * `CdnClassLoader` caches resource URLs (relative URL Strings that were expanded to fully qualified URLs against the classpath).  These are cleared when the class loader cache is cleared.
+ * `CdnClassLoader` caches classes (dynamically loaded classes - using Groovy's @Grab as well as failed attempts [ClassNotFoundException]).  These are cleared when the class loader cache is cleared.
+ * `CdnClassLoader` cache is per `ApplicationID`, therefore it's internal caches are non-static (NCube uses a classpath per ApplicationID - allowing for variations in the same class between versions - multi-tenant support).
 * 3.4.82
  * Content search now supports wildcards.
  * Grape annotations extracted from inline Groovy to outside class definition.  This is to support Groovy's @Grab (dependency support). Additional changes forthcoming.

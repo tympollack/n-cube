@@ -3722,6 +3722,25 @@ class TestWithPreloadedDatabase
 //        assert axisRefs.isEmpty()
     }
 
+    @Test
+    void testDynamicallyLoadedCode()
+    {
+        NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
+        GroovyExpression exp = new GroovyExpression('''\
+import org.apache.commons.collections.primitives.*
+@Grab(group='commons-primitives', module='commons-primitives', version='1.0')
+
+def ints = new ArrayIntList()
+ints.add(42)
+assert ints.size() == 1
+assert ints.get(0) == 42
+return ints''', null, false)
+        ncube.setCell(exp, [state:'OH'])
+
+        def x = ncube.getCell([state:'OH'])
+        assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
+    }
+
     /**
      * Get List<NCubeInfoDto> for the given ApplicationID, filtered by the pattern.  If using
      * JDBC, it will be used with a LIKE clause.  For Mongo...TBD.
@@ -3729,7 +3748,7 @@ class TestWithPreloadedDatabase
      * is added mapping the cube name to the cube record (NCubeInfoDto).  This will be replaced
      * by an NCube if more than the name is required.
      */
-    public static List<NCubeInfoDto> getDeletedCubesFromDatabase(ApplicationID appId, String pattern)
+    static List<NCubeInfoDto> getDeletedCubesFromDatabase(ApplicationID appId, String pattern)
     {
         Map options = new HashMap()
         options.put(NCubeManager.SEARCH_DELETED_RECORDS_ONLY, true)
