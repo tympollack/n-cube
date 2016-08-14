@@ -2,9 +2,11 @@ package com.cedarsoftware.ncube.util
 
 import groovy.transform.CompileStatic
 
+import java.util.concurrent.ConcurrentHashMap
+
 /**
  *  @author Ken Partlow (kpartlow@gmail.com)
- *          John DeRegnaucourt (jdereg@gmail.com)
+ *  @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
@@ -26,6 +28,10 @@ class CdnClassLoader extends GroovyClassLoader
     private final boolean _preventRemoteBeanInfo
     private final boolean _preventRemoteCustomizer
     private final ClassLoader parentClassLoader = super.getParent()
+    private final Map<String, URL> resourceCache = new ConcurrentHashMap<>()
+    private final Map<String, Enumeration<URL>> resourcesCache = new ConcurrentHashMap<>()
+    private final Map<String, Class> classCache = new ConcurrentHashMap<>()
+    private final URL nullUrl = new URL('http://null.com:8080')
 
     /**
      * creates a GroovyClassLoader using the given ClassLoader as parent
@@ -45,34 +51,57 @@ class CdnClassLoader extends GroovyClassLoader
 
     protected Class<?> findClass(final String name) throws ClassNotFoundException
     {
+        if (classCache.containsKey(name))
+        {
+            Class clazz = classCache[name]
+            if (Class.class.is(clazz))
+            {
+                println '=====> findClass: [cached ClassNotFoundException] ' + name
+                throw new ClassNotFoundException('Class not found in classpath, name: ' + name)
+            }
+            println '=====> findClass: [cacheHit] ' + name
+            return clazz
+        }
+
         if (name.startsWith('ncube.grv.') ||
-                name.startsWith('ncube.grv$') ||
-                name.startsWith('ncube$grv$') ||
-                name.startsWith('java.') ||
-                name.startsWith('javax.') ||
-                name.startsWith('groovy.') ||
-                name.startsWith('org.codehaus.groovy.') ||
-                name.startsWith('com.google.') ||
-                name.startsWith('com.cedarsoftware.') ||
-                name.startsWith('com.cedarsoftware$'))
+            name.startsWith('ncube.grv$') ||
+            name.startsWith('ncube$grv$') ||
+            name.startsWith('java.') ||
+            name.startsWith('javax.') ||
+            name.startsWith('groovy.') ||
+            name.startsWith('org.codehaus.groovy.') ||
+            name.startsWith('com.google.') ||
+            name.startsWith('com.cedarsoftware.') ||
+            name.startsWith('com.cedarsoftware$'))
         {
             if (!name.startsWith('ncube.grv.closure'))
             {   // local only
-                return parentClassLoader.loadClass(name)
+                return classCache[name] = parentClassLoader.loadClass(name)
             }
         }
 
         if (_preventRemoteBeanInfo && name.endsWith('BeanInfo'))
         {   // local only
-            return parentClassLoader.loadClass(name)
+            return classCache[name] = parentClassLoader.loadClass(name)
         }
 
         if (_preventRemoteCustomizer && name.endsWith('Customizer'))
         {   // local only
-            return parentClassLoader.loadClass(name)
+            return classCache[name] = parentClassLoader.loadClass(name)
         }
 
-        return super.findClass(name)
+        try
+        {
+            Class clazz = super.findClass(name)
+            println '=====> findClass: ' + name + ', class cache size: ' + classCache.size()
+            return classCache[name] = clazz
+        }
+        catch (ClassNotFoundException e)
+        {
+            println '=====> findClass: [classNotFoundException] + ' + name
+            classCache[name] = Class.class
+            throw e
+        }
     }
 
     private void addURLs(List<String> list)
@@ -101,7 +130,7 @@ class CdnClassLoader extends GroovyClassLoader
      */
     protected boolean isLocalOnlyResource(String name)
     {
-        if (name.endsWith(".class"))
+        if ('META-INF/services/org.codehaus.groovy.transform.ASTTransformation' == name || name.endsWith(".class"))
         {
             return true
         }
@@ -134,31 +163,52 @@ class CdnClassLoader extends GroovyClassLoader
         return false
     }
 
-    Enumeration<URL> getResources(String name)
+    Enumeration<URL> findResources(String name) throws IOException
     {
+        if (resourcesCache.containsKey(name))
+        {
+//            println '-----> findResources: [cache hit] ' + name
+            return resourcesCache[name]
+        }
         if (isLocalOnlyResource(name))
         {
-            return new Enumeration<URL>() {
-                public boolean hasMoreElements()
-                {
-                    return false
-                }
-
-                public URL nextElement()
-                {
-                    throw new NoSuchElementException()
-                }
+            Enumeration<URL> nullEnum = new Enumeration() {
+                public boolean hasMoreElements() { return false }
+                public URL nextElement() { throw new NoSuchElementException() }
             }
+            resourcesCache[name] = nullEnum
+            return nullEnum
         }
-        return super.getResources(name);
+//        println '-----> findResources: ' + name
+        Enumeration<URL> res = super.findResources(name)
+        return resourcesCache[name] = res
     }
 
-    URL getResource(String name)
+    URL findResource(String name)
     {
+        if (resourceCache.containsKey(name))
+        {
+            URL url = resourceCache[name]
+//            println '-----> findResource: [cache hit] ' + name
+            return nullUrl.is(url) ? null : url
+        }
+
         if (isLocalOnlyResource(name))
         {
+            resourceCache.put(name, nullUrl)
             return null
         }
-        return super.getResource(name);
+
+        URL res = super.findResource(name)
+        resourceCache[name] = res ?: nullUrl
+//        println '-----> findResource: ' + name
+        return res
+    }
+
+    void clearCache()
+    {
+        resourceCache.clear()
+        resourcesCache.clear()
+        classCache.clear()
     }
 }
