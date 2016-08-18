@@ -36,6 +36,7 @@ import groovy.transform.CompileStatic
 class Column implements Comparable<Comparable>
 {
     public static final String NAME = "name"
+    public static final String DEFAULT_VALUE = 'DEF_VAL'
     protected long id
     private int displayOrder
     private Comparable value

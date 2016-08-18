@@ -714,14 +714,18 @@ class NCube<T>
      * than one cell).  Once the cell is located, it is executed and the value from
      * the executed cell is returned. In the case of Command Cells, it is the return
      * value of the execution, otherwise the return is the value stored in the cell,
-     * and if there is no cell, the defaultCellValue from NCube is returned, if one
-     * is set.
+     * and if there is no cell, then a default value from NCube is returned, if one
+     * is set. Default value ordering - first, a column level default is used if
+     * one exists (under Column's meta-key: 'DEFAULT_CELL'). If no column-level
+     * default is specified (no non-null value provided), then the NCube level default
+     * is chosen (if it exists). If no NCube level default is specified, then the
+     * defaultValue passed in is used, if it is non-null.
      * REQUIRED: The coordinate passed to this method must have already been run
      * through validateCoordinate(), which duplicates the coordinate and ensures the
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    protected T getCellById(final Set<Long> idCoord, final Map coordinate, final Map output, Object defaultValue = null)
+    protected T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -764,13 +768,24 @@ class NCube<T>
 //                LOG.info("  coord Map: " + coordinate)
 //            }
 
-            if (cells.containsKey(idCoord))
+            if (cells.containsKey(colIds))
             {   // If there is content at the given coordinate...
-                cellValue = cells.get(idCoord)
+                cellValue = cells.get(colIds)
             }
             else
-            {   // Choose the correct default
-                cellValue = defaultCellValue == null ? (T) defaultValue : defaultCellValue
+            {   // No cell, look for default
+                cellValue = (T) getColumnDefault(colIds)
+                if (!cellValue)
+                {   // No Column Default, try NCube default, and finally passed in default
+                    if (defaultCellValue)
+                    {
+                        cellValue = defaultCellValue
+                    }
+                    else
+                    {
+                        cellValue = (T) defaultValue
+                    }
+                }
             }
 
             if (cellValue instanceof CommandCell)
@@ -791,6 +806,37 @@ class NCube<T>
                 stackFrame.pop()
             }
         }
+    }
+
+    private def getColumnDefault(Set<Long> colIds)
+    {
+        // TODO: Always stored AxisID to axis
+        // TODO: have getAxisByColumnId() use the above Map
+        // TODO: contains() APIs need to honor the default
+        // TODO: HTML renderer needs to honor the default
+        // TODO: getCellNoExecute() needs to honor the default
+        Iterator<Axis> i = axisList.values().iterator()
+        Map<Long, Axis> idToAxis = [:]
+
+        // Map Axis ids to Axis
+        while (i.hasNext())
+        {
+            Axis axis = (Axis) i.next()
+            idToAxis[axis.id] = axis
+        }
+
+        for (colId in colIds)
+        {
+            Axis axis = idToAxis[colId.intdiv(Axis.BASE_AXIS_ID).longValue()]
+            Column boundCol = axis.getColumnById(colId)
+            def colDef = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+            if (colDef)
+            {
+                return colDef
+            }
+        }
+
+        return null
     }
 
     private static void trackInputKeysUsed(Map input, Map output)
@@ -1179,6 +1225,7 @@ class NCube<T>
 
         Set<Long> ids = new HashSet<>()
         Iterator<Axis> i = axisList.values().iterator()
+
         while (i.hasNext())
         {
             Axis axis = (Axis) i.next()
