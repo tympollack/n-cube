@@ -21,6 +21,7 @@ import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import gnu.trove.map.hash.THashMap
+import gnu.trove.map.hash.TLongObjectHashMap
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -67,6 +68,7 @@ class NCube<T>
     private String name
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
+    private final TLongObjectHashMap<Axis> idToAxis = new TLongObjectHashMap<>(16, 0.8f)
     protected final Map<LongHashSet, T> cells = new THashMap<>(128, 0.8f)
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
@@ -775,9 +777,9 @@ class NCube<T>
             else
             {   // No cell, look for default
                 cellValue = (T) getColumnDefault(colIds)
-                if (!cellValue)
+                if (cellValue == null)
                 {   // No Column Default, try NCube default, and finally passed in default
-                    if (defaultCellValue)
+                    if (defaultCellValue != null)
                     {
                         cellValue = defaultCellValue
                     }
@@ -810,24 +812,16 @@ class NCube<T>
 
     private def getColumnDefault(Set<Long> colIds)
     {
-        // TODO: Always stored AxisID to axis
-        // TODO: have getAxisByColumnId() use the above Map
         // TODO: contains() APIs need to honor the default
         // TODO: HTML renderer needs to honor the default
         // TODO: getCellNoExecute() needs to honor the default
-        Iterator<Axis> i = axisList.values().iterator()
-        Map<Long, Axis> idToAxis = [:]
-
-        // Map Axis ids to Axis
-        while (i.hasNext())
-        {
-            Axis axis = (Axis) i.next()
-            idToAxis[axis.id] = axis
-        }
-
         for (colId in colIds)
         {
-            Axis axis = idToAxis[colId.intdiv(Axis.BASE_AXIS_ID).longValue()]
+            Axis axis = getAxisFromColumnId(colId)
+            if (axis == null)
+            {   // bad column id, continue check rest of column ids
+                continue
+            }
             Column boundCol = axis.getColumnById(colId)
             def colDef = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
             if (colDef)
@@ -1495,19 +1489,31 @@ class NCube<T>
     /**
      * Given the passed in Column ID, return the axis that contains the column.
      * @param id Long id of a Column on one of the Axes within this n-cube.
+     * @param columnMustExist boolean, defaults to true. The axis will only be
+     * returned if the column id passed in is that of a column on the axis. For
+     * example, a deleted column ID, while it may contain the correct axis id,
+     * it is no longer on the axis.  If this is false, then the axis will still
+     * be returned even if the column id represents a column no longer on the
+     * axis.  If true, both the axis and column must exist.
      * @return Axis containing the column id, or null if the id does not match
      * any columns.
      */
-    public Axis getAxisFromColumnId(long id)
+    public Axis getAxisFromColumnId(long id, boolean columnMustExist = true)
     {
-        for (axis in axisList.values())
+        Axis axis = idToAxis.get(id.intdiv(Axis.BASE_AXIS_ID).longValue())
+        if (axis == null)
         {
-            if (axis.getColumnById(id) != null)
-            {
-                return axis
-            }
+            return null
         }
-        return null
+
+        if (columnMustExist)
+        {
+            return axis.getColumnById(id) != null ? axis : null
+        }
+        else
+        {
+            return axis
+        }
     }
 
     /**
@@ -1574,6 +1580,7 @@ class NCube<T>
 
         cells.clear()
         axisList[axisName] = axis
+        idToAxis.put(axis.id, axis)
         clearSha1()
     }
 
@@ -1622,8 +1629,14 @@ class NCube<T>
      */
     public boolean deleteAxis(final String axisName)
     {
+        Axis axis = axisList[axisName]
+        if (!axis)
+        {
+            return false
+        }
         cells.clear()
         clearSha1()
+        idToAxis.remove(axis.id)
         return axisList.remove(axisName) != null
     }
 
@@ -2535,6 +2548,10 @@ class NCube<T>
         for (colId in idCoord)
         {
             Axis axis = getAxisFromColumnId(colId)
+            if (axis == null)
+            {
+                continue
+            }
             Column column = axis.getColumnById(colId)
             Object value = column.getValueThatMatches()
             if (value == null)
@@ -2576,7 +2593,7 @@ class NCube<T>
             Axis axis = getAxisFromColumnId(colId)
             if (axis == null)
             {
-                return coord
+                continue
             }
             Object value
             if (axis.getType() == AxisType.RULE)
