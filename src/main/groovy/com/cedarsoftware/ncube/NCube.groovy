@@ -76,7 +76,7 @@ class NCube<T>
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
     private static final ThreadLocal<Deque<StackEntry>> executionStack = new ThreadLocal<Deque<StackEntry>>() {
-        public Deque<StackEntry> initialValue()
+        Deque<StackEntry> initialValue()
         {
             return new ArrayDeque<>()
         }
@@ -86,7 +86,7 @@ class NCube<T>
      * Creata a new NCube instance with the passed in name
      * @param name String name to use for the NCube.
      */
-    public NCube(String name)
+    NCube(String name)
     {
         if (name != null)
         {   // If name is null, likely being instantiated via serialization
@@ -102,7 +102,7 @@ class NCube<T>
      * Modifications to this Map do not modify the actual meta properties of n-cube.  To do that,
      * you need to use setMetaProperty(), addMetaProperty(), or remoteMetaProperty()
      */
-    public Map getMetaProperties()
+    Map getMetaProperties()
     {
         return Collections.unmodifiableMap(metaProps)
     }
@@ -111,7 +111,7 @@ class NCube<T>
      * Fetch the value associated to the passed in Key from the MetaProperties (if any exist).  If
      * none exist, null is returned.
      */
-    public Object getMetaProperty(String key)
+    Object getMetaProperty(String key)
     {
         return metaProps[key]
     }
@@ -121,7 +121,7 @@ class NCube<T>
      * using this API, so as to allow executable values to be retrieved.
      * @param value Object value to be extracted.
      */
-    public Object extractMetaPropertyValue(Object value, Map input = [:], Map output = [:])
+    Object extractMetaPropertyValue(Object value, Map input = [:], Map output = [:])
     {
         if (value instanceof CommandCell)
         {
@@ -141,7 +141,7 @@ class NCube<T>
      * @param value Object value to associate to key
      * @return prior value associated to key or null if none was associated prior
      */
-    public Object setMetaProperty(String key, Object value)
+    Object setMetaProperty(String key, Object value)
     {
         clearSha1()
         return metaProps[key] = value
@@ -150,7 +150,7 @@ class NCube<T>
     /**
      * Remove a meta-property entry
      */
-    public Object removeMetaProperty(String key)
+    Object removeMetaProperty(String key)
     {
         Object prop =  metaProps.remove(key)
         clearSha1()
@@ -161,7 +161,7 @@ class NCube<T>
      * Add a Map of meta properties all at once.
      * @param allAtOnce Map of meta properties to add
      */
-    public void addMetaProperties(Map<String, Object> allAtOnce)
+    void addMetaProperties(Map<String, Object> allAtOnce)
     {
         for (entry in allAtOnce.entrySet())
         {
@@ -174,7 +174,7 @@ class NCube<T>
     /**
      * Remove all meta properties associated to this n-cube.
      */
-    public void clearMetaProperties()
+    void clearMetaProperties()
     {
         metaProps.clear()
         clearSha1()
@@ -190,13 +190,13 @@ class NCube<T>
         final String cubeName
         final Map coord
 
-        public StackEntry(String name, Map coordinate)
+        StackEntry(String name, Map coordinate)
         {
             cubeName = name
             coord = coordinate
         }
 
-        public String toString()
+        String toString()
         {
             StringBuilder s = new StringBuilder()
             s.append(cubeName)
@@ -231,7 +231,7 @@ class NCube<T>
     /**
      * @return List<Advice> advices added to this n-cube.
      */
-    public List<Advice> getAdvices(String method)
+    List<Advice> getAdvices(String method)
     {
         List<Advice> result = []
         method = '/' + method
@@ -258,7 +258,7 @@ class NCube<T>
     /**
      * @return ReleaseStatus of this n-cube as it was loaded.
      */
-    public String getStatus()
+    String getStatus()
     {
         return appId.getStatus()
     }
@@ -267,7 +267,7 @@ class NCube<T>
      * @return String version of this n-cube.  The version is set when the n-cube is loaded by
      * the NCubeManager.
      */
-    public String getVersion()
+    String getVersion()
     {
         return appId.getVersion()
     }
@@ -276,12 +276,12 @@ class NCube<T>
      * @return ApplicationID for this n-cube.  This contains the app name, version, etc. that this
      * n-cube is part of.
      */
-    public ApplicationID getApplicationID()
+    ApplicationID getApplicationID()
     {
         return appId
     }
 
-    public void setApplicationID(ApplicationID appId)
+    void setApplicationID(ApplicationID appId)
     {
         this.appId = appId
     }
@@ -301,7 +301,7 @@ class NCube<T>
     /**
      * @return String name of the NCube
      */
-    public String getName()
+    String getName()
     {
         return name
     }
@@ -316,7 +316,7 @@ class NCube<T>
      * attribute on the Column expression).  If you need to distinguish between a null
      * stored in a null, versus nothing being stored there, use containsCell() first.
      */
-    public T removeCell(final Map coordinate)
+    T removeCell(final Map coordinate)
     {
         clearSha1()
         return cells.remove(getCoordinateKey(coordinate))
@@ -326,7 +326,7 @@ class NCube<T>
      * Clear a cell directly from the cell sparse-matrix specified by the passed in Column
      * IDs. After this call, containsCell(coord) for the same coordinate would return false.
      */
-    public T removeCellById(final Set<Long> coordinate)
+    T removeCellById(final Set<Long> coordinate)
     {
         clearSha1()
         LongHashSet ids = ensureFullCoordinate(coordinate)
@@ -350,7 +350,7 @@ class NCube<T>
      * For RULE axes, the name of the Rule Axis must be bound to a rule name
      * (e.g. the 'name' attribute on the Column expression).
      */
-    public boolean containsCell(final Map coordinate, boolean useDefault = false)
+    boolean containsCell(final Map coordinate, boolean useDefault = false)
     {
         LongHashSet cols
         if (useDefault)
@@ -381,7 +381,7 @@ class NCube<T>
      * If no coordinate is supplied for an axis (or axes) that has a default column, then the default
      * column will be bound to for that axis (or axes).
      */
-    public boolean containsCellById(final Collection<Long> coordinate)
+    boolean containsCellById(final Collection<Long> coordinate)
     {
         LongHashSet ids = ensureFullCoordinate(coordinate)
         return cells.containsKey(ids)
@@ -395,7 +395,7 @@ class NCube<T>
      * locate to the nearest column on the axis.
      * @return the prior cells value.
      */
-    public T setCell(final T value, final Map coordinate)
+    T setCell(final T value, final Map coordinate)
     {
         if (!(value instanceof byte[]) && value != null && value.getClass().isArray())
         {
@@ -409,7 +409,7 @@ class NCube<T>
      * Set a cell directly into the cell sparse-matrix specified by the passed in
      * Column IDs.
      */
-    public T setCellById(final T value, final Set<Long> coordinate)
+    T setCellById(final T value, final Set<Long> coordinate)
     {
         if (!(value instanceof byte[]) && value != null && value.getClass().isArray())
         {
@@ -430,7 +430,7 @@ class NCube<T>
      * CommandCell instances for example, as opposed to the return value
      * of the executed CommandCell.
      */
-    public def getCellByIdNoExecute(final Set<Long> coordinate)
+    def getCellByIdNoExecute(final Set<Long> coordinate)
     {
         LongHashSet ids = ensureFullCoordinate(coordinate)
         return cells[ids]
@@ -446,7 +446,7 @@ class NCube<T>
      * @throws CoordinateNotFoundException if the coordinate does not represent a
      * coordinate with the space of this n-cube.
      */
-    public def getCellNoExecute(final Map coordinate)
+    def getCellNoExecute(final Map coordinate)
     {
         LongHashSet ids = getCoordinateKey(coordinate)
         return cells[ids]
@@ -470,7 +470,7 @@ class NCube<T>
      * location, then the n-cube's default value will be returned. If defaultValue is null,
      * then then n-cube defaultValue will be returned.
      */
-    public T at(final Map coordinate, final Map output = [:], Object defaultValue = null)
+    T at(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
         return getCell(coordinate, output, defaultValue)
     }
@@ -493,7 +493,7 @@ class NCube<T>
      * then the passed in defaultValue will be returned if it is not-null.  If defaultValue is null,
      * then then n-cube defaultValue will be returned.
      */
-    public T getCell(final Map coordinate, final Map output = [:], Object defaultValue = null)
+    T getCell(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
         final RuleInfo ruleInfo = getRuleInfo(output)
         Map input = validateCoordinate(coordinate, output)
@@ -687,7 +687,7 @@ class NCube<T>
     /**
      * @return boolean true if there is at least one rule axis, false if there are no rule axes.
      */
-    public boolean hasRuleAxis()
+    boolean hasRuleAxis()
     {
         for (axis in axisList.values())
         {
@@ -884,7 +884,7 @@ class NCube<T>
      * @return a Map containing Axis names and values to bind to those axes.  One of the
      * axes must have a Set bound to it.
      */
-    public Map<Object, T> getMap(final Map coordinate, Map output = [:], Object defaultValue = null)
+    Map<Object, T> getMap(final Map coordinate, Map output = [:], Object defaultValue = null)
     {
         final Map coord = validateCoordinate(coordinate, [:])
         final Axis wildcardAxis = getWildcardAxis(coord)
@@ -904,7 +904,7 @@ class NCube<T>
     /**
      * Get / Create the RuleInfo Map stored at output[NCube.RULE_EXEC_INFO]
      */
-    public static RuleInfo getRuleInfo(Map output)
+    static RuleInfo getRuleInfo(Map output)
     {
         final RuleInfo ruleInfo
         if (output.containsKey(RULE_EXEC_INFO))
@@ -920,7 +920,7 @@ class NCube<T>
     /**
      * Follow the exact same treatment of TRUTH as Groovy
      */
-    public static boolean isTrue(Object ruleValue)
+    static boolean isTrue(Object ruleValue)
     {
         if (ruleValue == null)
         {   // null indicates rule did NOT fire
@@ -1070,7 +1070,7 @@ class NCube<T>
      * @return Map where the fields of the object are the field names from the class, and the associated values are
      * the values associated to the fields on the object.
      */
-    public static Map objectToMap(final Object o)
+    static Map objectToMap(final Object o)
     {
         if (o == null)
         {
@@ -1204,7 +1204,7 @@ class NCube<T>
      * stored within in NCube.  The returned Set is the 'key' of NCube's cells Map, which
      * maps a coordinate (Set of column IDs) to the cell value.
      */
-    public LongHashSet getCoordinateKey(final Map coordinate)
+    LongHashSet getCoordinateKey(final Map coordinate)
     {
         Map safeCoord
 
@@ -1324,7 +1324,7 @@ class NCube<T>
      * as the most common cell value can be set as the defaultCellValue, and then the
      * cells that would have had this value can be left empty.
      */
-    public T getDefaultCellValue()
+    T getDefaultCellValue()
     {
         return defaultCellValue
     }
@@ -1336,7 +1336,7 @@ class NCube<T>
      * @param defaultCellValue T the default value that will be returned when a coordinate
      * specifies a cell that has no entry associated to it.
      */
-    public void setDefaultCellValue(final T defaultCellValue)
+    void setDefaultCellValue(final T defaultCellValue)
     {
         this.defaultCellValue = defaultCellValue
         clearSha1()
@@ -1345,7 +1345,7 @@ class NCube<T>
     /**
      * Clear all cell values.  All axes and columns remain.
      */
-    public void clearCells()
+    void clearCells()
     {
         cells.clear()
         clearSha1()
@@ -1360,7 +1360,7 @@ class NCube<T>
      *                    it is added), then the ID will be generated.  Optional.
      * @return Column the added Column.
      */
-    public Column addColumn(final String axisName, final Comparable value, String colName = null, Long suggestedId = null)
+    Column addColumn(final String axisName, final Comparable value, String colName = null, Long suggestedId = null)
     {
         final Axis axis = getAxis(axisName)
         if (axis == null)
@@ -1379,7 +1379,7 @@ class NCube<T>
      * @param value Comparable value used to identify column (Long if identifying a RULE column)
      * @return boolean true if deleted, false otherwise
      */
-    public boolean deleteColumn(final String axisName, final Comparable value)
+    boolean deleteColumn(final String axisName, final Comparable value)
     {
         final Axis axis = getAxis(axisName)
         if (axis == null)
@@ -1443,7 +1443,7 @@ class NCube<T>
      * @param id long indicates the column to change
      * @param value Comparable new value to set into the column
      */
-    public void updateColumn(long id, Comparable value)
+    void updateColumn(long id, Comparable value)
     {
         Axis axis = getAxisFromColumnId(id)
         if (axis == null)
@@ -1462,7 +1462,7 @@ class NCube<T>
      *             for example, would call this API with an axisName and set of new columns.
      * @return Set<Long> column ids, indicating which columns were deleted.
      */
-    public Set<Long> updateColumns(final String axisName, final Collection<Column> newCols)
+    Set<Long> updateColumns(final String axisName, final Collection<Column> newCols)
     {
         if (newCols == null)
         {
@@ -1510,7 +1510,7 @@ class NCube<T>
      * @return Axis containing the column id, or null if the id does not match
      * any columns.
      */
-    public Axis getAxisFromColumnId(long id, boolean columnMustExist = true)
+    Axis getAxisFromColumnId(long id, boolean columnMustExist = true)
     {
         Axis axis = idToAxis.get(id.intdiv(Axis.BASE_AXIS_ID).longValue())
         if (axis == null)
@@ -1532,7 +1532,7 @@ class NCube<T>
      * @return int total number of cells that are uniquely set (non default)
      * within this NCube.
      */
-    public int getNumCells()
+    int getNumCells()
     {
         return cells.size()
     }
@@ -1540,7 +1540,7 @@ class NCube<T>
     /**
      * @return long number of potential cells this n-cube potentially has
      */
-    public long getNumPotentialCells()
+    long getNumPotentialCells()
     {
         long space = 1
         for (axis in axisList.values())
@@ -1553,7 +1553,7 @@ class NCube<T>
     /**
      * @return read-only copy of the n-cube cells.
      */
-    public Map<LongHashSet, T> getCellMap()
+    Map<LongHashSet, T> getCellMap()
     {
         return Collections.unmodifiableMap(cells)
     }
@@ -1564,7 +1564,7 @@ class NCube<T>
      * @return Axis instance requested by name, or null
      * if it does not exist.
      */
-    public Axis getAxis(final String axisName)
+    Axis getAxis(final String axisName)
     {
         return axisList[axisName]
     }
@@ -1574,7 +1574,7 @@ class NCube<T>
      * All cells will be cleared when axis is added.
      * @param axis Axis to add
      */
-    public void addAxis(final Axis axis)
+    void addAxis(final Axis axis)
     {
         String axisName = axis.name
         if (axisList.containsKey(axisName))
@@ -1601,7 +1601,7 @@ class NCube<T>
      * @param oldName String old name
      * @param newName String new name
      */
-    public void renameAxis(final String oldName, final String newName)
+    void renameAxis(final String oldName, final String newName)
     {
         if (StringUtilities.isEmpty(oldName) || StringUtilities.isEmpty(newName))
         {
@@ -1626,7 +1626,7 @@ class NCube<T>
      * Convert a reference axis to a non-reference axis.  'Break the Reference.'
      * @param axisName String name of reference axis to convert.
      */
-    public void breakAxisReference(final String axisName)
+    void breakAxisReference(final String axisName)
     {
         Axis axis = getAxis(axisName)
         axis.breakReference()
@@ -1639,7 +1639,7 @@ class NCube<T>
      * @param axisName String name of axis to remove
      * @return boolean true if removed, false otherwise
      */
-    public boolean deleteAxis(final String axisName)
+    boolean deleteAxis(final String axisName)
     {
         Axis axis = axisList[axisName]
         if (!axis)
@@ -1655,7 +1655,7 @@ class NCube<T>
     /**
      * @return int the number of axis (dimensions) for this n-cube.
      */
-    public int getNumDimensions()
+    int getNumDimensions()
     {
         return axisList.size()
     }
@@ -1663,7 +1663,7 @@ class NCube<T>
     /**
      * @return List<Axis> a List of all axis within this n-cube.
      */
-    public List<Axis> getAxes()
+    List<Axis> getAxes()
     {
         return new ArrayList<>(axisList.values())
     }
@@ -1671,7 +1671,7 @@ class NCube<T>
     /**
      * @return Set<String> containing all axis names on this n-cube.
      */
-    public Set<String> getAxisNames()
+    Set<String> getAxisNames()
     {
         return new CaseInsensitiveSet<>(axisList.keySet())
     }
@@ -1686,7 +1686,7 @@ class NCube<T>
      *
      * @return Set of String scope key names that are optional.
      */
-    public Set<String> getOptionalScope(Map input, Map output)
+    Set<String> getOptionalScope(Map input, Map output)
     {
         final Set<String> optionalScope = new CaseInsensitiveSet<>()
 
@@ -1715,7 +1715,7 @@ class NCube<T>
      * @return Set<String> names of axes that will need to be in an input coordinate
      * in order to use all cells within this NCube.
      */
-    public Set<String> getRequiredScope(Map input, Map output)
+    Set<String> getRequiredScope(Map input, Map output)
     {
         final Set<String> requiredScope = getRequiredAxes()
         requiredScope.addAll(getDeclaredScope(input, output))
@@ -1759,7 +1759,7 @@ class NCube<T>
      * @return Set<String> names of all referenced cubes within this
      * specific NCube.  It is not recursive.
      */
-    public Set<String> getReferencedCubeNames()
+    Set<String> getReferencedCubeNames()
     {
         final Set<String> cubeNames = new LinkedHashSet<>()
 
@@ -1799,7 +1799,7 @@ class NCube<T>
      * matches one of the passed in headers, will be the axis chosen to be displayed at the top.
      * @return String containing an HTML view of this NCube.
      */
-    public String toHtml(String ... headers)
+    String toHtml(String ... headers)
     {
         return new HtmlFormatter(headers).format(this)
     }
@@ -1810,12 +1810,12 @@ class NCube<T>
      * @return String JSON representing this entire n-cube, in the format controlled by the passed
      * in options Map.
      */
-    public String toFormattedJson(Map options = null)
+    String toFormattedJson(Map options = null)
     {
         return new JsonFormatter().format(this, options)
     }
 
-    public String toString()
+    String toString()
     {
         return toFormattedJson()
     }
@@ -1832,7 +1832,7 @@ class NCube<T>
      * not added to the static list of NCubes.  If you want that, call
      * addCube() after creating the NCube with this API.
      */
-    public static <T> NCube<T> fromSimpleJson(final String json)
+    static <T> NCube<T> fromSimpleJson(final String json)
     {
         try
         {
@@ -1859,7 +1859,7 @@ class NCube<T>
      * not added to the static list of NCubes.  If you want that, call
      * addCube() after creating the NCube with this API.
      */
-    public static <T> NCube<T> fromSimpleJson(final InputStream stream)
+    static <T> NCube<T> fromSimpleJson(final InputStream stream)
     {
         try
         {
@@ -2227,14 +2227,14 @@ class NCube<T>
     /**
      * Create an equivalent n-cube as 'this'.
      */
-    public NCube duplicate(String newName)
+    NCube duplicate(String newName)
     {
         NCube copy = createCubeFromBytes(getCubeAsGzipJsonBytes())
         copy.setName(newName)
         return copy
     }
 
-    public boolean equals(Object other)
+    boolean equals(Object other)
     {
         if (!(other instanceof NCube))
         {
@@ -2249,12 +2249,12 @@ class NCube<T>
         return sha1().equalsIgnoreCase(((NCube) other).sha1())
     }
 
-    public int hashCode()
+    int hashCode()
     {
         return name.hashCode()
     }
 
-    public void clearSha1()
+    void clearSha1()
     {
         sha1 = null
     }
@@ -2265,7 +2265,7 @@ class NCube<T>
      * APIs.  To use with getCell(), any rule axis bindings in the coordinate would need to be removed.  This is
      * because it is expected that getCell() will run all conditions on a rule axis.
      */
-    public List<Map<String, T>> getPopulatedCellCoordinates()
+    List<Map<String, T>> getPopulatedCellCoordinates()
     {
         List<Map<String, T>> coords = []
         for (entry in cells.entrySet())
@@ -2282,7 +2282,7 @@ class NCube<T>
      * @return SHA1 value for this n-cube.  The value is durable in that Axis order and
      * cell order do not affect the SHA1 value.
      */
-    public String sha1()
+    String sha1()
     {
         // Check if the SHA1 is already calculated.  If so, return it.
         // In order to cache it successfully, all mutable operations on n-cube must clear the SHA1.
@@ -2512,7 +2512,7 @@ class NCube<T>
      * @return boolean true if the passed in cube has the same number of axes, the axes have the same names, otherwise
      * false.
      */
-    public boolean isComparableCube(NCube<T> other)
+    boolean isComparableCube(NCube<T> other)
     {
         if (getNumDimensions() != other.getNumDimensions())
         {   // Must have same dimensionality
@@ -2554,7 +2554,7 @@ class NCube<T>
      * are the associated values that would bind to the axes, except for default column
      * and rule axes.  This API is typically used for display purposes.
      */
-    public Map<String, T> getDisplayCoordinateFromIds(Set<Long> idCoord)
+    Map<String, T> getDisplayCoordinateFromIds(Set<Long> idCoord)
     {
         Map<String, T> properCoord = new CaseInsensitiveMap<>()
         for (colId in idCoord)
@@ -2597,7 +2597,7 @@ class NCube<T>
      * and getCellNoExecute() APIs.  To use with getCell(), remove the entry or entries
      * that have rule axis names.
      */
-    public Map getCoordinateFromIds(Set<Long> idCoord)
+    Map getCoordinateFromIds(Set<Long> idCoord)
     {
         Map coord = new CaseInsensitiveMap<>()
         for (colId in idCoord)
@@ -2636,7 +2636,7 @@ class NCube<T>
      * plus 1 for adding another axis.
      * @return long the highest ID used by any axis.
      */
-    public long getMaxAxisId()
+    long getMaxAxisId()
     {
         long max = 0
         for (axis in axisList.values())
@@ -2671,7 +2671,7 @@ class NCube<T>
      * @param cubeName String cube name to test.
      * @throws IllegalArgumentException if the name is invalid, otherwise it is silent.
      */
-    public static void validateCubeName(String cubeName)
+    static void validateCubeName(String cubeName)
     {
         if (StringUtilities.isEmpty(cubeName))
         {
@@ -2691,7 +2691,7 @@ class NCube<T>
      * are JSON content representing an n-cube.  Calling ncube.toFormattedJson() is the source
      * of the JSON format used.
      */
-    public static <T> NCube<T> createCubeFromBytes(byte[] bytes)
+    static <T> NCube<T> createCubeFromBytes(byte[] bytes)
     {
         return createCubeFromStream(new ByteArrayInputStream(bytes))
     }
@@ -2700,7 +2700,7 @@ class NCube<T>
      * Create an n-cube from a stream of bytes.  The stream can be either a JSON stream
      * of an n-cube or a g-zip JSON stream.
      */
-    public static <T> NCube<T> createCubeFromStream(InputStream stream)
+    static <T> NCube<T> createCubeFromStream(InputStream stream)
     {
         if (stream == null)
         {
@@ -2738,7 +2738,7 @@ class NCube<T>
     /**
      * @return byte[] containing the bytes of this N-Cube when converted to JSON format and then gzipped.
      */
-    public byte[] getCubeAsGzipJsonBytes()
+    byte[] getCubeAsGzipJsonBytes()
     {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream()
         OutputStream gzipOut = null
@@ -2763,7 +2763,7 @@ class NCube<T>
      * Set the name of this n-cube
      * @param name String name
      */
-    public void setName(String name)
+    void setName(String name)
     {
         this.name = name
         clearSha1()
@@ -2775,7 +2775,7 @@ class NCube<T>
      * @param axisName String name of axis to get (case ignored)
      * @return Axis if found, null otherwise.
      */
-    public Axis get(String axisName)
+    Axis get(String axisName)
     {
         return axisList[axisName]
     }
