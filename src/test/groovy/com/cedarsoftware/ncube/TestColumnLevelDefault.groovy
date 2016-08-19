@@ -33,7 +33,7 @@ class TestColumnLevelDefault
         column.setMetaProperty(Column.DEFAULT_VALUE, 'kid')
 
         column = axis.findColumn(25)
-        column.setMetaProperty(Column.DEFAULT_VALUE, 'young adult')
+        column.setMetaProperty(Column.DEFAULT_VALUE, 'adult')
 
         ncube.setCell(1.0d, [age:15, gender:'Male'])
         ncube.setCell(2.0d, [age:15, gender:'Female'])
@@ -43,9 +43,9 @@ class TestColumnLevelDefault
         assert x == 2.0d
 
         x = ncube.getCell([age:25, gender:'Male'])
-        assert 'young adult' == x
+        assert 'adult' == x
         x = ncube.getCell([age:25, gender:'Female'])
-        assert 'young adult' == x
+        assert 'adult' == x
 
         x = ncube.getCell([age:35, gender:'Male'])
         assert Math.PI == x
@@ -57,7 +57,26 @@ class TestColumnLevelDefault
         x = ncube.getCell([age:50, gender:'Female'])
         assert Math.PI == x
 
+        ncube.toHtml()  // covers code inside HtmlFormatter dealing with column-level defaults
+        ncube.setDefaultCellValue(null)
+
+        assert ncube.containsCell([age:15, gender:'Male'], true)
+        assert ncube.containsCell([age:15, gender:'Female'], true)
+        assert ncube.containsCell([age:15, gender:'Male'], false)
+        assert ncube.containsCell([age:15, gender:'Female'], false)
+
+        assert ncube.containsCell([age:25, gender:'Male'], true)
+        assert ncube.containsCell([age:25, gender:'Female'], true)
+        assert !ncube.containsCell([age:25, gender:'Male'], false)
+        assert !ncube.containsCell([age:25, gender:'Female'], false)
+
         ncube.clearCells()
+
+        assert ncube.containsCell([age:15, gender:'Male'], true)
+        assert ncube.containsCell([age:15, gender:'Female'], true)
+        assert !ncube.containsCell([age:15, gender:'Male'], false)
+        assert !ncube.containsCell([age:15, gender:'Female'], false)
+
         x = ncube.getCell([age:15, gender:'Male'])
         assert 'kid' == x
     }

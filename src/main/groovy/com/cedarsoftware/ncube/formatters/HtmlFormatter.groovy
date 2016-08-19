@@ -49,6 +49,9 @@ public class HtmlFormatter implements NCubeFormatter
         _headers = headers
     }
 
+    // TODO: getCellNoExecute() needs to honor the default
+    // TODO: Mutators need to gripe if COLUMN_DEFAULT added to more than one axis
+
     /**
      * Calculate important values needed to display an NCube.
      *
@@ -454,7 +457,8 @@ public class HtmlFormatter implements NCubeFormatter
   padding-bottom:1px
 }
 
-.cell-def { color:#ccc; }
+.def-cell-color { color:#ccc; }
+.def-cell-col-color { color:#b4cdcd; }
 
 .cell-url {
   color: red;
@@ -463,13 +467,6 @@ public class HtmlFormatter implements NCubeFormatter
 }
 
 .cell-code {
-  text-align: left;
-  vertical-align: top;
-  font-family:menlo,"Lucida Console",monaco,monospace,courier;
-}
-
-.cell-code-def {
-  color:#ccc;
   text-align: left;
   vertical-align: top;
   font-family:menlo,"Lucida Console",monaco,monospace,courier;
@@ -527,7 +524,7 @@ th.ncube-dead:hover { background: #76A7FF; }
         s.append(' <td data-id="').append(makeCellId(coord)).append('" class="td-ncube ' + oddRow)
 
         if (ncube.containsCellById(coord))
-        {
+        {   // Populated cell
             final Object cell = ncube.getCellByIdNoExecute(coord)
             if (cell instanceof CommandCell)
             {
@@ -551,26 +548,43 @@ th.ncube-dead:hover { background: #76A7FF; }
             }
         }
         else
-        {
-            Object defVal = ncube.getDefaultCellValue()
+        {   // Handle default cells (table or column)
+            def defVal = ncube.getColumnDefault(coord)
+            String colorClass
+            if (defVal == null)
+            {
+                colorClass = 'def-cell-color'
+                defVal = ncube.getDefaultCellValue()
+            }
+            else
+            {
+                colorClass = 'def-cell-col-color'
+            }
+
             if (defVal instanceof CommandCell)
             {
                 final CommandCell cmd = (CommandCell) defVal;
                 if (StringUtilities.hasContent(cmd.url))
                 {
-                    s.append('cell cell-url"><a class="cell-def" href="#">')
+                    s.append('cell cell-url"><a class="')
+                    s.append(colorClass)
+                    s.append('" href="#">')
                     s.append(cmd.url)
                     s.append("</a>")
                 }
                 else
                 {
-                    s.append('cell cell-code-def">')
+                    s.append('cell cell-code ')
+                    s.append(colorClass)
+                    s.append('">')
                     s.append(escapeHTML(getCellValueAsString(defVal)))
                 }
             }
             else if (defVal != null)
             {   // not null
-                s.append('cell cell-def">')
+                s.append('cell ')
+                s.append(colorClass)
+                s.append('">')
                 s.append(escapeHTML(getCellValueAsString(defVal)))
             }
             else

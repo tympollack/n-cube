@@ -352,16 +352,27 @@ class NCube<T>
      */
     public boolean containsCell(final Map coordinate, boolean useDefault = false)
     {
+        LongHashSet cols
         if (useDefault)
         {
             if (defaultCellValue != null)
-            {
+            {   // n-cube default not-null, so yes it 'contains cell' (when useDefault true)
+                return true
+            }
+            cols = getCoordinateKey(coordinate)
+            if (getColumnDefault(cols) != null)
+            {   // n-cube column default not-null, so yes it 'contains cell' (when useDefault true)
                 return true
             }
         }
-        LongHashSet cols = getCoordinateKey(coordinate)
+        else
+        {
+            cols = getCoordinateKey(coordinate)
+        }
+
         return cells.containsKey(cols)
     }
+
 
     /**
      * @return true if and only if there is a cell stored at the location
@@ -810,11 +821,12 @@ class NCube<T>
         }
     }
 
-    private def getColumnDefault(Set<Long> colIds)
+    /**
+     * Given the passed in column IDs, return the column level default value
+     * if one exists or null otherwise.
+     */
+    def getColumnDefault(Set<Long> colIds)
     {
-        // TODO: contains() APIs need to honor the default
-        // TODO: HTML renderer needs to honor the default
-        // TODO: getCellNoExecute() needs to honor the default
         for (colId in colIds)
         {
             Axis axis = getAxisFromColumnId(colId)
