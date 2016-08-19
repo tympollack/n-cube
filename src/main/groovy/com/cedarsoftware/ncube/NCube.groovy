@@ -430,7 +430,7 @@ class NCube<T>
      * CommandCell instances for example, as opposed to the return value
      * of the executed CommandCell.
      */
-    public T getCellByIdNoExecute(final Set<Long> coordinate)
+    public def getCellByIdNoExecute(final Set<Long> coordinate)
     {
         LongHashSet ids = ensureFullCoordinate(coordinate)
         return cells[ids]
@@ -446,7 +446,7 @@ class NCube<T>
      * @throws CoordinateNotFoundException if the coordinate does not represent a
      * coordinate with the space of this n-cube.
      */
-    public T getCellNoExecute(final Map coordinate)
+    public def getCellNoExecute(final Map coordinate)
     {
         LongHashSet ids = getCoordinateKey(coordinate)
         return cells[ids]

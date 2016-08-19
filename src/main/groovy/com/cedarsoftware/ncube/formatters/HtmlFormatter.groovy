@@ -49,9 +49,6 @@ public class HtmlFormatter implements NCubeFormatter
         _headers = headers
     }
 
-    // TODO: getCellNoExecute() needs to honor the default
-    // TODO: Mutators need to gripe if COLUMN_DEFAULT added to more than one axis
-
     /**
      * Calculate important values needed to display an NCube.
      *
