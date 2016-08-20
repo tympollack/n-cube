@@ -857,12 +857,11 @@ class NCubeManager
         validateAppId(targetAppId)
         targetAppId.validateStatusIsNotRelease()
         assertNotLockBlocked(targetAppId)
+        int rows = getPersister().copyBranch(srcAppId, targetAppId)
         if (!targetAppId.isHead())
         {
-            detectNewAppId(targetAppId)
-            addBranchPermissionsCube(targetAppId)
+            addBranchPermissionsCube(targetAppId);
         }
-        int rows = getPersister().copyBranch(srcAppId, targetAppId)
         clearCache(targetAppId)
         broadcast(targetAppId)
         return rows
