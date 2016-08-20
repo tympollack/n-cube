@@ -545,7 +545,7 @@ th.ncube-dead:hover { background: #76A7FF; }
             }
         }
         else
-        {   // Handle default cells (table or column)
+        {   // Handle default cells (n-cube or column)
             def defVal = ncube.getColumnDefault(coord)
             String colorClass
             if (defVal == null)

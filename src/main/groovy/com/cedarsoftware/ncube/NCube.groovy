@@ -827,10 +827,14 @@ class NCube<T>
 
     /**
      * Given the passed in column IDs, return the column level default value
-     * if one exists or null otherwise.
+     * if one exists or null otherwise.  In the case of intersection, then null
+     * is returned, meaning that the n-cube level default cell value will be
+     * returned at intersections.
      */
     def getColumnDefault(Set<Long> colIds)
     {
+        def colDef = null
+
         for (colId in colIds)
         {
             Axis axis = getAxisFromColumnId(colId)
@@ -839,14 +843,18 @@ class NCube<T>
                 continue
             }
             Column boundCol = axis.getColumnById(colId)
-            def colDef = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-            if (colDef)
+            def metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+            if (metaValue != null)
             {
-                return colDef
+                if (colDef != null)
+                {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
+                    return null
+                }
+                colDef = metaValue
             }
         }
 
-        return null
+        return colDef
     }
 
     private static void trackInputKeysUsed(Map input, Map output)

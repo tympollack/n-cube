@@ -860,7 +860,7 @@ class NCubeManager
         int rows = getPersister().copyBranch(srcAppId, targetAppId)
         if (!targetAppId.isHead())
         {
-            addBranchPermissionsCube(targetAppId);
+            addBranchPermissionsCube(targetAppId)
         }
         clearCache(targetAppId)
         broadcast(targetAppId)
