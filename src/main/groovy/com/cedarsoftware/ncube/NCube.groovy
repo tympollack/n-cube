@@ -467,8 +467,10 @@ class NCube<T>
      *                     n-cube is returned, but if this parameter is passed a non-null value,
      *                     then it will be returned.
      * @return Cell pinpointed by the input coordinate.  If there is nothing stored at this
-     * location, then the n-cube's default value will be returned. If defaultValue is null,
-     * then then n-cube defaultValue will be returned.
+     * location, then if there is an axis containing a column with a default value (set as
+     * meta-property Column.DEFAULT_VALUE [key: 'default_value']), then that will be returned.
+     * If there is no column with a default value, then the n-cube's default value will be
+     * returned. If defaultValue is null, then then n-cube defaultValue argument will be returned.
      */
     T at(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
@@ -489,9 +491,11 @@ class NCube<T>
      *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
      *                     n-cube is returned, but if this parameter is passed a non-null value,
      *                     then it will be returned.
-     * @return Cell pinpointed by the input coordinate. If there is nothing stored at this location,
-     * then the passed in defaultValue will be returned if it is not-null.  If defaultValue is null,
-     * then then n-cube defaultValue will be returned.
+     * @return Cell pinpointed by the input coordinate.  If there is nothing stored at this
+     * location, then if there is an axis containing a column with a default value (set as
+     * meta-property Column.DEFAULT_VALUE [key: 'default_value']), then that will be returned.
+     * If there is no column with a default value, then the n-cube's default value will be
+     * returned. If defaultValue is null, then then n-cube defaultValue argument will be returned.
      */
     T getCell(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
