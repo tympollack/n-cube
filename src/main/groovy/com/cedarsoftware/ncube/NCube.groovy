@@ -848,7 +848,10 @@ class NCube<T>
             {
                 if (colDef != null)
                 {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
-                    return null
+                    if (colDef != metaValue)
+                    {
+                        return null
+                    }
                 }
                 colDef = metaValue
             }
