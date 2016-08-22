@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.83</version>
+  <version>3.4.84</version>
 </dependency>
 ```
 Like **n-cube** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -96,6 +96,9 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.84
+ * A default cell value can be specified by a column meta-property ('default_value').  If columns on different axes specify a default value, then the value at the intersection is the same as the column default if the intersecting columns have the same value, otherwise the n-cube level default is returned.
+ * The priority for cell value is 1) specified cell value, 2) column-level default, 3) n-cube default, 4) passed in default value to `at()`, `getCell()`.
 * 3.4.83
  * `CdnClassLoader` updated to allow Groovy Grape annotations to fetch external content.
  * `CdnClassLoader` caches resource URLs (relative URL Strings that were expanded to fully qualified URLs against the classpath).  These are cleared when the class loader cache is cleared.
