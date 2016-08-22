@@ -857,11 +857,11 @@ class NCubeManager
         validateAppId(targetAppId)
         targetAppId.validateStatusIsNotRelease()
         assertNotLockBlocked(targetAppId)
-        int rows = getPersister().copyBranch(srcAppId, targetAppId)
-        if (!targetAppId.isHead())
+        if (targetAppId.version != '0.0.0')
         {
-            addBranchPermissionsCube(targetAppId)
+            detectNewAppId(targetAppId)
         }
+        int rows = getPersister().copyBranch(srcAppId, targetAppId)
         clearCache(targetAppId)
         broadcast(targetAppId)
         return rows
@@ -2313,7 +2313,10 @@ class NCubeManager
         if (search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false]).size() == 0)
         {
             addAppPermissionsCubes(appId)
-            addBranchPermissionsCube(appId)
+            if (!appId.isHead())
+            {
+                addBranchPermissionsCube(appId)
+            }
         }
     }
 
