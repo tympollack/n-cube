@@ -1097,7 +1097,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 }
                 if (count > max)
                 {
-                    throw new IllegalStateException('More than one result returned, expecting only 1')
+                    throw new IllegalStateException('More results returned than expected, expecting only ' + max)
                 }
                 count++
                 closure(row)
