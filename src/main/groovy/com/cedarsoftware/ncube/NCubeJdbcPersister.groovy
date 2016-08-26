@@ -579,7 +579,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         Long oldRevision = null
         String oldSha1 = null
         String oldHeadSha1 = null
-        byte[] oldTestData = null
+        byte[] testData = null
 
         Map<String, Object> options = [
                 (NCubeManager.SEARCH_INCLUDE_CUBE_DATA):true,
@@ -590,7 +590,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         runSelectCubesStatement(c, appId, oldName, options, 1, { ResultSet row ->
             oldBytes = row.getBytes(CUBE_VALUE_BIN)
             oldRevision = row.getLong('revision_number')
-            oldTestData = row.getBytes(TEST_DATA_BIN)
+            testData = row.getBytes(TEST_DATA_BIN)
             oldSha1 = row.getString('sha1')
             oldHeadSha1 = row.getString('head_sha1')
         })
@@ -625,9 +625,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         ncube.setName(newName)
         String notes = "renamed: " + oldName + " -> " + newName
 
-        Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
-        insertCube(c, appId, ncube, rev, oldTestData, notes, true, newHeadSha1, username, 'renameCube')
-        insertCube(c, appId, oldName, -(oldRevision + 1), oldBytes, oldTestData, notes, true, oldSha1, oldHeadSha1, username, 'renameCube')
+        Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L    // New n-cube will start at 0 (unless we are re-using the name of a deleted cube, in which case it will start +1 from that)
+        insertCube(c, appId, oldName, -(oldRevision + 1), oldBytes, testData, notes, true, oldSha1, oldHeadSha1, username, 'renameCube')    // delete cube being renamed
+        insertCube(c, appId, ncube, rev, testData, notes, true, newHeadSha1, username, 'renameCube')                                        // create new cube
         return true
     }
 
@@ -1090,7 +1090,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         if (max >= 1)
         {   // Use pre-closure to fiddle with batch fetchSize and to monitor row count
             long count = 0
-            sql.eachRow(map, select, 0, max + 1, { ResultSet row ->
+            sql.eachRow(map, select, 0, max, { ResultSet row ->
                 if (row.getFetchSize() < FETCH_SIZE)
                 {
                     row.setFetchSize(FETCH_SIZE)

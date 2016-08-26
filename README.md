@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.84</version>
+  <version>3.4.85</version>
 </dependency>
 ```
 ### Sponsors
@@ -95,6 +95,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.85
+ * The value-side of meta-properties on n-cube, axis, or column can now be any Java primitive type, String, Date, BigDecimal, BigInteger, Point2D, Point3D, LatLon, byte[], or any CommandCell     
 * 3.4.84
  * A default cell value can be specified by a column meta-property ('default_value').  If columns on different axes specify a default value, then the value at the intersection is the same as the column default if the intersecting columns have the same value, otherwise the n-cube level default is returned.
  * The priority for cell value is 1) specified cell value, 2) column-level default, 3) n-cube default, 4) passed in default value to `at()`, `getCell()`.
