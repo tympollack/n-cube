@@ -1527,7 +1527,7 @@ class NCubeManager
         NCube.validateCubeName(oldName)
         NCube.validateCubeName(newName)
 
-        if (oldName.equalsIgnoreCase(newName))
+        if (oldName.equals(newName))
         {
             throw new IllegalArgumentException('Could not rename, old name cannot be the same as the new name, name: ' + oldName + ', app: ' + appId)
         }

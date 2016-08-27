@@ -1297,9 +1297,9 @@ class TestWithPreloadedDatabase
 
 
     @Test
-    void testRenameCubeWhenNewNameAlreadyExists() {
+    void testRenameCubeWhenNewNameAlreadyExists()
+    {
         ApplicationID head = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", ApplicationID.HEAD)
-        ApplicationID branch = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", "FOO")
 
         // load cube with same name, but different structure in TEST branch
         preloadCubes(head, "test.branch.1.json", "test.branch.age.1.json")
@@ -1311,16 +1311,7 @@ class TestWithPreloadedDatabase
         testValuesOnBranch(head)
         testValuesOnBranch(branch1)
 
-        try
-        {
-    NCubeManager.renameCube(branch1, "TestBranch", "TestAge")
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertTrue(e.message.contains("Unable to rename"))
-            assertTrue(e.message.contains("already exists"))
-        }
+        assert NCubeManager.renameCube(branch1, "TestBranch", "TestAge")
     }
 
     @Test
