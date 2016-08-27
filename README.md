@@ -97,6 +97,7 @@ ___
 ### Version History
 * 3.4.86
  * Rename cube - now allows name to be only changed by case.
+ * Bug fix: Meta-property values that have the URL or CACHE flag set to true now retain the setting.
 * 3.4.85
  * The value-side of meta-properties on n-cube, axis, or column can now be any Java primitive type, String, Date, BigDecimal, BigInteger, Point2D, Point3D, LatLon, byte[], or any CommandCell     
 * 3.4.84
