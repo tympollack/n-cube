@@ -45,6 +45,8 @@ class TestMetaProperties
         small.setMetaProperty('null2', new CellInfo(null))
         small.setMetaProperty('latlon', new LatLon(51.5034070,-0.1275920))
         small.setMetaProperty('latlon2', new CellInfo(new LatLon(51.5034070,-0.1275920)))
+        small.setMetaProperty('command', new GroovyExpression(null, 'http://ncube.io', true))
+        small.setMetaProperty('command2', new CellInfo(new GroovyExpression(null, 'http://ncube.io', true)))
 
         String json = small.toFormattedJson()
         NCube copy = NCube.fromSimpleJson(json)
@@ -96,6 +98,16 @@ class TestMetaProperties
         latlon = (LatLon) x
         assert latlon.lat == 51.5034070d
         assert latlon.lon == -0.1275920d
+
+        x = copy.getMetaProperty('command')
+        assert x instanceof GroovyExpression
+        exp = (GroovyExpression) x
+        assert exp.url == 'http://ncube.io'
+        assert exp.isCacheable()
+        x = copy.getMetaProperty('command2')
+        assert x instanceof GroovyExpression
+        assert exp.url == 'http://ncube.io'
+        assert exp.isCacheable()
     }
 
     @Test

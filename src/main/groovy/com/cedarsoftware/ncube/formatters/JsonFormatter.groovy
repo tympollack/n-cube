@@ -164,7 +164,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 writeObjectKey(key)
                 startObject()
                 writeType(cell.dataType)
-                writeCellValue(cell.value)
+                writeCellValue(cell.recreate())
                 endObject()
             }
             else
@@ -174,7 +174,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 writeObjectKey(key)
                 startObject()
                 writeType(cell.dataType)
-                writeCellValue(cell.value)
+                writeCellValue(cell.recreate())
                 endObject()
             }
 

@@ -6,7 +6,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.85</version>
+  <version>3.4.86</version>
 </dependency>
 ```
 ### Sponsors
@@ -95,6 +95,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.86
+ * Rename cube - now allows name to be only changed by case.
 * 3.4.85
  * The value-side of meta-properties on n-cube, axis, or column can now be any Java primitive type, String, Date, BigDecimal, BigInteger, Point2D, Point3D, LatLon, byte[], or any CommandCell     
 * 3.4.84
