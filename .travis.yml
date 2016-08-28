@@ -7,7 +7,7 @@ jdk:
 
 install: mvn -B install -U -DskipTests=true
 
-script: mvn -B verify -U -Dmaven.javadoc.skip=true
+script: mvn -B verify -U -Dmaven.javadoc.skip=true -Dmaven.groovydoc.skip=true
 
 after_success:
 
