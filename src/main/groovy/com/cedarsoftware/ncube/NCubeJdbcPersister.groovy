@@ -1068,7 +1068,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         if (hasNamePattern)
         {
             nameCondition1 = ' AND ' + buildNameCondition('n_cube_nm') + (exactMatchName ? ' = :name' : ' LIKE :name')
-            nameCondition2 = ' AND ' + buildNameCondition('m.low_name') + (exactMatchName ? ' = :name' : ' LIKE :name')
+            nameCondition2 = ' AND m.low_name ' + (exactMatchName ? '= :name' : 'LIKE :name')
         }
 
         String revisionCondition = activeRecordsOnly ? ' AND n.revision_number >= 0' : deletedRecordsOnly ? ' AND n.revision_number < 0' : ''
