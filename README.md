@@ -9,7 +9,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.86</version>
+  <version>3.4.87</version>
 </dependency>
 ```
 ### Sponsors
@@ -98,6 +98,8 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.87
+ * Minor tweak [removed one use of LOWER()]to main SELECT statement in the NCubePersister which fetches n-cubes matching various patterns.
 * 3.4.86
  * Rename cube - now allows name to be only changed by case.
  * Bug fix: Meta-property values that have the URL or CACHE flag set to true now retain the setting.
