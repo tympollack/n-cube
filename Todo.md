@@ -27,3 +27,4 @@ n-cube 'ToDo' list
 ### n-cube editor (NCE)
 * TODO: create visualization of n-cube in NCE
 * Run all tests
+* Merge between non-HEAD branches
