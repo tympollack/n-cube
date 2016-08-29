@@ -29,4 +29,3 @@ n-cube 'ToDo' list
 * TODO: create visualization of n-cube in NCE
 * Run all tests
 
-* TODO: Figure out what tabs have changed on the backend and return any that need updating.
