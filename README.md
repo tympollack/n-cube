@@ -1,5 +1,8 @@
 n-cube
 ======
+[![Build Status](https://travis-ci.org/jdereg/n-cube.svg?branch=master)](https://travis-ci.org/jdereg/n-cube)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cedarsoftware/n-cube/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cedarsoftware/n-cube)
+
 n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and Enterprise Spreadsheet, built as a hyper-space.  The Domain Specific Language (**DSL**) for rules is [**Groovy**](http://www.groovy-lang.org/). To include in your project:
 
 ```
@@ -9,7 +12,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
   <version>3.4.87</version>
 </dependency>
 ```
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cedarsoftware/n-cube/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cedarsoftware/n-cube)
+
 ### Sponsors
 [![Alt text](https://www.yourkit.com/images/yklogo.png "YourKit")](https://www.yourkit.com/.net/profiler/index.jsp)
 
