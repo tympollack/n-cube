@@ -27,3 +27,7 @@ n-cube 'ToDo' list
 ### n-cube editor (NCE)
 * TODO: create visualization of n-cube in NCE
 * Run all tests
+* Merge between non-HEAD branches
+* Side-by-side comparison of two cubes using HtmlFormatter to generate display, add blank columns to ensure diff is same size
+* Allow moving each delta from one n-cube to the other.
+* Allow cubes from different App IDs to be compared
