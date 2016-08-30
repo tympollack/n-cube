@@ -39,6 +39,8 @@ import java.util.zip.GZIPOutputStream
  * of Columns that denote discrete nodes along an axis.  Use NCubeManager
  * to manage a list of NCubes.  Documentation on Github.
  *
+ * Useful for pricing, rating, and configuration modeling.
+ *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
