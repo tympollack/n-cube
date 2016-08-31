@@ -787,11 +787,8 @@ class NCube<T>
 //                LOG.info("  coord Map: " + coordinate)
 //            }
 
-            if (cells.containsKey(colIds))
-            {   // If there is content at the given coordinate...
-                cellValue = cells.get(colIds)
-            }
-            else
+            cellValue = cells.get(colIds)
+            if (cellValue == null && !cells.containsKey(colIds))
             {   // No cell, look for default
                 cellValue = (T) getColumnDefault(colIds)
                 if (cellValue == null)
