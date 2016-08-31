@@ -10,7 +10,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>3.4.88</version>
+  <version>3.4.89</version>
 </dependency>
 ```
 
@@ -100,6 +100,10 @@ Licensed under the Apache License, Version 2.0
 
 ___
 ### Version History
+* 3.4.89
+ * Meta-properties on columns now 'pull through' on Axis reference.
+ * HtmlFormatter differentiates null as a cell value from an empty cell.
+ * NCubeJdbcPersister now retrieves full revision history when branch is HEAD (all versions).
 * 3.4.88
  * Packaging of JavaDoc into javadoc.jar not groovydoc.jar
 * 3.4.87
