@@ -431,6 +431,11 @@ public class HtmlFormatter implements NCubeFormatter
   border-color:darkgray;
 }
 
+.null-cell {
+    font-style: oblique;
+    color: darkgray !important;
+}
+
 .cell {
   color: black;
   background: white;
@@ -537,6 +542,11 @@ th.ncube-dead:hover { background: #76A7FF; }
                     s.append('cell cell-code">')
                     s.append(escapeHTML(getCellValueAsString(cell)))
                 }
+            }
+            else if (cell == null)
+            {
+                s.append('cell null-cell">')
+                s.append('null')
             }
             else
             {
