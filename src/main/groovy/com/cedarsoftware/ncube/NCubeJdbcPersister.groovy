@@ -128,12 +128,11 @@ ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
 
     List<NCubeInfoDto> getRevisions(Connection c, ApplicationID appId, String cubeName, boolean ignoreVersion)
     {
-        List<NCubeInfoDto> records = []
         Map map = appId as Map
         map.tenant = padTenant(c, appId.tenant)
         map.cube = buildName(cubeName)
         Sql sql = new Sql(c)
-        String sqlStatement;
+        String sqlStatement
 
         if (ignoreVersion)
         {
@@ -156,6 +155,7 @@ ORDER BY abs(revision_number) DESC
 """
         }
 
+        List<NCubeInfoDto> records = []
         sql.eachRow(map, sqlStatement, {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
         if (records.isEmpty())

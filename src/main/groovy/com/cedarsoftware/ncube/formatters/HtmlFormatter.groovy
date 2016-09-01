@@ -602,7 +602,9 @@ th.ncube-dead:hover { background: #76A7FF; }
         s.append('</td>\n')
     }
 
-    // substitute in HTML anchor tag
+    /**
+     * @return passed in value as String to be displayed inside HTML cell.
+     */
     static String getCellValueAsString(Object cellValue)
     {
         if (cellValue == null)
@@ -668,7 +670,7 @@ th.ncube-dead:hover { background: #76A7FF; }
             for (int i = 0; i < len; i++)
             {
                 Object elem = Array.get(cellValue, i)
-                str.append(escapeHTML(getCellValueAsString(elem)))
+                str.append(escapeHTML(getCellValueAsString(elem)))  // recursive
                 if (i < len1)
                 {
                     str.append(", ")
