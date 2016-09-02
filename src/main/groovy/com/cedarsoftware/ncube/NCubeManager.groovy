@@ -1720,7 +1720,7 @@ class NCubeManager
             options = [:]
         }
 
-        if (!options[NCubeManager.SEARCH_EXACT_MATCH_NAME])
+        if (!options[SEARCH_EXACT_MATCH_NAME])
         {
             cubeNamePattern = handleWildCard(cubeNamePattern)
         }
