@@ -87,7 +87,11 @@ class NCubeJdbcPersister
         Map map = [id: cubeId]
         Sql sql = new Sql(c)
         NCube cube = null
-        sql.eachRow(map, "/* loadCubeById */ SELECT n_cube_nm, tenant_cd, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, changed, sha1, head_sha1 FROM n_cube where n_cube_id = :id", 0, 1, { ResultSet row ->
+        sql.eachRow(map, """\
+/* loadCubeById */
+SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, cube_value_bin, sha1
+FROM n_cube
+WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
             String tenant = row.getString('tenant_cd')
             String status = row.getString('status_cd')
             String app = row.getString('app_cd')
@@ -113,7 +117,7 @@ class NCubeJdbcPersister
 
         new Sql(c).eachRow(map, """\
 /* loadCubeBySha1 */
-SELECT n_cube_id, n_cube_nm, app_cd, version_no_cd, status_cd, revision_number, branch_id, cube_value_bin, test_data_bin, notes_bin, changed, sha1, head_sha1, create_dt
+SELECT cube_value_bin, sha1
 FROM n_cube
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = :sha1
 ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
@@ -156,7 +160,7 @@ ORDER BY abs(revision_number) DESC
         }
 
         List<NCubeInfoDto> records = []
-        sql.eachRow(map, sqlStatement, {   ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
+        sql.eachRow(map, sqlStatement, { ResultSet row -> getCubeInfoRecords(appId, null, records, row) })
 
         if (records.isEmpty())
         {
