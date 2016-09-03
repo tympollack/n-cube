@@ -815,7 +815,6 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
  sha1, head_sha1, create_dt, create_hid, cube_value_bin, test_data_bin, notes_bin, changed)
  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
-            // TODO: Extract AppId to Map outside .each
             Map map = appId as Map
             map.tenant = padTenant(c, appId.tenant)
             long txId = UniqueIdGenerator.getUniqueId()
