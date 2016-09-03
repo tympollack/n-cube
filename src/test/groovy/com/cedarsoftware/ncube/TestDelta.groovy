@@ -1125,7 +1125,6 @@ class TestDelta
         NCube ncube2 = ncube1.duplicate(ncube1.name)
         ncube2.defaultCellValue = 3.14
         List<Delta> deltas = DeltaProcessor.getDeltaDescription(ncube2, ncube1)
-        println deltas
         assert deltas.size() == 1
         Delta delta = deltas[0]
         delta.type == Delta.Type.UPDATE
