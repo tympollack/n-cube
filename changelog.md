@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.90
+ * NCubeManager.updateBranchChanges
 * 3.4.89
  * Meta-properties on columns now 'pull through' on Axis reference.
  * HtmlFormatter differentiates null as a cell value from an empty cell.
