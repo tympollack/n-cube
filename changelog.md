@@ -1,6 +1,6 @@
 ### Revision History
 * 3.4.90
- * NCubeManager.updateBranchChanges
+ * NCubeManager.getHeadChangesForBranch() added to allow fetching the 'update' changes from HEAD (only fetches the change list, does not auto-merge them).
 * 3.4.89
  * Meta-properties on columns now 'pull through' on Axis reference.
  * HtmlFormatter differentiates null as a cell value from an empty cell.
