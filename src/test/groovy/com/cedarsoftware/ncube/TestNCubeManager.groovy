@@ -1505,6 +1505,10 @@ class TestNCubeManager
         cubes = NCubeManager.getBranchChangesForHead(johnAppId)
         assert cubes.size() == 1
 
+        List dtos2 = NCubeManager.getHeadChangesForBranch(johnAppId)
+        assert dtos2.size() == 1
+        assert dtos2[0].name == 'TestCube'
+
         // Update john branch (no changes are shown - it auto-merged)
         Map map = NCubeManager.updateBranch(johnAppId)
         assert map.updates.size() == 0
