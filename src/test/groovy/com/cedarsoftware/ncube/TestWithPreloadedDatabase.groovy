@@ -391,7 +391,7 @@ class TestWithPreloadedDatabase
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestBranch'
-        assert Converter.convert(dtos2[0].revision, long.class) < 0
+        assert Converter.convert(dtos2[0].revision, long.class) == 0
 
         Map<String, Object> result = closure()
 
@@ -2269,7 +2269,7 @@ class TestWithPreloadedDatabase
 
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2[0].name == 'TestBranch'
-        assert dtos2[0].sha1 != cube.sha1
+        assert dtos2[0].sha1 == cube.sha1
 
         try
         {
@@ -2315,7 +2315,7 @@ class TestWithPreloadedDatabase
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestBranch'
         assert dtos2[0].sha1 != dtos[0].sha1
-        assert dtos2[0].branch == ApplicationID.HEAD
+        assert dtos2[0].branch != ApplicationID.HEAD
         assert dtos[0].branch == branch2.branch
         assert dtos[0].branch != ApplicationID.HEAD
 

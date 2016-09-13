@@ -594,171 +594,6 @@ class NCubeManager
     }
 
     /**
-     * Get a list of NCubeInfoDto's that represent the n-cubes that would be brought down
-     * from HEAD to this branch.  This is list of n-cubes that have been changed in HEAD
-     * that have not yet been made to the branch (indicated within ApplicationID).
-     */
-    static List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
-    {
-        validateAppId(appId)
-        appId.validateBranchIsNotHead()
-        appId.validateStatusIsNotRelease()
-        assertNotLockBlocked(appId)
-        assertPermissions(appId, null, ACTION.READ)
-
-        List<NCubeInfoDto> branchRecords = search(appId, null, null, null)    // active and deleted
-        if (branchRecords.isEmpty())
-        {
-            return branchRecords
-        }
-        Map<String, NCubeInfoDto> branchCubes = new CaseInsensitiveMap<>()
-
-        for (NCubeInfoDto info : branchRecords)
-        {
-            branchCubes[info.name] = info
-        }
-
-        List<NCubeInfoDto> headCubes = search(appId.asHead(), null, null, null) // active and deleted
-        List<NCubeInfoDto> list = []
-
-        for (NCubeInfoDto head : headCubes)
-        {
-            NCubeInfoDto info = branchCubes[head.name]
-
-            if (info == null)
-            {   // HEAD has cube that branch does not have
-                head.changeType = ChangeType.CREATED.getCode()
-                head.branch = info.branch   // ensure all branch_id's match appId's branch
-                list.add(head)
-                continue
-            }
-
-            long infoRev = (long) Converter.convert(info.revision, long.class)
-            long headRev = (long) Converter.convert(head.revision, long.class)
-            boolean activeStatusMatches = (infoRev < 0) == (headRev < 0)
-
-            // Did branch change?
-            if (!info.isChanged())
-            {   // No change on branch, check if the deleted/restored status matches
-                if (!activeStatusMatches)
-                {
-                    info.changeType = headRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode()
-                    list.add(info)
-                }
-                else if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
-                    // The cube was marked NOT changed in the branch, so safe to update.  Most common UPDATE case.
-                    info.changeType = ChangeType.UPDATED.getCode()
-                    list.add(info)
-                }
-            }
-            else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
-            {   // If branch is 'changed' but has same SHA-1 as head, then see if branch needs Fast-Forward
-                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // Fast-Forward branch
-                    // Update HEAD SHA-1 on branch directly (no need to insert)
-                    info.changeType = ChangeType.UPDATED.getCode()
-                    list.add(info)
-                }
-            }
-            else
-            {   // You can ignore changes that branch has made as long as its HEAD-SHA1 is the same as HEAD's SHA-1
-                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
-                    String message = 'Cube was changed in both branch and HEAD'
-                    NCube cube = mergeCubesIfPossible([:], message, info, head, true)
-                    info.changeType = cube != null ? ChangeType.UPDATED.getCode() : ChangeType.CONFLICT.getCode()
-                    list.add(info)
-                }
-            }
-        }
-        return list
-    }
-
-    /**
-     * Get a list of NCubeInfoDto's that represent the n-cubes that have been made to
-     * this branch.  This is the source of n-cubes for the 'Commit' and 'Rollback' lists.
-     */
-    static List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
-    {
-        validateAppId(appId)
-        if (ApplicationID.HEAD == appId.branch)
-        {
-            throw new IllegalArgumentException('Cannot get branch changes from HEAD')
-        }
-
-        ApplicationID headAppId = appId.asHead()
-        Map<String, NCubeInfoDto> headMap = new CaseInsensitiveMap<>()
-
-        List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
-        List<NCubeInfoDto> headList = search(headAppId, null, null, null)   // active and deleted
-        List<NCubeInfoDto> list = []
-
-        //  build map of head objects for reference.
-        for (NCubeInfoDto info : headList)
-        {
-            headMap[info.name] = info
-        }
-
-        // Loop through changed (added, deleted, created, restored, updated) records
-        for (NCubeInfoDto info : branchList)
-        {
-            long revision = (long) Converter.convert(info.revision, long.class)
-            NCubeInfoDto head = headMap[info.name]
-
-            if (head == null)
-            {
-                if (revision >= 0)
-                {
-                    info.changeType = ChangeType.CREATED.getCode()
-                    list.add(info)
-                }
-            }
-            else if (info.headSha1 == null)
-            {   // we created this guy locally, but someone added this one to the head already
-                info.changeType = ChangeType.CONFLICT.getCode()
-                list.add(info)
-            }
-            else
-            {
-                if (StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {
-                    if (StringUtilities.equalsIgnoreCase(info.sha1, info.headSha1))
-                    {   // only net change could be revision deleted or restored.  check HEAD.
-                        long headRev = (long) Converter.convert(head.revision, long.class)
-
-                        if (headRev < 0 != revision < 0)
-                        {
-                            if (revision < 0)
-                            {
-                                info.changeType = ChangeType.DELETED.getCode()
-                            }
-                            else
-                            {
-                                info.changeType = ChangeType.RESTORED.getCode()
-                            }
-
-                            list.add(info)
-                        }
-                    }
-                    else
-                    {
-                        info.changeType = ChangeType.UPDATED.getCode()
-                        list.add(info)
-                    }
-                }
-                else
-                {
-                    info.changeType = ChangeType.CONFLICT.getCode()
-                    list.add(info)
-                }
-            }
-        }
-
-        return list
-    }
-
-    /**
      * Restore a previously deleted n-cube.
      */
     static void restoreCubes(ApplicationID appId, Object[] cubeNames)
@@ -980,6 +815,171 @@ class NCubeManager
         }
 
         return count
+    }
+
+    /**
+     * Get a list of NCubeInfoDto's that represent the n-cubes that would be brought down
+     * from HEAD to this branch.  This is list of n-cubes that have been changed in HEAD
+     * that have not yet been made to the branch (indicated within ApplicationID).
+     */
+    static List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
+    {
+        validateAppId(appId)
+        appId.validateBranchIsNotHead()
+        appId.validateStatusIsNotRelease()
+        assertNotLockBlocked(appId)
+        assertPermissions(appId, null, ACTION.READ)
+
+        List<NCubeInfoDto> branchRecords = search(appId, null, null, null)    // active and deleted
+        if (branchRecords.isEmpty())
+        {
+            return branchRecords
+        }
+        Map<String, NCubeInfoDto> branchCubes = new CaseInsensitiveMap<>()
+
+        for (NCubeInfoDto info : branchRecords)
+        {
+            branchCubes[info.name] = info
+        }
+
+        List<NCubeInfoDto> headCubes = search(appId.asHead(), null, null, null) // active and deleted
+        List<NCubeInfoDto> list = []
+
+        for (NCubeInfoDto head : headCubes)
+        {
+            NCubeInfoDto info = branchCubes[head.name]
+
+            if (info == null)
+            {   // HEAD has cube that branch does not have
+                head.changeType = ChangeType.CREATED.getCode()
+                head.branch = appId.branch   // ensure all branch_id's match appId's branch
+                list.add(head)
+                continue
+            }
+
+            long infoRev = (long) Converter.convert(info.revision, long.class)
+            long headRev = (long) Converter.convert(head.revision, long.class)
+            boolean activeStatusMatches = (infoRev < 0) == (headRev < 0)
+
+            // Did branch change?
+            if (!info.isChanged())
+            {   // No change on branch, check if the deleted/restored status matches
+                if (!activeStatusMatches)
+                {
+                    info.changeType = headRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode()
+                    list.add(info)
+                }
+                else if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
+                    // The cube was marked NOT changed in the branch, so safe to update.  Most common UPDATE case.
+                    info.changeType = ChangeType.UPDATED.getCode()
+                    list.add(info)
+                }
+            }
+            else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
+            {   // If branch is 'changed' but has same SHA-1 as head, then see if branch needs Fast-Forward
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // Fast-Forward branch
+                    // Update HEAD SHA-1 on branch directly (no need to insert)
+                    info.changeType = ChangeType.UPDATED.getCode()
+                    list.add(info)
+                }
+            }
+            else
+            {   // You can ignore changes that branch has made as long as its HEAD-SHA1 is the same as HEAD's SHA-1
+                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
+                    String message = 'Cube was changed in both branch and HEAD'
+                    NCube cube = mergeCubesIfPossible([:], message, info, head, true)
+                    info.changeType = cube != null ? ChangeType.UPDATED.getCode() : ChangeType.CONFLICT.getCode()
+                    list.add(info)
+                }
+            }
+        }
+        return list
+    }
+
+    /**
+     * Get a list of NCubeInfoDto's that represent the n-cubes that have been made to
+     * this branch.  This is the source of n-cubes for the 'Commit' and 'Rollback' lists.
+     */
+    static List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
+    {
+        validateAppId(appId)
+        if (ApplicationID.HEAD == appId.branch)
+        {
+            throw new IllegalArgumentException('Cannot get branch changes from HEAD')
+        }
+
+        ApplicationID headAppId = appId.asHead()
+        Map<String, NCubeInfoDto> headMap = new CaseInsensitiveMap<>()
+
+        List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
+        List<NCubeInfoDto> headList = search(headAppId, null, null, null)   // active and deleted
+        List<NCubeInfoDto> list = []
+
+        //  build map of head objects for reference.
+        for (NCubeInfoDto info : headList)
+        {
+            headMap[info.name] = info
+        }
+
+        // Loop through changed (added, deleted, created, restored, updated) records
+        for (NCubeInfoDto info : branchList)
+        {
+            long revision = (long) Converter.convert(info.revision, long.class)
+            NCubeInfoDto head = headMap[info.name]
+
+            if (head == null)
+            {
+                if (revision >= 0)
+                {
+                    info.changeType = ChangeType.CREATED.getCode()
+                    list.add(info)
+                }
+            }
+            else if (info.headSha1 == null)
+            {   // we created this guy locally, but someone added this one to the head already
+                info.changeType = ChangeType.CONFLICT.getCode()
+                list.add(info)
+            }
+            else
+            {
+                if (StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                {
+                    if (StringUtilities.equalsIgnoreCase(info.sha1, info.headSha1))
+                    {   // only net change could be revision deleted or restored.  check HEAD.
+                        long headRev = (long) Converter.convert(head.revision, long.class)
+
+                        if (headRev < 0 != revision < 0)
+                        {
+                            if (revision < 0)
+                            {
+                                info.changeType = ChangeType.DELETED.getCode()
+                            }
+                            else
+                            {
+                                info.changeType = ChangeType.RESTORED.getCode()
+                            }
+
+                            list.add(info)
+                        }
+                    }
+                    else
+                    {
+                        info.changeType = ChangeType.UPDATED.getCode()
+                        list.add(info)
+                    }
+                }
+                else
+                {
+                    info.changeType = ChangeType.CONFLICT.getCode()
+                    list.add(info)
+                }
+            }
+        }
+
+        return list
     }
 
     /**
