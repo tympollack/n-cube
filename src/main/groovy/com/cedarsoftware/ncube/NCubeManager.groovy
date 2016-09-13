@@ -926,6 +926,10 @@ class NCubeManager
         validateAppId(srcAppId)
         validateAppId(targetAppId)
         targetAppId.validateStatusIsNotRelease()
+        if (!search(targetAppId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).isEmpty())
+        {
+            throw new IllegalArgumentException("A RELEASE version " + targetAppId.version + " already exists, app: " + targetAppId)
+        }
         assertNotLockBlocked(targetAppId)
         if (targetAppId.version != '0.0.0')
         {
