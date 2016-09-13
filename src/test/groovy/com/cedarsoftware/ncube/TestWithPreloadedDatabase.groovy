@@ -1367,7 +1367,7 @@ class TestWithPreloadedDatabase
         assertEquals(2, getDeletedCubesFromDatabase(head, "*").size())
 
 
-        NCubeManager.restoreCubes(branch1, ["TestBranch"] as Object[])
+        NCubeManager.restoreCubes(branch1, "TestBranch")
         assertEquals(1, getDeletedCubesFromDatabase(branch1, "*").size())
         assertNull(NCubeManager.getCube(branch1, "TestAge"))
         assertNotNull(NCubeManager.getCube(branch1, "TestBranch"))
@@ -2284,7 +2284,7 @@ class TestWithPreloadedDatabase
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
-            assertEquals(1, NCubeManager.mergeAcceptTheirs(branch1, ["TestBranch"] as Object[], [e.errors.TestBranch.sha1] as Object[]))
+            assertEquals(1, NCubeManager.mergeAcceptTheirs(branch1, ["TestBranch"] as Object[], e.errors.TestBranch.sha1))
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
@@ -2297,12 +2297,12 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    void testConflictOverwriteBranchWithPreexistingCube() {
-
+    void testConflictOverwriteBranchWithPreexistingCube()
+    {
         preloadCubes(head, "test.branch.3.json")
 
         NCubeManager.copyBranch(branch1.asHead(), branch1)
-         NCubeManager.copyBranch(branch2.asHead(), branch2)
+        NCubeManager.copyBranch(branch2.asHead(), branch2)
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
         NCubeManager.updateCube(branch2, cube, true)
@@ -2314,7 +2314,7 @@ class TestWithPreloadedDatabase
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestBranch'
-        assert dtos2[0].sha1 == dtos[0].sha1
+        assert dtos2[0].sha1 != dtos[0].sha1
         assert dtos2[0].branch == ApplicationID.HEAD
         assert dtos[0].branch == branch2.branch
         assert dtos[0].branch != ApplicationID.HEAD
@@ -2350,7 +2350,7 @@ class TestWithPreloadedDatabase
             assertEquals("B4020BFB1B47942D8661640E560881E34993B608", e.errors.TestBranch.sha1)
             assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", e.errors.TestBranch.headSha1)
 
-            assertEquals(1, NCubeManager.mergeAcceptTheirs(branch1, ["TestBranch"] as Object[], [e.errors.TestBranch.sha1] as Object[]))
+            assertEquals(1, NCubeManager.mergeAcceptTheirs(branch1, ["TestBranch"] as Object[], e.errors.TestBranch.sha1))
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
@@ -2431,7 +2431,7 @@ class TestWithPreloadedDatabase
             String saveHeadSha1 = infoDto.sha1
             assert saveHeadSha1 != null
 
-            assertEquals(1, NCubeManager.mergeAcceptMine(branch1, ["TestBranch"] as Object[]))
+            assertEquals(1, NCubeManager.mergeAcceptMine(branch1, "TestBranch"))
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
@@ -2505,7 +2505,7 @@ class TestWithPreloadedDatabase
             String saveHeadSha1 = infoDto.sha1
             assert saveHeadSha1 != null
 
-            assertEquals(1, NCubeManager.mergeAcceptMine(branch1, ["TestBranch"] as Object[]))
+            assertEquals(1, NCubeManager.mergeAcceptMine(branch1, "TestBranch"))
 
             cube = NCubeManager.getCube(branch1, "TestBranch")
             assertEquals(3, cube.getCellMap().size())
@@ -2530,7 +2530,7 @@ class TestWithPreloadedDatabase
     {
         try
         {
-    NCubeManager.mergeAcceptMine(appId, ["TestBranch"] as Object[])
+    NCubeManager.mergeAcceptMine(appId, "TestBranch")
             fail()
         }
         catch (IllegalStateException e)
@@ -2545,7 +2545,7 @@ class TestWithPreloadedDatabase
         try
         {
             preloadCubes(branch1, "test.branch.1.json")
-    NCubeManager.mergeAcceptMine(appId, ["TestBranch"] as Object[])
+    NCubeManager.mergeAcceptMine(appId, "TestBranch")
             fail()
         }
         catch (IllegalStateException e)
@@ -2558,7 +2558,7 @@ class TestWithPreloadedDatabase
     void testOverwriteBranchCubeWhenBranchDoesNotExist()
     {
         try {
-    NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], ["foo"] as Object[])
+    NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], "foo")
             fail()
         }
         catch (IllegalStateException e)
@@ -2573,7 +2573,7 @@ class TestWithPreloadedDatabase
     {
         try {
             preloadCubes(branch1, "test.branch.1.json")
-    NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], ["foo"] as Object[])
+    NCubeManager.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], "foo")
             fail()
         }
         catch (IllegalStateException e)
@@ -2738,7 +2738,7 @@ class TestWithPreloadedDatabase
         String sha1 = dto[0].sha1;
         assertNotEquals(sha1, newSha1)
 
-        NCubeManager.mergeAcceptMine(branch1, ["TestAge"] as Object[])
+        NCubeManager.mergeAcceptMine(branch1, "TestAge")
 
         dtos = NCubeManager.getBranchChangesForHead(branch1)
         String branchHeadSha1 = dtos[0].headSha1
@@ -2835,7 +2835,7 @@ class TestWithPreloadedDatabase
         dtos = NCubeManager.search(branch1, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         String sha1 = dtos[0].sha1;
 
-        NCubeManager.mergeAcceptTheirs(branch1, ["TestAge"] as Object[], [sha1] as Object[])
+        NCubeManager.mergeAcceptTheirs(branch1, ["TestAge"] as Object[], sha1)
 
         assertEquals(0, NCubeManager.getBranchChangesForHead(branch1).size())
 

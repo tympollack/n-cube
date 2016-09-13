@@ -606,14 +606,14 @@ class NCubeManager
         assertNotLockBlocked(appId)
         assertPermissions(appId, null, ACTION.READ)
 
-        List<NCubeInfoDto> records = search(appId, null, null, null)    // active and deleted
-        if (records.isEmpty())
+        List<NCubeInfoDto> branchRecords = search(appId, null, null, null)    // active and deleted
+        if (branchRecords.isEmpty())
         {
-            return records
+            return branchRecords
         }
         Map<String, NCubeInfoDto> branchCubes = new CaseInsensitiveMap<>()
 
-        for (NCubeInfoDto info : records)
+        for (NCubeInfoDto info : branchRecords)
         {
             branchCubes[info.name] = info
         }
@@ -628,6 +628,7 @@ class NCubeManager
             if (info == null)
             {   // HEAD has cube that branch does not have
                 head.changeType = ChangeType.CREATED.getCode()
+                head.branch = info.branch   // ensure all branch_id's match appId's branch
                 list.add(head)
                 continue
             }
@@ -641,14 +642,14 @@ class NCubeManager
             {   // No change on branch, check if the deleted/restored status matches
                 if (!activeStatusMatches)
                 {
-                    head.changeType = headRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode()
-                    list.add(head)
+                    info.changeType = headRev < 0 ? ChangeType.DELETED.getCode() : ChangeType.RESTORED.getCode()
+                    list.add(info)
                 }
                 else if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
                 {   // HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
                     // The cube was marked NOT changed in the branch, so safe to update.  Most common UPDATE case.
-                    head.changeType = ChangeType.UPDATED.getCode()
-                    list.add(head)
+                    info.changeType = ChangeType.UPDATED.getCode()
+                    list.add(info)
                 }
             }
             else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
@@ -656,8 +657,8 @@ class NCubeManager
                 if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
                 {   // Fast-Forward branch
                     // Update HEAD SHA-1 on branch directly (no need to insert)
-                    head.changeType = ChangeType.UPDATED.getCode()
-                    list.add(head)
+                    info.changeType = ChangeType.UPDATED.getCode()
+                    list.add(info)
                 }
             }
             else
@@ -666,8 +667,8 @@ class NCubeManager
                 {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
                     String message = 'Cube was changed in both branch and HEAD'
                     NCube cube = mergeCubesIfPossible([:], message, info, head, true)
-                    head.changeType = cube != null ? ChangeType.UPDATED.getCode() : ChangeType.CONFLICT.getCode()
-                    list.add(head)
+                    info.changeType = cube != null ? ChangeType.UPDATED.getCode() : ChangeType.CONFLICT.getCode()
+                    list.add(info)
                 }
             }
         }
@@ -687,7 +688,7 @@ class NCubeManager
         }
 
         ApplicationID headAppId = appId.asHead()
-        Map<String, NCubeInfoDto> headMap = new TreeMap<>()
+        Map<String, NCubeInfoDto> headMap = new CaseInsensitiveMap<>()
 
         List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
         List<NCubeInfoDto> headList = search(headAppId, null, null, null)   // active and deleted
@@ -760,7 +761,7 @@ class NCubeManager
     /**
      * Restore a previously deleted n-cube.
      */
-    static void restoreCubes(ApplicationID appId, Object[] cubeNames, String username = getUserId())
+    static void restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -782,7 +783,7 @@ class NCubeManager
         }
 
         // Batch restore
-        getPersister().restoreCubes(appId, cubeNames, username)
+        getPersister().restoreCubes(appId, cubeNames, getUserId())
 
         // Load cache
         for (Object name : cubeNames)
@@ -835,7 +836,7 @@ class NCubeManager
     /**
      * Duplicate the given n-cube specified by oldAppId and oldName to new ApplicationID and name,
      */
-    static void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username = getUserId())
+    static void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
         validateAppId(oldAppId)
         validateAppId(newAppId)
@@ -862,7 +863,7 @@ class NCubeManager
         }
         assertPermissions(newAppId, newName, ACTION.UPDATE)
         assertNotLockBlocked(newAppId)
-        getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, username)
+        getPersister().duplicateCube(oldAppId, newAppId, oldName, newName, getUserId())
 
         if (CLASSPATH_CUBE.equalsIgnoreCase(newName))
         {   // If another cube is renamed into sys.classpath,
@@ -937,7 +938,7 @@ class NCubeManager
         return rows
     }
 
-    static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames, String username = getUserId())
+    static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -949,14 +950,14 @@ class NCubeManager
         {
             String cubeNameStr = cubeName as String
             assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
-            getPersister().mergeAcceptMine(appId, cubeNameStr, username)
+            getPersister().mergeAcceptMine(appId, cubeNameStr, getUserId())
             removeCachedCube(appId, cubeNameStr)
             count++
         }
         return count
     }
 
-    static int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username = getUserId())
+    static int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -969,7 +970,7 @@ class NCubeManager
             String cubeNameStr = cubeNames[i] as String
             String sha1 = branchSha1[i] as String
             assertPermissions(appId, cubeNameStr, ACTION.UPDATE)
-            getPersister().mergeAcceptTheirs(appId, cubeNameStr, sha1, username)
+            getPersister().mergeAcceptTheirs(appId, cubeNameStr, sha1, getUserId())
             removeCachedCube(appId, cubeNameStr)
             count++
         }
@@ -981,7 +982,7 @@ class NCubeManager
      * Commit the passed in changed cube records identified by NCubeInfoDtos.
      * @return array of NCubeInfoDtos that are to be committed.
      */
-    static List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos, String username = getUserId())
+    static List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1065,7 +1066,7 @@ class NCubeManager
                 NCube mergedCube = mergeCubesIfPossible(errors, message, branchCubeInfo, headCubeInfo, false)
                 if (mergedCube != null)
                 {
-                    NCubeInfoDto mergedDto = getPersister().commitMergedCubeToHead(appId, mergedCube, username, txId)
+                    NCubeInfoDto mergedDto = getPersister().commitMergedCubeToHead(appId, mergedCube, getUserId(), txId)
                     dtosMerged.add(mergedDto)
                 }
             }
@@ -1084,7 +1085,7 @@ class NCubeManager
             ids[i++] = dto.id
         }
 
-        committedCubes.addAll(getPersister().commitCubes(appId, ids, username, txId))
+        committedCubes.addAll(getPersister().commitCubes(appId, ids, getUserId(), txId))
         committedCubes.addAll(dtosMerged)
         clearCache(appId)
         clearCache(headAppId)
@@ -1210,7 +1211,7 @@ class NCubeManager
      * when the branch was created.  This is an insert cube (maintaining revision history) for
      * each cube passed in.
      */
-    static int rollbackCubes(ApplicationID appId, Object[] names, String username = getUserId())
+    static int rollbackCubes(ApplicationID appId, Object[] names)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1222,7 +1223,7 @@ class NCubeManager
             String cubeName = name as String
             assertPermissions(appId, cubeName, ACTION.UPDATE)
         }
-        int count = getPersister().rollbackCubes(appId, names, username)
+        int count = getPersister().rollbackCubes(appId, names, getUserId())
         clearCache(appId)
         return count
     }
@@ -1232,7 +1233,7 @@ class NCubeManager
      * cube with the passed in name will have the content from a cube with the same name, in the passed in branch,
      * merged into itself and persisted.
      */
-    static Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String branch, String username = getUserId())
+    static Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String branch)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1307,7 +1308,7 @@ class NCubeManager
 
                     if (cube != null)
                     {
-                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, srcDto.sha1, username, txId)
+                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, srcDto.sha1, getUserId(), txId)
                         dtosMerged.add(mergedDto)
                     }
                 }
@@ -1322,7 +1323,7 @@ class NCubeManager
 
                 if (cube != null)
                 {
-                    NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, info.headSha1, username, txId)
+                    NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, info.headSha1, getUserId(), txId)
                     dtosMerged.add(mergedDto)
                 }
             }
@@ -1336,7 +1337,7 @@ class NCubeManager
         {
             ids[i++] = dto.id
         }
-        finalUpdates.addAll(getPersister().pullToBranch(appId, ids, username, txId))
+        finalUpdates.addAll(getPersister().pullToBranch(appId, ids, getUserId(), txId))
         clearCache(appId)
         ret[BRANCH_UPDATES] = finalUpdates
         return ret
@@ -1347,7 +1348,7 @@ class NCubeManager
      * supplied branch.  If the merge cannot be done perfectly, an exception is
      * thrown indicating the cubes that are in conflict.
      */
-    static Map<String, Object> updateBranch(ApplicationID appId, String username = getUserId())
+    static Map<String, Object> updateBranch(ApplicationID appId)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1416,7 +1417,7 @@ class NCubeManager
 
                     if (cube != null)
                     {
-                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, head.sha1, username, txId)
+                        NCubeInfoDto mergedDto = getPersister().commitMergedCubeToBranch(appId, cube, head.sha1, getUserId(), txId)
                         dtosMerged.add(mergedDto)
                     }
                 }
@@ -1431,7 +1432,7 @@ class NCubeManager
         {
             ids[i++] = dto.id
         }
-        finalUpdates.addAll(getPersister().pullToBranch(appId, ids, username, txId))
+        finalUpdates.addAll(getPersister().pullToBranch(appId, ids, getUserId(), txId))
 
         clearCache(appId)
 
@@ -1581,7 +1582,7 @@ class NCubeManager
         broadcast(appId)
     }
 
-    static boolean renameCube(ApplicationID appId, String oldName, String newName, String username = getUserId())
+    static boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
         validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -1604,7 +1605,7 @@ class NCubeManager
         assertPermissions(appId, oldName, ACTION.UPDATE)
         assertPermissions(appId, newName, ACTION.UPDATE)
 
-        boolean result = getPersister().renameCube(appId, oldName, newName, username)
+        boolean result = getPersister().renameCube(appId, oldName, newName, getUserId())
 
         if (CLASSPATH_CUBE.equalsIgnoreCase(oldName) || CLASSPATH_CUBE.equalsIgnoreCase(newName))
         {   // If the sys.classpath cube is renamed, or another cube is renamed into sys.classpath,
@@ -1634,7 +1635,7 @@ class NCubeManager
      *
      * @param cubeNames  Object[] of String cube names to be deleted (soft deleted)
      */
-    static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username = getUserId())
+    static boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
     {
         appId.validateBranchIsNotHead()
         assertNotLockBlocked(appId)
@@ -1642,10 +1643,10 @@ class NCubeManager
         {
             assertPermissions(appId, name as String, ACTION.UPDATE)
         }
-        return deleteCubes(appId, cubeNames, false, username)
+        return deleteCubes(appId, cubeNames, false)
     }
 
-    protected static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username = getUserId())
+    protected static boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
     {
         validateAppId(appId)
         if (!allowDelete)
@@ -1662,7 +1663,7 @@ class NCubeManager
             assertPermissions(appId, name as String, ACTION.UPDATE)
         }
 
-        if (getPersister().deleteCubes(appId, cubeNames, allowDelete, username))
+        if (getPersister().deleteCubes(appId, cubeNames, allowDelete, getUserId()))
         {
             for (int i=0; i < cubeNames.length; i++)
             {
@@ -1862,7 +1863,7 @@ class NCubeManager
         return refAxes
     }
 
-    static void updateReferenceAxes(List<AxisRef> axisRefs, String username = getUserId())
+    static void updateReferenceAxes(List<AxisRef> axisRefs)
     {
         Set<ApplicationID> uniqueAppIds = new HashSet()
         for (AxisRef axisRef : axisRefs)
@@ -1944,7 +1945,7 @@ class NCubeManager
                     }
 
                     ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
-                    getPersister().updateCube(axisRef.srcAppId, ncube, username)
+                    getPersister().updateCube(axisRef.srcAppId, ncube, getUserId())
                 }
             }
         }
@@ -2414,7 +2415,7 @@ class NCubeManager
         branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):null])
 
         getPersister().updateCube(permAppId, branchPermCube, userId)
-        updateBranch(permAppId, userId)
+        updateBranch(permAppId)
     }
 
     private static void addAppPermissionsCubes(ApplicationID appId)
