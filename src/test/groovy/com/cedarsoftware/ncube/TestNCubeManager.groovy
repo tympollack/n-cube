@@ -1550,6 +1550,21 @@ class TestNCubeManager
     }
 
     @Test
+    void testCopyBranchWhenReleaseVersionAlreadyExists()
+    {
+        NCubeManager.commitBranch(defaultSnapshotApp, NCubeManager.search(defaultSnapshotApp, null, null, null).toArray())
+        NCubeManager.releaseCubes(defaultSnapshotApp, '2.0.0')
+        ApplicationID copyAppId = defaultSnapshotApp.asBranch('copy')
+        try
+        {
+            NCubeManager.copyBranch(defaultSnapshotApp, copyAppId)
+            fail()
+        } catch(IllegalArgumentException e) {
+            assertTrue(e.message.contains('exists'))
+        }
+    }
+
+    @Test
     void testLoadCubeByUsingNonExistingSha1()
     {
         NCube cube = createCube()
