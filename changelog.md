@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.92
+ * `CdnClassLoader` looks first in local cache / parent class loader, and if not found, then does a super.findClass().  It was spamming the network for local classes when a URL was in the classpath.
 * 3.4.91
  * NCubeManager.updateBranch(appId, Object[] cubeNames, String sourceBranch) added.  This API allows a subset (cubeNames) to be updated from HEAD (or source branch - not yet supported, but coming soon)
  * NCubeManager.updateBranch(appId) is also available, in which case it acts as before, all cubes that can be updated, will be.
