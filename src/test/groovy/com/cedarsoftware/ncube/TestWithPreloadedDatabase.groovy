@@ -219,6 +219,7 @@ class TestWithPreloadedDatabase
         dtos = NCubeManager.getBranchChangesForHead(branch2)
         assertEquals(1, dtos.length)
 
+//        NCubeManager.updateBranchCubes(branch2, [cube1.name] as Object[], branch1.branch)
         Map merge = NCubeManager.updateBranchCube(branch2, cube1.name, branch1.branch)
         assert merge.merges.isEmpty()
         assert merge.updates.isEmpty()
@@ -371,7 +372,7 @@ class TestWithPreloadedDatabase
     void testUpdateBranchWhenCubeWasDeletedInDifferentBranchAndNotChangedInOurBranch2()
     {
         testUpdateBranchWhenSingleCubeWasDeletedinDifferentBranchAndNotChangedInOurBranch({
-            return NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD)
+            return NCubeManager.updateBranch(branch1, ['TestBranch'] as Object[], ApplicationID.HEAD)
         })
     }
 
@@ -395,11 +396,13 @@ class TestWithPreloadedDatabase
 
         Map<String, Object> result = closure()
 
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 1
-        List updates = result[NCubeManager.BRANCH_UPDATES]
-        assert updates.size() == 1
-        NCubeInfoDto dto = updates[0]
+        assert result[NCubeManager.BRANCH_DELETES].size() == 1
+        List deletes = result[NCubeManager.BRANCH_DELETES]
+        assert deletes.size() == 1
+        NCubeInfoDto dto = deletes[0]
         assert dto.name == 'TestBranch'
+        assert result[NCubeManager.BRANCH_ADDS].size() == 0
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
     }
@@ -564,10 +567,15 @@ class TestWithPreloadedDatabase
         NCubeManager.commitBranch(branch1, dtos)
 
         Map<String, Object> result = NCubeManager.updateBranch(branch2)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 2
+        assert result[NCubeManager.BRANCH_ADDS].size() == 1
+        List<NCubeInfoDto> adds = result[NCubeManager.BRANCH_ADDS]
+        assert adds[0].name == 'TestAge'
+
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 1
         List<NCubeInfoDto> updates = result[NCubeManager.BRANCH_UPDATES]
-        assert updates[0].name == 'TestBranch' || updates[0].name == 'TestAge'
-        assert updates[1].name == 'TestBranch' || updates[1].name == 'TestAge'
+        assert updates[0].name == 'TestBranch'
+
+        assert result[NCubeManager.BRANCH_DELETES].size() == 0
         assert result[NCubeManager.BRANCH_MERGES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 

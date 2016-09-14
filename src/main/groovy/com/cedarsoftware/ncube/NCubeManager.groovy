@@ -439,6 +439,7 @@ class NCubeManager
                 classLoader.clearCache()
                 localClassLoaders.remove(appId)
             }
+            broadcast(appId)
         }
     }
 
@@ -709,8 +710,6 @@ class NCubeManager
         {
             removeCachedCube(newAppId, newName)
         }
-
-        broadcast(newAppId)
     }
 
     /**
@@ -747,7 +746,6 @@ class NCubeManager
         }
 
         addCube(appId, ncube)
-        broadcast(appId)
         return true
     }
 
@@ -773,7 +771,6 @@ class NCubeManager
         }
         int rows = getPersister().copyBranch(srcAppId, targetAppId)
         clearCache(targetAppId)
-        broadcast(targetAppId)
         return rows
     }
 
@@ -889,9 +886,7 @@ class NCubeManager
             {   // You can ignore changes that branch has made as long as its HEAD-SHA1 is the same as HEAD's SHA-1
                 if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
                 {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
-                    String message = 'Cube was changed in both branch and HEAD'
-                    NCube cube = mergeCubesIfPossible([:], message, info, head, true)
-                    info.changeType = cube != null ? ChangeType.UPDATED.getCode() : ChangeType.CONFLICT.getCode()
+                    info.changeType = ChangeType.UPDATED.getCode()
                     list.add(info)
                 }
             }
@@ -1093,7 +1088,6 @@ class NCubeManager
         committedCubes.addAll(dtosMerged)
         clearCache(appId)
         clearCache(headAppId)
-        broadcast(appId)
         return committedCubes
     }
 
@@ -1347,26 +1341,31 @@ class NCubeManager
         return ret
     }
 
-    /**
-     * Update a branch from the HEAD.  Changes from the HEAD are merged into the
-     * supplied branch.  If the merge cannot be done perfectly, an exception is
-     * thrown indicating the cubes that are in conflict.
-     */
-    static Map<String, Object> updateBranch(ApplicationID appId)
+    private static Map<String, Object> updateBranchFromHead(ApplicationID appId, Object[] cubeNames)
     {
-        validateAppId(appId)
-        appId.validateBranchIsNotHead()
-        appId.validateStatusIsNotRelease()
-        assertNotLockBlocked(appId)
-        assertPermissions(appId, null, ACTION.UPDATE)
+        List<NCubeInfoDto> records = []
+        Set<String> filter = null
+        Map options = [(SEARCH_EXACT_MATCH_NAME):true] as Map
+
+        if (ArrayUtilities.isEmpty(cubeNames))
+        {   // Update all
+            records = search(appId, null, null, null)
+            if (records.isEmpty())
+            {
+                throw new IllegalArgumentException(appId.app + ' ' + appId.version + '-' + appId.status + ' (' + appId.branch + ' branch) is empty and cannot be updated.  Create branch first.')
+            }
+        }
+        else
+        {   // Update selected
+            filter = new CaseInsensitiveSet<>()
+            for (String name : cubeNames)
+            {
+                filter.add(name)
+                records.addAll(getPersister().search(appId, name, null, options))
+            }
+        }
 
         ApplicationID headAppId = appId.asHead()
-
-        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.isEmpty())
-        {
-            throw new IllegalArgumentException(appId.app + ' ' + appId.version + '-' + appId.status + ' (' + appId.branch + ' branch) is empty and cannot be updated.  Create branch first.')
-        }
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
 
         for (NCubeInfoDto info : records)
@@ -1374,19 +1373,26 @@ class NCubeManager
             branchRecordMap[info.name] = info
         }
 
+        List<NCubeInfoDto> adds = []
+        List<NCubeInfoDto> deletes = []
         List<NCubeInfoDto> updates = []
         List<NCubeInfoDto> dtosMerged = []
         Map<String, Map> conflicts = new CaseInsensitiveMap<>()
-        List<NCubeInfoDto> headRecords = search(headAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> headRecords = search(headAppId, null, null, null)
         long txId = UniqueIdGenerator.getUniqueId()
 
         for (NCubeInfoDto head : headRecords)
         {
+            if (filter && !filter.contains(head.name))
+            {   // Only filter if there is a filter (not null) and it does not contain the cube name
+                continue
+            }
+
             NCubeInfoDto info = branchRecordMap[head.name]
 
             if (info == null)
             {   // HEAD has cube that branch does not have
-                updates.add(head)
+                adds.add(head)
                 continue
             }
 
@@ -1397,11 +1403,23 @@ class NCubeManager
             // Did branch change?
             if (!info.isChanged())
             {   // No change on branch
-                if (!activeStatusMatches || !StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // 1. The active/deleted statuses don't match, or
-                    // 2. HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
-                    // In both cases, the cube was marked NOT changed in the branch, so safe to update.
-                    updates.add(head)
+                if (activeStatusMatches)
+                {
+                    if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                    {
+                        updates.add(head)
+                    }
+                }
+                else
+                {
+                    if (headRev >= 0)
+                    {
+                        adds.add(head)
+                    }
+                    else
+                    {
+                        deletes.add(head)
+                    }
                 }
             }
             else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
@@ -1428,10 +1446,30 @@ class NCubeManager
             }
         }
 
-        List<NCubeInfoDto> finalUpdates = new ArrayList<>(updates.size())
-
-        Object[] ids = new Object[updates.size()]
+        // Adds
+        List<NCubeInfoDto> finalAdds = new ArrayList<>(adds.size())
+        Object[] ids = new Object[adds.size()]
         int i=0
+        for (NCubeInfoDto dto : adds)
+        {
+            ids[i++] = dto.id
+        }
+        finalAdds.addAll(getPersister().pullToBranch(appId, ids, getUserId(), txId))
+
+        // Deletes
+        List<NCubeInfoDto> finalDeletes = new ArrayList<>(deletes.size())
+        ids = new Object[deletes.size()]
+        i=0
+        for (NCubeInfoDto dto : deletes)
+        {
+            ids[i++] = dto.id
+        }
+        finalDeletes.addAll(getPersister().pullToBranch(appId, ids, getUserId(), txId))
+
+        // Updates
+        List<NCubeInfoDto> finalUpdates = new ArrayList<>(updates.size())
+        ids = new Object[updates.size()]
+        i=0
         for (NCubeInfoDto dto : updates)
         {
             ids[i++] = dto.id
@@ -1441,10 +1479,71 @@ class NCubeManager
         clearCache(appId)
 
         Map<String, Object> ret = [:]
+        ret[BRANCH_ADDS] = finalAdds
+        ret[BRANCH_DELETES] = finalDeletes
         ret[BRANCH_UPDATES] = finalUpdates
         ret[BRANCH_MERGES] = dtosMerged
         ret[BRANCH_CONFLICTS] = conflicts
         return ret
+    }
+
+    private static Map<String, Object> updateBranchFromBranch(ApplicationID appId, Object[] cubeNames, String sourceBrance)
+    {
+        throw new IllegalStateException('Functionality not yet implemented - updating branch from another branch.')
+    }
+
+    /**
+     * Update the branch represented by the passed in ApplicationID (appId), with the cubes to be updated
+     * identified by cubeNames, and the sourceBranch is the branch (could be HEAD) source of the cubes
+     * from which to update.
+     * @param appId ApplicationID of the destination branch
+     * @param cubeNames Object[] of String cube names to limit the update to. Only n-cubes matching these names
+     * [case insensitively] will be updated.  This can be null, in which case all possible updates will be
+     * performed.
+     * @param sourceBranch String name of branch to update from.  This is often 'HEAD' as HEAD is the most
+     * common branch from which to pull updates.  However, it could be the name of another user's branch,
+     * in which case the updates will be pulled from that branch (and optionally filtered by cubeNames).
+     * <br>
+     * Update a branch from the HEAD.  Changes from the HEAD are merged into the
+     * supplied branch.  The return Map contains a Map with String keys for
+     * 'adds'      ==> added count<br>
+     * 'deletes'   ==> deleted count<br>
+     * 'updates'   ==> updated count<br>
+     * 'merges'    ==> merged count<br>
+     * 'conflicts' ==> Map[cube name, subMap]<br>
+     * &nbsp;&nbsp;subMap maps <br>
+     * 'message'  --> Merge conflict error message<br>
+     * 'sha1'     --> SHA-1 of destination branch n-cube<br>
+     * 'headSha1' --> SHA-1 of HEAD (or source branch n-cube being merged from)<br>
+     * 'diff'     --> List[Delta's]
+     */
+    static Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    {
+        if (cubeNames != null && cubeNames.length == 0)
+        {
+            throw new IllegalArgumentException('Nothing selected for update.')
+        }
+        validateAppId(appId)
+        appId.validateBranchIsNotHead()
+        appId.validateStatusIsNotRelease()
+        assertNotLockBlocked(appId)
+        assertPermissions(appId, null, ACTION.UPDATE)
+
+        if (ApplicationID.HEAD == sourceBranch)
+        {
+            return updateBranchFromHead(appId, cubeNames)
+        }
+        return updateBranchFromBranch(appId, cubeNames, sourceBranch)
+    }
+
+    /**
+     * Update all n-cubes in a branch from the passed in AppId - the source of changes will be from the HEAD
+     * branch.  See the updateBranch(ApplicationID appId, Object[] cubeNames, String sourceBranch) for
+     * detailed discussion on arguments and return value.
+     */
+    static Map<String, Object> updateBranch(ApplicationID appId)
+    {
+        updateBranch(appId, null, ApplicationID.HEAD)
     }
 
     /**
@@ -1472,8 +1571,6 @@ class NCubeManager
         assertPermissions(appId, null, ACTION.RELEASE)
         int rows = getPersister().moveBranch(appId, newSnapVer)
         clearCacheForBranches(appId)
-        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
-        broadcast(appId)
         return rows
     }
 
@@ -1501,8 +1598,6 @@ class NCubeManager
 
         int rows = getPersister().releaseCubes(appId, newSnapVer)
         clearCacheForBranches(appId)
-        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
-        broadcast(appId)
         return rows
     }
 
@@ -1549,8 +1644,6 @@ class NCubeManager
         int rows = getPersister().releaseCubes(appId, newSnapVer)
         getPersister().copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
         clearCacheForBranches(appId)
-        //TODO:  Does broadcast need to send all branches that have changed as a result of this?
-        broadcast(appId)
         unlockApp(appId)
         return rows
     }
@@ -1583,7 +1676,6 @@ class NCubeManager
         getPersister().changeVersionValue(appId, newVersion)
         clearCache(appId)
         clearCache(appId.asVersion(newVersion))
-        broadcast(appId)
     }
 
     static boolean renameCube(ApplicationID appId, String oldName, String newName)
@@ -1622,7 +1714,6 @@ class NCubeManager
             removeCachedCube(appId, newName)
         }
 
-        broadcast(appId)
         return result
     }
 
@@ -1673,7 +1764,6 @@ class NCubeManager
             {
                 removeCachedCube(appId, cubeNames[i] as String)
             }
-            broadcast(appId)
             return true
         }
         return false
@@ -2627,6 +2717,7 @@ class NCubeManager
         }
         Map<String, Object> cache = getCacheForApp(appId)
         cache.remove(cubeName.toLowerCase())
+        // TODO: broadcast(appId, cubeName) // cube level remove
     }
 
     /**
