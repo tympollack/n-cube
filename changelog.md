@@ -1,4 +1,9 @@
 ### Revision History
+* 3.4.91
+ * NCubeManager.updateBranch(appId, Object[] cubeNames, String sourceBranch) added.  This API allows a subset (cubeNames) to be updated from HEAD (or source branch - not yet supported, but coming soon)
+ * NCubeManager.updateBranch(appId) is also available, in which case it acts as before, all cubes that can be updated, will be.
+ * NCubeManager.updateBranch(...) returns adds, deletes, updates, merges, and conflicts.  Before adds, updates, and deletes were all considered 'updates'.
+ * `CdnClassLoader` only looks for classes remotely, if and only if, the system property (or environment variable) NCUBE_GRAPES_SUPPORT=true.   
 * 3.4.90
  * NCubeManager.getHeadChangesForBranch() added to allow fetching the 'update' changes from HEAD (only fetches the change list, does not auto-merge them).
 * 3.4.89
