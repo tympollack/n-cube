@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.SystemUtilities
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -3764,8 +3765,10 @@ class TestWithPreloadedDatabase
     @Test
     void testDynamicallyLoadedCode()
     {
-        NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
-        GroovyExpression exp = new GroovyExpression('''\
+        if ("true".equalsIgnoreCase(SystemUtilities.getExternalVariable('NCUBE_GRAPES_SUPPORT')))
+        {
+            NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
+            GroovyExpression exp = new GroovyExpression('''\
 import org.apache.commons.collections.primitives.*
 @Grab(group='commons-primitives', module='commons-primitives', version='1.0')
 
@@ -3774,10 +3777,11 @@ ints.add(42)
 assert ints.size() == 1
 assert ints.get(0) == 42
 return ints''', null, false)
-        ncube.setCell(exp, [state:'OH'])
+            ncube.setCell(exp, [state: 'OH'])
 
-        def x = ncube.getCell([state:'OH'])
-        assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
+            def x = ncube.getCell([state: 'OH'])
+            assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
+        }
     }
 
     /**
