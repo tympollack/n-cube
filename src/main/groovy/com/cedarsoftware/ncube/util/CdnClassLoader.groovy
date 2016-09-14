@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube.util
 
-import com.cedarsoftware.util.SystemUtilities
 import groovy.transform.CompileStatic
 
 import java.util.concurrent.ConcurrentHashMap
@@ -52,64 +51,64 @@ class CdnClassLoader extends GroovyClassLoader
 
     protected Class<?> findClass(final String name) throws ClassNotFoundException
     {
-        if ("true".equalsIgnoreCase(SystemUtilities.getExternalVariable('NCUBE_GRAPES_SUPPORT')))
+        if (classCache.containsKey(name))
         {
-            if (classCache.containsKey(name))
+            Class clazz = classCache[name]
+            if (Class.class.is(clazz))
             {
-                Class clazz = classCache[name]
-                if (Class.class.is(clazz))
-                {
 //                println '=====> findClass: [cached ClassNotFoundException] ' + name
-                    throw new ClassNotFoundException('Class not found in classpath, name: ' + name)
-                }
+                throw new ClassNotFoundException('Class not found in classpath, name: ' + name)
+            }
 //            println '=====> findClass: [cacheHit] ' + name
-                return clazz
-            }
-
-            // NOTE: This list needs to match (weed out) imports automatically brought in by Groovy as well as
-            // those GroovyExpression adds to the source file.
-            if (name.startsWith('ncube.grv.') ||
-                    name.startsWith('ncube.grv$') ||
-                    name.startsWith('ncube$grv$') ||
-                    name.startsWith('java.') ||
-                    name.startsWith('javax.') ||
-                    name.startsWith('groovy.') ||
-                    name.startsWith('com.google.common.') ||
-                    name.startsWith('com.cedarsoftware$') ||
-                    name.startsWith('com.cedarsoftware.'))
-            {
-                if (!name.startsWith('ncube.grv.closure'))
-                {   // local only
-                    return classCache[name] = parentClassLoader.loadClass(name)
-                }
-            }
-
-            if (_preventRemoteBeanInfo && name.endsWith('BeanInfo'))
-            {   // local only
-                return classCache[name] = parentClassLoader.loadClass(name)
-            }
-
-            if (_preventRemoteCustomizer && name.endsWith('Customizer'))
-            {   // local only
-                return classCache[name] = parentClassLoader.loadClass(name)
-            }
-
+            return clazz
+        }
+        try
+        {
+            Class clazz = parentClassLoader.loadClass(name)
+            return classCache[name] = clazz
+        }
+        catch (ClassNotFoundException e)
+        {
             try
             {
+                // NOTE: This list needs to match (weed out) imports automatically brought in by Groovy as well as
+                // those GroovyExpression adds to the source file.
+                if (name.startsWith('ncube.grv.') ||
+                        name.startsWith('ncube.grv$') ||
+                        name.startsWith('ncube$grv$') ||
+                        name.startsWith('java.') ||
+                        name.startsWith('javax.') ||
+                        name.startsWith('groovy.') ||
+                        name.startsWith('com.google.common.') ||
+                        name.startsWith('com.cedarsoftware$') ||
+                        name.startsWith('com.cedarsoftware.'))
+                {
+                    if (!name.startsWith('ncube.grv.closure'))
+                    {   // local only
+                        throw e
+                    }
+                }
+
+                if (_preventRemoteBeanInfo && name.endsWith('BeanInfo'))
+                {   // local only
+                    throw e
+                }
+
+                if (_preventRemoteCustomizer && name.endsWith('Customizer'))
+                {   // local only
+                    throw e
+                }
+
                 Class clazz = super.findClass(name)
 //            println '=====> findClass: ' + name + ', class cache size: ' + classCache.size()
                 return classCache[name] = clazz
             }
-            catch (ClassNotFoundException e)
+            catch (ClassNotFoundException e1)
             {
 //            println '=====> findClass: [classNotFoundException] + ' + name
                 classCache[name] = Class.class
-                throw e
+                throw e1
             }
-        }
-        else
-        {
-            return parentClassLoader.loadClass(name)
         }
     }
 
