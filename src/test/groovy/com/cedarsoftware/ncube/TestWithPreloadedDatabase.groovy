@@ -3762,13 +3762,11 @@ class TestWithPreloadedDatabase
 //        assert axisRefs.isEmpty()
     }
 
-    @Test
+    @Ignore
     void testDynamicallyLoadedCode()
     {
-        if ("true".equalsIgnoreCase(SystemUtilities.getExternalVariable('NCUBE_GRAPES_SUPPORT')))
-        {
-            NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
-            GroovyExpression exp = new GroovyExpression('''\
+        NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
+        GroovyExpression exp = new GroovyExpression('''\
 import org.apache.commons.collections.primitives.*
 @Grab(group='commons-primitives', module='commons-primitives', version='1.0')
 
@@ -3777,11 +3775,10 @@ ints.add(42)
 assert ints.size() == 1
 assert ints.get(0) == 42
 return ints''', null, false)
-            ncube.setCell(exp, [state: 'OH'])
+        ncube.setCell(exp, [state: 'OH'])
 
-            def x = ncube.getCell([state: 'OH'])
-            assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
-        }
+        def x = ncube.getCell([state: 'OH'])
+        assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
     }
 
     /**
