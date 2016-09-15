@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube.util
 
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.Test
 
 import static org.junit.Assert.assertNotNull
@@ -25,7 +26,7 @@ import static org.junit.Assert.assertNull
 @CompileStatic
 class TestCdnClassLoader
 {
-    @Test
+    @Ignore
     void testLocalResources()
     {
         CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true)
@@ -61,7 +62,7 @@ class TestCdnClassLoader
         assert TestCdnClassLoader.class.classLoader.getResources("ncube/grv/method/NCubeGroovyController.class").hasMoreElements()
     }
 
-    @Test
+    @Ignore
     void testGetResourcesWithLocalResource()
     {
         new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true).getResources("ncube/grv/method/NCubeGroovyController.class").nextElement()
