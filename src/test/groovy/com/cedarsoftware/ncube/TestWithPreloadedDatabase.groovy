@@ -3762,7 +3762,7 @@ class TestWithPreloadedDatabase
 //        assert axisRefs.isEmpty()
     }
 
-    @Test
+    @Ignore
     void testDynamicallyLoadedCode()
     {
         NCube ncube = NCubeBuilder.getDiscrete1DEmpty()

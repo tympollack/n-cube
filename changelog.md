@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.96
+ * `CdnClassLoader` without Grapes support, but with resource cache (relative to full qualified URL map).
+ * Uses Groovy 2.4.7
 * 3.4.95
  * `CdnClassLoader` supports dynamic class loading (Groovy Grapes).
  * Uses Groovy 2.4.7
