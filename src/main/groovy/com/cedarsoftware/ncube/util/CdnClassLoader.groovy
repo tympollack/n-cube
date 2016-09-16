@@ -186,7 +186,7 @@ class CdnClassLoader extends GroovyClassLoader
             resourcesCache[name] = nullEnum
             return nullEnum
         }
-        println '-----> findResources: ' + name
+//        println '-----> findResources: ' + name
         Enumeration<URL> res = super.findResources(name)
         return resourcesCache[name] = res
     }
