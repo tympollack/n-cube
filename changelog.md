@@ -1,5 +1,9 @@
 ### Revision History
-* 3.4.93 `CdnClassLoader` restored to version from back in Feb 2016.  This fixes performance issues, but prevents code from using Grapes (@Grab).
+* 3.4.94 
+ * `CdnClassLoader` same as in 3.4.93, plus `@CompileStatic` added, and `findClass()` always throws `ClassNotFoundException(name)`.
+ * Gauva imports removed from `GroovyExpression`'s 'wrapper' 
+* 3.4.93 
+ * `CdnClassLoader` restored to version from back in Feb 2016.  This fixes performance issues, but prevents code from using Groovy Grapes (`@Grab`).
 * 3.4.92
  * `CdnClassLoader` looks first in local cache / parent class loader, and if not found, then does a super.findClass().  It was spamming the network for local classes when a URL was in the classpath.
 * 3.4.91

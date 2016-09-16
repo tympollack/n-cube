@@ -3672,7 +3672,7 @@ class TestWithPreloadedDatabase
         // Will fail because cube is not RELEASE / HEAD
         try
         {
-    NCubeManager.updateReferenceAxes([axisRef] as List) // Update
+            NCubeManager.updateReferenceAxes([axisRef] as List) // Update
             fail();
         }
         catch (IllegalArgumentException e)
@@ -3762,7 +3762,7 @@ class TestWithPreloadedDatabase
 //        assert axisRefs.isEmpty()
     }
 
-    @Ignore
+    @Test
     void testDynamicallyLoadedCode()
     {
         NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
@@ -3770,7 +3770,7 @@ class TestWithPreloadedDatabase
 import org.apache.commons.collections.primitives.*
 @Grab(group='commons-primitives', module='commons-primitives', version='1.0')
 
-def ints = new ArrayIntList()
+Object ints = new ArrayIntList()
 ints.add(42)
 assert ints.size() == 1
 assert ints.get(0) == 42
@@ -3778,6 +3778,7 @@ return ints''', null, false)
         ncube.setCell(exp, [state: 'OH'])
 
         def x = ncube.getCell([state: 'OH'])
+        println x
         assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
     }
 
