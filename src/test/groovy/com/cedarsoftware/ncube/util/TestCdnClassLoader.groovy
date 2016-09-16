@@ -26,7 +26,7 @@ import static org.junit.Assert.assertNull
 @CompileStatic
 class TestCdnClassLoader
 {
-    @Ignore
+    @Test
     void testLocalResources()
     {
         CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true)
@@ -62,7 +62,7 @@ class TestCdnClassLoader
         assert TestCdnClassLoader.class.classLoader.getResources("ncube/grv/method/NCubeGroovyController.class").hasMoreElements()
     }
 
-    @Ignore
+    @Test
     void testGetResourcesWithLocalResource()
     {
         new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true).getResources("ncube/grv/method/NCubeGroovyController.class").nextElement()

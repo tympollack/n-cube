@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.95
+ * `CdnClassLoader` supports dynamic class loading (Groovy Grapes).
 * 3.4.94 
  * `CdnClassLoader` same as in 3.4.93, plus `@CompileStatic` added, and `findClass()` always throws `ClassNotFoundException(name)`.
  * Gauva imports removed from `GroovyExpression`'s 'wrapper' 

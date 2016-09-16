@@ -3762,7 +3762,7 @@ class TestWithPreloadedDatabase
 //        assert axisRefs.isEmpty()
     }
 
-    @Ignore
+    @Test
     void testDynamicallyLoadedCode()
     {
         NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
@@ -3778,7 +3778,7 @@ return ints''', null, false)
         ncube.setCell(exp, [state: 'OH'])
 
         def x = ncube.getCell([state: 'OH'])
-        println x
+//        println x
         assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.getClass().getName()
     }
 

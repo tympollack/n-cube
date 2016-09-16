@@ -5,7 +5,7 @@
     <groupId>com.cedarsoftware</groupId>
 	<artifactId>n-cube</artifactId>
     <packaging>jar</packaging>
-	<version>3.4.94</version>
+	<version>3.4.95</version>
 	<description>n-cube Engine</description>
     <url>https://github.com/jdereg/n-cube</url>
     <profiles>
@@ -70,7 +70,7 @@
         <version.java-util>1.24.0</version.java-util>
         <version.log4j>2.5</version.log4j>
         <version.junit>4.12</version.junit>
-        <version.groovy>2.4.3</version.groovy>
+        <version.groovy>2.4.7</version.groovy>
         <version.jgit>3.6.1.201501031845-r</version.jgit>
         <version.guava>19.0</version.guava>
         <version.commons.math>3.5</version.commons.math>
