@@ -91,7 +91,7 @@ HTTP Request ===> dyn/html/account ===> tomcat ===> UrlRewrite.xml ===> CdnRoute
 ### Creating n-cubes
 Use either the Simple JSON format to create n-cubes, or the nCubeEditor to editing the pages.  At the moment, there is no cloud-based editor for n-cube, so you need to set up the nCubeEditor as a web-app within a Java container like tomcat or jetty.  See the sample .json files in the test / resources directories for examples.
 
-These are read in using the NCubeManager.getNCubeFromResource() API.  You can also call ncube.fromSimpleJson(String json).
+These are read in using the `NCubeManager.getNCubeFromResource()` API.  You can also call `ncube.fromSimpleJson(String json)`.
 
 #### Licensing
 Copyright 2012-2016 Cedar Software, LLC
