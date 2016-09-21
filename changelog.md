@@ -1,4 +1,8 @@
 ### Revision History
+* 3.4.97
+ * `CdnClassLoader` supports Grapes (dynamic class loader).  White-list of accepted domains must be specified (via `CdnClassLoader` constructor or environment variable `NCUBE_ACCEPTED_DOMAINS`).
+ * When a cell is set to `null` (meaning it exists with 'key' for it, but the associated value is null), the JSON version of that looks like `{"type":"string", "value": null}` as opposed to an empty cell which is `{"type":null, "value":null}`
+ * Advice that matches an n-cube that has no method specified, will match the run() method, allowing support for Advice around expressions.
 * 3.4.96
  * `CdnClassLoader` without Grapes support, but with resource cache (relative to full qualified URL map).
  * Uses Groovy 2.4.7

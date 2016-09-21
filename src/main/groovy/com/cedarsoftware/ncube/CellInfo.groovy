@@ -352,7 +352,7 @@ class CellInfo
     static String getType(Object cell)
     {
         if (cell == null) {
-            return null
+            return 'string'
         }
 
         if (cell instanceof String) {
