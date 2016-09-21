@@ -319,7 +319,7 @@ class CellInfo
      * Map cellInfoMap = cellInfo as Map<br>
      * @param c Class to convert CellInfo to
      * @return CellInfo converted into an instance of the passed in class (c), or
-     * throw an IllegalArgumentException is it cannot be coerced into the type.
+     * throw an IllegalArgumentException if it cannot be coerced into the type.
      */
     Object asType(Class c)
     {
