@@ -515,6 +515,32 @@ class NCubeManager
         }
     }
 
+    // TODO: This method is correct.  Once it is verified that this does break existing clients,
+    // which may have been not specifying their methods tightly, then this should be used instead
+    // of the uncommented version below it.
+//    private static void addAdviceToMatchedCube(Advice advice, String regex, NCube ncube, Axis axis)
+//    {
+//        if (axis != null)
+//        {   // Controller methods
+//            for (Column column : axis.getColumnsWithoutDefault())
+//            {
+//                String method = column.getValue().toString()
+//                String classMethod = ncube.getName() + '.' + method + '()'
+//                if (classMethod.matches(regex))
+//                {
+//                    ncube.addAdvice(advice, method)
+//                }
+//            }
+//        }
+//
+//        // Add support for run() method (inline GroovyExpressions)
+//        String classMethod = ncube.getName() + '.run()'
+//        if (classMethod.matches(regex))
+//        {
+//            ncube.addAdvice(advice, 'run')
+//        }
+//    }
+
     private static void addAdviceToMatchedCube(Advice advice, String regex, NCube ncube, Axis axis)
     {
         if (axis != null)
@@ -529,12 +555,13 @@ class NCubeManager
                 }
             }
         }
-
-        // Add support for run() method (inline GroovyExpressions)
-        String classMethod = ncube.getName() + '.run()'
-        if (classMethod.matches(regex))
-        {
-            ncube.addAdvice(advice, 'run')
+        else
+        {   // Expressions
+            String classMethod = ncube.getName() + '.run()'
+            if (classMethod.matches(regex))
+            {
+                ncube.addAdvice(advice, 'run')
+            }
         }
     }
 
