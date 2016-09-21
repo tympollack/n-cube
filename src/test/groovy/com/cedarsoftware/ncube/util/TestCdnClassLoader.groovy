@@ -26,10 +26,10 @@ import static org.junit.Assert.assertNull
 @CompileStatic
 class TestCdnClassLoader
 {
-    @Ignore
+    @Test
     void testLocalResources()
     {
-        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true)
+        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader)
         assert !testLoader1.isLocalOnlyResource("META-INF/org.codehaus.groovy.transform.ASTTransformation")
         assert testLoader1.isLocalOnlyResource("ncube/grv/exp/GroovyExpression")
         assert testLoader1.isLocalOnlyResource("ncube/grv/method/GroovyMethod")
@@ -47,7 +47,7 @@ class TestCdnClassLoader
     @Test
     void testFindResource()
     {
-        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true)
+        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader)
         assertNull testLoader1.findResource("cdnRouter.json")
         assertNull testLoader1.findResource("ncube/grv/method/NCubeGroovyController.class") // .class not allowed
         assertNotNull TestCdnClassLoader.class.classLoader.getResource("ncube/grv/method/NCubeGroovyController.class")
@@ -56,19 +56,20 @@ class TestCdnClassLoader
     @Test
     void testFindResources()
     {
-        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true)
+        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader)
         assert !testLoader1.findResources("cdnRouter.json").hasMoreElements()
-        assert !testLoader1.findResources("ncube/grv/method/NCubeGroovyController.class").hasMoreElements() // .class not alloweds
+        assert !testLoader1.findResources("ncube/grv/method/NCubeGroovyController.class").hasMoreElements() // .class not allowed
         assert TestCdnClassLoader.class.classLoader.getResources("ncube/grv/method/NCubeGroovyController.class").hasMoreElements()
     }
 
-    @Ignore
+    @Test
     void testGetResourcesWithLocalResource()
     {
-        new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true).getResources("ncube/grv/method/NCubeGroovyController.class").nextElement()
+        CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader)
+        testLoader1.getResources("ddl/hsqldb-schema.sql").nextElement()
         try
         {
-            new CdnClassLoader(TestCdnClassLoader.class.classLoader, true, true).getResources("ncube/grv/method/NCubeGroovyController_x.class").nextElement()
+            new CdnClassLoader(TestCdnClassLoader.class.classLoader).getResources("ddl/xhsqldb-schema.sql").nextElement()
         }
         catch (NoSuchElementException ignore)
         { }

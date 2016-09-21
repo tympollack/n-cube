@@ -3419,8 +3419,7 @@ class TestWithPreloadedDatabase
         assertEquals(0, NCubeManager.getCacheForApp(appId).size())
     }
 
-    // Ken: Can you lot at keeping this test, but doing it in terms of a non-sys.classpath cube?
-    @Ignore
+    @Test
     void testTwoClasspathsSameAppId()
     {
         preloadCubes(appId, "sys.classpath.2per.app.json", "GroovyExpCp1.json")
@@ -3437,8 +3436,8 @@ class TestWithPreloadedDatabase
         def x = cube.getCell(input)
         assert 'Hello, world.' == x
 
-        // GroovyExpCp1 and sys.classpath are now both loaded.
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
+        // GroovyExpCp1, sys.classpath, sys.prototype are now both loaded.
+        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
 
         input.env = "b"
         input.state = "TX"
@@ -3762,9 +3761,10 @@ class TestWithPreloadedDatabase
 //        assert axisRefs.isEmpty()
     }
 
-    @Ignore
+    @Test
     void testDynamicallyLoadedCode()
     {
+        System.getProperties().setProperty(CdnClassLoader.NCUBE_ACCEPTED_DOMAINS, 'org.apache.')
         NCube ncube = NCubeBuilder.getDiscrete1DEmpty()
         GroovyExpression exp = new GroovyExpression('''\
 import org.apache.commons.collections.primitives.*

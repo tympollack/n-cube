@@ -338,7 +338,7 @@ class NCubeManager
         GroovyClassLoader gcl = localClassLoaders[appId]
         if (gcl == null)
         {
-            gcl = new CdnClassLoader(NCubeManager.class.getClassLoader(), true, true)
+            gcl = new CdnClassLoader(NCubeManager.class.getClassLoader())
             GroovyClassLoader classLoaderRef = localClassLoaders.putIfAbsent(appId, gcl)
             if (classLoaderRef != null)
             {
@@ -529,13 +529,12 @@ class NCubeManager
                 }
             }
         }
-        else
-        {   // Expressions
-            String classMethod = ncube.getName() + '.run()'
-            if (classMethod.matches(regex))
-            {
-                ncube.addAdvice(advice, 'run')
-            }
+
+        // Add support for run() method (inline GroovyExpressions)
+        String classMethod = ncube.getName() + '.run()'
+        if (classMethod.matches(regex))
+        {
+            ncube.addAdvice(advice, 'run')
         }
     }
 
