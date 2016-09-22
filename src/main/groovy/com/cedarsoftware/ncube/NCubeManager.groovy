@@ -502,6 +502,7 @@ class NCubeManager
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
         String regex = StringUtilities.wildcardToRegexString(wildcard)
+        Pattern pattern = Pattern.compile(regex)
         Map<String, Object> cubes = getCacheForApp(appId)
 
         for (Object value : cubes.values())
@@ -510,38 +511,12 @@ class NCubeManager
             {   // apply advice to hydrated cubes
                 NCube ncube = value as NCube
                 Axis axis = ncube.getAxis('method')
-                addAdviceToMatchedCube(advice, regex, ncube, axis)
+                addAdviceToMatchedCube(advice, pattern, ncube, axis)
             }
         }
     }
 
-    // TODO: This method is correct.  Once it is verified that this does break existing clients,
-    // which may have been not specifying their methods tightly, then this should be used instead
-    // of the uncommented version below it.
-//    private static void addAdviceToMatchedCube(Advice advice, String regex, NCube ncube, Axis axis)
-//    {
-//        if (axis != null)
-//        {   // Controller methods
-//            for (Column column : axis.getColumnsWithoutDefault())
-//            {
-//                String method = column.getValue().toString()
-//                String classMethod = ncube.getName() + '.' + method + '()'
-//                if (classMethod.matches(regex))
-//                {
-//                    ncube.addAdvice(advice, method)
-//                }
-//            }
-//        }
-//
-//        // Add support for run() method (inline GroovyExpressions)
-//        String classMethod = ncube.getName() + '.run()'
-//        if (classMethod.matches(regex))
-//        {
-//            ncube.addAdvice(advice, 'run')
-//        }
-//    }
-
-    private static void addAdviceToMatchedCube(Advice advice, String regex, NCube ncube, Axis axis)
+    private static void addAdviceToMatchedCube(Advice advice, Pattern pattern, NCube ncube, Axis axis)
     {
         if (axis != null)
         {   // Controller methods
@@ -549,19 +524,18 @@ class NCubeManager
             {
                 String method = column.getValue().toString()
                 String classMethod = ncube.getName() + '.' + method + '()'
-                if (classMethod.matches(regex))
+                if (pattern.matcher(classMethod).matches())
                 {
                     ncube.addAdvice(advice, method)
                 }
             }
         }
-        else
-        {   // Expressions
-            String classMethod = ncube.getName() + '.run()'
-            if (classMethod.matches(regex))
-            {
-                ncube.addAdvice(advice, 'run')
-            }
+
+        // Add support for run() method (inline GroovyExpressions)
+        String classMethod = ncube.getName() + '.run()'
+        if (pattern.matcher(classMethod).matches())
+        {
+            ncube.addAdvice(advice, 'run')
         }
     }
 
@@ -586,7 +560,7 @@ class NCubeManager
             final String wildcard = entry.getKey().replace(advice.getName() + '/', "")
             final String regex = StringUtilities.wildcardToRegexString(wildcard)
             final Axis axis = ncube.getAxis('method')
-            addAdviceToMatchedCube(advice, regex, ncube, axis)
+            addAdviceToMatchedCube(advice, Pattern.compile(regex), ncube, axis)
         }
     }
 
@@ -713,13 +687,13 @@ class NCubeManager
         NCube.validateCubeName(oldName)
         NCube.validateCubeName(newName)
 
-        if (oldName.equalsIgnoreCase(newName) && oldAppId.equals(newAppId))
+        if (oldName.equalsIgnoreCase(newName) && oldAppId == newAppId)
         {
             throw new IllegalArgumentException('Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ' + oldName + ', app: ' + oldAppId)
         }
 
         assertPermissions(oldAppId, oldName, ACTION.READ)
-        if (!oldAppId.equals(newAppId))
+        if (oldAppId != newAppId)
         {   // Only see if branch permissions are needed to be created when destination cube is in a different ApplicationID
             detectNewAppId(newAppId)
         }
@@ -899,19 +873,10 @@ class NCubeManager
                     list.add(info)
                 }
             }
-            else if (StringUtilities.equalsIgnoreCase(info.sha1, head.sha1))
-            {   // If branch is 'changed' but has same SHA-1 as head, then see if branch needs Fast-Forward
-                if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // Fast-Forward branch
-                    // Update HEAD SHA-1 on branch directly (no need to insert)
-                    info.changeType = ChangeType.UPDATED.getCode()
-                    list.add(info)
-                }
-            }
             else
-            {   // You can ignore changes that branch has made as long as its HEAD-SHA1 is the same as HEAD's SHA-1
+            {   // If branch is 'changed'...
                 if (!StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
-                {   // Cube is different than HEAD, AND it is not based on same HEAD cube, but it could be merge-able.
+                {   // Cube in branch is out-of-date with HEAD (merge will be attempted)
                     info.changeType = ChangeType.UPDATED.getCode()
                     list.add(info)
                 }
@@ -2728,7 +2693,7 @@ class NCubeManager
 
     private static void cacheCube(ApplicationID appId, NCube ncube)
     {
-        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE.equals(ncube.getMetaProperty(PROPERTY_CACHE)))
+        if (!ncube.getMetaProperties().containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
             Map<String, Object> cache = getCacheForApp(appId)
             cache[ncube.name.toLowerCase()] = ncube
