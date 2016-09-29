@@ -1003,6 +1003,111 @@ class NCubeManager
         return list
     }
 
+    static NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
+    {
+        NCube ncube = getCube(appId, cubeName)
+        for (Delta delta : deltas)
+        {
+            switch (delta.location)
+            {
+                case Delta.Location.NCUBE:
+                    switch (delta.locId)
+                    {
+                        case 'DEFAULT_CELL':
+                            CellInfo cellInfo = delta.sourceVal as CellInfo
+                            Object cellValue = cellInfo.isUrl ?
+                                    CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
+                                    CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
+                            ncube.setDefaultCellValue(cellValue)
+                            break
+                    }
+                    break
+                case Delta.Location.NCUBE_META:
+                    String key = delta.sourceVal as String
+                    if (delta.type == Delta.Type.ADD)
+                    {
+                        ncube.removeMetaProperty(key)
+                    }
+                    else
+                    {
+                        ncube.setMetaProperty(key, delta.destVal)
+                    }
+                    break
+                case Delta.Location.AXIS:
+                    if (delta.destVal != null)
+                    {
+                        Axis axis = delta.destVal as Axis
+                        ncube.deleteAxis(axis.name)
+                    }
+                    if (delta.type != Delta.Type.ADD)
+                    {
+                        ncube.addAxis(delta.sourceVal as Axis)
+                    }
+                    break
+                case Delta.Location.AXIS_META:
+                    Axis axis = ncube.getAxis(delta.locId as String)
+                    String key = delta.sourceVal as String
+                    if (delta.type == Delta.Type.ADD)
+                    {
+                        axis.removeMetaProperty(key)
+                    }
+                    else
+                    {
+                        axis.setMetaProperty(key, delta.destVal)
+                    }
+                    ncube.clearSha1()
+                    break
+                case Delta.Location.COLUMN:
+                    String axisName = delta.locId as String
+                    List<Column> columns = ncube.getAxis(axisName).getColumnsWithoutDefault()
+                    switch (delta.type)
+                    {
+                        case Delta.Type.ADD:
+                            columns.remove(delta.destVal as Column)
+                            break
+                        case Delta.Type.DELETE:
+                            columns.add(delta.sourceVal as Column)
+                            break
+                        case Delta.Type.UPDATE:
+                            int prevIdx = columns.indexOf(delta.destVal as Column)
+                            columns.remove(prevIdx)
+                            columns.add(prevIdx, delta.sourceVal as Column)
+                            break
+                    }
+                    ncube.updateColumns(axisName, columns, true)
+                    break
+                case Delta.Location.COLUMN_META:
+                    String key = delta.sourceVal as String
+                    Map<String, Object> helperId = delta.locId as Map<String, Object>
+                    Axis axis = ncube.getAxis(helperId.axis as String)
+                    Column column = axis.findColumn(helperId.column as Comparable)
+                    if (delta.type == Delta.Type.ADD)
+                    {
+                        column.removeMetaProperty(key)
+                    }
+                    else
+                    {
+                        column.setMetaProperty(key, delta.destVal)
+                    }
+                    ncube.clearSha1()
+                    break
+                case Delta.Location.CELL:
+                    Set<Long> coords = delta.locId as Set<Long>
+                    ncube.removeCellById(coords)
+                    if (delta.type != Delta.Type.ADD)
+                    {
+                        ncube.setCellById(((CellInfo)delta.sourceVal).recreate(), coords)
+                    }
+                    break
+                case Delta.Location.CELL_META:
+                    // TODO - cell metaproperties not yet implemented
+                    break
+            }
+        }
+        updateCube(appId, ncube)
+        return ncube
+    }
+
     /**
      * Commit the passed in changed cube records identified by NCubeInfoDtos.
      * @return array of NCubeInfoDtos that are to be committed.
@@ -1171,7 +1276,7 @@ class NCubeManager
         }
         catch (Exception e)
         {
-            Delta delta = new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, e.message)
+            Delta delta = new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, e.message, null, null, null)
             map.diff = [delta]
         }
         errors[branchInfo.name] = map
