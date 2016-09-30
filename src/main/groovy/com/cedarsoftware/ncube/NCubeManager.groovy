@@ -230,7 +230,7 @@ class NCubeManager
         {
             return null
         }
-        applyAdvices(ncube.getApplicationID(), ncube)
+        applyAdvices(ncube.applicationID, ncube)
         cacheCube(appId, ncube)
         return ncube
     }
@@ -1067,10 +1067,10 @@ class NCubeManager
     static List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
     {
         validateAppId(appId)
-        if (ApplicationID.HEAD == appId.branch)
-        {
-            throw new IllegalArgumentException('Cannot get branch changes from HEAD')
-        }
+        appId.validateBranchIsNotHead()
+        appId.validateStatusIsNotRelease()
+        assertNotLockBlocked(appId)
+        assertPermissions(appId, null, ACTION.READ)
 
         ApplicationID headAppId = appId.asHead()
         Map<String, NCubeInfoDto> headMap = new CaseInsensitiveMap<>()
@@ -1078,64 +1078,63 @@ class NCubeManager
         List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
         List<NCubeInfoDto> headList = search(headAppId, null, null, null)   // active and deleted
         List<NCubeInfoDto> list = []
+        Map<String, Map> conflicts = new CaseInsensitiveMap<>()
 
         //  build map of head objects for reference.
-        for (NCubeInfoDto info : headList)
+        for (NCubeInfoDto headCube : headList)
         {
-            headMap[info.name] = info
+            headMap[headCube.name] = headCube
         }
 
         // Loop through changed (added, deleted, created, restored, updated) records
-        for (NCubeInfoDto info : branchList)
+        for (NCubeInfoDto updateCube : branchList)
         {
-            long revision = (long) Converter.convert(info.revision, long.class)
-            NCubeInfoDto head = headMap[info.name]
+            long revision = (long) Converter.convert(updateCube.revision, long.class)
+            NCubeInfoDto head = headMap[updateCube.name]
 
             if (head == null)
             {
                 if (revision >= 0)
                 {
-                    info.changeType = ChangeType.CREATED.getCode()
-                    list.add(info)
+                    updateCube.changeType = ChangeType.CREATED.code
+                    list.add(updateCube)
                 }
             }
-            else if (info.headSha1 == null)
+            else if (updateCube.headSha1 == null)
             {   // we created this guy locally, but someone added this one to the head already
-                info.changeType = ChangeType.CONFLICT.getCode()
-                list.add(info)
+                String message = 'Cube was changed in both branch and HEAD'
+                NCube cube = mergeCubesIfPossible(conflicts, message, updateCube, head, true)
+                updateCube.changeType = cube == null ? ChangeType.CONFLICT : ChangeType.UPDATED
+                list.add(updateCube)
             }
             else
             {
-                if (StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1))
+                if (StringUtilities.equalsIgnoreCase(updateCube.headSha1, head.sha1))
                 {
-                    if (StringUtilities.equalsIgnoreCase(info.sha1, info.headSha1))
+                    if (StringUtilities.equalsIgnoreCase(updateCube.sha1, updateCube.headSha1))
                     {   // only net change could be revision deleted or restored.  check HEAD.
                         long headRev = (long) Converter.convert(head.revision, long.class)
+                        long updateRev = (long) Converter.convert(updateCube.revision, long.class)
+                        boolean activeStatusMatches = (updateRev < 0) == (headRev < 0)
 
-                        if (headRev < 0 != revision < 0)
+                        if (!activeStatusMatches)
                         {
-                            if (revision < 0)
-                            {
-                                info.changeType = ChangeType.DELETED.getCode()
-                            }
-                            else
-                            {
-                                info.changeType = ChangeType.RESTORED.getCode()
-                            }
-
-                            list.add(info)
+                            updateCube.changeType = revision < 0 ? ChangeType.DELETED.code : ChangeType.RESTORED.code
+                            list.add(updateCube)
                         }
                     }
                     else
                     {
-                        info.changeType = ChangeType.UPDATED.getCode()
-                        list.add(info)
+                        updateCube.changeType = ChangeType.UPDATED.code
+                        list.add(updateCube)
                     }
                 }
                 else
                 {
-                    info.changeType = ChangeType.CONFLICT.getCode()
-                    list.add(info)
+                    String message = 'Cube was changed in both branch and HEAD'
+                    NCube cube = mergeCubesIfPossible(conflicts, message, updateCube, head, true)
+                    updateCube.changeType = cube == null ? ChangeType.CONFLICT : ChangeType.UPDATED
+                    list.add(updateCube)
                 }
             }
         }

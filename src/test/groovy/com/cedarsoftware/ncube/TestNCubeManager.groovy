@@ -474,7 +474,7 @@ class TestNCubeManager
         }
         catch (IllegalArgumentException e)
         {
-            assertEquals(e.message, 'Cannot get branch changes from HEAD')
+            assertEquals(e.message, "Branch cannot be 'HEAD'")
         }
     }
 
