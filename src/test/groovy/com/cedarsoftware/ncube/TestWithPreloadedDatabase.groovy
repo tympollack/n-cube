@@ -379,10 +379,10 @@ class TestWithPreloadedDatabase
 
     private void testUpdateBranchWhenSingleCubeWasDeletedinDifferentBranchAndNotChangedInOurBranch(Closure closure)
     {
-        preloadCubes(head, "test.branch.1.json")
+        preloadCubes(branch1, "test.branch.1.json")
+        NCubeManager.commitBranch(branch1, NCubeManager.search(branch1, null, null, null) as Object[])
 
-        NCubeManager.copyBranch(branch1.asHead(), branch1)
-        NCubeManager.copyBranch(branch2.asHead(), branch2)
+        NCubeManager.copyBranch(head, branch2)
         NCubeManager.deleteCubes(branch2, ['TestBranch'].toArray())
 
         Object[] dtos = NCubeManager.getBranchChangesForHead(branch2)
@@ -393,7 +393,7 @@ class TestWithPreloadedDatabase
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestBranch'
-        assert Converter.convert(dtos2[0].revision, long.class) == 0
+        assert Converter.convert(dtos2[0].revision, long.class) == -1
 
         Map<String, Object> result = closure()
 
@@ -572,12 +572,12 @@ class TestWithPreloadedDatabase
         List<NCubeInfoDto> adds = result[NCubeManager.BRANCH_ADDS]
         assert adds[0].name == 'TestAge'
 
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 1
-        List<NCubeInfoDto> updates = result[NCubeManager.BRANCH_UPDATES]
-        assert updates[0].name == 'TestBranch'
+        assert result[NCubeManager.BRANCH_MERGES].size() == 1
+        List<NCubeInfoDto> merges = result[NCubeManager.BRANCH_MERGES]
+        assert merges[0].name == 'TestBranch'
 
         assert result[NCubeManager.BRANCH_DELETES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
         assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 
         assertEquals(2, NCubeManager.getRevisionHistory(head, "TestBranch").size())
@@ -2278,7 +2278,8 @@ class TestWithPreloadedDatabase
 
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2[0].name == 'TestBranch'
-        assert dtos2[0].sha1 == cube.sha1
+        assert dtos2[0].changeType == ChangeType.CONFLICT.name()
+        assert dtos2[0].sha1 != cube.sha1
 
         try
         {
@@ -2323,7 +2324,7 @@ class TestWithPreloadedDatabase
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestBranch'
-        assert dtos2[0].sha1 != dtos[0].sha1
+        assert dtos2[0].sha1 == dtos[0].sha1
         assert dtos2[0].branch != ApplicationID.HEAD
         assert dtos[0].branch == branch2.branch
         assert dtos[0].branch != ApplicationID.HEAD
