@@ -1053,9 +1053,12 @@ class TestDelta
 
         // Update branch 1.0.1 -> 1.0.2
         Map map = NCubeManager.updateBranch(appIdKpartlow)
-        assert (map.updates as List).isEmpty()
-        assert (map.conflicts as Map).isEmpty()
-        assert (map.merges as List).size() == 1
+        assert (map.adds as List).size() == 0
+        assert (map.deletes as List).size() == 0
+        assert (map.updates as List).size() == 1
+        assert (map.restores as List).size() == 0
+        assert (map.fastforwards as List).size() == 0
+        assert (map.rejects as List).size() == 0
 
         // TODO: Write many more reference axis tests
         // auto-merge reference axis (with diff transform)
