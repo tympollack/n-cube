@@ -2,11 +2,8 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.SystemUtilities
-import javafx.scene.control.TextFormatter
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
