@@ -1508,7 +1508,7 @@ class TestNCubeManager
         List dtos2 = NCubeManager.getHeadChangesForBranch(johnAppId)
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestCube'
-        assert dtos2[0].changeType == ChangeType.FASTFORWARD.name()
+        assert dtos2[0].changeType == ChangeType.FASTFORWARD.code
 
         // Update john branch (no changes are shown - it auto-merged)
         Map map = NCubeManager.updateBranch(johnAppId)

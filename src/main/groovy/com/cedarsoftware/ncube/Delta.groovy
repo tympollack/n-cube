@@ -33,6 +33,8 @@ class Delta implements Comparable
     private final Object locId
     private final Object sourceVal
     private final Object destVal
+    private final Object sourceList
+    private final Object destList
 
     enum Location
     {
@@ -53,7 +55,7 @@ class Delta implements Comparable
         UPDATE
     }
 
-    Delta(Location location, Type type, String description, Object locId, Object sourceVal, Object destVal)
+    Delta(Location location, Type type, String description, Object locId, Object sourceVal, Object destVal, Object sourceList, Object destList)
     {
         desc = description
         loc = location
@@ -61,6 +63,8 @@ class Delta implements Comparable
         this.locId = locId
         this.sourceVal = sourceVal
         this.destVal = destVal
+        this.sourceList = sourceList
+        this.destList = destList
     }
 
     String getDescription()

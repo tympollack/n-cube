@@ -863,12 +863,7 @@ class Axis
         for (Column col : newCols)
         {
             Column newColumn = createColumnFromValue(col.value, col.id)
-            Map<String, Object> metaProperties = col.getMetaProperties()
-            for (Map.Entry<String, Object> entry : metaProperties.entrySet())
-            {
-                newColumn.setMetaProperty(entry.getKey(), entry.getValue())
-            }
-
+            newColumn.addMetaProperties(col.metaProperties)
             newColumnMap[col.id] = newColumn
         }
 

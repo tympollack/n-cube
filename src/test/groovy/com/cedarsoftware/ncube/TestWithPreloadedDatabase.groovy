@@ -299,9 +299,8 @@ class TestWithPreloadedDatabase
     @Test
     void testRollbackBranchWithDeletedCube()
     {
-        preloadCubes(head, "test.branch.1.json")
-
-        NCubeManager.copyBranch(branch1.asHead(), branch1)
+        preloadCubes(branch1, "test.branch.1.json")
+        NCubeManager.commitBranch(branch1, NCubeManager.search(branch1, null, null, null) as Object[])
 
         assertEquals(1, NCubeManager.search(head, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, NCubeManager.search(branch1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
@@ -2283,7 +2282,7 @@ class TestWithPreloadedDatabase
 
         List dtos2 = NCubeManager.getHeadChangesForBranch(branch1)
         assert dtos2[0].name == 'TestBranch'
-        assert dtos2[0].changeType == ChangeType.CONFLICT.name()
+        assert dtos2[0].changeType == ChangeType.CONFLICT.code
         assert dtos2[0].sha1 != cube.sha1
 
         try

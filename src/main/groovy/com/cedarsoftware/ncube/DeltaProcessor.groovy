@@ -557,7 +557,7 @@ class DeltaProcessor
         if (!target.name.equalsIgnoreCase(source.name))
         {
             String s = "Name changed from '" + source.name + "' to '" + target.name + "'"
-            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'NAME', source.name, target.name))
+            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'NAME', source.name, target.name, null, null))
         }
 
         if (target.defaultCellValue != source.defaultCellValue)
@@ -566,7 +566,7 @@ class DeltaProcessor
                     CellInfo.formatForDisplay((Comparable)source.defaultCellValue) +
                     "' to '" +
                     CellInfo.formatForDisplay((Comparable)target.defaultCellValue) + "'"
-            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'DEFAULT_CELL', new CellInfo(source.defaultCellValue), new CellInfo(target.defaultCellValue)))
+            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'DEFAULT_CELL', new CellInfo(source.defaultCellValue), new CellInfo(target.defaultCellValue), null, null))
         }
 
         List<Delta> metaChanges = compareMetaProperties(source.metaProperties, target.metaProperties, Delta.Location.NCUBE_META, "n-cube '" + target.name + "'", null)
@@ -581,7 +581,7 @@ class DeltaProcessor
         {
             String s = "Added axis: " + a1
             for (String axisName : a1) {
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s, null, null, target.getAxis(axisName)))
+                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s, null, null, target.getAxis(axisName), a1, a2))
             }
             axesChanged = true
         }
@@ -592,7 +592,7 @@ class DeltaProcessor
         {
             String s = "Removed axis: " + a2
             for (String axisName : a2) {
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s, null, source.getAxis(axisName), null))
+                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s, null, source.getAxis(axisName), null, a1, a2))
             }
             axesChanged = true
         }
@@ -607,7 +607,7 @@ class DeltaProcessor
             if (!newAxis.areAxisPropsEqual(oldAxis))
             {
                 String s = "Axis properties changed from " + oldAxis.getAxisPropString() + " to " + newAxis.getAxisPropString()
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis))
+                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis, a1, a2))
             }
 
             metaChanges = compareMetaProperties(oldAxis.metaProperties, newAxis.metaProperties, Delta.Location.AXIS_META, "axis: " + newAxis.name, newAxis.name)
@@ -619,7 +619,7 @@ class DeltaProcessor
                 if (oldCol == null)
                 {
                     String s = "Column: " + newCol.value + " added to axis: " + newAxis.name
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol))
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldAxis.columns, newAxis.columns))
                 }
                 else
                 {   // Check Column meta properties
@@ -629,7 +629,7 @@ class DeltaProcessor
                     if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                     {
                         String s = "Column value changed from: " + oldCol.value + " to: " + newCol.value
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol))
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldAxis.columns, newAxis.columns))
                     }
                 }
             }
@@ -640,7 +640,7 @@ class DeltaProcessor
                 if (newCol == null)
                 {
                     String s = "Column: " + oldCol.value + " removed"
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null))
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldAxis.columns, newAxis.columns))
                 }
             }
         }
@@ -665,14 +665,14 @@ class DeltaProcessor
                     String s = "Cell changed at location: " + properCoord + ", from: " +
                             (oldCellValue == null ? null : oldCellValue.toString()) + ", to: " +
                             (newCellValue == null ? null : newCellValue.toString())
-                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, newCellKey, new CellInfo(source.getCellByIdNoExecute(newCellKey)), new CellInfo(target.getCellByIdNoExecute(newCellKey))))
+                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, newCellKey, new CellInfo(source.getCellByIdNoExecute(newCellKey)), new CellInfo(target.getCellByIdNoExecute(newCellKey)), null, null))
                 }
             }
             else
             {
                 Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(newCellKey)
                 String s = "Cell added at location: " + properCoord + ", value: " + (newCellValue == null ? null : newCellValue.toString())
-                changes.add(new Delta(Delta.Location.CELL, Delta.Type.ADD, s, newCellKey, null, new CellInfo(target.getCellByIdNoExecute(newCellKey))))
+                changes.add(new Delta(Delta.Location.CELL, Delta.Type.ADD, s, newCellKey, null, new CellInfo(target.getCellByIdNoExecute(newCellKey)), null, null))
             }
         }
 
@@ -698,7 +698,7 @@ class DeltaProcessor
                 {
                     Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(oldCellKey)
                     String s = "Cell removed at location: " + properCoord + ", value: " + (value == null ? null : value.toString())
-                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s, oldCellKey, new CellInfo(source.getCellByIdNoExecute(oldCellKey)), null))
+                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s, oldCellKey, new CellInfo(source.getCellByIdNoExecute(oldCellKey)), null, null, null))
                 }
             }
         }
@@ -722,7 +722,7 @@ class DeltaProcessor
         {
             for (String key : addedKeys)
             {
-                changes.add(new Delta(location, Delta.Type.ADD, locName + ' meta-entry added: ' + key + '->' + newMeta[key], helperId, key, null))
+                changes.add(new Delta(location, Delta.Type.ADD, locName + ' meta-entry added: ' + key + '->' + newMeta[key], helperId, key, null, oldKeys, sameKeys))
             }
         }
 
@@ -733,7 +733,7 @@ class DeltaProcessor
             for (String key: deletedKeys)
             {
                 Object oldVal = oldMeta[key]
-                changes.add(new Delta(location, Delta.Type.DELETE, locName + ' meta-entry deleted: ' + key + '->' + oldVal, helperId, key, oldVal))
+                changes.add(new Delta(location, Delta.Type.DELETE, locName + ' meta-entry deleted: ' + key + '->' + oldVal, helperId, key, oldVal, oldKeys, sameKeys))
             }
         }
 
@@ -742,7 +742,7 @@ class DeltaProcessor
             if (!DeepEquals.deepEquals(oldMeta[key], newMeta[key]))
             {
                 Object oldVal = oldMeta[key]
-                changes.add(new Delta(location, Delta.Type.DELETE, locName + ' meta-entry changed: ' + key + '->' + oldVal + ' ==> ' + key + '->' + newMeta[key], helperId, key, oldVal))
+                changes.add(new Delta(location, Delta.Type.DELETE, locName + ' meta-entry changed: ' + key + '->' + oldVal + ' ==> ' + key + '->' + newMeta[key], helperId, key, oldVal, oldKeys, sameKeys))
             }
         }
 
