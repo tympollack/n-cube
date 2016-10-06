@@ -1476,7 +1476,7 @@ class NCube<T>
      *             for example, would call this API with an axisName and set of new columns.
      * @return Set<Long> column ids, indicating which columns were deleted.
      */
-    Set<Long> updateColumns(final String axisName, final Collection<Column> newCols)
+    Set<Long> updateColumns(final String axisName, final Collection<Column> newCols, boolean allowPositiveColumnIds = false)
     {
         if (newCols == null)
         {
@@ -1488,7 +1488,7 @@ class NCube<T>
         }
 
         final Axis axisToUpdate = axisList[axisName]
-        final Set<Long> colsToDel = axisToUpdate.updateColumns(newCols)
+        final Set<Long> colsToDel = axisToUpdate.updateColumns(newCols, allowPositiveColumnIds)
         Iterator<LongHashSet> i = cells.keySet().iterator()
 
         if (!colsToDel.isEmpty())
