@@ -1203,6 +1203,96 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         }
     }
 
+    static int copyBranchWithHistory(Connection c, ApplicationID srcAppId, ApplicationID targetAppId)
+    {
+        if (doCubesExist(c, targetAppId, true, 'copyBranch'))
+        {
+            throw new IllegalStateException("Branch '" + targetAppId.branch + "' already exists, app: " + targetAppId)
+        }
+
+        Map<String, Object> options = [(METHOD_NAME): 'copyBranch'] as Map
+        int count = 0
+        boolean autoCommit = c.autoCommit
+        PreparedStatement insert = null
+        try
+        {
+            c.autoCommit = false
+            insert = c.prepareStatement(
+                    "/* copyBranch */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            runSelectAllCubesInBranch(c, srcAppId, options, { ResultSet row ->
+                String sha1 = row.getString('sha1')
+                insert.setLong(1, UniqueIdGenerator.uniqueId)
+                insert.setString(2, row.getString('n_cube_nm'))
+                insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
+                insert.setTimestamp(4, row.getTimestamp('create_dt'))
+                insert.setString(5, row.getString('create_hid'))
+                insert.setString(6, targetAppId.version)
+                insert.setString(7, ReleaseStatus.SNAPSHOT.name())
+                insert.setString(8, targetAppId.app)
+                insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
+                insert.setBytes(10, ('branch ' + targetAppId.version + ' copied from ' + srcAppId.app + ' / ' + srcAppId.version + '-' + srcAppId.status + ' / ' + srcAppId.branch).getBytes('UTF-8'))
+                insert.setString(11, targetAppId.tenant)
+                insert.setString(12, targetAppId.branch)
+                insert.setLong(13, row.getLong('revision_number'))
+                insert.setBoolean(14, targetAppId.head ? false : (boolean)row.getBoolean('changed'))
+                insert.setString(15, sha1)
+
+                String headSha1 = null
+                if (!targetAppId.head)
+                {
+                    headSha1 = row.getString(srcAppId.head ? 'sha1' : 'head_sha1')
+                }
+                insert.setString(16, headSha1)
+
+                insert.addBatch()
+                count++
+                if (count % EXECUTE_BATCH_CONSTANT == 0)
+                {
+                    insert.executeBatch()
+                }
+            })
+            if (count % EXECUTE_BATCH_CONSTANT != 0)
+            {
+                insert.executeBatch()
+            }
+            return count
+        }
+        finally
+        {
+            c.autoCommit = autoCommit
+            insert?.close()
+        }
+    }
+
+    protected static void runSelectAllCubesInBranch(Connection c, ApplicationID appId, Map options, Closure closure)
+    {
+        String methodName = (String)options[METHOD_NAME]
+        if (StringUtilities.isEmpty(methodName))
+        {
+            methodName = 'methodNameNotSet'
+        }
+
+        Map map = appId as Map
+        map.tenant = padTenant(c, appId.tenant)
+
+        Sql sql = new Sql(c)
+        String select = """\
+/* ${methodName}.runSelectAllCubesInBranch */
+SELECT n_cube_nm, notes_bin, create_dt, create_hid, revision_number, changed, sha1, head_sha1, test_data_bin, cube_value_bin, notes_bin
+FROM n_cube
+WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
+"""
+
+        sql.eachRow(map, select, { ResultSet row ->
+            if (row.fetchSize < FETCH_SIZE)
+            {
+                row.fetchSize = FETCH_SIZE
+            }
+            closure(row)
+        })
+    }
+
     static boolean deleteBranch(Connection c, ApplicationID appId)
     {
         Map map = appId as Map
