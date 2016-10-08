@@ -45,7 +45,7 @@ import java.util.zip.GZIPOutputStream
 class NCubeJdbcPersister
 {
     private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersister.class);
-    static final SafeSimpleDateFormat dateTimeFormat = new SafeSimpleDateFormat('yyyy-MM-dd HH:mm:ss')
+    static final SafeSimpleDateFormat DATE_TIME_FORMAT = new SafeSimpleDateFormat('yyyy-MM-dd HH:mm:ss')
     static final String CUBE_VALUE_BIN = 'cube_value_bin'
     static final String TEST_DATA_BIN = 'test_data_bin'
     static final String NOTES_BIN = 'notes_bin'
@@ -1218,7 +1218,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
         {
             c.autoCommit = false
             insert = c.prepareStatement(
-                    "/* copyBranch */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
+                    "/* copyBranchWithHistory */ INSERT INTO n_cube (n_cube_id, n_cube_nm, cube_value_bin, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             runSelectAllCubesInBranch(c, srcAppId, options, { ResultSet row ->
                 String sha1 = row.getString('sha1')
@@ -1231,7 +1231,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
                 insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ('branch ' + targetAppId.version + ' copied from ' + srcAppId.app + ' / ' + srcAppId.version + '-' + srcAppId.status + ' / ' + srcAppId.branch).getBytes('UTF-8'))
+                insert.setBytes(10, ('branch ' + targetAppId.version + ' full copied from ' + srcAppId.app + ' / ' + srcAppId.version + '-' + srcAppId.status + ' / ' + srcAppId.branch).getBytes('UTF-8'))
                 insert.setString(11, targetAppId.tenant)
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, row.getLong('revision_number'))
@@ -1253,7 +1253,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 }
             })
             if (count % EXECUTE_BATCH_CONSTANT != 0)
-            {
+            {   // complete last batch
                 insert.executeBatch()
             }
             return count
@@ -1592,7 +1592,7 @@ ORDER BY abs(revision_number) DESC"""
 
     protected static String createNote(String user, Date date, String notes)
     {
-        return dateTimeFormat.format(date) + ' [' + user + '] ' + notes
+        return DATE_TIME_FORMAT.format(date) + ' [' + user + '] ' + notes
     }
 
     protected static boolean toBoolean(Object value)

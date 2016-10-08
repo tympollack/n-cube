@@ -222,15 +222,6 @@ class TestWithPreloadedDatabase
 
         dtos = NCubeManager.getBranchChangesForHead(branch2)
         assertEquals(1, dtos.length)
-
-//        NCubeManager.updateBranchCubes(branch2, [cube1.name] as Object[], branch1.branch)
-        Map merge = NCubeManager.updateBranchCube(branch2, cube1.name, branch1.branch)
-        assert merge.merges.isEmpty()
-        assert merge.updates.isEmpty()
-        assert merge.conflicts.size() > 0
-
-        // TODO: Finish verifying that merge Accept theirs should work
-//        println NCubeManager.mergeAcceptTheirs(branch2, [cube1.name].toArray(),['foo'].toArray())
     }
 
     @Test
@@ -266,12 +257,6 @@ class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_RESTORES].size() == 0
         assert result[NCubeManager.BRANCH_FASTFORWARDS].size() == 0
         assert result[NCubeManager.BRANCH_REJECTS].size() == 0
-
-        // Re-try same work as above but use the single-cube updateBranchCube() API
-        result = NCubeManager.updateBranchCube(branch1, cube.name, ApplicationID.HEAD)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
-        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 
         //  update didn't affect item added locally
         dtos = NCubeManager.getBranchChangesForHead(branch1)
@@ -378,11 +363,6 @@ class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_FASTFORWARDS].size() == 0
         assert result[NCubeManager.BRANCH_REJECTS].size() == 0
 
-        result = NCubeManager.updateBranchCube(branch1, cube.getName(), ApplicationID.HEAD)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
-        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
-
         ApplicationID headId = head
         assertEquals(0, NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false]).size())
     }
@@ -451,11 +431,6 @@ class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_RESTORES].size() == 0
         assert result[NCubeManager.BRANCH_FASTFORWARDS].size() == 0
         assert result[NCubeManager.BRANCH_REJECTS].size() == 0
-
-        result = NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
-        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
     }
 
     @Test
@@ -1191,10 +1166,6 @@ class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_RESTORES].size() == 0
         assert result[NCubeManager.BRANCH_FASTFORWARDS].size() == 0
         assert result[NCubeManager.BRANCH_REJECTS].size() == 0
-        result = NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
-        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 0
 
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestAge").size())
@@ -2895,19 +2866,6 @@ class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_RESTORES].size() == 0
         assert result[NCubeManager.BRANCH_FASTFORWARDS].size() == 0
         assert result[NCubeManager.BRANCH_REJECTS].size() == 1
-
-        result = NCubeManager.updateBranchCube(branch1, cube.name, ApplicationID.HEAD)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
-        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 1
-
-        Map<String, List> conflicts = result[NCubeManager.BRANCH_CONFLICTS]
-        Map testAge = conflicts.TestAge
-        List diff = testAge.diff
-        assert diff.size() == 4
-        assert testAge.message.toLowerCase().contains('cube was changed')
-        assertEquals("1B45FBA9BD25EDE58049F0BD0CFAF1FBE7C8C0BD", testAge.sha1)
-        assertEquals("E38F308922AFF48EEA589C321144F2004BD9BFAC", testAge.headSha1)
     }
 
     @Test
@@ -2950,20 +2908,8 @@ class TestWithPreloadedDatabase
         assert result[NCubeManager.BRANCH_FASTFORWARDS].size() == 0
         assert result[NCubeManager.BRANCH_REJECTS].size() == 1
 
-        result = NCubeManager.updateBranchCube(branch1, cube.name, ApplicationID.HEAD)
-        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert result[NCubeManager.BRANCH_MERGES].size() == 0
-        assert result[NCubeManager.BRANCH_CONFLICTS].size() == 1
-
-        Map<String, List> conflicts = result[NCubeManager.BRANCH_CONFLICTS]
-        Map testAge = conflicts.TestAge
-
-        assert testAge.message.toLowerCase().contains('cube was changed')
-        assertEquals("1B45FBA9BD25EDE58049F0BD0CFAF1FBE7C8C0BD", testAge.sha1)
-        assertEquals("E38F308922AFF48EEA589C321144F2004BD9BFAC", testAge.headSha1)
-
         dtos = NCubeManager.search(branch1, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
-        String sha1 = dtos[0].sha1;
+        String sha1 = dtos[0].sha1
 
         NCubeManager.mergeAcceptTheirs(branch1, ["TestAge"] as Object[], sha1)
 
@@ -3052,14 +2998,6 @@ class TestWithPreloadedDatabase
     {
         testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts({
     NCubeManager.updateBranch(branch1)
-        })
-    }
-
-    @Test
-    void testUpdateBranchWithItemThatWasChangedOnHeadAndInBranchWithNonConflictingChanges2()
-    {
-        testUpdateBranchWithItemThatWasChanegdOnHeadAndInBranchWithNoConflicts({
-    NCubeManager.updateBranchCube(branch1, 'TestBranch', ApplicationID.HEAD)
         })
     }
 
@@ -3680,12 +3618,13 @@ class TestWithPreloadedDatabase
         cube.setCell('FRI', [code:15])
         NCubeManager.updateCube(branch2, cube, true)
 
-        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
-        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert results[NCubeManager.BRANCH_MERGES].size() == 1
-        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
-        NCube merged = NCubeManager.getCube(branch1, cube.name)
-        assert 'FRI' == merged.getCell([code:15])
+        // TODO: Write when merge between branches is supported.
+//        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
+//        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+//        assert results[NCubeManager.BRANCH_MERGES].size() == 1
+//        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+//        NCube merged = NCubeManager.getCube(branch1, cube.name)
+//        assert 'FRI' == merged.getCell([code:15])
     }
 
     @Test
@@ -3698,20 +3637,21 @@ class TestWithPreloadedDatabase
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.3.json")
 
-        Map results = NCubeManager.updateBranchCube(branch1, cube.name, head.branch)
-        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert results[NCubeManager.BRANCH_MERGES].size() == 0
-        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
-
-        cube.setCell('FRI', [code:15])
-        NCubeManager.updateCube(branch2, cube, true)
-
-        results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
-        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert results[NCubeManager.BRANCH_MERGES].size() == 1
-        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
-        NCube merged = NCubeManager.getCube(branch1, cube.name)
-        assert 'FRI' == merged.getCell([code:15])
+        // TODO: Test needs to be written when merge between branches is supported.
+//        Map results = NCubeManager.updateBranchCube(branch1, cube.name, head.branch)
+//        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+//        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+//        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+//
+//        cube.setCell('FRI', [code:15])
+//        NCubeManager.updateCube(branch2, cube, true)
+//
+//        results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
+//        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+//        assert results[NCubeManager.BRANCH_MERGES].size() == 1
+//        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+//        NCube merged = NCubeManager.getCube(branch1, cube.name)
+//        assert 'FRI' == merged.getCell([code:15])
     }
 
     @Test
@@ -3725,10 +3665,11 @@ class TestWithPreloadedDatabase
         cube.setCell('x', [code:0])
         NCubeManager.updateCube(branch2, cube, true)
 
-        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
-        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert results[NCubeManager.BRANCH_MERGES].size() == 0
-        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 1
+        // TODO: Write when merge between branches is supported
+//        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
+//        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+//        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+//        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 1
     }
 
     @Test
@@ -3739,10 +3680,11 @@ class TestWithPreloadedDatabase
 
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.3.json")
 
-        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
-        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
-        assert results[NCubeManager.BRANCH_MERGES].size() == 0
-        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
+        // TODO: Write when merge between branches is supported.
+//        Map results = NCubeManager.updateBranchCube(branch1, cube.name, branch2.branch)
+//        assert results[NCubeManager.BRANCH_UPDATES].size() == 0
+//        assert results[NCubeManager.BRANCH_MERGES].size() == 0
+//        assert results[NCubeManager.BRANCH_CONFLICTS].size() == 0
     }
 
     @Test
