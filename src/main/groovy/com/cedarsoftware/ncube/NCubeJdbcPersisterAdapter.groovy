@@ -229,6 +229,12 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 'rollbackCubes(' + appId + ')')
     }
 
+    boolean findRollbackRevisionStatus(ApplicationID appId, String cubeName)
+    {
+        return (boolean) jdbcOperation({ Connection c -> persister.findRollbackRevisionStatus(c, appId, cubeName) },
+                'findRollbackRevisionStatus(' + appId + ', ' + cubeName + ')')
+    }
+
     List<NCubeInfoDto> pullToBranch(ApplicationID appId, Object[] cubeIds, String username, long txId)
     {
         return (List<NCubeInfoDto>) jdbcOperation({ Connection c -> persister.pullToBranch(c, appId, cubeIds, username, txId) },

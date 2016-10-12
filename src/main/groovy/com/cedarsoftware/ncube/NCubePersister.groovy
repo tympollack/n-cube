@@ -35,6 +35,7 @@ interface NCubePersister extends NCubeReadOnlyPersister
     // Branch Management
     List<NCubeInfoDto> commitCubes(ApplicationID appId, Object[] cubeIds, String username, long txId)
     int rollbackCubes(ApplicationID appId, Object[] names, String username)
+    boolean findRollbackRevisionStatus(ApplicationID appId, String cubeName)
     List<NCubeInfoDto> pullToBranch(ApplicationID appId, Object[] cubeIds, String username, long txId)
     boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
     boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
