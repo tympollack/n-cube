@@ -391,17 +391,17 @@ class DeltaProcessor
     {
         Map<String, Object> axisDeltas = [:]
 
-        if (baseAxis.getColumnOrder() != changeAxis.getColumnOrder())
+        if (baseAxis.columnOrder != changeAxis.columnOrder)
         {   // If column order changed, set the new column order
-            axisDeltas[DELTA_AXIS_SORT_CHANGED] = changeAxis.getColumnOrder()
+            axisDeltas[DELTA_AXIS_SORT_CHANGED] = changeAxis.columnOrder
         }
 
-        ApplicationID changeApp = changeAxis.getReferencedApp()
-        ApplicationID changeTxApp = changeAxis.getTransformApp()
+        ApplicationID changeApp = changeAxis.referencedApp
+        ApplicationID changeTxApp = changeAxis.transformApp
         Map ref = [:]
         axisDeltas[DELTA_AXIS_REF_CHANGE] = ref
 
-        if (changeAxis.isReference() && baseAxis.isReference())
+        if (changeAxis.reference && baseAxis.reference)
         {   // Record desired change reference axis info
             ref.ref_tenant = changeApp.tenant
             ref.ref_app = changeApp.app
@@ -411,7 +411,7 @@ class DeltaProcessor
             ref.ref_cube = changeAxis.referenceCubeName
             ref.ref_axis = changeAxis.referenceAxisName
 
-            if (changeAxis.isReferenceTransformed())
+            if (changeAxis.referenceTransformed)
             {
                 ref.tx_app = changeTxApp.app
                 ref.tx_version = changeTxApp.version
@@ -430,7 +430,7 @@ class DeltaProcessor
                 ref.tx_method = null
             }
         }
-        else if (changeAxis.isReference() != baseAxis.isReference())
+        else if (changeAxis.reference != baseAxis.reference)
         {
             ref[DELTA_AXIS_COLUMNS] = true
         }
@@ -477,11 +477,11 @@ class DeltaProcessor
 
             if (foundCol == null)
             {
-                deltaColumns[locatorKey] = new ColumnDelta(baseAxis.getType(), changeColumn, locatorKey, DELTA_COLUMN_ADD)
+                deltaColumns[locatorKey] = new ColumnDelta(baseAxis.type, changeColumn, locatorKey, DELTA_COLUMN_ADD)
             }
             else if (foundCol.value != changeColumn.value)
             {
-                deltaColumns[locatorKey] = new ColumnDelta(baseAxis.getType(), changeColumn, locatorKey, DELTA_COLUMN_CHANGE)
+                deltaColumns[locatorKey] = new ColumnDelta(baseAxis.type, changeColumn, locatorKey, DELTA_COLUMN_CHANGE)
                 copyColumns.remove(locatorKey)
             }
             else
@@ -494,7 +494,7 @@ class DeltaProcessor
         for (Column column : copyColumns.values())
         {   // If 'this' axis has columns 'other' axis does not, then mark these to be removed (like we do with cells).
             Comparable locatorKey = changeAxis.getValueToLocateColumn(column)
-            deltaColumns[locatorKey] = new ColumnDelta(baseAxis.getType(), column, locatorKey, DELTA_COLUMN_REMOVE)
+            deltaColumns[locatorKey] = new ColumnDelta(baseAxis.type, column, locatorKey, DELTA_COLUMN_REMOVE)
         }
 
         return deltaColumns
@@ -572,12 +572,12 @@ class DeltaProcessor
         List<Delta> metaChanges = compareMetaProperties(source.metaProperties, target.metaProperties, Delta.Location.NCUBE_META, "n-cube '" + target.name + "'", null)
         changes.addAll(metaChanges)
 
-        Set<String> a1 = target.getAxisNames()
-        Set<String> a2 = source.getAxisNames()
+        Set<String> a1 = target.axisNames
+        Set<String> a2 = source.axisNames
         a1.removeAll(a2)
 
         boolean axesChanged = false
-        if (!a1.isEmpty())
+        if (!a1.empty)
         {
             String s = "Added axis: " + a1
             for (String axisName : a1) {
@@ -586,9 +586,9 @@ class DeltaProcessor
             axesChanged = true
         }
 
-        a1 = target.getAxisNames()
+        a1 = target.axisNames
         a2.removeAll(a1)
-        if (!a2.isEmpty())
+        if (!a2.empty)
         {
             String s = "Removed axis: " + a2
             for (String axisName : a2) {
@@ -606,7 +606,7 @@ class DeltaProcessor
             }
             if (!newAxis.areAxisPropsEqual(oldAxis))
             {
-                String s = "Axis properties changed from " + oldAxis.getAxisPropString() + " to " + newAxis.getAxisPropString()
+                String s = "Axis properties changed from " + oldAxis.axisPropString + " to " + newAxis.axisPropString
                 changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis, a1, a2))
             }
 
@@ -663,15 +663,15 @@ class DeltaProcessor
                 {
                     Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(newCellKey)
                     String s = "Cell changed at location: " + properCoord + ", from: " +
-                            (oldCellValue == null ? null : oldCellValue.toString()) + ", to: " +
-                            (newCellValue == null ? null : newCellValue.toString())
+                            (oldCellValue ?: oldCellValue.toString()) + ", to: " +
+                            (newCellValue ?: newCellValue.toString())
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, newCellKey, new CellInfo(source.getCellByIdNoExecute(newCellKey)), new CellInfo(target.getCellByIdNoExecute(newCellKey)), null, null))
                 }
             }
             else
             {
                 Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(newCellKey)
-                String s = "Cell added at location: " + properCoord + ", value: " + (newCellValue == null ? null : newCellValue.toString())
+                String s = "Cell added at location: " + properCoord + ", value: " + (newCellValue ?: newCellValue.toString())
                 changes.add(new Delta(Delta.Location.CELL, Delta.Type.ADD, s, newCellKey, null, new CellInfo(target.getCellByIdNoExecute(newCellKey)), null, null))
             }
         }
@@ -697,7 +697,7 @@ class DeltaProcessor
                 if (allColsStillExist)
                 {
                     Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(oldCellKey)
-                    String s = "Cell removed at location: " + properCoord + ", value: " + (value == null ? null : value.toString())
+                    String s = "Cell removed at location: " + properCoord + ", value: " + (value ?: value.toString())
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s, oldCellKey, new CellInfo(source.getCellByIdNoExecute(oldCellKey)), null, null, null))
                 }
             }
