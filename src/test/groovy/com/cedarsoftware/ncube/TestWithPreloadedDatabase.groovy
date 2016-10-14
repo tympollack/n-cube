@@ -325,6 +325,45 @@ class TestWithPreloadedDatabase
     }
 
     @Test
+    void testRollbackBranchWithRestoredCube()
+    {
+        preloadCubes(branch1, "test.branch.1.json")
+        Object[] names = ['TestBranch'].toArray()
+        Map<String, Object> result = NCubeManager.commitBranch(branch1)
+        assert result[NCubeManager.BRANCH_ADDS].size() == 1
+        assert result[NCubeManager.BRANCH_DELETES].size() == 0
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_RESTORES].size() == 0
+        assert result[NCubeManager.BRANCH_REJECTS].size() == 0
+
+        assertEquals(1, NCubeManager.search(head, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        assertEquals(1, NCubeManager.search(branch1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+
+        NCubeManager.deleteCubes(branch1, names)
+        assertNull(NCubeManager.getCube(branch1, 'TestBranch'))
+        result = NCubeManager.commitBranch(branch1)
+        assert result[NCubeManager.BRANCH_ADDS].size() == 0
+        assert result[NCubeManager.BRANCH_DELETES].size() == 1
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_RESTORES].size() == 0
+        assert result[NCubeManager.BRANCH_REJECTS].size() == 0
+
+        NCubeManager.restoreCubes(branch1, names)
+        assertNotNull(NCubeManager.getCube(branch1, 'TestBranch'))
+
+        // undo restore
+        NCubeManager.rollbackCubes(branch1, names)
+        assertNull(NCubeManager.getCube(branch1, 'TestBranch'))
+
+        result = NCubeManager.commitBranch(branch1)
+        assert result[NCubeManager.BRANCH_ADDS].size() == 0
+        assert result[NCubeManager.BRANCH_DELETES].size() == 0
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_RESTORES].size() == 0
+        assert result[NCubeManager.BRANCH_REJECTS].size() == 0
+    }
+
+    @Test
     void testCommitBranchOnCreateThenDeleted() {
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.age.1.json")
 
@@ -1901,8 +1940,8 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestAge").size())
         assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
 
-        assertEquals(1, NCubeManager.getRevisionHistory(head, "TestAge").size())
-        assertEquals(1, NCubeManager.getRevisionHistory(head, "TestBranch").size())
+        assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestAge").size())
+        assertEquals(1, NCubeManager.getRevisionHistory(branch1, "TestBranch").size())
 
         try
         {
