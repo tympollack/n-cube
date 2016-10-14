@@ -830,7 +830,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 {
                     long maxRev = madMaxRev
                     Long rollbackRev = findRollbackRevision(c, appId, cubeName)
-                    boolean rollBackPos = findRollbackRevisionStatus(c, appId, cubeName)
+                    boolean rollbackStatusActive = getRollbackRevisionStatus(c, appId, cubeName)
                     boolean mustDelete = rollbackRev == null
                     map.cube = buildName(cubeName)
                     map.rev = mustDelete ? maxRev : rollbackRev
@@ -846,18 +846,9 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
                         byte[] testData = row.getBytes(TEST_DATA_BIN)
                         String sha1 = row.getString('sha1')
                         String headSha1 = row.getString('head_sha1')
-
-                        Long rev
-                        if (mustDelete)
-                        {
-                            rev = -(Math.abs(maxRev) + 1)
-                        }
-                        else
-                        {
-                            rev = rollBackPos ? Math.abs(maxRev) + 1 : -(Math.abs(maxRev) + 1)
-                        }
-
+                        long nextRev = Math.abs(maxRev) + 1
                         long uniqueId = UniqueIdGenerator.uniqueId
+
                         ins.setLong(1, uniqueId)
                         ins.setString(2, appId.tenant)
                         ins.setString(3, appId.app)
@@ -865,7 +856,7 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
                         ins.setString(5, appId.status)
                         ins.setString(6, appId.branch)
                         ins.setString(7, cubeName)
-                        ins.setLong(8, rev)
+                        ins.setLong(8, mustDelete || !rollbackStatusActive ? -nextRev : nextRev)
                         ins.setString(9, sha1)
                         ins.setString(10, headSha1)
                         Timestamp now = nowAsTimestamp()
@@ -898,7 +889,7 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
         return count
     }
 
-    static boolean findRollbackRevisionStatus(Connection c, ApplicationID appId, String cubeName)
+    static boolean getRollbackRevisionStatus(Connection c, ApplicationID appId, String cubeName)
     {
         Sql sql = new Sql(c)
         Map map = appId as Map
