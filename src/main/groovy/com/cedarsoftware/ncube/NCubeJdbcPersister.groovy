@@ -145,7 +145,7 @@ ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
 SELECT n_cube_id, n_cube_nm, notes_bin, version_no_cd, status_cd, app_cd, create_dt, create_hid, revision_number, branch_id, cube_value_bin, sha1, head_sha1, changed
 FROM n_cube
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND tenant_cd = :tenant AND branch_id = :branch
-ORDER BY version_no_cd DESC, revision_number DESC
+ORDER BY version_no_cd DESC, abs(revision_number) DESC
 """
         }
         else
@@ -889,7 +889,7 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
         return count
     }
 
-    static boolean getRollbackRevisionStatus(Connection c, ApplicationID appId, String cubeName)
+    private static boolean getRollbackRevisionStatus(Connection c, ApplicationID appId, String cubeName)
     {
         Sql sql = new Sql(c)
         Map map = appId as Map
