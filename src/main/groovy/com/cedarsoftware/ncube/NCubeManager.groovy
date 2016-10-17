@@ -1336,6 +1336,100 @@ class NCubeManager
         }
     }
 
+    /**
+     * Update a branch from the HEAD.  Changes from the HEAD are merged into the
+     * supplied branch.  If the merge cannot be done perfectly, an exception is
+     * thrown indicating the cubes that are in conflict.
+     */
+    static List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
+    {
+        ApplicationID branchAppId = appId.asBranch(branch)
+        validateAppId(appId)
+        validateAppId(branchAppId)
+        appId.validateBranchIsNotHead()
+        appId.validateStatusIsNotRelease()
+        assertNotLockBlocked(appId)
+        assertPermissions(appId, null, ACTION.READ)
+        assertPermissions(branchAppId, null, ACTION.READ)
+
+        List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        if (records.empty)
+        {
+            return []
+        }
+        Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
+
+        for (NCubeInfoDto info : records)
+        {
+            branchRecordMap[info.name] = info
+        }
+
+        List<NCubeInfoDto> otherBranchRecords = search(branchAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> cubeDiffs = []
+
+        for (NCubeInfoDto otherBranchCube : otherBranchRecords)
+        {
+            otherBranchCube.branch = appId.branch  // using HEAD's DTO as return value, therefore setting the branch to the passed in AppId's branch
+            NCubeInfoDto info = branchRecordMap[otherBranchCube.name]
+            long otherBranchCubeRev = (long) Converter.convert(otherBranchCube.revision, long.class)
+
+            if (info == null)
+            {   // Other branch has cube that my branch does not have
+                if (otherBranchCubeRev >= 0)
+                {
+                    otherBranchCube.changeType = ChangeType.CREATED.code
+                    cubeDiffs.add(otherBranchCube)
+                }
+                else
+                {
+                    // Don't show a cube that is deleted in other's branch but I don't have.
+                }
+                continue
+            }
+
+            long infoRev = (long) Converter.convert(info.revision, long.class)
+            boolean activeStatusMatches = (infoRev < 0) == (otherBranchCubeRev < 0)
+            boolean myBranchSha1MatchesOtherBranchSha1 = StringUtilities.equalsIgnoreCase(info.sha1, otherBranchCube.sha1)
+
+            // No change on my branch cube
+            if (activeStatusMatches)
+            {
+                if (infoRev >= 0)
+                {
+                    if (!myBranchSha1MatchesOtherBranchSha1)
+                    {   // Cubes are different, test merge-ability
+                        otherBranchCube.changeType = ChangeType.UPDATED.code
+                        cubeDiffs.add(otherBranchCube)
+                    }
+                    else
+                    {
+                        // skip - the cubes are the same
+                    }
+                }
+                else
+                {
+                    // skip - you both have it deleted
+                }
+            }
+            else
+            {   // 1. The active/deleted statuses don't match, or
+                // 2. HEAD has different SHA1 but branch cube did not change, safe to update branch (fast forward)
+                // In both cases, the cube was marked NOT changed in the branch, so safe to update.
+                if (otherBranchCubeRev < 0)
+                {
+                    otherBranchCube.changeType = ChangeType.DELETED.code
+                }
+                else
+                {
+                    otherBranchCube.changeType = ChangeType.RESTORED.code
+                }
+                cubeDiffs.add(otherBranchCube)
+            }
+        }
+
+        return cubeDiffs
+    }
+
     static NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
         NCube ncube = getCube(appId, cubeName)
