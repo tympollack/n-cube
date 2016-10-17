@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -556,22 +557,20 @@ class DeltaProcessor
 
         if (!target.name.equalsIgnoreCase(source.name))
         {
-            String s = "Name changed from '" + source.name + "' to '" + target.name + "'"
+            String s = "Name changed from '${source.name}' to '${target.name}'"
             changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'NAME', source.name, target.name, null, null))
         }
 
         if (target.defaultCellValue != source.defaultCellValue)
         {
-            String s = "Default cell value changed from '" +
-                    CellInfo.formatForDisplay((Comparable)source.defaultCellValue) +
-                    "' to '" +
-                    CellInfo.formatForDisplay((Comparable)target.defaultCellValue) + "'"
+            String s = "Default cell value changed from '${CellInfo.formatForDisplay((Comparable)source.defaultCellValue)}' to '${CellInfo.formatForDisplay((Comparable)target.defaultCellValue)}'"
             changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'DEFAULT_CELL', new CellInfo(source.defaultCellValue), new CellInfo(target.defaultCellValue), null, null))
         }
 
         List<Delta> metaChanges = compareMetaProperties(source.metaProperties, target.metaProperties, Delta.Location.NCUBE_META, "n-cube '" + target.name + "'", null)
         changes.addAll(metaChanges)
-
+        Object[] oldAxes = source.axisNames
+        Object[] newAxes = target.axisNames
         Set<String> a1 = target.axisNames
         Set<String> a2 = source.axisNames
         a1.removeAll(a2)
@@ -579,9 +578,9 @@ class DeltaProcessor
         boolean axesChanged = false
         if (!a1.empty)
         {
-            String s = "Added axis: " + a1
+            String s = "Added axis: ${a1}"
             for (String axisName : a1) {
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s, null, null, target.getAxis(axisName), a1, a2))
+                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s, null, null, target.getAxis(axisName), oldAxes, newAxes))
             }
             axesChanged = true
         }
@@ -590,9 +589,9 @@ class DeltaProcessor
         a2.removeAll(a1)
         if (!a2.empty)
         {
-            String s = "Removed axis: " + a2
+            String s = "Removed axis: ${a2}"
             for (String axisName : a2) {
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s, null, source.getAxis(axisName), null, a1, a2))
+                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s, null, source.getAxis(axisName), null, oldAxes, newAxes))
             }
             axesChanged = true
         }
@@ -606,20 +605,31 @@ class DeltaProcessor
             }
             if (!newAxis.areAxisPropsEqual(oldAxis))
             {
-                String s = "Axis properties changed from " + oldAxis.axisPropString + " to " + newAxis.axisPropString
-                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis, a1, a2))
+                String s = "Axis properties changed from ${oldAxis.axisPropString} to ${newAxis.axisPropString}"
+                changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis, oldAxes, newAxes))
             }
 
             metaChanges = compareMetaProperties(oldAxis.metaProperties, newAxis.metaProperties, Delta.Location.AXIS_META, "axis: " + newAxis.name, newAxis.name)
             changes.addAll(metaChanges)
+
+            Set<String> oldColNames = new CaseInsensitiveSet<>()
+            Set<String> newColNames = new CaseInsensitiveSet<>()
+            oldAxis.columns.each { Column oldCol ->
+                oldColNames.add(oldCol.toString())
+            }
+            newAxis.columns.each { Column newCol ->
+                newColNames.add(newCol.toString())
+            }
+            Object[] oldCols = oldColNames.toArray()
+            Object[] newCols = newColNames.toArray()
 
             for (Column newCol : newAxis.columns)
             {
                 Column oldCol = oldAxis.getColumnById(newCol.id)
                 if (oldCol == null)
                 {
-                    String s = "Column: " + newCol.value + " added to axis: " + newAxis.name
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldAxis.columns, newAxis.columns))
+                    String s = "Column: ${newCol.value} added to axis: ${newAxis.name}"
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
                 }
                 else
                 {   // Check Column meta properties
@@ -628,8 +638,8 @@ class DeltaProcessor
 
                     if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                     {
-                        String s = "Column value changed from: " + oldCol.value + " to: " + newCol.value
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldAxis.columns, newAxis.columns))
+                        String s = "Column value changed from: ${oldCol.value} to: ${newCol.value}"
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
                     }
                 }
             }
@@ -639,8 +649,8 @@ class DeltaProcessor
                 Column newCol = newAxis.getColumnById(oldCol.id)
                 if (newCol == null)
                 {
-                    String s = "Column: " + oldCol.value + " removed"
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldAxis.columns, newAxis.columns))
+                    String s = "Column: ${oldCol.value} removed from axis: ${oldAxis.name}"
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
                 }
             }
         }
@@ -662,16 +672,14 @@ class DeltaProcessor
                 if (!DeepEquals.deepEquals(newCellValue, oldCellValue))
                 {
                     Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(newCellKey)
-                    String s = "Cell changed at location: " + properCoord + ", from: " +
-                            (oldCellValue ?: oldCellValue.toString()) + ", to: " +
-                            (newCellValue ?: newCellValue.toString())
+                    String s = "Cell changed at location: ${properCoord}, from: ${oldCellValue}, to: ${newCellValue}"
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, newCellKey, new CellInfo(source.getCellByIdNoExecute(newCellKey)), new CellInfo(target.getCellByIdNoExecute(newCellKey)), null, null))
                 }
             }
             else
             {
                 Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(newCellKey)
-                String s = "Cell added at location: " + properCoord + ", value: " + (newCellValue ?: newCellValue.toString())
+                String s = "Cell added at location: ${properCoord}, value: ${newCellValue}"
                 changes.add(new Delta(Delta.Location.CELL, Delta.Type.ADD, s, newCellKey, null, new CellInfo(target.getCellByIdNoExecute(newCellKey)), null, null))
             }
         }
@@ -697,7 +705,7 @@ class DeltaProcessor
                 if (allColsStillExist)
                 {
                     Map<String, Object> properCoord = target.getDisplayCoordinateFromIds(oldCellKey)
-                    String s = "Cell removed at location: " + properCoord + ", value: " + (value ?: value.toString())
+                    String s = "Cell removed at location: ${properCoord}, value: ${value}"
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s, oldCellKey, new CellInfo(source.getCellByIdNoExecute(oldCellKey)), null, null, null))
                 }
             }
@@ -711,6 +719,8 @@ class DeltaProcessor
      */
     protected static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName, Object helperId)
     {
+        Object[] oldMetaList = oldMeta.keySet().toArray()
+        Object[] newMetaList = newMeta.keySet().toArray()
         List<Delta> changes = []
         Set<String> oldKeys = new CaseInsensitiveSet<>(oldMeta.keySet())
         Set<String> sameKeys = new CaseInsensitiveSet<>(newMeta.keySet())
@@ -722,7 +732,8 @@ class DeltaProcessor
         {
             for (String key : addedKeys)
             {
-                changes.add(new Delta(location, Delta.Type.ADD, locName + ' meta-entry added: ' + key + '->' + newMeta[key], helperId, key, null, oldKeys, sameKeys))
+                String s = "${locName} meta-entry added: ${key}->${newMeta[key]}"
+                changes.add(new Delta(location, Delta.Type.ADD, s, helperId, key, null, oldMetaList, newMetaList))
             }
         }
 
@@ -733,7 +744,8 @@ class DeltaProcessor
             for (String key: deletedKeys)
             {
                 Object oldVal = oldMeta[key]
-                changes.add(new Delta(location, Delta.Type.DELETE, locName + ' meta-entry deleted: ' + key + '->' + oldVal, helperId, key, oldVal, oldKeys, sameKeys))
+                String s = "${locName} meta-entry deleted: ${key}->${oldVal}"
+                changes.add(new Delta(location, Delta.Type.DELETE, s, helperId, key, oldVal, oldMetaList, newMetaList))
             }
         }
 
@@ -742,7 +754,9 @@ class DeltaProcessor
             if (!DeepEquals.deepEquals(oldMeta[key], newMeta[key]))
             {
                 Object oldVal = oldMeta[key]
-                changes.add(new Delta(location, Delta.Type.DELETE, locName + ' meta-entry changed: ' + key + '->' + oldVal + ' ==> ' + key + '->' + newMeta[key], helperId, key, oldVal, oldKeys, sameKeys))
+                Object newVal = newMeta[key]
+                String s = "${locName} meta-entry changed: ${key}->${oldVal} ==> ${key}->${newVal}"
+                changes.add(new Delta(location, Delta.Type.UPDATE, s, helperId, oldVal, newVal, oldMetaList, newMetaList))
             }
         }
 
