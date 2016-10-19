@@ -1953,7 +1953,6 @@ class TestNCubeManager
         //try to create a cube as a different user in that branch
         try {
             NCubeManager.setUserId('otherUser')
-            NCubeManager.clearPermissionsCache()
             testCube.setCell('testval', [(testAxisName):null])
             NCubeManager.updateCube(appId, testCube, true)
             fail()
@@ -2020,7 +2019,6 @@ class TestNCubeManager
         try
         {
             NCubeManager.setUserId(otherUser)
-            NCubeManager.clearPermissionsCache()
             testCube.setCell('testval', [(testAxisName):null])
             NCubeManager.updateCube(defaultSnapshotApp, testCube, true)
             fail()

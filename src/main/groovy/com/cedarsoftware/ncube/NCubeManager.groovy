@@ -5,6 +5,7 @@ import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
@@ -95,6 +96,8 @@ class NCubeManager
 
     public static final String PROPERTY_CACHE = 'cache'
 
+    public static final int PERMISSION_CACHE_THRESHOLD = 1000 * 60 * 60 // one-hour
+
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private static ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
@@ -116,12 +119,9 @@ class NCubeManager
         }
     }
 
-    private static final ThreadLocal<Map<String, Boolean>> perms = new ThreadLocal<Map<String, Boolean>>() {
-        public Map<String, Boolean> initialValue()
-        {
-            return new HashMap<>()
-        }
-    }
+    // cache key = SHA-1(userId + '_' + appId + '_' + resource + '_' + ACTION)
+    // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
+    private static final Map<String, Long> permCache = new ConcurrentHashMap<>()
 
     static enum ACTION {
         COMMIT,
@@ -2328,10 +2328,10 @@ class NCubeManager
         return new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     }
 
-    static void clearPermissionsCache()
+    private static String getPermissionCacheKey(ApplicationID appId, String resource, ACTION action)
     {
-        Map<String, Boolean> threadPermCache = perms.get()
-        threadPermCache.clear()
+        String key = getUserId() + '/' + appId.cacheKey(null) + '/' + resource + '/' + action
+        return EncryptionUtilities.calculateSHA1Hash(key.bytes)
     }
 
     /**
@@ -2344,18 +2344,24 @@ class NCubeManager
      */
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action)
     {
-        Map<String, Boolean> threadPermCache = perms.get()
-        String permKey = appId.cacheKey(null) + '/' + resource + '/' + action
-        Boolean allowed = threadPermCache.get(permKey)
+        String key = getPermissionCacheKey(appId, resource, action)
+        Long allowed = permCache.get(key)
+        long now = System.currentTimeMillis()
 
-        if (allowed instanceof Boolean)
+        if (allowed instanceof Long)
         {
-            return allowed
+            long elapsed = now - Math.abs(allowed.longValue())
+            if (elapsed < PERMISSION_CACHE_THRESHOLD)
+            {   // Less than a time threshold from last check, re-use last answer
+                boolean allow = allowed >= 0
+                permCache[key] = allow ? now : -now
+                return allow
+            }
         }
 
         if (ACTION.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
-            threadPermCache[permKey] = true
+            permCache[key] = now
             return true
         }
 
@@ -2363,14 +2369,14 @@ class NCubeManager
         NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
         {   // Allow everything if no permissions are set up.
-            threadPermCache[permKey] = true
+            permCache[key] = now
             return true
         }
 
         NCube userToRole = getCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userToRole == null)
         {   // Allow everything if no user roles are set up.
-            threadPermCache[permKey] = true
+            permCache[key] = now
             return true
         }
 
@@ -2382,7 +2388,7 @@ class NCubeManager
             NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
             {
-                threadPermCache[permKey] = false
+                permCache[key] = -now
                 return false
             }
         }
@@ -2393,12 +2399,12 @@ class NCubeManager
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
             {
-                threadPermCache[permKey] = true
+                permCache[key] = now
                 return true
             }
         }
 
-        threadPermCache[permKey] = false
+        permCache[key] = -now
         return false
     }
 
@@ -2408,8 +2414,24 @@ class NCubeManager
      */
     static boolean fastCheckPermissions(String resource, ACTION action, Map permInfo)
     {
+        String key = getPermissionCacheKey((ApplicationID)permInfo['appId'], resource, action)
+        Long allowed = permCache.get(key)
+        long now = System.currentTimeMillis()
+
+        if (allowed instanceof Long)
+        {
+            long elapsed = now - Math.abs(allowed.longValue())
+            if (elapsed < PERMISSION_CACHE_THRESHOLD)
+            {   // Less than a time threshold from last check, re-use last answer
+                boolean allow = allowed >= 0
+                permCache[key] = allow ? now : -now
+                return allow
+            }
+        }
+
         if (ACTION.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
+            permCache[key] = now
             return true
         }
 
@@ -2419,6 +2441,7 @@ class NCubeManager
             NCube branchPermCube = (NCube)permInfo.branchPermCube
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
             {
+                permCache[key] = -now
                 return false
             }
         }
@@ -2430,10 +2453,11 @@ class NCubeManager
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
             {
+                permCache[key] = now
                 return true
             }
         }
-
+        permCache[key] = -now
         return false
     }
 
@@ -2461,6 +2485,7 @@ class NCubeManager
 
         info.branch000 = bootVersion.asBranch(appId.branch)
         info.branchPermCube = getCubeInternal((ApplicationID)info.branch000, SYS_BRANCH_PERMISSIONS)
+        info.appId = appId
         return info
     }
 
