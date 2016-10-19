@@ -116,6 +116,13 @@ class NCubeManager
         }
     }
 
+    private static final ThreadLocal<Map<String, Boolean>> perms = new ThreadLocal<Map<String, Boolean>>() {
+        public Map<String, Boolean> initialValue()
+        {
+            return new HashMap<>()
+        }
+    }
+
     static enum ACTION {
         COMMIT,
         READ,
@@ -1369,7 +1376,7 @@ class NCubeManager
 
         for (NCubeInfoDto otherBranchCube : otherBranchRecords)
         {
-            otherBranchCube.branch = appId.branch  // using HEAD's DTO as return value, therefore setting the branch to the passed in AppId's branch
+            otherBranchCube.branch = appId.branch  // using other branch's DTO as return value, therefore setting the branch to the passed in AppId's branch
             NCubeInfoDto info = branchRecordMap[otherBranchCube.name]
             long otherBranchCubeRev = (long) Converter.convert(otherBranchCube.revision, long.class)
 
@@ -1396,14 +1403,14 @@ class NCubeManager
             {
                 if (infoRev >= 0)
                 {
-                    if (!myBranchSha1MatchesOtherBranchSha1)
-                    {   // Cubes are different, test merge-ability
-                        otherBranchCube.changeType = ChangeType.UPDATED.code
-                        cubeDiffs.add(otherBranchCube)
-                    }
-                    else
+                    if (myBranchSha1MatchesOtherBranchSha1)
                     {
                         // skip - the cubes are the same
+                    }
+                    else
+                    {   // Cubes are different, mark as UPDATE
+                        otherBranchCube.changeType = ChangeType.UPDATED.code
+                        cubeDiffs.add(otherBranchCube)
                     }
                 }
                 else
@@ -2321,6 +2328,12 @@ class NCubeManager
         return new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     }
 
+    static void clearPermissionsCache()
+    {
+        Map<String, Boolean> threadPermCache = perms.get()
+        threadPermCache.clear()
+    }
+
     /**
      * Verify whether the action can be performed against the resource (typically cube name).
      * @param appId ApplicationID containing the n-cube being checked.
@@ -2331,8 +2344,18 @@ class NCubeManager
      */
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action)
     {
+        Map<String, Boolean> threadPermCache = perms.get()
+        String permKey = appId.cacheKey(null) + '/' + resource + '/' + action
+        Boolean allowed = threadPermCache.get(permKey)
+
+        if (allowed instanceof Boolean)
+        {
+            return allowed
+        }
+
         if (ACTION.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
+            threadPermCache[permKey] = true
             return true
         }
 
@@ -2340,12 +2363,14 @@ class NCubeManager
         NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
         {   // Allow everything if no permissions are set up.
+            threadPermCache[permKey] = true
             return true
         }
 
         NCube userToRole = getCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userToRole == null)
         {   // Allow everything if no user roles are set up.
+            threadPermCache[permKey] = true
             return true
         }
 
@@ -2357,6 +2382,7 @@ class NCubeManager
             NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
             {
+                threadPermCache[permKey] = false
                 return false
             }
         }
@@ -2367,10 +2393,12 @@ class NCubeManager
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
             {
+                threadPermCache[permKey] = true
                 return true
             }
         }
 
+        threadPermCache[permKey] = false
         return false
     }
 
