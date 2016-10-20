@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
@@ -1284,6 +1285,12 @@ class NCubeManager
         ret[BRANCH_UPDATES] = finalUpdates
         ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), getUserId(), txId)
         ret[BRANCH_REJECTS] = rejects
+
+        if (!rejects.isEmpty())
+        {
+            int rejectSize = rejects.size()
+            throw new BranchMergeException("Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}.", ret)
+        }
         return ret
     }
 
