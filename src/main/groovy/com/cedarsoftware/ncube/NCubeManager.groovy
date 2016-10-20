@@ -1169,7 +1169,7 @@ class NCubeManager
                 {   // merge-able
                     if (activeStatusMatches)
                     {
-                        if (StringUtilities.equalsIgnoreCase(cube.sha1(), updateCube.sha1))
+                        if (StringUtilities.equalsIgnoreCase(cube.sha1(), head.sha1))
                         {   // no show (fast-forward)
                         }
                         else
