@@ -97,7 +97,7 @@ class NCubeManager
 
     public static final String PROPERTY_CACHE = 'cache'
 
-    public static final int PERMISSION_CACHE_THRESHOLD = 1000 * 60 * 60 // one-hour
+    public static final int PERMISSION_CACHE_THRESHOLD = 1000 * 60 * 30 // half-hour
 
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private static ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
@@ -1444,107 +1444,21 @@ class NCubeManager
         return cubeDiffs
     }
 
+    /**
+     * Merge the passed in List of Delta's into the named n-cube.
+     * @param appId ApplicationID containing the named n-cube.
+     * @param cubeName String name of the n-cube into which the Delta's will be merged.
+     * @param deltas List of Delta instances
+     * @return the NCube t
+     */
     static NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
         NCube ncube = getCube(appId, cubeName)
-        for (Delta delta : deltas)
+        if (ncube == null)
         {
-            switch (delta.location)
-            {
-                case Delta.Location.NCUBE:
-                    switch (delta.locId)
-                    {
-                        case 'DEFAULT_CELL':
-                            CellInfo cellInfo = delta.sourceVal as CellInfo
-                            Object cellValue = cellInfo.isUrl ?
-                                    CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
-                                    CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
-                            ncube.defaultCellValue = cellValue
-                            break
-                    }
-                    break
-                case Delta.Location.NCUBE_META:
-                    String key = delta.sourceVal as String
-                    if (delta.type == Delta.Type.ADD)
-                    {
-                        ncube.removeMetaProperty(key)
-                    }
-                    else
-                    {
-                        ncube.setMetaProperty(key, delta.destVal)
-                    }
-                    break
-                case Delta.Location.AXIS:
-                    if (delta.destVal != null)
-                    {
-                        Axis axis = delta.destVal as Axis
-                        ncube.deleteAxis(axis.name)
-                    }
-                    if (delta.type != Delta.Type.ADD)
-                    {
-                        ncube.addAxis(delta.sourceVal as Axis)
-                    }
-                    break
-                case Delta.Location.AXIS_META:
-                    Axis axis = ncube.getAxis(delta.locId as String)
-                    String key = delta.sourceVal as String
-                    if (delta.type == Delta.Type.ADD)
-                    {
-                        axis.removeMetaProperty(key)
-                    }
-                    else
-                    {
-                        axis.setMetaProperty(key, delta.destVal)
-                    }
-                    ncube.clearSha1()
-                    break
-                case Delta.Location.COLUMN:
-                    String axisName = delta.locId as String
-                    List<Column> columns = ncube.getAxis(axisName).columnsWithoutDefault
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                            columns.remove(delta.destVal as Column)
-                            break
-                        case Delta.Type.DELETE:
-                            columns.add(delta.sourceVal as Column)
-                            break
-                        case Delta.Type.UPDATE:
-                            int prevIdx = columns.indexOf(delta.destVal as Column)
-                            columns.remove(prevIdx)
-                            columns.add(prevIdx, delta.sourceVal as Column)
-                            break
-                    }
-                    ncube.updateColumns(axisName, columns, true)
-                    break
-                case Delta.Location.COLUMN_META:
-                    String key = delta.sourceVal as String
-                    Map<String, Object> helperId = delta.locId as Map<String, Object>
-                    Axis axis = ncube.getAxis(helperId.axis as String)
-                    Column column = axis.findColumn(helperId.column as Comparable)
-                    if (delta.type == Delta.Type.ADD)
-                    {
-                        column.removeMetaProperty(key)
-                    }
-                    else
-                    {
-                        column.setMetaProperty(key, delta.destVal)
-                    }
-                    ncube.clearSha1()
-                    break
-                case Delta.Location.CELL:
-                    Set<Long> coords = delta.locId as Set<Long>
-                    ncube.removeCellById(coords)
-                    if (delta.type != Delta.Type.ADD)
-                    {
-                        ncube.setCellById(((CellInfo)delta.sourceVal).recreate(), coords)
-                    }
-                    break
-                case Delta.Location.CELL_META:
-                    // TODO - cell metaproperties not yet implemented
-                    break
-            }
+            throw new IllegalArgumentException('No ncube exists with the name: ' + cubeName + ', no changes will be merged, app: ' + appId)
         }
+        ncube.mergeDeltas(deltas)
         updateCube(appId, ncube)
         return ncube
     }
@@ -1569,11 +1483,6 @@ class NCubeManager
         int count = persister.rollbackCubes(appId, names, getUserId())
         clearCache(appId)
         return count
-    }
-
-    private static Map<String, Object> updateBranchFromBranch(ApplicationID appId, Object[] cubeNames, String sourceBranch)
-    {
-        throw new IllegalStateException('Not implemented.')
     }
 
     /**
@@ -1602,7 +1511,7 @@ class NCubeManager
      * 'headSha1' --> SHA-1 of HEAD (or source branch n-cube being merged from)<br>
      * 'diff'     --> List[Delta's]
      */
-    static Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos = null, String sourceBranch = ApplicationID.HEAD)
+    static Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos = null)
     {
         if (cubeDtos != null && cubeDtos.length == 0)
         {
@@ -1614,11 +1523,7 @@ class NCubeManager
         assertNotLockBlocked(appId)
         assertPermissions(appId, null, ACTION.UPDATE)
 
-        if (ApplicationID.HEAD == sourceBranch)
-        {
-            return updateBranchFromHead(appId, cubeDtos)
-        }
-        return updateBranchFromBranch(appId, cubeDtos, sourceBranch)
+        return updateBranchFromHead(appId, cubeDtos)
     }
 
     /**
@@ -1970,7 +1875,7 @@ class NCubeManager
         List<NCubeInfoDto> cubes = persister.search(appId, cubeNamePattern, content, options)
         if (!permInfo.skipPermCheck)
         {
-            cubes.removeAll { !fastCheckPermissions(it.name, ACTION.READ, permInfo) }
+            cubes.removeAll { !fastCheckPermissions(appId, it.name, ACTION.READ, permInfo) }
         }
         return cubes
     }
@@ -2352,19 +2257,12 @@ class NCubeManager
     static boolean checkPermissions(ApplicationID appId, String resource, ACTION action)
     {
         String key = getPermissionCacheKey(appId, resource, action)
-        Long allowed = permCache.get(key)
-        long now = System.currentTimeMillis()
-
-        if (allowed instanceof Long)
+        Boolean allowed = checkPermissionCache(key)
+        if (allowed instanceof Boolean)
         {
-            long elapsed = now - Math.abs(allowed.longValue())
-            if (elapsed < PERMISSION_CACHE_THRESHOLD)
-            {   // Less than a time threshold from last check, re-use last answer
-                boolean allow = allowed >= 0
-                permCache[key] = allow ? now : -now
-                return allow
-            }
+            return allowed
         }
+        long now = System.currentTimeMillis()
 
         if (ACTION.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
@@ -2415,19 +2313,15 @@ class NCubeManager
         return false
     }
 
-    /**
-     * Faster permissions check that should be used when filtering a list of n-cubes.  Before calling this
-     * API, call getPermInfo(AppId) to get the 'permInfo' Map to be used in this API.
-     */
-    static boolean fastCheckPermissions(String resource, ACTION action, Map permInfo)
+    private static Boolean checkPermissionCache(String key)
     {
-        String key = getPermissionCacheKey((ApplicationID)permInfo['appId'], resource, action)
         Long allowed = permCache.get(key)
-        long now = System.currentTimeMillis()
 
         if (allowed instanceof Long)
         {
+            long now = System.currentTimeMillis()
             long elapsed = now - Math.abs(allowed.longValue())
+
             if (elapsed < PERMISSION_CACHE_THRESHOLD)
             {   // Less than a time threshold from last check, re-use last answer
                 boolean allow = allowed >= 0
@@ -2435,6 +2329,22 @@ class NCubeManager
                 return allow
             }
         }
+        return null
+    }
+
+    /**
+     * Faster permissions check that should be used when filtering a list of n-cubes.  Before calling this
+     * API, call getPermInfo(AppId) to get the 'permInfo' Map to be used in this API.
+     */
+    static boolean fastCheckPermissions(ApplicationID appId, String resource, ACTION action, Map permInfo)
+    {
+        String key = getPermissionCacheKey(appId, resource, action)
+        Boolean allowed = checkPermissionCache(key)
+        if (allowed instanceof Boolean)
+        {
+            return allowed
+        }
+        long now = System.currentTimeMillis()
 
         if (ACTION.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
@@ -2492,7 +2402,6 @@ class NCubeManager
 
         info.branch000 = bootVersion.asBranch(appId.branch)
         info.branchPermCube = getCubeInternal((ApplicationID)info.branch000, SYS_BRANCH_PERMISSIONS)
-        info.appId = appId
         return info
     }
 
