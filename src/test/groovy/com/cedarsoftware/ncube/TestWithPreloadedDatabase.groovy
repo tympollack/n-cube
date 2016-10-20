@@ -2413,8 +2413,8 @@ class TestWithPreloadedDatabase
 
         NCubeManager.copyBranch(head, branch2)
         NCube cube2 = NCubeManager.loadCube(branch2, 'TestBranch')
-        cube1.setCell('AAA', [Code : -15])
-        NCubeManager.updateCube(branch2, cube1)
+        cube2.setCell('AAA', [Code : -15])
+        NCubeManager.updateCube(branch2, cube2)
         NCubeManager.commitBranch(branch2)
 
         List<NCubeInfoDto> dtos = NCubeManager.getBranchChangesForHead(branch1)
@@ -2449,26 +2449,19 @@ class TestWithPreloadedDatabase
 
         NCubeManager.copyBranch(head, branch2)
         NCube cube2 = NCubeManager.loadCube(branch2, 'TestBranch')
-        cube1.setCell('AAA', [Code : -15])
-        NCubeManager.updateCube(branch2, cube1)
+        cube2.setCell('AAA', [Code : -15])
+        NCubeManager.updateCube(branch2, cube2)
         NCubeManager.commitBranch(branch2)
 
-        List<NCubeInfoDto> dtos = NCubeManager.getBranchChangesForHead(branch1)
+        List<NCubeInfoDto> dtos = NCubeManager.getHeadChangesForBranch(branch1)
         assertEquals(1, dtos.size())
 
-        try
-        {
-            NCubeManager.commitBranch(branch1, dtos)
-            fail()
-        }
-        catch (BranchMergeException e)
-        {
-            assert e.errors[NCubeManager.BRANCH_ADDS].size() == 0
-            assert e.errors[NCubeManager.BRANCH_DELETES].size() == 0
-            assert e.errors[NCubeManager.BRANCH_UPDATES].size() == 0
-            assert e.errors[NCubeManager.BRANCH_RESTORES].size() == 0
-            assert e.errors[NCubeManager.BRANCH_REJECTS].size() == 1
-        }
+        Map<String, Object> result = NCubeManager.updateBranch(branch1, dtos)
+        assert result[NCubeManager.BRANCH_ADDS].size() == 0
+        assert result[NCubeManager.BRANCH_DELETES].size() == 0
+        assert result[NCubeManager.BRANCH_UPDATES].size() == 0
+        assert result[NCubeManager.BRANCH_RESTORES].size() == 0
+        assert result[NCubeManager.BRANCH_REJECTS].size() == 1
     }
 
     /***** End tests for commit and update from cube test matrix *****/
