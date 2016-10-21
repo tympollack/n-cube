@@ -293,10 +293,6 @@ class VersionControl
         NCubeManager.assertPermissions(branchAppId, null, Action.READ)
 
         List<NCubeInfoDto> records = NCubeManager.search(appId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.empty)
-        {
-            return []
-        }
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
 
         for (NCubeInfoDto info : records)
@@ -305,6 +301,10 @@ class VersionControl
         }
 
         List<NCubeInfoDto> otherBranchRecords = NCubeManager.search(branchAppId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false])
+        if (otherBranchRecords.empty)
+        {
+            return []
+        }
         List<NCubeInfoDto> cubeDiffs = []
 
         for (NCubeInfoDto otherBranchCube : otherBranchRecords)

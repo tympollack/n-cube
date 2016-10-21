@@ -4432,6 +4432,93 @@ class TestWithPreloadedDatabase
     }
 
     @Test
+    void testMergeBetweenBranchesAddEmptyBranchCase()
+    {
+        preloadCubes(branch2, "test.branch.age.1.json")
+        VersionControl.commitBranch(branch2)
+
+        List<NCubeInfoDto> dtos = VersionControl.getBranchChangesForMyBranch(branch1, 'BAR')
+        assert dtos.size() == 1
+        NCubeInfoDto dto = dtos[0]
+        assert dto.name == 'TestAge'
+    }
+
+    @Test
+    void testMergeBetweenBranchesAddToEstablishedBranch()
+    {
+        preloadCubes(branch2, "test.branch.age.1.json")
+        VersionControl.commitBranch(branch2)
+        NCubeManager.copyBranch(head, branch1, true)
+        preloadCubes(branch2, "test.branch.2.json")
+
+        List<NCubeInfoDto> dtos = VersionControl.getBranchChangesForMyBranch(branch1, 'BAR')
+        assert dtos.size() == 1
+        NCubeInfoDto dto = dtos[0]
+        assert dto.name == 'TestBranch'
+    }
+
+    @Test
+    void testMergeBetweenBranchesUpdate()
+    {
+        preloadCubes(branch2, "test.branch.1.json")
+        NCube producerCube = NCubeManager.loadCube(branch2, 'TestBranch')
+        producerCube.setCell('AAA', [Code : -15])
+        NCubeManager.updateCube(branch2, producerCube)
+        VersionControl.commitBranch(branch2)
+
+        preloadCubes(branch1, "test.branch.1.json")
+        List<NCubeInfoDto> dtos = VersionControl.getBranchChangesForMyBranch(branch1, 'BAR')
+        assert dtos.size() == 1
+        NCubeInfoDto dto = dtos[0]
+        assert dto.notes.contains('updated')
+    }
+
+    @Test
+    void testMergeBetweenBranchesDelete()
+    {
+        preloadCubes(branch2, "test.branch.1.json", 'test.branch.age.1.json')
+        VersionControl.commitBranch(branch2)
+        NCubeManager.copyBranch(head, branch1, true)
+        NCubeManager.deleteCubes(branch2, ['TestBranch'])
+
+        List<NCubeInfoDto> dtos = VersionControl.getBranchChangesForMyBranch(branch1, 'BAR')
+        assert dtos.size() == 1
+        NCubeInfoDto dto = dtos[0]
+        assert dto.name == 'TestBranch'
+        assert dto.notes.contains('deleted')
+    }
+
+    @Test
+    void testMergeBetweenBranchesRestore()
+    {
+        // Both branches have two n-cubes
+        preloadCubes(branch2, "test.branch.1.json", 'test.branch.age.1.json')
+        VersionControl.commitBranch(branch2)
+        NCubeManager.copyBranch(head, branch1, true)
+
+        // 'TestBranch' deleted from both branches
+        NCubeManager.deleteCubes(branch2, ['TestBranch'].toArray())
+        VersionControl.commitBranch(branch2)
+        VersionControl.updateBranch(branch1)
+
+        // 'TestBranch' restored in branch2
+        NCubeManager.restoreCubes(branch2, ['TestBranch'].toArray())
+
+        List<NCubeInfoDto> dtos = VersionControl.getBranchChangesForMyBranch(branch1, 'BAR')
+        assert dtos.size() == 1
+        NCubeInfoDto dto = dtos[0]
+        assert dto.name == 'TestBranch'
+        assert dto.notes.contains('restored')
+    }
+
+    @Test
+    void testMergeBetweenBranchesNoCubesInYoBranch()
+    {
+        List<NCubeInfoDto> dtos = VersionControl.getBranchChangesForMyBranch(branch1, 'BAR')
+        assert dtos.size() == 0
+    }
+
+    @Test
     void testUpdateWithReject()
 	{
         preloadCubes(branch2, "test.branch.1.json")
@@ -5499,6 +5586,7 @@ class TestWithPreloadedDatabase
         // Check with overload
         System.setProperty("NCUBE_PARAMS", '{"cpBase":"file://C:/Development/"}')
 
+        // This test does not actually use this file://C:/Dev... path.  I run these tests on my Mac all the time - JTD.
         // int loader is not marked as cached so we recreate this one each time.
         CdnClassLoader differentIntLoader = cube.getCell([env:"INT"])
         assertNotSame(intLoader, differentIntLoader)
