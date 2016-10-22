@@ -436,6 +436,9 @@ class VersionControl
                 }
                 else
                 {
+                    if (oldDto.changeType == null) {
+                        oldDto.changeType = newDto.changeType
+                    }
                     cubesToUpdate.add(oldDto)
                 }
             }
@@ -479,6 +482,8 @@ class VersionControl
                 case ChangeType.CONFLICT.code:
                     rejects.add(updateCube)
                     break
+                default:
+                    throw new IllegalArgumentException('No change type on passed in cube to update.')
             }
         }
         NCubeManager.clearCache(appId)
