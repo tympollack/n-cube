@@ -404,6 +404,9 @@ class NCubeManager
         {
             validateAppId(appId)
 
+            // Clear permissions cache
+            permCache.clear()
+
             Map<String, Object> appCache = getCacheForApp(appId)
             clearGroovyClassLoaderCache(appCache)
 
