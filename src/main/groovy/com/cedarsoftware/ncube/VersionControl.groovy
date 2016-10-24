@@ -436,7 +436,8 @@ class VersionControl
                 }
                 else
                 {
-                    if (oldDto.changeType == null) {
+                    if (oldDto.changeType == null)
+                    {
                         oldDto.changeType = newDto.changeType
                     }
                     cubesToUpdate.add(oldDto)
