@@ -9,6 +9,7 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
