@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.102
+ * Performance enhancement: Sped up NCubeManager.getCube() because it can be called so frequently.
 * 3.4.101
  * Bug fix: when merging n-cubes, it was looking in the branch, not HEAD branch, for finding the base HEAD n-cube (computing the HEAD delta).
 * 3.4.100

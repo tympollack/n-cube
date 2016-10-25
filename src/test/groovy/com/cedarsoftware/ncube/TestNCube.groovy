@@ -4866,6 +4866,23 @@ class TestNCube
         assert ncube.toHtml() != null
     }
 
+    // For testing getCube speed()
+    @Ignore
+    void testGetCubeSpeed()
+    {
+        NCube ncube = NCubeBuilder.getDiscrete1D()
+        NCubeManager.addCube(ApplicationID.testAppId, ncube)
+
+        long start = System.nanoTime()
+        for (int i=0; i < 1000000; i++)
+        {
+            NCubeManager.getCube(ApplicationID.testAppId, ncube.name)
+        }
+        long end = System.nanoTime()
+
+        println ((end - start) / 1000000.0d)
+    }
+
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 

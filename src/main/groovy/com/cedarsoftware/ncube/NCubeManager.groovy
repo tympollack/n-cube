@@ -227,9 +227,15 @@ class NCubeManager
      */
     static NCube getCube(ApplicationID appId, String cubeName)
     {
-        validateAppId(appId)
+        if (appId == null)
+        {
+            throw new IllegalArgumentException('ApplicationID cannot be null')
+        }
+        if (StringUtilities.isEmpty(cubeName))
+        {
+            throw new IllegalArgumentException('cubeName cannot be null')
+        }
         assertPermissions(appId, cubeName)
-        NCube.validateCubeName(cubeName)
         return getCubeInternal(appId, cubeName)
     }
 
@@ -1498,8 +1504,22 @@ class NCubeManager
 
     private static String getPermissionCacheKey(ApplicationID appId, String resource, Action action)
     {
-        String key = getUserId() + '/' + appId.cacheKey(null) + '/' + resource + '/' + action
-        return EncryptionUtilities.calculateSHA1Hash(key.bytes)
+        final String sep = '/'
+        final StringBuilder builder = new StringBuilder()
+        builder.append(userId.get())
+        builder.append(sep)
+        builder.append(appId.tenant)
+        builder.append(sep)
+        builder.append(appId.app)
+        builder.append(sep)
+        builder.append(appId.version)
+        builder.append(sep)
+        builder.append(appId.branch)
+        builder.append(sep)
+        builder.append(resource)
+        builder.append(sep)
+        builder.append(action)
+        return builder.toString()
     }
 
     /**
