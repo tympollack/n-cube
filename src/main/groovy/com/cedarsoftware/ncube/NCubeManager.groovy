@@ -3,7 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
@@ -12,6 +11,8 @@ import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import com.google.common.cache.Cache
+import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
@@ -22,6 +23,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 /**
@@ -89,7 +91,7 @@ class NCubeManager
     public static final int PERMISSION_CACHE_THRESHOLD = 1000 * 60 * 30 // half-hour
 
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
-    private static ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
+    private static final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -109,10 +111,9 @@ class NCubeManager
         }
     }
 
-    // cache key = SHA-1(userId + '_' + appId + '_' + resource + '_' + Action)
+    // cache key = userId + '/' + appId + '/' + resource + '/' + Action
     // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
-    private static final Map<String, Long> permCache = new ConcurrentHashMap<>()
-
+    private static Cache<String, Boolean> permCache = CacheBuilder.newBuilder().expireAfterAccess(30, TimeUnit.MINUTES).maximumSize(100000).concurrencyLevel(16).build()
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
@@ -411,7 +412,7 @@ class NCubeManager
             validateAppId(appId)
 
             // Clear permissions cache
-            permCache.clear()
+            permCache.invalidateAll()
 
             Map<String, Object> appCache = getCacheForApp(appId)
             clearGroovyClassLoaderCache(appCache)
@@ -1522,6 +1523,11 @@ class NCubeManager
         return builder.toString()
     }
 
+    private static Boolean checkPermissionCache(String key)
+    {
+        return permCache.getIfPresent(key)
+    }
+
     /**
      * Verify whether the action can be performed against the resource (typically cube name).
      * @param appId ApplicationID containing the n-cube being checked.
@@ -1538,11 +1544,10 @@ class NCubeManager
         {
             return allowed
         }
-        long now = System.currentTimeMillis()
 
         if (Action.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
-            permCache[key] = now
+            permCache.put(key, true)
             return true
         }
 
@@ -1550,14 +1555,14 @@ class NCubeManager
         NCube permCube = getCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
         {   // Allow everything if no permissions are set up.
-            permCache[key] = now
+            permCache.put(key, true)
             return true
         }
 
         NCube userToRole = getCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userToRole == null)
         {   // Allow everything if no user roles are set up.
-            permCache[key] = now
+            permCache.put(key, true)
             return true
         }
 
@@ -1569,7 +1574,7 @@ class NCubeManager
             NCube branchPermCube = getCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
             {
-                permCache[key] = -now
+                permCache.put(key, false)
                 return false
             }
         }
@@ -1580,32 +1585,13 @@ class NCubeManager
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
             {
-                permCache[key] = now
+                permCache.put(key, true)
                 return true
             }
         }
 
-        permCache[key] = -now
+        permCache.put(key, false)
         return false
-    }
-
-    private static Boolean checkPermissionCache(String key)
-    {
-        Long allowed = permCache.get(key)
-
-        if (allowed instanceof Long)
-        {
-            long now = System.currentTimeMillis()
-            long elapsed = now - Math.abs(allowed.longValue())
-
-            if (elapsed < PERMISSION_CACHE_THRESHOLD)
-            {   // Less than a time threshold from last check, re-use last answer
-                boolean allow = allowed >= 0
-                permCache[key] = allow ? now : -now
-                return allow
-            }
-        }
-        return null
     }
 
     /**
@@ -1624,7 +1610,7 @@ class NCubeManager
 
         if (Action.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
-            permCache[key] = now
+            permCache.put(key, true)
             return true
         }
 
@@ -1634,7 +1620,7 @@ class NCubeManager
             NCube branchPermCube = (NCube)permInfo.branchPermCube
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
             {
-                permCache[key] = -now
+                permCache.put(key, false)
                 return false
             }
         }
@@ -1646,11 +1632,12 @@ class NCubeManager
         {
             if (checkResourcePermission(permCube, role, resource, actionName))
             {
-                permCache[key] = now
+                permCache.put(key, true)
                 return true
             }
         }
-        permCache[key] = -now
+
+        permCache.put(key, false)
         return false
     }
 
