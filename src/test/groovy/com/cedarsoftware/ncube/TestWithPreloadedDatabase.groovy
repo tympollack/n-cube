@@ -4684,7 +4684,7 @@ class TestWithPreloadedDatabase
             assert e.errors[VersionControl.BRANCH_REJECTS].size() == 1
         }
 
-        assertEquals(1, VersionControl.mergeAcceptTheirs(branch1, ["TestBranch"].toArray(), [cube.sha1()].toArray()))
+        assertEquals(1, VersionControl.mergeAcceptTheirs(branch1, ["TestBranch"].toArray()))
 
         cube = NCubeManager.getCube(branch1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -4750,7 +4750,7 @@ class TestWithPreloadedDatabase
             assert e.errors[VersionControl.BRANCH_REJECTS].size() == 1
         }
 
-        assertEquals(1, VersionControl.mergeAcceptTheirs(branch1, ["TestBranch"] as Object[], cube.sha1()))
+        assertEquals(1, VersionControl.mergeAcceptTheirs(branch1, ["TestBranch"] as Object[]))
 
         cube = NCubeManager.getCube(branch1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -4963,7 +4963,7 @@ class TestWithPreloadedDatabase
     {
         try
 		{
-            VersionControl.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], "foo")
+            VersionControl.mergeAcceptTheirs(appId, ["TestBranch"] as Object[])
             fail()
         }
         catch (IllegalStateException e)
@@ -4979,7 +4979,7 @@ class TestWithPreloadedDatabase
         try
 		{
             preloadCubes(branch1, "test.branch.1.json")
-            VersionControl.mergeAcceptTheirs(appId, ["TestBranch"] as Object[], "foo")
+            VersionControl.mergeAcceptTheirs(appId, ["TestBranch"] as Object[])
             fail()
         }
         catch (IllegalStateException e)
@@ -5323,7 +5323,7 @@ class TestWithPreloadedDatabase
         dtos = NCubeManager.search(branch1, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         String sha1 = dtos[0].sha1
 
-        VersionControl.mergeAcceptTheirs(branch1, ["TestAge"] as Object[], sha1)
+        VersionControl.mergeAcceptTheirs(branch1, ["TestAge"] as Object[])
 
         assertEquals(0, VersionControl.getBranchChangesForHead(branch1).size())
 

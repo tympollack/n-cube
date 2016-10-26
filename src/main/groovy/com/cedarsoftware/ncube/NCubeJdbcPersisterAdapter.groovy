@@ -169,10 +169,10 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 'renameCube(' + appId.cacheKey(oldName) + '->' + newName + ')')
     }
 
-    boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
+    boolean mergeAcceptTheirs(ApplicationID appId, String cubeName, String sourceBranch, String username)
     {
-        return (boolean) jdbcOperation({ Connection c -> persister.mergeAcceptTheirs(c, appId, cubeName, branchSha1, username) },
-                'mergeAcceptTheirs(' + appId.cacheKey(cubeName) + ', ' + branchSha1 + ')')
+        return (boolean) jdbcOperation({ Connection c -> persister.mergeAcceptTheirs(c, appId, cubeName, sourceBranch, username) },
+                'mergeAcceptTheirs(' + appId.cacheKey(cubeName) + ')')
     }
 
     boolean mergeAcceptMine(ApplicationID appId, String cubeName, String username)
