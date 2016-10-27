@@ -158,7 +158,7 @@ class NCubeManager
                     }
                     catch (Exception ignored)
                     {
-                        LOG.warn('Parsing of NCUBE_PARAMS failed. ' + jsonParams)
+                        LOG.warn("Parsing of NCUBE_PARAMS failed: ${jsonParams}")
                     }
                 }
                 systemParams = sysParamMap
@@ -567,14 +567,14 @@ class NCubeManager
     {
         if (refs == null)
         {
-            throw new IllegalArgumentException('Could not get referenced cube names, null passed in for Set to hold referenced n-cube names, app: ' + appId + ', n-cube: ' + name)
+            throw new IllegalArgumentException("Could not get referenced cube names, null passed in for Set to hold referenced n-cube names, app: ${appId}, n-cube: ${name}")
         }
         validateAppId(appId)
         NCube.validateCubeName(name)
         NCube ncube = getCube(appId, name)
         if (ncube == null)
         {
-            throw new IllegalArgumentException('Could not get referenced cube names, n-cube: ' + name + ' does not exist in app: ' + appId)
+            throw new IllegalArgumentException("Could not get referenced cube names, n-cube: ${name} does not exist in app: ${appId}")
         }
         Set<String> subCubeList = ncube.referencedCubeNames
 
@@ -600,7 +600,7 @@ class NCubeManager
 
         if (appId.release)
         {
-            throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + ' cubes cannot be restored, app: ' + appId)
+            throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be restored, app: ${appId}")
         }
 
         if (ArrayUtilities.isEmpty(cubeNames))
@@ -629,7 +629,7 @@ class NCubeManager
             }
             else
             {
-                throw new IllegalArgumentException('Non string name given for cube to restore: ' + name)
+                throw new IllegalArgumentException("Non string name given for cube to restore: ${name}")
             }
         }
     }
@@ -677,7 +677,7 @@ class NCubeManager
 
         if (newAppId.release)
         {
-            throw new IllegalArgumentException('Cubes cannot be duplicated into a ' + ReleaseStatus.RELEASE + ' version, cube: ' + newName + ', app: ' + newAppId)
+            throw new IllegalArgumentException("Cubes cannot be duplicated into a ${ReleaseStatus.RELEASE} version, cube: ${newName}, app: ${newAppId}")
         }
 
         NCube.validateCubeName(oldName)
@@ -685,7 +685,7 @@ class NCubeManager
 
         if (oldName.equalsIgnoreCase(newName) && oldAppId == newAppId)
         {
-            throw new IllegalArgumentException('Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ' + oldName + ', app: ' + oldAppId)
+            throw new IllegalArgumentException("Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ${oldName}, app: ${oldAppId}")
         }
 
         assertPermissions(oldAppId, oldName, Action.READ)
@@ -721,7 +721,7 @@ class NCubeManager
 
         if (appId.release)
         {
-            throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + ' cubes cannot be updated, cube: ' + ncube.name + ', app: ' + appId)
+            throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be updated, cube: ${ncube.name}, app: ${appId}")
         }
 
         appId.validateBranchIsNotHead()
@@ -760,7 +760,7 @@ class NCubeManager
         targetAppId.validateStatusIsNotRelease()
         if (!search(targetAppId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY): true]).empty)
         {
-            throw new IllegalArgumentException("A RELEASE version " + targetAppId.version + " already exists, app: " + targetAppId)
+            throw new IllegalArgumentException("A RELEASE version ${targetAppId.version} already exists, app: ${targetAppId}")
         }
         assertNotLockBlocked(targetAppId)
         if (targetAppId.version != '0.0.0')
@@ -784,7 +784,7 @@ class NCubeManager
         NCube ncube = getCube(appId, cubeName)
         if (ncube == null)
         {
-            throw new IllegalArgumentException('No ncube exists with the name: ' + cubeName + ', no changes will be merged, app: ' + appId)
+            throw new IllegalArgumentException("No ncube exists with the name: ${cubeName}, no changes will be merged, app: ${appId}")
         }
         ncube.mergeDeltas(deltas)
         updateCube(appId, ncube)
@@ -838,7 +838,7 @@ class NCubeManager
         }
         if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
-            throw new IllegalArgumentException("A RELEASE version " + appId.version + " already exists, app: " + appId)
+            throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
         }
 
         int rows = persister.releaseCubes(appId, newSnapVer)
@@ -864,11 +864,11 @@ class NCubeManager
         }
         if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
-            throw new IllegalArgumentException("A SNAPSHOT version " + appId.version + " already exists, app: " + appId)
+            throw new IllegalArgumentException("A SNAPSHOT version ${appId.version} already exists, app: ${appId}")
         }
         if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
         {
-            throw new IllegalArgumentException("A RELEASE version " + appId.version + " already exists, app: " + appId)
+            throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
         }
 
         lockApp(appId)
@@ -913,7 +913,7 @@ class NCubeManager
 
         if (appId.release)
         {
-            throw new IllegalArgumentException('Cannot change the version of a ' + ReleaseStatus.RELEASE.name() + ' app, app: ' + appId)
+            throw new IllegalArgumentException("Cannot change the version of a ${ReleaseStatus.RELEASE.name()}, app: ${appId}")
         }
         ApplicationID.validateVersion(newVersion)
         assertPermissions(appId, null, Action.RELEASE)
@@ -930,7 +930,7 @@ class NCubeManager
 
         if (appId.release)
         {
-            throw new IllegalArgumentException('Cannot rename a ' + ReleaseStatus.RELEASE.name() + ' cube, cube: ' + oldName + ', app: ' + appId)
+            throw new IllegalArgumentException("Cannot rename a ${ReleaseStatus.RELEASE.name()} cube, cube: ${oldName}, app: ${appId}")
         }
 
         assertNotLockBlocked(appId)
@@ -940,7 +940,7 @@ class NCubeManager
 
         if (oldName == newName)
         {
-            throw new IllegalArgumentException('Could not rename, old name cannot be the same as the new name, name: ' + oldName + ', app: ' + appId)
+            throw new IllegalArgumentException("Could not rename, old name cannot be the same as the new name, name: ${oldName}, app: ${appId}")
         }
 
         assertPermissions(appId, oldName, Action.UPDATE)
@@ -993,7 +993,7 @@ class NCubeManager
         {
             if (appId.release)
             {
-                throw new IllegalArgumentException(ReleaseStatus.RELEASE.name() + ' cubes cannot be hard-deleted, app: ' + appId)
+                throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be hard-deleted, app: ${appId}")
             }
         }
 
@@ -1053,7 +1053,7 @@ class NCubeManager
 
         if (infos.empty)
         {
-            throw new IllegalArgumentException('Could not fetch notes, no cube: ' + cubeName + ' in app: ' + appId)
+            throw new IllegalArgumentException("Could not fetch notes, no cube: ${cubeName} in app: ${appId}")
         }
         return infos[0].notes
     }
@@ -1085,7 +1085,7 @@ class NCubeManager
 
         if (bootCube == null)
         {
-            throw new IllegalStateException('Missing ' + SYS_BOOTSTRAP + ' cube in the 0.0.0 version for the app: ' + app)
+            throw new IllegalStateException("Missing ${SYS_BOOTSTRAP} cube in the 0.0.0 version for the app: ${app}")
         }
 
         ApplicationID bootAppId = (ApplicationID) bootCube.getCell(coord)
@@ -1095,12 +1095,12 @@ class NCubeManager
 
         if (!tenant.equalsIgnoreCase(bootAppId.tenant))
         {
-            LOG.warn("sys.bootstrap cube for tenant '" + tenant + "', app '" + app + "' is returning a different tenant '" + bootAppId.tenant + "' than requested. Using '" + tenant + "' instead.")
+            LOG.warn("sys.bootstrap cube for tenant: ${tenant}, app: ${app} is returning a different tenant: ${bootAppId.tenant} than requested. Using ${tenant} instead.")
         }
 
         if (!app.equalsIgnoreCase(bootAppId.app))
         {
-            LOG.warn("sys.bootstrap cube for tenant '" + tenant + "', app '" + app + "' is returning a different app '" + bootAppId.app + "' than requested. Using '" + app + "' instead.")
+            LOG.warn("sys.bootstrap cube for tenant: ${tenant}, app: ${app} is returning a different app: ${bootAppId.app} than requested. Using ${app} instead.")
         }
 
         return new ApplicationID(tenant, app, version, status, branch)
@@ -1196,7 +1196,7 @@ class NCubeManager
             }
             catch (Exception e)
             {
-                LOG.warn('Unable to load cube: ' + dto.name + ', app: ' + dto.applicationID, e)
+                LOG.warn("Unable to load cube: ${dto.name}, app: ${dto.applicationID}", e)
             }
         }
         return refAxes
@@ -1247,16 +1247,18 @@ class NCubeManager
                     NCube target = persister.loadCube(appId, destCubeName)
                     if (target == null)
                     {
-                        throw new IllegalArgumentException('Cannot point reference axis to non-existing cube (' +
-                                destCubeName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
-                                ', target: ' + destApp + ' / ' + destVersion + ' / ' + destCubeName + '.' + destAxisName)
+                        throw new IllegalArgumentException("""\
+Cannot point reference axis to non-existing cube: ${destCubeName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
                     }
 
                     if (target.getAxis(destAxisName) == null)
                     {
-                        throw new IllegalArgumentException('Cannot point reference axis to non-existing axis (' +
-                                destAxisName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
-                                ', target: ' + destApp + ' / ' + destVersion + ' / ' + destCubeName + '.' + destAxisName)
+                        throw new IllegalArgumentException("""\
+Cannot point reference axis to non-existing axis: ${destAxisName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
                     }
 
                     axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_APP, transformApp)
@@ -1270,16 +1272,18 @@ class NCubeManager
                         NCube transformCube = persister.loadCube(txAppId, transformCubeName)
                         if (transformCube == null)
                         {
-                            throw new IllegalArgumentException('Cannot point reference axis transformer to non-existing cube (' +
-                                    transformCubeName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
-                                    ', target: ' + transformApp + ' / ' + transformVersion + ' / ' + transformCubeName + '.' + transformMethodName)
+                            throw new IllegalArgumentException("""\
+Cannot point reference axis transformer to non-existing cube: ${transformCubeName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${transformMethodName}""")
                         }
 
                         if (transformCube.getAxis('method') == null)
                         {
-                            throw new IllegalArgumentException('Cannot point reference axis transformer to non-existing axis (' +
-                                    transformMethodName + '). Source: ' + srcAppId + ' ' + srcCubeName + '.' + srcAxisName +
-                                    ', target: ' + transformApp + ' / ' + transformVersion + ' / ' + transformCubeName + '.' + transformMethodName)
+                            throw new IllegalArgumentException("""\
+Cannot point reference axis transformer to non-existing axis: ${transformMethodName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${transformMethodName}""")
                         }
                     }
 
@@ -1293,7 +1297,7 @@ class NCubeManager
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
     static String getResourceAsString(String name) throws Exception
     {
-        URL url = NCubeManager.class.getResource('/' + name)
+        URL url = NCubeManager.class.getResource("/${name}")
         Path resPath = Paths.get(url.toURI())
         return new String(Files.readAllBytes(resPath), "UTF-8")
     }
@@ -1316,7 +1320,7 @@ class NCubeManager
         }
         catch (NullPointerException e)
         {
-            throw new IllegalArgumentException('Could not find the file [n-cube]: ' + name + ', app: ' + id, e)
+            throw new IllegalArgumentException("Could not find the file [n-cube]: ${name}, app: ${id}", e)
         }
         catch (Exception e)
         {
@@ -1324,7 +1328,7 @@ class NCubeManager
             {
                 throw (RuntimeException)e
             }
-            throw new RuntimeException('Failed to load cube from resource: ' + name, e)
+            throw new RuntimeException("Failed to load cube from resource: ${name}", e)
         }
     }
 
@@ -1371,7 +1375,7 @@ class NCubeManager
         }
         catch (Exception e)
         {
-            String s = 'Failed to load cubes from resource: ' + name + ', last successful cube: ' + lastSuccessful
+            String s = "Failed to load cubes from resource: ${name}, last successful cube: ${lastSuccessful}"
             LOG.warn(s)
             throw new RuntimeException(s, e)
         }
@@ -1391,7 +1395,7 @@ class NCubeManager
         validateAppId(appId)
         if (StringUtilities.isEmpty(url))
         {
-            throw new IllegalArgumentException('URL cannot be null or empty, attempting to resolve relative to absolute url for app: ' + appId)
+            throw new IllegalArgumentException("URL cannot be null or empty, attempting to resolve relative to absolute url for app: ${appId}")
         }
         String localUrl = url.toLowerCase()
 
@@ -1403,7 +1407,7 @@ class NCubeManager
             }
             catch (MalformedURLException e)
             {
-                throw new IllegalArgumentException('URL is malformed: ' + url, e)
+                throw new IllegalArgumentException("URL is malformed: ${url}", e)
             }
         }
         else
@@ -1419,8 +1423,7 @@ class NCubeManager
 
             if (actualUrl == null)
             {
-                String err = 'Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: ' +
-                        url + ', app: ' + appId
+                String err = "Unable to resolve URL, make sure appropriate resource URLs are added to the sys.classpath cube, URL: ${url}, app: ${appId}"
                 throw new IllegalArgumentException(err)
             }
             return actualUrl
@@ -1466,7 +1469,7 @@ class NCubeManager
         {
             return true
         }
-        throw new SecurityException('Operation not performed.  You do not have ' + action.name() + ' permission to ' + resource + ', app: ' + appId)
+        throw new SecurityException("Operation not performed.  You do not have ${action.name()} permission to ${resource}, app: ${appId}")
     }
 
     protected static boolean assertNotLockBlocked(ApplicationID appId)
@@ -1476,7 +1479,7 @@ class NCubeManager
         {
             return true
         }
-        throw new SecurityException('Application is not locked by you, app: ' + appId)
+        throw new SecurityException("Application is not locked by you, app: ${appId}")
     }
 
     private static void assertLockedByMe(ApplicationID appId)
@@ -1489,7 +1492,7 @@ class NCubeManager
             {
                 return
             }
-            throw new SecurityException('Application is not locked by you, no sys.lock n-cube exists in app: ' + appId)
+            throw new SecurityException("Application is not locked by you, no sys.lock n-cube exists in app: ${appId}")
         }
 
         final String lockOwner = getAppLockedBy(bootAppId)
@@ -1497,7 +1500,7 @@ class NCubeManager
         {
             return
         }
-        throw new SecurityException('Application is not locked by you, app: ' + appId)
+        throw new SecurityException("Application is not locked by you, app: ${appId}")
     }
 
     private static ApplicationID getBootAppId(ApplicationID appId)
@@ -1860,7 +1863,7 @@ class NCubeManager
         }
         if (lockOwner != null)
         {
-            throw new SecurityException('Application ' + appId + ' already locked by ' + lockOwner)
+            throw new SecurityException("Application ${appId} already locked by ${lockOwner}")
         }
 
         NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
@@ -1891,7 +1894,7 @@ class NCubeManager
         String lockOwner = getAppLockedBy(appId)
         if (userId != lockOwner && !isAdmin(appId))
         {
-            throw new SecurityException('Application ' + appId + ' locked by ' + lockOwner)
+            throw new SecurityException("Application ${appId} locked by ${lockOwner}")
         }
 
         sysLockCube.removeCell([(AXIS_SYSTEM):null])
