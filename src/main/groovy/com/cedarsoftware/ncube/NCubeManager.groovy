@@ -753,6 +753,8 @@ class NCubeManager
      */
     static int copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
+        assertPermissions(srcAppId, null, Action.READ)
+        assertPermissions(targetAppId, null, Action.UPDATE)
         validateAppId(srcAppId)
         validateAppId(targetAppId)
         targetAppId.validateStatusIsNotRelease()
@@ -1847,6 +1849,7 @@ class NCubeManager
      */
     static boolean lockApp(ApplicationID appId)
     {
+        assertPermissions(appId, null, Action.RELEASE)
         String userId = getUserId()
         ApplicationID bootAppId = getBootAppId(appId)
 
@@ -1876,6 +1879,7 @@ class NCubeManager
      */
     static void unlockApp(ApplicationID appId)
     {
+        assertPermissions(appId, null, Action.RELEASE)
         ApplicationID bootAppId = getBootAppId(appId)
         NCube sysLockCube = getCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
@@ -1885,7 +1889,7 @@ class NCubeManager
 
         String userId = getUserId()
         String lockOwner = getAppLockedBy(appId)
-        if (userId != lockOwner)
+        if (userId != lockOwner && !isAdmin(appId))
         {
             throw new SecurityException('Application ' + appId + ' locked by ' + lockOwner)
         }
