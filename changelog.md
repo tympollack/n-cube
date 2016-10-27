@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.104
+ * Enhancement: `NCubeJdbcPersister.mergeAcceptTheirs()` now handles both HEAD and non-HEAD branches.
+ * Bug fix: `VersionControl.mergeCubesIfPossible()` now correctly looks up HEAD cube SHA-1, as opposed to incorrectly looking in the branch.
 * 3.4.103
  * Performance improvement: Further improve performance of permissions checks.
 * 3.4.102

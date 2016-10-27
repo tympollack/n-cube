@@ -89,6 +89,13 @@ class Axis
     private transient NavigableMap<Comparable, Column> valueToCol = new TreeMap<>()
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
+    private static final ThreadLocal<Random> localRandom = new ThreadLocal<Random>() {
+        public Random initialValue()
+        {
+            return new Random()
+        }
+    }
+
     /**
      * Implement to provide data for this Axis
      */
@@ -314,11 +321,28 @@ class Axis
         removeMetaProperty(TRANSFORM_METHOD_NAME)
     }
 
+    // TODO: Remove
     protected long getNextColId()
     {
         long baseAxisId = id * BASE_AXIS_ID
         while (idToCol.containsKey(++colIdBase + baseAxisId));
         return baseAxisId + colIdBase
+    }
+
+    // TODO: Desired
+    protected long getNextColId2()
+    {
+        long baseAxisId = id * BASE_AXIS_ID
+        Random random = localRandom.get()
+        long uniqueId = random.nextLong()
+        long total = uniqueId % 1000000000L
+
+        while (uniqueId <= 0L || idToCol.containsKey(total + baseAxisId))
+        {
+            uniqueId = random.nextLong()
+            total = uniqueId % 1000000000L
+        }
+        return baseAxisId + total
     }
 
     protected long getDefaultColId()
