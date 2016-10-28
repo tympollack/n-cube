@@ -322,7 +322,7 @@ class Axis
     }
 
     // TODO: Remove
-    protected long getNextColId()
+    protected long getNextColId2()
     {
         long baseAxisId = id * BASE_AXIS_ID
         while (idToCol.containsKey(++colIdBase + baseAxisId));
@@ -330,7 +330,7 @@ class Axis
     }
 
     // TODO: Desired
-    protected long getNextColId2()
+    protected long getNextColId()
     {
         long baseAxisId = id * BASE_AXIS_ID
         Random random = localRandom.get()
@@ -947,7 +947,7 @@ class Axis
             if (allowPositiveColumnIds && !existingColumns.containsKey(existingId))
             {
                 Column newCol = addColumnInternal(newColumnMap[col.id])
-                newCol.displayOrder = col.displayOrder
+                newCol.displayOrder = dispOrder++
                 existingId = newCol.id
                 existingColumns[existingId] = newCol
             }
