@@ -5192,8 +5192,8 @@ class TestWithPreloadedDatabase
         Object defaultCellValue = cube.defaultCellValue
         Map cubeMetaProps = cube.metaProperties
         Map axisMetaProps = cube.getAxis('Code').metaProperties
-        Map colMetaProps = cube.getAxis('Code').getColumnById(1000000000003).metaProperties
-        Comparable colVal = cube.getAxis('Code').getColumnById(1000000000010).value
+        Map colMetaProps = cube.getAxis('Code').findColumn(0).metaProperties
+        Comparable colVal = cube.getAxis('Code').findColumn(10).value
 
         // make changes
         cube.addColumn('Code', 20)
@@ -5203,8 +5203,8 @@ class TestWithPreloadedDatabase
         cube.defaultCellValue = 'AAA'
         cube.addMetaProperties([key : 'value'])
         cube.getAxis('Code').addMetaProperties([key : 'value'])
-        cube.getAxis('Code').getColumnById(1000000000003).addMetaProperties([key : 'value'])
-        cube.getAxis('Code').getColumnById(1000000000010).value = 9
+        cube.getAxis('Code').findColumn(0).addMetaProperties([key : 'value'])
+        cube.getAxis('Code').findColumn(10).value = 9
 
         // save changes
         NCubeManager.updateCube(branch1, cube)
@@ -5223,8 +5223,8 @@ class TestWithPreloadedDatabase
         assertEquals(defaultCellValue, cube.defaultCellValue)
         assertEquals(cubeMetaProps.size(), cube.metaProperties.size())
         assertEquals(axisMetaProps.size(), cube.getAxis('Code').metaProperties.size())
-        assertEquals(colMetaProps.size(), cube.getAxis('Code').getColumnById(1000000000003).metaProperties.size())
-        assertEquals(colVal, cube.getAxis('Code').getColumnById(1000000000010).value)
+        assertEquals(colMetaProps.size(), cube.getAxis('Code').findColumn(0).metaProperties.size())
+        assertEquals(colVal, cube.getAxis('Code').findColumn(10).value)
 
         // test for add axis
         cube.addAxis(new Axis('Axis', AxisType.DISCRETE, AxisValueType.STRING, false))
