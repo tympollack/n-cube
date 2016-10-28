@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.105
+ * Enhancement: Newly added columns added to the same axis (in the n-cube-editor) will have unique ids.  This improves n-cube merging.
+ * Bug fix: displayOrder was not being set correctly on newly added columns.
 * 3.4.104
  * Enhancement: `NCubeJdbcPersister.mergeAcceptTheirs()` now handles both HEAD and non-HEAD branches.
  * Bug fix: `VersionControl.mergeCubesIfPossible()` now correctly looks up HEAD cube SHA-1, as opposed to incorrectly looking in the branch.
