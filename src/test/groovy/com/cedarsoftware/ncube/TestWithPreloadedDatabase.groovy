@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.util.CdnClassLoader
-import com.cedarsoftware.util.Converter
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
