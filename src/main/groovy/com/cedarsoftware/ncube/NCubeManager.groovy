@@ -167,6 +167,11 @@ class NCubeManager
         return systemParams
     }
 
+    protected static void clearSysParams()
+    {
+        systemParams = null;
+    }
+
     /**
      * Fetch all the n-cube names for the given ApplicationID.  This API
      * will load all cube records for the ApplicationID (NCubeInfoDtos),
