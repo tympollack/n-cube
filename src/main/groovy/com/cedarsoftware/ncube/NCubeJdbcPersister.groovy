@@ -906,8 +906,7 @@ SELECT h.revision_number FROM
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
 AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = head_sha1) b
 JOIN n_cube h ON h.sha1 = b.head_sha1
-WHERE h.app_cd = :app AND h.version_no_cd = :version AND h.status_cd = :status
-AND h.tenant_cd = :tenant AND h.branch_id = 'HEAD' AND h.create_dt < b.create_dt
+WHERE h.app_cd = :app AND h.branch_id = 'HEAD' AND h.tenant_cd = :tenant AND h.create_dt <= b.create_dt
 ORDER BY ABS(b.revision_number) DESC, ABS(h.revision_number) DESC""", 0, 1, { ResultSet row ->
             maxRev = row.getLong('revision_number')
         });
@@ -1342,7 +1341,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
         map.newVer = newSnapVer
         map.create_dt = nowAsTimestamp()
         map.tenant = padTenant(c, appId.tenant)
-        return sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET create_dt = :create_dt, status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND tenant_cd = :tenant AND branch_id = 'HEAD'")
+        return sql.executeUpdate(map, "/* releaseCubes */ UPDATE n_cube SET status_cd = 'RELEASE' WHERE app_cd = :app AND version_no_cd = :version AND status_cd = 'SNAPSHOT' AND tenant_cd = :tenant AND branch_id = 'HEAD'")
     }
 
     static int changeVersionValue(Connection c, ApplicationID appId, String newVersion)
