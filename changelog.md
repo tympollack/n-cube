@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.106
+ * Bug fix: Code that locates 'rollback' revision now locates across versions / releases.  
+ * Enhancement: Date comparison used in locating 'rollback' revision needed to be 'less than or equal' not 'equal' because the test cases could run so fast that a millisecond time change did not occur causing a false failure.
 * 3.4.105
  * Enhancement: Newly added columns added to the same axis (in the n-cube-editor) will have unique ids.  This improves n-cube merging.
  * Bug fix: displayOrder was not being set correctly on newly added columns.
