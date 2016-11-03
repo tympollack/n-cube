@@ -4490,6 +4490,144 @@ class TestWithPreloadedDatabase
     /***** End tests for commit and update from cube test matrix *****/
 
     @Test
+    void testAddDifferentColumnsWithDefault()
+    {
+        preloadCubes(BRANCH2, "testCube6.json")
+        VersionControl.commitBranch(BRANCH2)
+        NCubeManager.copyBranch(HEAD, BRANCH1)
+
+        //consumer add column
+        NCube consumerCube = NCubeManager.loadCube(BRANCH1, 'TestCube')
+        consumerCube.addColumn('Gender', 'Dog')
+        NCubeManager.updateCube(BRANCH1, consumerCube)
+
+        //producer add column and commit
+        NCube producerCube = NCubeManager.loadCube(BRANCH2, 'TestCube')
+        producerCube.addColumn('Gender', 'Cat')
+        producerCube.setCell('calico', [Gender: 'Cat'])
+        NCubeManager.updateCube(BRANCH2, producerCube)
+        VersionControl.commitBranch(BRANCH2)
+
+        //consumer update
+        VersionControl.getHeadChangesForBranch(BRANCH1)
+        Map<String, Object> result = VersionControl.updateBranch(BRANCH1)
+        assert (result[VersionControl.BRANCH_ADDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_DELETES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_UPDATES] as Map).size() == 1
+        assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_FASTFORWARDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
+
+        consumerCube = NCubeManager.loadCube(BRANCH1, 'TestCube')
+        Axis genderAxis = consumerCube.getAxis('Gender')
+        assert genderAxis.findColumn('Male')
+        assert genderAxis.findColumn('Female')
+        assert genderAxis.findColumn('Dog')
+        assert genderAxis.findColumn('Cat')
+        assert genderAxis.hasDefaultColumn()
+        assert genderAxis.size() == 5
+        assert consumerCube.getCell([Gender: 'Cat']) == 'calico'
+    }
+
+    @Test
+    void testAddDifferentColumns()
+    {
+        preloadCubes(BRANCH2, "testCube6.json")
+        NCube producerCube = NCubeManager.loadCube(BRANCH2, 'TestCube')
+        producerCube.deleteColumn('Gender', null)
+        NCubeManager.updateCube(BRANCH2, producerCube)
+        VersionControl.commitBranch(BRANCH2)
+        NCubeManager.copyBranch(HEAD, BRANCH1)
+
+        //consumer add column
+        NCube consumerCube = NCubeManager.loadCube(BRANCH1, 'TestCube')
+        consumerCube.addColumn('Gender', 'Dog')
+        NCubeManager.updateCube(BRANCH1, consumerCube)
+
+        //producer add column and commit
+        producerCube = NCubeManager.loadCube(BRANCH2, 'TestCube')
+        producerCube.addColumn('Gender', 'Cat')
+        producerCube.setCell('calico', [Gender: 'Cat'])
+        NCubeManager.updateCube(BRANCH2, producerCube)
+        VersionControl.commitBranch(BRANCH2)
+
+        //consumer update
+        VersionControl.getHeadChangesForBranch(BRANCH1)
+        Map<String, Object> result = VersionControl.updateBranch(BRANCH1)
+        assert (result[VersionControl.BRANCH_ADDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_DELETES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_UPDATES] as Map).size() == 1
+        assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_FASTFORWARDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
+
+        consumerCube = NCubeManager.loadCube(BRANCH1, 'TestCube')
+        Axis genderAxis = consumerCube.getAxis('Gender')
+        assert genderAxis.findColumn('Male')
+        assert genderAxis.findColumn('Female')
+        assert genderAxis.findColumn('Dog')
+        assert genderAxis.findColumn('Cat')
+        assert !genderAxis.hasDefaultColumn()
+        assert genderAxis.size() == 4
+        assert consumerCube.getCell([Gender: 'Cat']) == 'calico'
+    }
+
+    @Test
+    void testRemoveAndAddDefaultColumn()
+    {
+        preloadCubes(BRANCH2, "testCube6.json")
+        VersionControl.commitBranch(BRANCH2)
+        NCubeManager.copyBranch(HEAD, BRANCH1)
+
+        //producer remove default column and commit
+        NCube producerCube = NCubeManager.loadCube(BRANCH2, 'TestCube')
+        producerCube.deleteColumn('Gender', null)
+        NCubeManager.updateCube(BRANCH2, producerCube)
+        VersionControl.commitBranch(BRANCH2)
+
+        //consumer update
+        VersionControl.getHeadChangesForBranch(BRANCH1)
+        Map<String, Object> result = VersionControl.updateBranch(BRANCH1)
+        assert (result[VersionControl.BRANCH_ADDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_DELETES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_UPDATES] as Map).size() == 1
+        assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_FASTFORWARDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
+
+        NCube consumerCube = NCubeManager.loadCube(BRANCH1, 'TestCube')
+        Axis genderAxis = consumerCube.getAxis('Gender')
+        assert genderAxis.findColumn('Male')
+        assert genderAxis.findColumn('Female')
+        assert !genderAxis.hasDefaultColumn()
+        assert genderAxis.size() == 2
+
+        //producer add default column and cell and commit
+        producerCube.addColumn('Gender', null)
+        producerCube.setCell('it', [Gender: null])
+        NCubeManager.updateCube(BRANCH2, producerCube)
+        VersionControl.commitBranch(BRANCH2)
+
+        //consumer update
+        VersionControl.getHeadChangesForBranch(BRANCH1)
+        result = VersionControl.updateBranch(BRANCH1)
+        assert (result[VersionControl.BRANCH_ADDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_DELETES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_UPDATES] as Map).size() == 1
+        assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_FASTFORWARDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
+
+        consumerCube = NCubeManager.loadCube(BRANCH1, 'TestCube')
+        genderAxis = consumerCube.getAxis('Gender')
+        assert genderAxis.findColumn('Male')
+        assert genderAxis.findColumn('Female')
+        assert genderAxis.hasDefaultColumn()
+        assert genderAxis.size() == 3
+        assert consumerCube.getCell([Gender: null]) == 'it'
+    }
+
+    @Test
     void testConflictOverwriteBranch()
 	{
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
