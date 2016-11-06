@@ -286,9 +286,25 @@ class TestUrlCommandCell
     }
 
     @Test
+    void testUrlToGroovyScript1()
+    {
+        NCube ncube = NCubeBuilder.headLessCommands
+        Map coord = [command: 'rating'] as Map
+        Map output = [:]
+
+        coord.age = null
+        def ret = ncube.getCell(coord, output)
+        assert ret == 150.0d
+        coord.age = 18
+        coord.rate = 10
+        ret = ncube.getCell(coord, output)
+        assert ret == 180
+    }
+
+    @Test
     void testUrlToGroovyScript()
     {
-        NCube ncube = NCubeBuilder.getHeadLessCommands()
+        NCube ncube = NCubeBuilder.headLessCommands
         Map coord = [command:'rating'] as Map
         Map output = [:]
 

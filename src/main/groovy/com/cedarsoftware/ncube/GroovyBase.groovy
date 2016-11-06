@@ -17,6 +17,8 @@ import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
+import java.util.regex.Pattern
+
 /**
  * Base class for Groovy CommandCells.
  *
@@ -103,8 +105,8 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected static void clearCache(ApplicationID appId)
     {
-        Map<String, Class> compiledMap = getCache(appId)
-        compiledMap.clear()
+        Map<String, Class> cachedRootClasses = getCache(appId)
+        cachedRootClasses.clear()
     }
 
     protected static Map<String, Class> getCache(ApplicationID appId)
@@ -163,12 +165,12 @@ abstract class GroovyBase extends UrlCommandCell
         }
 
         computeCmdHash(data, ctx)
-        Map<String, Class> compiledMap = getCache(getNCube(ctx).applicationID)
+        Map<String, Class> cachedRootClasses = getCache(getNCube(ctx).applicationID)
 
         // check L2 cache
-        if (compiledMap.containsKey(cmdHash))
+        if (cachedRootClasses.containsKey(cmdHash))
         {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-            setRunnableCode(compiledMap[cmdHash])
+            setRunnableCode(cachedRootClasses[cmdHash])
             return
         }
 
@@ -184,27 +186,16 @@ abstract class GroovyBase extends UrlCommandCell
         GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
         String groovySource = ret.source as String
         String sha1Source = EncryptionUtilities.calculateSHA1Hash(groovySource.bytes)
-        File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}.class")
+        byte[] rootClassBytes = getRootClassFromL3("${sha1Source}.class")
 
-        if (byteCode.exists())
+        if (rootClassBytes != null)
         {
             synchronized (sha1Source.intern())
             {
-                Class root = null
-                new File("${TEMP_DIR}/target/classes/").eachFileMatch(~/^${sha1Source}.*\.class/) { File file ->
-                    boolean isRoot = file.name.indexOf('$') == -1
-                    byte[] fileBytes = file.bytes
-                    Class clazz = defineClass(sha1Source, ret.loader as GroovyClassLoader, compiledMap, fileBytes, isRoot)
-                    if (NCubeGroovyExpression.isAssignableFrom(clazz) && root == null)
-                    {
-                        root = clazz
-                    }
-                }
-                if (root != null)
-                {
-                    setRunnableCode(root)
-                    compiledMap[cmdHash] = root
-                }
+                Class root = defineClass(sha1Source, gcLoader, cachedRootClasses, rootClassBytes, true)
+                getInnerClassesFromL3(~/^${sha1Source}.+\.class/, sha1Source, gcLoader, cachedRootClasses)
+                setRunnableCode(root)
+                cachedRootClasses[cmdHash] = root
             }
             return
         }
@@ -215,7 +206,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String sha1Source, Map<String, Object> ctx)
     {
-        Map<String, Class> compiledMap = getCache(getNCube(ctx).applicationID)
+        Map<String, Class> cachedRootClasses = getCache(getNCube(ctx).applicationID)
 
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
         compilerConfiguration.targetBytecode = '1.8'
@@ -228,56 +219,43 @@ abstract class GroovyBase extends UrlCommandCell
         CompilationUnit compilationUnit = new CompilationUnit()
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
-        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrent compile!
+        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
 
         List classes = compilationUnit.classes
-        Class generatedClass = defineClasses(compiledMap, classes, gcLoader, groovySource, sha1Source)
+        Class generatedClass = defineClasses(cachedRootClasses, classes, gcLoader, sha1Source)
         return generatedClass
     }
 
-    protected Class defineClasses(Map<String, Class> compiledMap, List classes, GroovyClassLoader gcLoader, String groovySource, String sha1Source)
+    protected Class defineClasses(Map<String, Class> cachedRootClasses, List classes, GroovyClassLoader gcLoader, String sha1Source)
     {
-        Map<GroovyClass, Class> classMap = [:]
         Class root = null
 
         synchronized(sha1Source.intern())
         {
-            Class clazz = compiledMap[cmdHash]
+            Class clazz = cachedRootClasses[cmdHash]
             if (clazz != null)
             {   // Another thread defined and persisted the class while this thread was blocked...
                 return clazz
             }
 
-            // Step 1: Add the compiled class(es) to the ClassLoader
-            for (int i = 0; i < classes.size(); i++)
+            int numClasses = classes.size()
+            for (int i = 0; i < numClasses; i++)
             {
                 GroovyClass gclass = classes[i] as GroovyClass
-                boolean isRoot = gclass.name.indexOf('$') == -1
-                clazz = defineClass(sha1Source, gcLoader, compiledMap, gclass.bytes, isRoot);
-                classMap[gclass] = clazz
-            }
+                String className = gclass.name
+                def dollarPos = className.indexOf('$')
+                boolean isRoot = dollarPos == -1
 
-            // Step 2: Write the classes to persisted cache.
-            // This is performed second so that another thread does not find the bytes on disk from another thread,
-            // before it had defined the classes.
-            for (int i = 0; i < classes.size(); i++)
-            {
-                GroovyClass gclass = (GroovyClass) classes[i]
-//                String className = getClassName(gclass.bytes)
+                // Add compiled class to classLoader
+                clazz = defineClass(sha1Source, gcLoader, cachedRootClasses, gclass.bytes, isRoot);
 
-                int dollarPos = gclass.name.indexOf('$')
-
-                if (dollarPos == -1)
+                // Persist class bytes
+                if (isRoot)
                 {
-                    clazz = classMap[gclass]
                     if (NCubeGroovyExpression.isAssignableFrom(clazz))
                     {
-                        // persist main class file
-                        File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}.class")
-                        if (!byteCode.exists())
-                        {
-                            byteCode.append(gclass.bytes)
-                        }
+                        // cache (L3) main class file
+                        cacheClassInL3("${sha1Source}.class", gclass.bytes)
                         if (root == null)
                         {
                             root = clazz
@@ -285,22 +263,18 @@ abstract class GroovyBase extends UrlCommandCell
                     }
                 }
                 else
-                {   // persister inner class(es)
-                    File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}${gclass.name.substring(dollarPos)}.class")
-                    if (!byteCode.exists())
-                    {
-                        byteCode.append(gclass.bytes)
-                    }
+                {   // cache (L3) inner class
+                    cacheClassInL3("${sha1Source}${className.substring(dollarPos)}.class", gclass.bytes)
                 }
             }
 
             if (root != null)
             {
-                compiledMap[cmdHash] = root
                 setRunnableCode(root)
+                cachedRootClasses[cmdHash] = root
             }
         }
-        return compiledMap[cmdHash]
+        return cachedRootClasses[cmdHash]
     }
 
     protected Class defineClass(String sha1Source, GroovyClassLoader gcLoader, Map<String, Class> cache, byte[] byteCode, boolean isRoot)
@@ -320,43 +294,6 @@ abstract class GroovyBase extends UrlCommandCell
             clazz = gcLoader.defineClass(null, byteCode)
             return clazz
         }
-    }
-
-    static String getClassName(byte[] byteCode) throws Exception
-    {
-        InputStream is = new ByteArrayInputStream(byteCode)
-        DataInputStream dis = new DataInputStream(is)
-        dis.readLong() // skip header and class version
-        int cpcnt = (dis.readShort() & 0xffff) - 1i
-        int[] classes = new int[cpcnt]
-        String[] strings = new String[cpcnt]
-        for (int i=0; i < cpcnt; i++)
-        {
-            int t = dis.read()
-            if (t == 7)
-            {
-                classes[i] = dis.readShort() & 0xffff
-            }
-            else if (t == 1)
-            {
-                strings[i] = dis.readUTF()
-            }
-            else if (t == 5 || t == 6)
-            {
-                dis.readLong()
-                i++
-            }
-            else if (t == 8)
-            {
-                dis.readShort()
-            }
-            else
-            {
-                dis.readInt()
-            }
-        }
-        dis.readShort() // skip access flags
-        return strings[classes[(dis.readShort() & 0xffff) - 1i] - 1i].replace('/', '.')
     }
 
     protected Map getClassLoaderAndSource(Map<String, Object> ctx)
@@ -429,6 +366,29 @@ abstract class GroovyBase extends UrlCommandCell
         }
         cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
     }
+
+    // --------------------------------------------- L3 Cache APIs -----------------------------------------------------
+
+    private static cacheClassInL3(String cacheKey, byte[] byteCode)
+    {
+        new File("${TEMP_DIR}/target/classes/${cacheKey}").bytes = byteCode
+    }
+
+    private static byte[] getRootClassFromL3(String cacheKey)
+    {
+        File byteCode = new File("${TEMP_DIR}/target/classes/${cacheKey}")
+        return byteCode.exists() ? byteCode.bytes : null
+    }
+
+    private void getInnerClassesFromL3(Pattern pattern, String sha1Source, GroovyClassLoader gcLoader, Map<String, Class> cachedRootClasses)
+    {
+        new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
+            byte[] fileBytes = file.bytes
+            defineClass(sha1Source, gcLoader, cachedRootClasses, fileBytes, false)
+        }
+    }
+
+    // ------------------------------------------ END L3 Cache APIs ----------------------------------------------------
 
     protected static String expandNCubeShortCuts(String groovy)
     {
