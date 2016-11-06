@@ -283,15 +283,6 @@ abstract class GroovyBase extends UrlCommandCell
                             root = clazz
                         }
                     }
-//                    else
-//                    {
-//                        // persist referenced class file
-//                        File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}_${gclass.name}.class")
-//                        if (!byteCode.exists())
-//                        {
-//                            byteCode.append(gclass.bytes)
-//                        }
-//                    }
                 }
                 else
                 {   // persister inner class(es)
@@ -312,9 +303,9 @@ abstract class GroovyBase extends UrlCommandCell
         return compiledMap[cmdHash]
     }
 
-    protected Class defineClass(String sourceHash, GroovyClassLoader gcLoader, Map<String, Class> cache, byte[] byteCode, boolean isRoot)
+    protected Class defineClass(String sha1Source, GroovyClassLoader gcLoader, Map<String, Class> cache, byte[] byteCode, boolean isRoot)
     {
-        synchronized (sourceHash.intern())
+        synchronized (sha1Source.intern())
         {
             Class clazz
             if (isRoot)
@@ -327,20 +318,16 @@ abstract class GroovyBase extends UrlCommandCell
             }
 
             clazz = gcLoader.defineClass(null, byteCode)
-            if (isRoot && NCubeGroovyExpression.isAssignableFrom(clazz))
-            {
-                cache[cmdHash] = clazz
-            }
             return clazz
         }
     }
 
-    public static String getClassName(byte[] byteCode) throws Exception
+    static String getClassName(byte[] byteCode) throws Exception
     {
         InputStream is = new ByteArrayInputStream(byteCode)
         DataInputStream dis = new DataInputStream(is)
         dis.readLong() // skip header and class version
-        int cpcnt = (dis.readShort() & 0xffff) - 1
+        int cpcnt = (dis.readShort() & 0xffff) - 1i
         int[] classes = new int[cpcnt]
         String[] strings = new String[cpcnt]
         for (int i=0; i < cpcnt; i++)
@@ -369,7 +356,7 @@ abstract class GroovyBase extends UrlCommandCell
             }
         }
         dis.readShort() // skip access flags
-        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.')
+        return strings[classes[(dis.readShort() & 0xffff) - 1i] - 1i].replace('/', '.')
     }
 
     protected Map getClassLoaderAndSource(Map<String, Object> ctx)

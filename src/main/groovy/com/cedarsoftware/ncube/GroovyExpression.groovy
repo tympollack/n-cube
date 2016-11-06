@@ -227,7 +227,7 @@ class N_${cmdHash} extends ${expClassName}
 
         // If 'around' Advice has been added to n-cube, invoke it after calling Groovy expression's run() method
         final int len = advices.size()
-        for (int i = len - 1; i >= 0; i--)
+        for (int i = len - 1i; i >= 0i; i--)
         {
             Advice advice = advices.get(i)
             try
