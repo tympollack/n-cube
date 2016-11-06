@@ -129,7 +129,7 @@ class TestUrlCommandCell
             super(cmd, url, cacheable)
         }
 
-        protected Object executeInternal(Object data, Map<String, Object> ctx)
+        protected def executeInternal(Object data, Map<String, Object> ctx)
         {
             return null;
         }

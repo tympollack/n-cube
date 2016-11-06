@@ -7,6 +7,11 @@ import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.codehaus.groovy.control.CompilationUnit
+import org.codehaus.groovy.control.CompilerConfiguration
+import org.codehaus.groovy.control.Phases
+import org.codehaus.groovy.control.SourceUnit
+import org.codehaus.groovy.tools.GroovyClass
 
 import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.ConcurrentHashMap
@@ -37,7 +42,18 @@ abstract class GroovyBase extends UrlCommandCell
     private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
     protected transient String cmdHash
     private volatile transient Class runnableCode = null
+    /**
+     * This cache is 'per ApplicationID'.  This allows different applications to define the same
+     * class (URL to groovy), yet have different source code for that class.
+     */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>>  compiledClasses = new ConcurrentHashMap<>()
+    private static final TEMP_DIR = System.getProperty("java.io.tmpdir")
+
+    static
+    {
+        new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
+        new File("${TEMP_DIR}/target/classes/").mkdirs()
+    }
 
     //  Private constructor only for serialization.
     protected GroovyBase() {}
@@ -67,14 +83,14 @@ abstract class GroovyBase extends UrlCommandCell
     {
         Object data = null
 
-        if (getUrl() == null)
+        if (url == null)
         {
-            data = getCmd()
+            data = cmd
         }
 
         prepare(data, ctx)
         Object result = executeInternal(ctx)
-        if (isCacheable())
+        if (cacheable)
         {   // Remove the compiled class from the cell's cache.
             // This is because the cell is marked as cacheable meaning the result of the
             // execution is cached, so there is no need to hold a reference to the compiled class.
@@ -87,18 +103,18 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected static void clearCache(ApplicationID appId)
     {
-        Map<String, Class> compiledMap = getCache(appId, compiledClasses)
+        Map<String, Class> compiledMap = getCache(appId)
         compiledMap.clear()
     }
 
-    protected static <T> Map<String, T> getCache(ApplicationID appId, ConcurrentMap<ApplicationID, ConcurrentMap<String, T>> container)
+    protected static Map<String, Class> getCache(ApplicationID appId)
     {
-        ConcurrentMap<String, T> map = container[appId]
+        ConcurrentMap<String, Class> map = compiledClasses[appId]
 
         if (map == null)
         {
             map = new ConcurrentHashMap<>()
-            ConcurrentMap mapRef = container.putIfAbsent(appId, map)
+            ConcurrentMap mapRef = compiledClasses.putIfAbsent(appId, map)
             if (mapRef != null)
             {
                 map = mapRef
@@ -115,7 +131,7 @@ abstract class GroovyBase extends UrlCommandCell
             if (code == null)
             {
                 NCube ncube = getNCube(ctx)
-                throw new IllegalStateException('Code cleared while getCell() was executing, n-cube: ' + ncube.name + ", app: " + ncube.applicationID)
+                throw new IllegalStateException("Code cleared while cell was executing, n-cube: ${ncube.name}, app: ${ncube.applicationID}")
             }
             final NCubeGroovyExpression exp = (NCubeGroovyExpression) code.newInstance()
             exp.input = getInput(ctx)
@@ -125,7 +141,7 @@ abstract class GroovyBase extends UrlCommandCell
         }
         catch (InvocationTargetException e)
         {
-            throw e.getTargetException()
+            throw e.targetException
         }
     }
 
@@ -136,41 +152,236 @@ abstract class GroovyBase extends UrlCommandCell
 
     /**
      * Conditionally compile the passed in command.  If it is already compiled, this method
-     * immediately returns.  Insta-check because it is just a ref == null check.
+     * immediately returns.  Insta-check because it is just a reference check.
      */
     void prepare(Object data, Map<String, Object> ctx)
     {
+        // check L1 cache
         if (getRunnableCode() != null)
-        {   // If the code for the cell has already been compiled, return the compiled class.
+        {   // If the code for the cell has already been compiled, do nothing.
             return
         }
 
         computeCmdHash(data, ctx)
-        NCube cube = getNCube(ctx)
-        Map<String, Class> compiledMap = getCache(cube.applicationID, compiledClasses)
+        Map<String, Class> compiledMap = getCache(getNCube(ctx).applicationID)
 
+        // check L2 cache
         if (compiledMap.containsKey(cmdHash))
         {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
             setRunnableCode(compiledMap[cmdHash])
             return
         }
 
-        Class compiledGroovy = compile(ctx)
-        setRunnableCode(compiledGroovy)
+        // Pre-compiled check (e.g. source code was pre-compiled and instrumented for coverage)
+        Map ret = getClassLoaderAndSource(ctx)
+        if (ret.gclass instanceof Class)
+        {   // Found class matching URL fileName.groovy already in JVM
+            setRunnableCode(ret.gclass as Class)
+            return
+        }
+
+        // check L3 cache
+        GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
+        String groovySource = ret.source as String
+        String sha1Source = EncryptionUtilities.calculateSHA1Hash(groovySource.bytes)
+        File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}.class")
+
+        if (byteCode.exists())
+        {
+            synchronized (sha1Source.intern())
+            {
+                Class root = null
+                new File("${TEMP_DIR}/target/classes/").eachFileMatch(~/^${sha1Source}.*\.class/) { File file ->
+                    boolean isRoot = file.name.indexOf('$') == -1
+                    byte[] fileBytes = file.bytes
+                    Class clazz = defineClass(sha1Source, ret.loader as GroovyClassLoader, compiledMap, fileBytes, isRoot)
+                    if (NCubeGroovyExpression.isAssignableFrom(clazz) && root == null)
+                    {
+                        root = clazz
+                    }
+                }
+                if (root != null)
+                {
+                    setRunnableCode(root)
+                    compiledMap[cmdHash] = root
+                }
+            }
+            return
+        }
+
+        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
+        compile(gcLoader, groovySource, sha1Source, ctx)
     }
 
-    protected Class compile(Map<String, Object> ctx)
+    protected Class compile(GroovyClassLoader gcLoader, String groovySource, String sha1Source, Map<String, Object> ctx)
+    {
+        Map<String, Class> compiledMap = getCache(getNCube(ctx).applicationID)
+
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
+        compilerConfiguration.targetBytecode = '1.8'
+        compilerConfiguration.debug = false
+        compilerConfiguration.defaultScriptExtension = '.groovy'
+        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
+
+        SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${cmdHash}", groovySource, compilerConfiguration, gcLoader, null)
+
+        CompilationUnit compilationUnit = new CompilationUnit()
+        compilationUnit.addSource(sourceUnit)
+        compilationUnit.configure(compilerConfiguration)
+        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrent compile!
+
+        List classes = compilationUnit.classes
+        Class generatedClass = defineClasses(compiledMap, classes, gcLoader, groovySource, sha1Source)
+        return generatedClass
+    }
+
+    protected Class defineClasses(Map<String, Class> compiledMap, List classes, GroovyClassLoader gcLoader, String groovySource, String sha1Source)
+    {
+        Map<GroovyClass, Class> classMap = [:]
+        Class root = null
+
+        synchronized(sha1Source.intern())
+        {
+            Class clazz = compiledMap[cmdHash]
+            if (clazz != null)
+            {   // Another thread defined and persisted the class while this thread was blocked...
+                return clazz
+            }
+
+            // Step 1: Add the compiled class(es) to the ClassLoader
+            for (int i = 0; i < classes.size(); i++)
+            {
+                GroovyClass gclass = classes[i] as GroovyClass
+                boolean isRoot = gclass.name.indexOf('$') == -1
+                clazz = defineClass(sha1Source, gcLoader, compiledMap, gclass.bytes, isRoot);
+                classMap[gclass] = clazz
+            }
+
+            // Step 2: Write the classes to persisted cache.
+            // This is performed second so that another thread does not find the bytes on disk from another thread,
+            // before it had defined the classes.
+            for (int i = 0; i < classes.size(); i++)
+            {
+                GroovyClass gclass = (GroovyClass) classes[i]
+//                String className = getClassName(gclass.bytes)
+
+                int dollarPos = gclass.name.indexOf('$')
+
+                if (dollarPos == -1)
+                {
+                    clazz = classMap[gclass]
+                    if (NCubeGroovyExpression.isAssignableFrom(clazz))
+                    {
+                        // persist main class file
+                        File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}.class")
+                        if (!byteCode.exists())
+                        {
+                            byteCode.append(gclass.bytes)
+                        }
+                        if (root == null)
+                        {
+                            root = clazz
+                        }
+                    }
+//                    else
+//                    {
+//                        // persist referenced class file
+//                        File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}_${gclass.name}.class")
+//                        if (!byteCode.exists())
+//                        {
+//                            byteCode.append(gclass.bytes)
+//                        }
+//                    }
+                }
+                else
+                {   // persister inner class(es)
+                    File byteCode = new File("${TEMP_DIR}/target/classes/${sha1Source}${gclass.name.substring(dollarPos)}.class")
+                    if (!byteCode.exists())
+                    {
+                        byteCode.append(gclass.bytes)
+                    }
+                }
+            }
+
+            if (root != null)
+            {
+                compiledMap[cmdHash] = root
+                setRunnableCode(root)
+            }
+        }
+        return compiledMap[cmdHash]
+    }
+
+    protected Class defineClass(String sourceHash, GroovyClassLoader gcLoader, Map<String, Class> cache, byte[] byteCode, boolean isRoot)
+    {
+        synchronized (sourceHash.intern())
+        {
+            Class clazz
+            if (isRoot)
+            {
+                clazz = cache[cmdHash]
+                if (clazz != null)
+                {   // Another thread defined the class while this thread was blocked...
+                    return clazz
+                }
+            }
+
+            clazz = gcLoader.defineClass(null, byteCode)
+            if (isRoot && NCubeGroovyExpression.isAssignableFrom(clazz))
+            {
+                cache[cmdHash] = clazz
+            }
+            return clazz
+        }
+    }
+
+    public static String getClassName(byte[] byteCode) throws Exception
+    {
+        InputStream is = new ByteArrayInputStream(byteCode)
+        DataInputStream dis = new DataInputStream(is)
+        dis.readLong() // skip header and class version
+        int cpcnt = (dis.readShort() & 0xffff) - 1
+        int[] classes = new int[cpcnt]
+        String[] strings = new String[cpcnt]
+        for (int i=0; i < cpcnt; i++)
+        {
+            int t = dis.read()
+            if (t == 7)
+            {
+                classes[i] = dis.readShort() & 0xffff
+            }
+            else if (t == 1)
+            {
+                strings[i] = dis.readUTF()
+            }
+            else if (t == 5 || t == 6)
+            {
+                dis.readLong()
+                i++
+            }
+            else if (t == 8)
+            {
+                dis.readShort()
+            }
+            else
+            {
+                dis.readInt()
+            }
+        }
+        dis.readShort() // skip access flags
+        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.')
+    }
+
+    protected Map getClassLoaderAndSource(Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx)
-        String url = getUrl()
         boolean isUrlUsed = StringUtilities.hasContent(url)
-        String grvSrcCode
-        GroovyClassLoader gcLoader
+        Map output = [:]
 
-        if (cube.getName().toLowerCase().startsWith("sys."))
+        if (cube.name.toLowerCase().startsWith("sys."))
         {   // No URLs allowed, nor code from sys.classpath when executing these cubes
-            gcLoader = (GroovyClassLoader)NCubeManager.getLocalClassloader(cube.applicationID)
-            grvSrcCode = getCmd()
+            output.loader = (GroovyClassLoader)NCubeManager.getLocalClassloader(cube.applicationID)
+            output.source = cmd
         }
         else if (isUrlUsed)
         {
@@ -184,36 +395,23 @@ abstract class GroovyBase extends UrlCommandCell
                 {
                     String className = url - '.groovy'
                     className = className.replace('/', '.')
-                    return Class.forName(className)
+                    output.gclass = Class.forName(className)
                 }
                 catch (Exception ignored)
                 { }
             }
 
             URL groovySourceUrl = getActualUrl(ctx)
-            gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
-            grvSrcCode = StringUtilities.createString(UrlUtilities.getContentFromUrl(groovySourceUrl, true), "UTF-8")
+            output.loader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
+            output.source = StringUtilities.createUtf8String(UrlUtilities.getContentFromUrl(groovySourceUrl, true))
         }
         else
-        {
-            gcLoader = (GroovyClassLoader)NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
-            grvSrcCode = getCmd()
+        {   // inline code
+            output.loader = (GroovyClassLoader)NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
+            output.source = cmd
         }
-
-        String groovySource = expandNCubeShortCuts(buildGroovy(ctx, grvSrcCode))
-        Map<String, Class> compiledMap = getCache(cube.applicationID, compiledClasses)
-
-        synchronized (GroovyBase.class)
-        {
-            if (compiledMap.containsKey(cmdHash))
-            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-                return compiledMap[cmdHash]
-            }
-
-            Class clazz = gcLoader.parseClass(groovySource, 'N_' + cmdHash + '.groovy')
-            compiledMap[cmdHash] = clazz
-            return clazz
-        }
+        output.source = expandNCubeShortCuts(buildGroovy(ctx, output.source as String))
+        return output
     }
 
     /**
@@ -224,7 +422,7 @@ abstract class GroovyBase extends UrlCommandCell
     private void computeCmdHash(Object data, Map<String, Object> ctx)
     {
         String content
-        if (getUrl() == null)
+        if (url == null)
         {
             content = data != null ? data.toString() : ""
         }
@@ -232,17 +430,17 @@ abstract class GroovyBase extends UrlCommandCell
         {   // specified via URL, add classLoader URL strings to URL for SHA-1 source.
             NCube cube = getNCube(ctx)
             GroovyClassLoader gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(cube.applicationID, getInput(ctx))
-            URL[] urls = gcLoader.getURLs()
+            URL[] urls = gcLoader.URLs
             StringBuilder s = new StringBuilder()
             for (URL url : urls)
             {
                 s.append(url.toString())
                 s.append('.')
             }
-            s.append(getUrl())
+            s.append(url)
             content = s.toString()
         }
-        cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getBytes(content, "UTF-8"))
+        cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
     }
 
     protected static String expandNCubeShortCuts(String groovy)
@@ -275,7 +473,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     void getCubeNamesFromCommandText(final Set<String> cubeNames)
     {
-        getCubeNamesFromText(cubeNames, getCmd())
+        getCubeNamesFromText(cubeNames, cmd)
     }
 
     protected static void getCubeNamesFromText(final Set<String> cubeNames, final String text)
@@ -347,7 +545,7 @@ abstract class GroovyBase extends UrlCommandCell
      */
     void getScopeKeys(Set<String> scopeKeys)
     {
-        Matcher m = Regexes.inputVar.matcher(getCmd())
+        Matcher m = Regexes.inputVar.matcher(cmd)
         while (m.find())
         {
             scopeKeys.add(m.group(2))
