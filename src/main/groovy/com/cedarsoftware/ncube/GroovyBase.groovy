@@ -42,8 +42,8 @@ import java.util.regex.Pattern
 @CompileStatic
 abstract class GroovyBase extends UrlCommandCell
 {
-    static final String NCUBE_TARGET_JVM_VERSION = "1.8"
-    static final String NCUBE_CODEGEN_DEBUG = false
+    static final String NCUBE_TARGET_JVM_VERSION = 'NCUBE_TARGET_JVM_VERSION'
+    static final String NCUBE_CODEGEN_DEBUG = 'NCUBE_TARGET_JVM_VERSION'
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     private volatile transient Class runnableCode = null
     /**
