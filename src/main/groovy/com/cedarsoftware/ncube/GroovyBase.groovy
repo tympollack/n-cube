@@ -219,6 +219,7 @@ abstract class GroovyBase extends UrlCommandCell
         compilerConfiguration.targetBytecode = targetByteCodeVersion
         compilerConfiguration.debug = NCubeCodeGenDebug
         compilerConfiguration.defaultScriptExtension = '.groovy'
+        // TODO: Research when this can be safely turned on vs having to be turned off
 //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
         SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
