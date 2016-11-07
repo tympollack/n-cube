@@ -188,7 +188,7 @@ abstract class GroovyBase extends UrlCommandCell
         GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
         String groovySource = ret.source as String
         String L3CacheKey = sourceAndFlagsToSha1(groovySource)
-        byte[] rootClassBytes = getRootClassFromL3(getRootL3CacheKey(L3CacheKey))
+        byte[] rootClassBytes = getRootClassFromL3("${L3CacheKey}.class")
 
         if (rootClassBytes != null)
         {
@@ -228,11 +228,11 @@ abstract class GroovyBase extends UrlCommandCell
         compilationUnit.configure(compilerConfiguration)
         compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
 
-        Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey)
+        Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
         return generatedClass
     }
 
-    protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey)
+    protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey, String groovySource)
     {
         Class root = null
 
@@ -261,10 +261,11 @@ abstract class GroovyBase extends UrlCommandCell
                     if (NCubeGroovyExpression.isAssignableFrom(clazz))
                     {
                         // cache (L3) main class file
-                        cacheClassInL3(getRootL3CacheKey(L3CacheKey), gclass.bytes)
+                        cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
                         if (root == null)
                         {
                             root = clazz
+                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
                         }
                     }
                 }
@@ -388,14 +389,14 @@ abstract class GroovyBase extends UrlCommandCell
 
     // --------------------------------------------- L3 Cache APIs -----------------------------------------------------
 
-    private static String getRootL3CacheKey(String L3CacheKey)
-    {
-        return "${L3CacheKey}.class"
-    }
-
     private static void cacheClassInL3(String cacheKey, byte[] byteCode)
     {
         new File("${TEMP_DIR}/target/classes/${cacheKey}").bytes = byteCode
+    }
+
+    private static void cacheSourceInL3(String cacheKey, String source)
+    {
+        new File("${TEMP_DIR}/src/main/groovy/${cacheKey}").bytes = StringUtilities.getUTF8Bytes(source)
     }
 
     private static byte[] getRootClassFromL3(String cacheKey)
