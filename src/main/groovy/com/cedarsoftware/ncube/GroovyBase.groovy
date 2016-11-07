@@ -1,12 +1,12 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.Phases
@@ -14,6 +14,7 @@ import org.codehaus.groovy.control.SourceUnit
 import org.codehaus.groovy.tools.GroovyClass
 
 import java.lang.reflect.InvocationTargetException
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
@@ -41,14 +42,15 @@ import java.util.regex.Pattern
 @CompileStatic
 abstract class GroovyBase extends UrlCommandCell
 {
-    private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
-    protected transient String cmdHash
+    static final String NCUBE_TARGET_JVM_VERSION = "1.8"
+    static final String NCUBE_CODEGEN_DEBUG = false
+    protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     private volatile transient Class runnableCode = null
     /**
      * This cache is 'per ApplicationID'.  This allows different applications to define the same
      * class (URL to groovy), yet have different source code for that class.
      */
-    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>>  compiledClasses = new ConcurrentHashMap<>()
+    private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
     private static final TEMP_DIR = System.getProperty("java.io.tmpdir")
 
     static
@@ -105,18 +107,18 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected static void clearCache(ApplicationID appId)
     {
-        Map<String, Class> cachedRootClasses = getCache(appId)
-        cachedRootClasses.clear()
+        Map<String, Class> L2Cache = getAppL2Cache(appId)
+        L2Cache.clear()
     }
 
-    protected static Map<String, Class> getCache(ApplicationID appId)
+    protected static Map<String, Class> getAppL2Cache(ApplicationID appId)
     {
-        ConcurrentMap<String, Class> map = compiledClasses[appId]
+        ConcurrentMap<String, Class> map = L2_CACHE[appId]
 
         if (map == null)
         {
             map = new ConcurrentHashMap<>()
-            ConcurrentMap mapRef = compiledClasses.putIfAbsent(appId, map)
+            ConcurrentMap mapRef = L2_CACHE.putIfAbsent(appId, map)
             if (mapRef != null)
             {
                 map = mapRef
@@ -164,13 +166,13 @@ abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        computeCmdHash(data, ctx)
-        Map<String, Class> cachedRootClasses = getCache(getNCube(ctx).applicationID)
+        computeL2CacheKey(data, ctx)
+        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
 
         // check L2 cache
-        if (cachedRootClasses.containsKey(cmdHash))
+        if (L2Cache.containsKey(L2CacheKey))
         {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-            setRunnableCode(cachedRootClasses[cmdHash])
+            setRunnableCode(L2Cache[L2CacheKey])
             return
         }
 
@@ -185,54 +187,58 @@ abstract class GroovyBase extends UrlCommandCell
         // check L3 cache
         GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
         String groovySource = ret.source as String
-        String sha1Source = EncryptionUtilities.calculateSHA1Hash(groovySource.bytes)
-        byte[] rootClassBytes = getRootClassFromL3("${sha1Source}.class")
+        String L3CacheKey = sourceAndFlagsToSha1(groovySource)
+        byte[] rootClassBytes = getRootClassFromL3(getRootL3CacheKey(L3CacheKey))
 
         if (rootClassBytes != null)
         {
-            synchronized (sha1Source.intern())
+            synchronized (L3CacheKey.intern())
             {
-                Class root = defineClass(sha1Source, gcLoader, cachedRootClasses, rootClassBytes, true)
-                getInnerClassesFromL3(~/^${sha1Source}.+\.class/, sha1Source, gcLoader, cachedRootClasses)
+                Class clazz = L2Cache[L2CacheKey]
+                if (clazz != null)
+                {   // Another thread defined and persisted the class while this thread was blocked...
+                    return
+                }
+                Class root = gcLoader.defineClass(null, rootClassBytes)
+                defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
                 setRunnableCode(root)
-                cachedRootClasses[cmdHash] = root
+                L2Cache[L2CacheKey] = root
             }
             return
         }
 
         // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
-        compile(gcLoader, groovySource, sha1Source, ctx)
+        compile(gcLoader, groovySource, L3CacheKey, ctx)
     }
 
-    protected Class compile(GroovyClassLoader gcLoader, String groovySource, String sha1Source, Map<String, Object> ctx)
+    protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
     {
-        Map<String, Class> cachedRootClasses = getCache(getNCube(ctx).applicationID)
+        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
 
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
-        compilerConfiguration.targetBytecode = '1.8'
-        compilerConfiguration.debug = false
+        compilerConfiguration.targetBytecode = targetByteCodeVersion
+        compilerConfiguration.debug = NCubeCodeGenDebug
         compilerConfiguration.defaultScriptExtension = '.groovy'
         compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
-        SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${cmdHash}", groovySource, compilerConfiguration, gcLoader, null)
+        SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
         CompilationUnit compilationUnit = new CompilationUnit()
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
         compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
 
-        List classes = compilationUnit.classes
-        Class generatedClass = defineClasses(cachedRootClasses, classes, gcLoader, sha1Source)
+        Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey)
         return generatedClass
     }
 
-    protected Class defineClasses(Map<String, Class> cachedRootClasses, List classes, GroovyClassLoader gcLoader, String sha1Source)
+    protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey)
     {
         Class root = null
 
-        synchronized(sha1Source.intern())
+        synchronized(L3CacheKey.intern())
         {
-            Class clazz = cachedRootClasses[cmdHash]
+            Class clazz = L2Cache[L2CacheKey]
             if (clazz != null)
             {   // Another thread defined and persisted the class while this thread was blocked...
                 return clazz
@@ -247,7 +253,7 @@ abstract class GroovyBase extends UrlCommandCell
                 boolean isRoot = dollarPos == -1
 
                 // Add compiled class to classLoader
-                clazz = defineClass(sha1Source, gcLoader, cachedRootClasses, gclass.bytes, isRoot);
+                clazz = gcLoader.defineClass(null, gclass.bytes)
 
                 // Persist class bytes
                 if (isRoot)
@@ -255,7 +261,7 @@ abstract class GroovyBase extends UrlCommandCell
                     if (NCubeGroovyExpression.isAssignableFrom(clazz))
                     {
                         // cache (L3) main class file
-                        cacheClassInL3("${sha1Source}.class", gclass.bytes)
+                        cacheClassInL3(getRootL3CacheKey(L3CacheKey), gclass.bytes)
                         if (root == null)
                         {
                             root = clazz
@@ -264,35 +270,16 @@ abstract class GroovyBase extends UrlCommandCell
                 }
                 else
                 {   // cache (L3) inner class
-                    cacheClassInL3("${sha1Source}${className.substring(dollarPos)}.class", gclass.bytes)
+                    cacheClassInL3("${L3CacheKey}${className.substring(dollarPos)}.class", gclass.bytes)
                 }
             }
 
             if (root != null)
             {
                 setRunnableCode(root)
-                cachedRootClasses[cmdHash] = root
+                L2Cache[L2CacheKey] = root
             }
-        }
-        return cachedRootClasses[cmdHash]
-    }
-
-    protected Class defineClass(String sha1Source, GroovyClassLoader gcLoader, Map<String, Class> cache, byte[] byteCode, boolean isRoot)
-    {
-        synchronized (sha1Source.intern())
-        {
-            Class clazz
-            if (isRoot)
-            {
-                clazz = cache[cmdHash]
-                if (clazz != null)
-                {   // Another thread defined the class while this thread was blocked...
-                    return clazz
-                }
-            }
-
-            clazz = gcLoader.defineClass(null, byteCode)
-            return clazz
+            return L2Cache[L2CacheKey]
         }
     }
 
@@ -342,8 +329,10 @@ abstract class GroovyBase extends UrlCommandCell
      * Compute SHA1 hash for this CommandCell.  The tricky bit here is that the command can be either
      * defined inline or via a URL.  If defined inline, then the command hash is SHA1(command text).  If
      * defined through a URL, then the command hash is SHA1(command URL + GroovyClassLoader URLs.toString).
+     * This is done this way so that every time the same URL is encountered, it does not have to be
+     * reread.
      */
-    private void computeCmdHash(Object data, Map<String, Object> ctx)
+    private void computeL2CacheKey(Object data, Map<String, Object> ctx)
     {
         String content
         if (url == null)
@@ -364,12 +353,47 @@ abstract class GroovyBase extends UrlCommandCell
             s.append(url)
             content = s.toString()
         }
-        cmdHash = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
+        L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
+    }
+
+    /**
+     * Make SHA-1 key from entire groovy source (whether inline or URL).  If inline, this source includes
+     * the 'wrapper' code.  If from a URL, it is the entire source loaded from the URL.  The SHA-1
+     * also includes the target JVM version ("1.8") and "t" or "f" (debug or non-debug code generation).
+     * The format of the input is [source]-[target JVM version string]-[t | f]
+     * @param groovySource String groovy source code
+     * @return SHA-1 of source + flags, e.g., "groovySource-1.8-false"
+     */
+    private String sourceAndFlagsToSha1(String groovySource)
+    {
+        byte sep = 45   // hyphen
+        MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
+        sha1Digest.update(groovySource.bytes)
+        sha1Digest.update(sep)
+        sha1Digest.update(targetByteCodeVersion.bytes)
+        sha1Digest.update(sep)
+        sha1Digest.update(NCubeCodeGenDebug ? 't'.bytes : 'f'.bytes)
+        return ByteUtilities.encode(sha1Digest.digest())
+    }
+
+    private static String getTargetByteCodeVersion()
+    {
+        return SystemUtilities.getExternalVariable(NCUBE_TARGET_JVM_VERSION) ?: '1.8'
+    }
+
+    private static boolean isNCubeCodeGenDebug()
+    {
+        return 'true'.equalsIgnoreCase(SystemUtilities.getExternalVariable(NCUBE_CODEGEN_DEBUG))
     }
 
     // --------------------------------------------- L3 Cache APIs -----------------------------------------------------
 
-    private static cacheClassInL3(String cacheKey, byte[] byteCode)
+    private static String getRootL3CacheKey(String L3CacheKey)
+    {
+        return "${L3CacheKey}.class"
+    }
+
+    private static void cacheClassInL3(String cacheKey, byte[] byteCode)
     {
         new File("${TEMP_DIR}/target/classes/${cacheKey}").bytes = byteCode
     }
@@ -380,11 +404,10 @@ abstract class GroovyBase extends UrlCommandCell
         return byteCode.exists() ? byteCode.bytes : null
     }
 
-    private void getInnerClassesFromL3(Pattern pattern, String sha1Source, GroovyClassLoader gcLoader, Map<String, Class> cachedRootClasses)
+    private static void defineInnerClassesFromL3(Pattern pattern, GroovyClassLoader gcLoader)
     {
         new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
-            byte[] fileBytes = file.bytes
-            defineClass(sha1Source, gcLoader, cachedRootClasses, fileBytes, false)
+            gcLoader.defineClass(null, file.bytes)
         }
     }
 

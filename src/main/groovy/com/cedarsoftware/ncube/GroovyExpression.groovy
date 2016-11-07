@@ -116,7 +116,7 @@ import com.cedarsoftware.util.io.*
         }
 
         groovy.append("""\
-class N_${cmdHash} extends ${expClassName}
+class N_${L2CacheKey} extends ${expClassName}
 {
     def run()
     {
