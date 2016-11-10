@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.110
+ * Bug fix: when loading by SHA-1, the version and status should not be ANDed in (a CUBE with the same SHA-1 may not changing as versions increase.)
 * 3.4.109
  * Bug fix: when merging from another user's branch and 'accepting their changes' over yours, the 'changed' flag in your branch was not being set to their changed flag value.  This issue manifests as that file not showing up in your commit box when committed to HEAD.
 * 3.4.108

@@ -187,19 +187,19 @@ abstract class GroovyBase extends UrlCommandCell
         // check L3 cache
         GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
         String groovySource = ret.source as String
-        String L3CacheKey = sourceAndFlagsToSha1(groovySource)
+        String L3CacheKey = sourceAndFlagsToSha1(groovySource).intern()
         byte[] rootClassBytes = getRootClassFromL3("${L3CacheKey}.class")
 
         if (rootClassBytes != null)
         {
-            synchronized (L3CacheKey.intern())
+            synchronized (L3CacheKey)
             {
                 Class clazz = L2Cache[L2CacheKey]
                 if (clazz != null)
                 {   // Another thread defined and persisted the class while this thread was blocked...
                     return
                 }
-                Class root = gcLoader.defineClass(null, rootClassBytes)
+                Class root = gcLoader.defineClass(getClassName(rootClassBytes), rootClassBytes)
                 defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
                 setRunnableCode(root)
                 L2Cache[L2CacheKey] = root
@@ -209,6 +209,43 @@ abstract class GroovyBase extends UrlCommandCell
 
         // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
         compile(gcLoader, groovySource, L3CacheKey, ctx)
+    }
+
+    static String getClassName(byte[] byteCode) throws Exception
+    {
+        InputStream is = new ByteArrayInputStream(byteCode);
+        DataInputStream dis = new DataInputStream(is);
+        dis.readLong(); // skip header and class version
+        int cpcnt = (dis.readShort() & 0xffff) - 1;
+        int[] classes = new int[cpcnt];
+        String[] strings = new String[cpcnt];
+        for (int i=0; i < cpcnt; i++)
+        {
+            int t = dis.read();
+            if (t == 7)
+            {
+                classes[i] = dis.readShort() & 0xffff;
+            }
+            else if (t == 1)
+            {
+                strings[i] = dis.readUTF();
+            }
+            else if (t == 5 || t == 6)
+            {
+                dis.readLong();
+                i++;
+            }
+            else if (t == 8)
+            {
+                dis.readShort();
+            }
+            else
+            {
+                dis.readInt();
+            }
+        }
+        dis.readShort(); // skip access flags
+        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.');
     }
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
@@ -224,9 +261,10 @@ abstract class GroovyBase extends UrlCommandCell
 
         SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
-        CompilationUnit compilationUnit = new CompilationUnit()
+        CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
+
         compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
 
         Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
@@ -237,7 +275,7 @@ abstract class GroovyBase extends UrlCommandCell
     {
         Class root = null
 
-        synchronized(L3CacheKey.intern())
+        synchronized(L3CacheKey)
         {
             Class clazz = L2Cache[L2CacheKey]
             if (clazz != null)
