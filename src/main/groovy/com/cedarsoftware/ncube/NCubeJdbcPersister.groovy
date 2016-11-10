@@ -120,8 +120,8 @@ WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
 /* loadCubeBySha1 */
 SELECT cube_value_bin, sha1
 FROM n_cube
-WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = :sha1
-ORDER BY abs(revision_number) DESC""", 0, 1, { ResultSet row ->
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = :sha1""",
+                0, 1, { ResultSet row ->
             cube = buildCube(appId, row)
         })
         if (cube)
