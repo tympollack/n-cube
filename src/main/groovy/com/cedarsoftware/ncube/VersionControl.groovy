@@ -548,15 +548,12 @@ class VersionControl
 
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            try
-            {   // check commit permissions on cube
-                NCubeManager.assertPermissions(appId, updateCube.name, Action.COMMIT)
-            }
-            catch (SecurityException ignore)
-            {   // kick out as reject if user does not have permissions to commit cube
+            if (!NCubeManager.checkPermissions(appId, updateCube.name, Action.COMMIT))
+            {
                 rejects.add(updateCube)
                 continue
             }
+
             switch(updateCube.changeType)
             {
                 case ChangeType.CREATED.code:
