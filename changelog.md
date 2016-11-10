@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.111
+ * Bug fix: when only the cache flag is changed on a cell, it should show up as a cell delta (difference).
 * 3.4.110
  * Bug fix: when loading by SHA-1, the version and status should not be ANDed in (a CUBE with the same SHA-1 may not changing as versions increase.)
 * 3.4.109
