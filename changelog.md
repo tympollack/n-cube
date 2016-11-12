@@ -6,7 +6,10 @@
     Map options = [:]
     options[(NCubeManager.SEARCH_FILTER_INCLUDE)] = 'foo bar, baz'
     options[(NCubeManager.SEARCH_FILTER_EXCLUDE)] = 'qux'
-    NCubeManager.search(appId, null, null, options)  // Only cubes with the `cube_tags` including `foo`, `bar`, or `baz` will be returned, however, if the cube has the tag `qux` it will not be returned.
+    
+    // Only cubes with the `cube_tags` including `foo`, `bar`, or `baz` will be 
+    // returned, however, if the cube has the tag `qux` it will not be returned.
+    NCubeManager.search(appId, null, null, options)  
     ```
         
 * 3.4.111
