@@ -9,7 +9,11 @@
     
     // Only cubes with the `cube_tags` including `foo`, `bar`, or `baz` will be 
     // returned, however, if the cube has the tag `qux` it will not be returned.
-    NCubeManager.search(appId, null, null, options)  
+    NCubeManager.search(appId, null, null, options)
+      
+    // The search could be further refined by including a cube name
+    // pattern, as well as a 'contains' pattern.  In this case, all
+    // criteria must be matched for the NCubeInfoDto to be returned.
     ```
         
 * 3.4.111
@@ -19,7 +23,7 @@
 * 3.4.109
  * Bug fix: when merging from another user's branch and 'accepting their changes' over yours, the 'changed' flag in your branch was not being set to their changed flag value.  This issue manifests as that file not showing up in your commit box when committed to HEAD.
 * 3.4.108
- * Enhancement: All dynamically compiled classes (GroovyExpression cells) are now cached in the temp folder under /target/SHA-1.class. The SHA-1 value is derived from the groovy source code, plus the JVM target version, plus a true/false indicating if the code was compiled in debug (true) or not (false).
+ * Enhancement: All dynamically compiled classes (`GroovyExpression` cells) are now cached in the temp folder under /target/SHA-1.class. The SHA-1 value is derived from the groovy source code, plus the JVM target version, plus a true/false indicating if the code was compiled in debug (true) or not (false).
  * Use the `NCUBE_TARGET_JVM_VERSION` environment variable to set the JVM version (e.g., "1.8" or "1.7").  Default is 1.8
  * Use the `NCUBE_CODEGEN_DEBUG` environment variable to instruct compilation in debug or non-debug mode. Use "true" for debug, "false" for non-debug.  Default is false. 
 * 3.4.107
@@ -36,13 +40,13 @@
 * 3.4.103
  * Performance improvement: Further improve performance of permissions checks.
 * 3.4.102
- * Performance improvement: Sped up performance of NCubeManager.getCube() (because it can be called so frequently.)
+ * Performance improvement: Sped up performance of `NCubeManager.getCube()` (because it can be called so frequently.)
 * 3.4.101
  * Bug fix: when merging n-cubes, it was looking in the branch, not HEAD branch, for finding the base HEAD n-cube (computing the HEAD delta).
 * 3.4.100
  * Bug fix: Support for updating branch from a single HEAD cube.
 * 3.4.99
- * NCubeManager.clearCache() now clears the permissions cache.
+ * `NCubeManager.clearCache()` now clears the permissions cache.
  * Bug fix in update branch code.
 * 3.4.98
  * Significant improvement to the version control APIs.  APIs exist for getting changes between a branch and HEAD, HEAD and branch, as well as branch to branch.
