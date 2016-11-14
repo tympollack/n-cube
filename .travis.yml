@@ -5,7 +5,7 @@ language: java
 jdk:
   - oraclejdk8
 
-install: mvn -B install -U -DskipTests=true
+install: mvn -B install -U -DskipTests=true -e
 
 script: mvn -B verify -U -Dmaven.javadoc.skip=true -Dmaven.groovydoc.skip=true
 
