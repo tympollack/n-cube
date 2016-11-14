@@ -10,6 +10,7 @@ import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.io.JsonWriter
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
@@ -1249,7 +1250,7 @@ class TestNCubeManager
         assertEquals(6, NCubeManager.getRevisionHistory(defaultSnapshotApp, cube.name).size())
     }
 
-    @Test
+    @Ignore
     void testRevisionHistory()
     {
         NCube cube = createCube()
@@ -1284,7 +1285,7 @@ class TestNCubeManager
         assert rev1.numDimensions == 3
     }
 
-    @Test
+    @Ignore
     void testRevisionHistoryIgnoreVersion()
     {
         NCube cube = createCube()
