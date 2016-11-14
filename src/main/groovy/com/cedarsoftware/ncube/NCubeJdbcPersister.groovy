@@ -8,6 +8,7 @@ import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
+import com.cedarsoftware.util.io.JsonReader
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
@@ -1598,8 +1599,8 @@ ORDER BY abs(revision_number) DESC"""
 
             if (includeFilter || excludeFilter)
             {
-                NCube ncube = NCube.createCubeFromBytes(bytes)
-                Collection<String> tags = getFilter(ncube.getMetaProperty(NCubeManager.CUBE_TAGS))
+                Map jsonNCube = (Map) JsonReader.jsonToJava(StringUtilities.createUtf8String(bytes), [(JsonReader.USE_MAPS):true] as Map)
+                Collection<String> tags = getFilter(jsonNCube[NCubeManager.CUBE_TAGS])
                 Collection<String> cubeTags = new HashSet(tags)
 
                 if (includeFilter)
