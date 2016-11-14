@@ -1275,13 +1275,13 @@ class TestNCubeManager
 //        assert history[1].createHid == USER_ID    // fails on travis-ci
         assert history[1].notes == 'notes follow'
 
-        long rev0Id = Converter.convert(history[1].id, long.class)
-        long rev1Id = Converter.convert(history[0].id, long.class)
+        long rev0Id = Converter.convert(history[1].id, long.class) as long
+        long rev1Id = Converter.convert(history[0].id, long.class) as long
         NCube rev0 = NCubeManager.loadCubeById(rev0Id)
         NCube rev1 = NCubeManager.loadCubeById(rev1Id)
 
-        assert rev0.getNumDimensions() == 2
-        assert rev1.getNumDimensions() == 3
+        assert rev0.numDimensions == 2
+        assert rev1.numDimensions == 3
     }
 
     @Test
@@ -1316,7 +1316,7 @@ class TestNCubeManager
     void testNCubeInfoDto()
     {
         NCube cube = createCube()
-        def history = NCubeManager.search(cube.getApplicationID(), '*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        def history = NCubeManager.search(cube.applicationID, '*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertEquals(2, history.size())     // sys.classpath too
         assertTrue history[0] instanceof NCubeInfoDto
         assertTrue history[1] instanceof NCubeInfoDto
@@ -1325,7 +1325,7 @@ class TestNCubeManager
         cube.addAxis(oddAxis)
 
         NCubeManager.updateCube(defaultSnapshotApp, cube, true)
-        history = NCubeManager.search(cube.getApplicationID(), '*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        history = NCubeManager.search(cube.applicationID, '*', null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertEquals(2, history.size())
         assertTrue history[0] instanceof NCubeInfoDto
         assertTrue history[1] instanceof NCubeInfoDto
