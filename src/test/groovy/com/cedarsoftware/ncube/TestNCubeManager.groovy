@@ -1250,7 +1250,7 @@ class TestNCubeManager
         assertEquals(6, NCubeManager.getRevisionHistory(defaultSnapshotApp, cube.name).size())
     }
 
-    @Ignore
+    @Test
     void testRevisionHistory()
     {
         NCube cube = createCube()
@@ -1285,7 +1285,7 @@ class TestNCubeManager
         assert rev1.numDimensions == 3
     }
 
-    @Ignore
+    @Test
     void testRevisionHistoryIgnoreVersion()
     {
         NCube cube = createCube()
