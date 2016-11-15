@@ -55,7 +55,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     static
     {
-        new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
+//        new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
         new File("${TEMP_DIR}/target/classes/").mkdirs()
     }
 
@@ -301,11 +301,11 @@ abstract class GroovyBase extends UrlCommandCell
                     {
                         // cache (L3) main class file
                         cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
-                        if (root == null)
-                        {
-                            root = clazz
-                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
-                        }
+//                        if (root == null)
+//                        {
+//                            root = clazz
+//                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
+//                        }
                     }
                 }
                 else
