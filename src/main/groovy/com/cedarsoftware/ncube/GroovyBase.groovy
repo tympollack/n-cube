@@ -55,7 +55,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     static
     {
-//        new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
+        new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
         new File("${TEMP_DIR}/target/classes/").mkdirs()
     }
 
