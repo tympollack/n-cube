@@ -4,6 +4,7 @@ import com.cedarsoftware.ncube.util.CdnClassLoader
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
@@ -4673,7 +4674,7 @@ class TestWithPreloadedDatabase
         assert consumerCube.getCell([Gender: null]) == 'it'
     }
 
-    @Test
+    @Ignore
     void testRestoreFromChangedCubeInOtherBranch()
     {
         preloadCubes(BRANCH2, "test.branch.1.json")
