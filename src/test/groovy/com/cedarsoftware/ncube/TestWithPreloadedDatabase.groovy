@@ -4674,7 +4674,7 @@ class TestWithPreloadedDatabase
         assert consumerCube.getCell([Gender: null]) == 'it'
     }
 
-    @Ignore
+    @Test
     void testRestoreFromChangedCubeInOtherBranch()
     {
         preloadCubes(BRANCH2, "test.branch.1.json")
