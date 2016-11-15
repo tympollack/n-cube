@@ -85,14 +85,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Object fetchResult(Map<String, Object> ctx)
     {
-        Object data = null
-
-        if (url == null)
-        {
-            data = cmd
-        }
-
-        prepare(data, ctx)
+        prepare(cmd ?: url, ctx)
         Object result = executeInternal(ctx)
         if (cacheable)
         {   // Remove the compiled class from the cell's cache.
@@ -299,7 +292,14 @@ abstract class GroovyBase extends UrlCommandCell
                 boolean isRoot = dollarPos == -1
 
                 // Add compiled class to classLoader
-                clazz = gcLoader.defineClass(null, gclass.bytes)
+                try
+                {
+                    clazz = gcLoader.defineClass(null, gclass.bytes)
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace()
+                }
 
                 // Persist class bytes
                 if (isRoot)
