@@ -301,11 +301,11 @@ abstract class GroovyBase extends UrlCommandCell
                     {
                         // cache (L3) main class file
                         cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
-//                        if (root == null)
-//                        {
-//                            root = clazz
+                        if (root == null)
+                        {
+                            root = clazz
 //                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
-//                        }
+                        }
                     }
                 }
                 else
