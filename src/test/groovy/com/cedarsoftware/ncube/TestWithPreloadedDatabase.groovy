@@ -73,12 +73,12 @@ class TestWithPreloadedDatabase
         NCubeManager.clearCache()
     }
 
-    static TestingDatabaseManager getTestingDatabaseManager()
+    TestingDatabaseManager getTestingDatabaseManager()
     {
         return TestingDatabaseHelper.testingDatabaseManager
     }
 
-    static NCubePersister getNCubePersister()
+    NCubePersister getNCubePersister()
     {
         return TestingDatabaseHelper.persister
     }
