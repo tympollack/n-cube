@@ -250,25 +250,34 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
     {
-        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
+        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader;
+        try
+        {
+            Thread.currentThread().contextClassLoader = gcLoader
+            Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
 
-        CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
-        compilerConfiguration.targetBytecode = targetByteCodeVersion
-        compilerConfiguration.debug = NCubeCodeGenDebug
-        compilerConfiguration.defaultScriptExtension = '.groovy'
-        // TODO: Research when this can be safely turned on vs having to be turned off
+            CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
+            compilerConfiguration.targetBytecode = targetByteCodeVersion
+            compilerConfiguration.debug = NCubeCodeGenDebug
+            compilerConfiguration.defaultScriptExtension = '.groovy'
+            // TODO: Research when this can be safely turned on vs having to be turned off
 //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
-        SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
+            SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
-        CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
-        compilationUnit.addSource(sourceUnit)
-        compilationUnit.configure(compilerConfiguration)
+            CompilationUnit compilationUnit = new CompilationUnit()
+            compilationUnit.addSource(sourceUnit)
+            compilationUnit.configure(compilerConfiguration)
 
-        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
-
-        Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
-        return generatedClass
+            compilationUnit.classLoader = gcLoader
+            compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
+            Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
+            return generatedClass
+        }
+        finally
+        {
+            Thread.currentThread().contextClassLoader = originalClassLoader;
+        }
     }
 
     protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey, String groovySource)
@@ -304,7 +313,7 @@ abstract class GroovyBase extends UrlCommandCell
                         if (root == null)
                         {
                             root = clazz
-//                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
+                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
                         }
                     }
                 }
