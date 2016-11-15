@@ -265,11 +265,9 @@ abstract class GroovyBase extends UrlCommandCell
 
             SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
-            CompilationUnit compilationUnit = new CompilationUnit()
+            CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
             compilationUnit.addSource(sourceUnit)
             compilationUnit.configure(compilerConfiguration)
-
-            compilationUnit.classLoader = gcLoader
             compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
             Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
             return generatedClass
