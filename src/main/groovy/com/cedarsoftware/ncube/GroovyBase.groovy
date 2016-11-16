@@ -248,7 +248,14 @@ abstract class GroovyBase extends UrlCommandCell
                 return clazz
             }
 
+            String urlClassName = ''
+            if (url != null)
+            {
+                urlClassName = url - '.groovy'
+                urlClassName = urlClassName.replace('/', '.')
+            }
             int numClasses = classes.size()
+
             for (int i = 0; i < numClasses; i++)
             {
                 GroovyClass gclass = classes[i] as GroovyClass
@@ -271,23 +278,13 @@ abstract class GroovyBase extends UrlCommandCell
                     continue
                 }
 
-                String urlClassName = ''
-                if (url != null)
-                {
-                    urlClassName = url - '.groovy'
-                    urlClassName = urlClassName.replace('/', '.')
-                }
-
                 // Persist class bytes
-                if (className == urlClassName || (isRoot && url == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
+                if (className == urlClassName || (isRoot && url == null && root == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
                 {
                     // cache (L3) main class file
                     cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
-                    if (root == null)
-                    {
-                        root = clazz
-                        cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
-                    }
+                    root = clazz
+                    cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
                 }
                 else
                 {   // cache (L3) inner class

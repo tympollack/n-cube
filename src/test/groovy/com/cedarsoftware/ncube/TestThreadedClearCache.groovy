@@ -102,7 +102,7 @@ class TestThreadedClearCache
                 catch (Exception e)
                 {
                     Throwable t = getDeepestException(e)
-                    if (!t.message?.contains('cleared while cell was executing'))
+                    if (!(t.message?.contains('cleared while cell was executing') || t instanceof LinkageError))
                     {
                         throw e
                     }
@@ -122,7 +122,7 @@ class TestThreadedClearCache
                 catch (Exception e)
                 {
                     Throwable t = getDeepestException(e)
-                    if (!t.message?.contains('cleared while cell was executing'))
+                    if (!(t.message?.contains('cleared while cell was executing') || t instanceof LinkageError))
                     {
                         throw e
                     }
