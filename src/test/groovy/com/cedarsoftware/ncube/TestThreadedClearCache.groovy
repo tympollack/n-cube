@@ -101,7 +101,11 @@ class TestThreadedClearCache
                 }
                 catch (Exception e)
                 {
-                    e.printStackTrace()
+                    Throwable t = getDeepestException(e)
+                    if (!t.message?.contains('cleared while cell was executing'))
+                    {
+                        throw e
+                    }
                 }
             }
         }
@@ -117,7 +121,11 @@ class TestThreadedClearCache
                 }
                 catch (Exception e)
                 {
-                    e.printStackTrace()
+                    Throwable t = getDeepestException(e)
+                    if (!t.message?.contains('cleared while cell was executing'))
+                    {
+                        throw e
+                    }
                 }
             }
         }

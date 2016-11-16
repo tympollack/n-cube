@@ -192,7 +192,7 @@ abstract class GroovyBase extends UrlCommandCell
                 {   // Another thread defined and persisted the class while this thread was blocked...
                     return
                 }
-                Class root = gcLoader.defineClass(getClassName(rootClassBytes), rootClassBytes)
+                Class root = gcLoader.defineClass(null, rootClassBytes)
                 defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
                 setRunnableCode(root)
                 L2Cache[L2CacheKey] = root
@@ -201,74 +201,39 @@ abstract class GroovyBase extends UrlCommandCell
         }
 
         // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
-        compile(gcLoader, groovySource, L3CacheKey, ctx)
-    }
-
-    static String getClassName(byte[] byteCode) throws Exception
-    {
-        InputStream is = new ByteArrayInputStream(byteCode);
-        DataInputStream dis = new DataInputStream(is);
-        dis.readLong(); // skip header and class version
-        int cpcnt = (dis.readShort() & 0xffff) - 1;
-        int[] classes = new int[cpcnt];
-        String[] strings = new String[cpcnt];
-        for (int i=0; i < cpcnt; i++)
+        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
+        try
         {
-            int t = dis.read();
-            if (t == 7)
-            {
-                classes[i] = dis.readShort() & 0xffff;
-            }
-            else if (t == 1)
-            {
-                strings[i] = dis.readUTF();
-            }
-            else if (t == 5 || t == 6)
-            {
-                dis.readLong();
-                i++;
-            }
-            else if (t == 8)
-            {
-                dis.readShort();
-            }
-            else
-            {
-                dis.readInt();
-            }
+            // Internally, Groovy sometimes uses the Thread.currentThread9).contextClassLoader, which is not the
+            // correct class loader to use when inside a container.
+            Thread.currentThread().contextClassLoader = gcLoader
+            compile(gcLoader, groovySource, L3CacheKey, ctx)
         }
-        dis.readShort(); // skip access flags
-        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.');
+        finally
+        {
+            Thread.currentThread().contextClassLoader = originalClassLoader
+        }
     }
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
     {
-        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader;
-        try
-        {
-            Thread.currentThread().contextClassLoader = gcLoader
-            Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
+        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
 
-            CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
-            compilerConfiguration.targetBytecode = targetByteCodeVersion
-            compilerConfiguration.debug = NCubeCodeGenDebug
-            compilerConfiguration.defaultScriptExtension = '.groovy'
-            // TODO: Research when this can be safely turned on vs having to be turned off
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
+        compilerConfiguration.targetBytecode = targetByteCodeVersion
+        compilerConfiguration.debug = NCubeCodeGenDebug
+        compilerConfiguration.defaultScriptExtension = '.groovy'
+        // TODO: Research when this can be safely turned on vs having to be turned off
 //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
-            SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
+        SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
-            CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
-            compilationUnit.addSource(sourceUnit)
-            compilationUnit.configure(compilerConfiguration)
-            compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
-            Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
-            return generatedClass
-        }
-        finally
-        {
-            Thread.currentThread().contextClassLoader = originalClassLoader;
-        }
+        CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
+        compilationUnit.addSource(sourceUnit)
+        compilationUnit.configure(compilerConfiguration)
+        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
+        Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
+        return generatedClass
     }
 
     protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey, String groovySource)
@@ -296,28 +261,40 @@ abstract class GroovyBase extends UrlCommandCell
                 {
                     clazz = gcLoader.defineClass(null, gclass.bytes)
                 }
-                catch (Exception e)
+                catch (ThreadDeath t)
                 {
-                    e.printStackTrace()
+                    throw t
+                }
+                catch (Throwable t)
+                {
+//                    t.printStackTrace()
+                    continue
+                }
+
+                String urlClassName = ''
+                if (url != null)
+                {
+                    urlClassName = url - '.groovy'
+                    urlClassName = urlClassName.replace('/', '.')
                 }
 
                 // Persist class bytes
-                if (isRoot)
+                if (className == urlClassName || (isRoot && url == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
                 {
-                    if (NCubeGroovyExpression.isAssignableFrom(clazz))
+                    // cache (L3) main class file
+                    cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
+                    if (root == null)
                     {
-                        // cache (L3) main class file
-                        cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
-                        if (root == null)
-                        {
-                            root = clazz
-                            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
-                        }
+                        root = clazz
+                        cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
                     }
                 }
                 else
                 {   // cache (L3) inner class
-                    cacheClassInL3("${L3CacheKey}${className.substring(dollarPos)}.class", gclass.bytes)
+                    if (dollarPos != -1)
+                    {
+                        cacheClassInL3("${L3CacheKey}${className.substring(dollarPos)}.class", gclass.bytes)
+                    }
                 }
             }
 
@@ -329,6 +306,7 @@ abstract class GroovyBase extends UrlCommandCell
             return L2Cache[L2CacheKey]
         }
     }
+
 
     protected Map getClassLoaderAndSource(Map<String, Object> ctx)
     {

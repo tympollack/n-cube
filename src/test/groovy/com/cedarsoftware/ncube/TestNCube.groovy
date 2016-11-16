@@ -3470,7 +3470,7 @@ class TestNCube
         }
         catch (Exception e)
         {
-            assert e.cause instanceof LinkageError
+            assert e.cause instanceof IllegalStateException
         }
 
         coord["protocol"] = "http"
