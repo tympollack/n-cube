@@ -56,10 +56,27 @@ class TestRuleEngine
         Axis state = ncube.getAxis 'state'
         assert state.columns[0].id != 10
 
+        Map input = [vehiclePrice:5000.0, driveAge:22, gender:'male', vehicleCylinders:8, state:'TX']
         Map output = [:]
-        Object out = ncube.getCell([vehiclePrice:5000.0, driveAge:22, gender:'male', vehicleCylinders:8, state:'TX'], output)
+        Object out = ncube.getCell(input, output)
         assert out == 10
         assert output.premium == 119.0
+
+        try
+        {
+            input.state = "BOGUS"
+            ncube.getCell(input, output)
+            fail("should not make it here")
+        }
+        catch (CoordinateNotFoundException e)
+        {
+            assert e.message.toLowerCase().contains('not found on axis')
+            assert ncube.name == e.cubeName
+            assert input == e.coordinate
+            assert 'state' == e.axisName
+            assert 'BOGUS' == e.value
+        }
+
     }
 
     // This test also tests ID-based ncube's specified in simple JSON format
