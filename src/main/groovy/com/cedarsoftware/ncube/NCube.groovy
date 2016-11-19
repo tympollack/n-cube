@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
+import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
@@ -1287,7 +1288,8 @@ class NCube<T>
         {
             if (!copy.containsKey(scopeKey))
             {
-                throw new IllegalArgumentException("Input coordinate: ${coordinate.keySet()}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}")
+                Set coordinateKeys = coordinate.keySet()
+                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}", name, coordinateKeys, requiredScope)
             }
         }
 

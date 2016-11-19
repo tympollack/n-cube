@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
+import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
@@ -969,9 +970,12 @@ class TestNCube
             ncube.getCell(coord)        // (Object) cast makes it one argument
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (InvalidCoordinateException e)
         {
             assertTrue(e.message.contains("required scope"))
+            assert ncube.name == e.cubeName
+            assert coord.keySet() == e.coordinateKeys
+            assert ['Trailers', 'Vehicles', 'BU'] as Set == e.requiredKeys
         }
 
         try
@@ -1883,9 +1887,12 @@ class TestNCube
             ncube.getMap(coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (InvalidCoordinateException e)
         {
             assertTrue(e.message.contains("required scope"))
+            assert ncube.name == e.cubeName
+            assert coord.keySet() == e.coordinateKeys
+            assert ['Days'] as Set == e.requiredKeys
         }
 
         try
@@ -3004,9 +3011,12 @@ class TestNCube
             ncube.getCell(coord)
             fail("Should not make it here")
         }
-        catch (IllegalArgumentException e)
+        catch (InvalidCoordinateException e)
         {
             assert e.message.toLowerCase().contains('required scope')
+            assert ncube.name == e.cubeName
+            assert coord.keySet() == e.coordinateKeys
+            assert ['Code'] as Set == e.requiredKeys
         }
         coord.clear()
         coord.put("codE", "ints")

@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
+import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.ncube.util.LongHashSet
@@ -1505,9 +1506,12 @@ class TestAxis
             ncube.getCell(coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (InvalidCoordinateException e)
         {
             assert e.message.toLowerCase().contains('required scope')
+            assert ncube.name == e.cubeName
+            assert !e.coordinateKeys
+            assert e.requiredKeys.contains('Gender')
         }
 
         // coordinate / table dimension mismatch
@@ -1518,9 +1522,12 @@ class TestAxis
             ncube.getCell(coord)
             fail()
         }
-        catch (IllegalArgumentException e)
+        catch (InvalidCoordinateException e)
         {
             assert e.message.toLowerCase().contains('required scope')
+            assert ncube.name == e.cubeName
+            assert e.coordinateKeys.contains('State')
+            assert e.requiredKeys.contains('Gender')
         }
     }
 
