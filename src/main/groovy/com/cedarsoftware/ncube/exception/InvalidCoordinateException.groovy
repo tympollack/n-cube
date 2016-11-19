@@ -3,7 +3,7 @@ package com.cedarsoftware.ncube.exception
 import groovy.transform.CompileStatic
 
 /**
- * Sub-class of RuntimeException for extra clarification if needed.
+ * Sub-class of IllegalArgumentException for extra clarification if needed.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -22,21 +22,19 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-public class CoordinateNotFoundException extends RuntimeException
+public class InvalidCoordinateException extends IllegalArgumentException
 {
 	private String cubeName
-	private Map coordinate
-	private String axisName
-	private Object value
+	private Set coordinateKeys
+	private Set requiredKeys
 
-	public CoordinateNotFoundException(String msg) { super(msg) }
+	public InvalidCoordinateException(String msg) { super(msg) }
 
-	public CoordinateNotFoundException(String msg, String cubeName, Map coordinate = null, String axisName = null, Object value = null ) {
+	public InvalidCoordinateException(String msg, String cubeName, Set coordinateKeys, Set requiredKeys) {
 		super(msg)
 		this.cubeName = cubeName
-		this.coordinate = coordinate
-		this.axisName = axisName
-		this.value = value
+		this.coordinateKeys = coordinateKeys
+		this.requiredKeys = requiredKeys
 	}
 
 	/**
@@ -49,29 +47,20 @@ public class CoordinateNotFoundException extends RuntimeException
 	}
 
 	/**
-	 * Returns the coordinate.
+	 * Returns the coordinate keys.
 	 *
-	 * @return  coordinate
+	 * @return  coordinate keys
 	 */
-	public Map getCoordinate() {
-		return coordinate;
+	public Set getCoordinateKeys() {
+		return coordinateKeys;
 	}
 
 	/**
-	 * Returns the name of the axis on which the value is not found.
+	 * Returns the required keys.
 	 *
-	 * @return  axis name
+	 * @return  required keys
 	 */
-	public String getAxisName() {
-		return axisName;
-	}
-
-	/**
-	 * Returns the value not found on the axis.
-	 *
-	 * @return  value not found
-	 */
-	public Object getValue() {
-		return value;
+	public Set getRequiredKeys() {
+		return requiredKeys;
 	}
 }

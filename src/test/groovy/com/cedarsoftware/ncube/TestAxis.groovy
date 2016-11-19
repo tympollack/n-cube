@@ -1327,6 +1327,10 @@ class TestAxis
             assert e.message.toLowerCase().contains('matches no column')
             assert e.message.contains('foo')
             assert e.message.contains('no default')
+            assert !e.cubeName
+            assert !e.coordinate
+            assert 'foo' == e.axisName
+            assert 'foo' == e.value
         }
     }
 
@@ -1442,6 +1446,10 @@ class TestAxis
             assertTrue(e.message.contains("not"))
             assertTrue(e.message.contains("found"))
             assertTrue(e.message.contains("axis"))
+            assertEquals(ncube.name, e.cubeName)
+            assertEquals(coord, e.coordinate)
+            assertEquals("Gender", e.axisName)
+            assertEquals("Jones", e.value)
         }
 
         // 'null' value to find on String axis:
@@ -1455,6 +1463,10 @@ class TestAxis
         {
             assert e.message.toLowerCase().contains('null')
             assert e.message.toLowerCase().contains('not found on axis')
+            assert ncube.name == e.cubeName
+            assert coord == e.coordinate
+            assert "Gender" == e.axisName
+            assert !e.value
         }
 
         // Illegal value to find on String axis:
@@ -1468,6 +1480,10 @@ class TestAxis
         {
             assert e.message.toLowerCase().contains('value')
             assert e.message.toLowerCase().contains('not found on axis')
+            assert ncube.name == e.cubeName
+            assert coord == e.coordinate
+            assert "Gender" == e.axisName
+            assert 8 == e.value
         }
 
         // 'null' for coordinate
@@ -1536,6 +1552,10 @@ class TestAxis
             assertTrue(e.message.contains("not"))
             assertTrue(e.message.contains("found"))
             assertTrue(e.message.contains("axis"))
+            assertEquals(ncube.name, e.cubeName)
+            assertEquals(coord, e.coordinate)
+            assertEquals("BU", e.axisName)
+            assertEquals("bogus", e.value)
         }
     }
 

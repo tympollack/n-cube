@@ -421,7 +421,7 @@ class NCube<T>
         LongHashSet ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
-            throw new CoordinateNotFoundException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}")
+            throw new CoordinateNotFoundException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}", name)
         }
         return cells[ids] = value
     }
@@ -639,7 +639,7 @@ class NCube<T>
             String msg = e.message
             if (!msg.contains('-> cell:'))
             {
-                throw new CoordinateNotFoundException(e.message + '\nerror occurred in cube: ' + name + '\n' + stackToString())
+                throw new CoordinateNotFoundException(e.message + '\nerror occurred in cube: ' + name + '\n' + stackToString(), e.cubeName, e.coordinate, e.axisName, e.value)
             }
             else
             {
@@ -717,10 +717,12 @@ class NCube<T>
         {
             if (AxisType.RULE == axis.type)
             {
-                Integer count = conditionsFiredCountPerAxis[axis.name]
+                String axisName = axis.name
+                Integer count = conditionsFiredCountPerAxis[axisName]
                 if (count == null || count < 1)
                 {
-                    throw new CoordinateNotFoundException("No conditions on the rule axis: ${axis.name} fired, and there is no default column on this axis, cube: ${name}, input: ${coordinate}")
+                    throw new CoordinateNotFoundException("No conditions on the rule axis: ${axisName} fired, and there is no default column on this axis, cube: ${name}, input: ${coordinate}",
+                    name, coordinate, axisName)
                 }
             }
         }
@@ -1017,7 +1019,7 @@ class NCube<T>
                 final Column column = axis.findColumn(value)
                 if (column == null)
                 {
-                    throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axis.name}, cube: ${name}")
+                   throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}", name, input, axisName, value)
                 }
                 bindings[axisName] = [column]    // Binding is a List of one column on non-rule axis
             }
@@ -1249,11 +1251,12 @@ class NCube<T>
         while (i.hasNext())
         {
             Axis axis = (Axis) i.next()
-            final Comparable value = (Comparable) safeCoord[axis.name]
+            String axisName = axis.name
+            final Comparable value = (Comparable) safeCoord[axisName]
             final Column column = (Column) axis.findColumn(value)
             if (column == null)
             {
-                throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axis.name}, cube: ${name}")
+                throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}", name, coordinate, axisName, value)
             }
             ids.add(column.id)
         }
@@ -1320,7 +1323,8 @@ class NCube<T>
                 final Column column = wildcardAxis.findColumn(value)
                 if (column == null)
                 {
-                    throw new CoordinateNotFoundException("Value '${value}' not found using Set on axis: ${wildcardAxis.name}, cube: ${name}")
+                    String axisName = wildcardAxis.name
+                    throw new CoordinateNotFoundException("Value '${value}' not found using Set on axis: ${axisName}, cube: ${name}", name, coordinate, axisName, value)
                 }
 
                 columns.add(column)

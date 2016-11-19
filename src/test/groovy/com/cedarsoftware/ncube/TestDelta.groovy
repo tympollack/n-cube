@@ -290,7 +290,12 @@ class TestDelta
             fail()
         }
         catch (CoordinateNotFoundException e)
-        { }
+        {
+            assert !e.cubeName
+            assert !e.coordinate
+            assert "rule" == e.axisName
+            assert "jones" == e.value
+        }
         DeltaProcessor.mergeDeltaSet(cube2, delta1)
         assert cube2.cellMap.size() == 49
         assert 'alpha' == getCellIgnoreRule(cube2, coord)

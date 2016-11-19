@@ -312,7 +312,7 @@ class TestRuleEngine
         }
         catch (CoordinateNotFoundException e)
         {
-            ruleAxisDidNotBind(e)
+            ruleAxisDidNotBind(e, ncube.name, coord)
         }
         assert 1 == output.size()
         RuleInfo ruleInfo = (RuleInfo) output[NCube.RULE_EXEC_INFO]
@@ -326,12 +326,16 @@ class TestRuleEngine
         assert 2L == ruleInfo.getNumberOfRulesExecuted()
     }
 
-    private static void ruleAxisDidNotBind(CoordinateNotFoundException e)
+    private static void ruleAxisDidNotBind(CoordinateNotFoundException e, String cubeName, Map coordinate)
     {
         assert e.message.toLowerCase().contains("no condition")
         assert e.message.toLowerCase().contains("fired")
         assert e.message.toLowerCase().contains("no default")
         assert e.message.toLowerCase().contains("rule axis")
+        assert cubeName == e.cubeName
+        assert coordinate == e.coordinate
+        assert e.axisName
+        assert e.value == null
     }
 
     @Test
@@ -348,7 +352,7 @@ class TestRuleEngine
         }
         catch (CoordinateNotFoundException e)
         {
-            ruleAxisDidNotBind(e)
+            ruleAxisDidNotBind(e, ncube.name, coord)
         }
 
         coord.condition = 'Female'
@@ -360,7 +364,7 @@ class TestRuleEngine
         }
         catch (CoordinateNotFoundException e)
         {
-            ruleAxisDidNotBind(e)
+            ruleAxisDidNotBind(e, ncube.name, coord)
         }
         coord.gender = 'Female'
         assert 'bar' == ncube.getCell(coord)
@@ -769,7 +773,7 @@ class TestRuleEngine
         }
         catch (CoordinateNotFoundException e)
         {
-            ruleAxisDidNotBind(e)
+            ruleAxisDidNotBind(e, ncube.name, input)
         }
 
         input = [state:'TX', rule:'OhioRule']
@@ -787,7 +791,7 @@ class TestRuleEngine
         }
         catch (CoordinateNotFoundException e)
         {
-            ruleAxisDidNotBind(e)
+            ruleAxisDidNotBind(e, ncube.name, input)
         }
 
         input = [state:'OH', rule:'MatchesNoRuleName']

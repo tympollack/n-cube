@@ -644,6 +644,14 @@ class TestNCube
             cube.getCell(coord)
             fail()
         }
+        catch (CoordinateNotFoundException e)
+        {
+            assert e.message.contains("not found on axis")
+            assert cube.name == e.cubeName
+            assert coord == e.coordinate
+            assert axis == e.axisName
+            assert -20 == e.value
+        }
         catch (Exception e)
         {
             // varies
@@ -660,6 +668,10 @@ class TestNCube
         {
             assert e.message.toLowerCase().contains('null')
             assert e.message.toLowerCase().contains('not found on axis')
+            assert cube.name == e.cubeName
+            assert coord == e.coordinate
+            assert axis == e.axisName
+            assert !e.value
         }
 
         // Illegal value to find on String axis:
@@ -860,14 +872,22 @@ class TestNCube
         try
         {
             ncube.setCell(9.9, coord)
-            fail()
+            fail("should throw an exception")
         }
-        catch (Exception e)
+        catch (CoordinateNotFoundException e)
         {
             assertTrue(e.message.contains("not"))
             assertTrue(e.message.contains("found"))
             assertTrue(e.message.contains("axis"))
             assertTrue(e.message.contains("Gender"))
+            assertEquals(ncube.name, e.cubeName)
+            assertEquals(coord, e.coordinate)
+            assertEquals("Gender", e.axisName)
+            assertEquals("Fmale", e.value)
+        }
+        catch (Exception e)
+        {
+            fail("should throw CoordinateNotFoundException")
         }
     }
 
@@ -897,6 +917,10 @@ class TestNCube
         catch (CoordinateNotFoundException e)
         {
             assertTrue(e.message.contains("not found"))
+            assertEquals(ncube.name, e.cubeName)
+            assertEquals(coord, e.coordinate)
+            assertEquals("Gender", e.axisName)
+            assertNull(e.value)
         }
 
         // Map with not enough dimensions
@@ -962,6 +986,11 @@ class TestNCube
         {
             assertTrue(e.message.contains("null"))
             assertTrue(e.message.contains("not found on axis"))
+            assertEquals(ncube.name, e.cubeName)
+            assertEquals(coord, e.coordinate)
+            assertEquals("Trailers", e.axisName)
+            assertNull(e.value)
+
         }
     }
 
@@ -3571,6 +3600,10 @@ class TestNCube
         catch (CoordinateNotFoundException e)
         {
             assert e.message.toLowerCase().contains('not found on axis')
+            assert ncube.name == e.cubeName
+            assert coord == e.coordinate
+            assert "Gender" == e.axisName
+            assert "GI Joe" == e.value
         }
 
         ncube.defaultCellValue = null
@@ -4799,8 +4832,14 @@ class TestNCube
             ncube.setCellById(1.0, null)
             fail()
         }
-        catch (CoordinateNotFoundException ignored)
-        { }
+        catch (CoordinateNotFoundException e)
+        {
+            assertTrue(e.message.contains("Unable to setCellById"))
+            assertEquals(ncube.name, e.cubeName)
+            assertNull(e.coordinate)
+            assertNull(e.axisName)
+            assertNull(e.value)
+        }
     }
 
     @Test
