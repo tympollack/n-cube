@@ -2327,6 +2327,21 @@ class TestNCube
         slice = ncube.getMap(coord)
         assertTrue(slice.size() == 2)
 
+        coord.put("businessDivisionCode", ['BOGUS'] as Set)
+        try
+        {
+            ncube.getMap(coord)
+            fail("should not make it here")
+        }
+        catch (CoordinateNotFoundException e)
+        {
+            assert e.message.toLowerCase().contains('not found using set on axis')
+            assert ncube.name == e.cubeName
+            assert coord == e.coordinate
+            assert "businessDivisionCode" == e.axisName
+            assert "BOGUS" == e.value
+        }
+
         coord.put("businessDivisionCode", null)
         try
         {
@@ -2336,6 +2351,20 @@ class TestNCube
         catch (IllegalArgumentException e)
         {
             assert e.message.toLowerCase().contains("no 'set' value found")
+        }
+
+        coord.clear()
+        try
+        {
+            ncube.getMap(coord)
+            fail("should not make it here")
+        }
+        catch (InvalidCoordinateException e)
+        {
+            assert e.message.toLowerCase().contains('does not contain all of the required scope keys')
+            assert ncube.name == e.cubeName
+            assert coord.keySet() == e.coordinateKeys
+            assert ["attribute", "businessDivisionCode"] as Set == e.requiredKeys
         }
     }
 
