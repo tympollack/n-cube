@@ -192,7 +192,7 @@ abstract class GroovyBase extends UrlCommandCell
                 {   // Another thread defined and persisted the class while this thread was blocked...
                     return
                 }
-                Class root = gcLoader.defineClass(null, rootClassBytes)
+                Class root = defineClass(gcLoader, rootClassBytes)
                 defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
                 setRunnableCode(root)
                 L2Cache[L2CacheKey] = root
@@ -238,8 +238,6 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey, String groovySource)
     {
-        Class root = null
-
         synchronized(L3CacheKey)
         {
             Class clazz = L2Cache[L2CacheKey]
@@ -255,6 +253,7 @@ abstract class GroovyBase extends UrlCommandCell
                 urlClassName = urlClassName.replace('/', '.')
             }
             int numClasses = classes.size()
+            Class root = null
 
             for (int i = 0; i < numClasses; i++)
             {
@@ -274,12 +273,11 @@ abstract class GroovyBase extends UrlCommandCell
                 }
                 catch (Throwable t)
                 {
-//                    t.printStackTrace()
                     continue
                 }
 
                 // Persist class bytes
-                if (className == urlClassName || (isRoot && url == null && root == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
+                if (className == urlClassName || (isRoot && root == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
                 {
                     // cache (L3) main class file
                     cacheClassInL3("${L3CacheKey}.class", gclass.bytes)
@@ -287,11 +285,8 @@ abstract class GroovyBase extends UrlCommandCell
                     cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
                 }
                 else
-                {   // cache (L3) inner class
-                    if (dollarPos != -1)
-                    {
-                        cacheClassInL3("${L3CacheKey}${className.substring(dollarPos)}.class", gclass.bytes)
-                    }
+                {   // cache (L3) inner class or other referenced classes
+                    cacheClassInL3("${L3CacheKey}-${i}.class", gclass.bytes)
                 }
             }
 
@@ -303,7 +298,6 @@ abstract class GroovyBase extends UrlCommandCell
             return L2Cache[L2CacheKey]
         }
     }
-
 
     protected Map getClassLoaderAndSource(Map<String, Object> ctx)
     {
@@ -429,10 +423,82 @@ abstract class GroovyBase extends UrlCommandCell
     private static void defineInnerClassesFromL3(Pattern pattern, GroovyClassLoader gcLoader)
     {
         new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
-            gcLoader.defineClass(null, file.bytes)
+            def clazz
+            try
+            {
+                clazz = defineClass(gcLoader, file.bytes)
+            }
+            catch (Throwable t)
+            {
+                println t
+            }
+            finally
+            {
+                println clazz
+            }
         }
     }
 
+    def defineClass(GroovyClassLoader gcLoader, byte[] byteCode)
+    {
+        def clazz
+        try
+        {
+            clazz = gcLoader.defineClass(null, byteCode)
+            return clazz
+        }
+        catch (ThreadDeath d)
+        {
+            throw d
+        }
+        catch (Throwable t)
+        {
+            t.printStackTrace()
+            return Class.forName(getClassName(byteCode))
+        }
+        finally
+        {
+            return clazz
+        }
+    }
+
+    public static String getClassName(byte[] byteCode) throws Exception
+    {
+        InputStream is = new ByteArrayInputStream(byteCode)
+        DataInputStream dis = new DataInputStream(is)
+        dis.readLong() // skip header and class version
+        int cpcnt = (dis.readShort() & 0xffff) - 1
+        int[] classes = new int[cpcnt]
+        String[] strings = new String[cpcnt]
+        for (int i=0; i < cpcnt; i++)
+        {
+            int t = dis.read()
+            if (t == 7)
+            {
+                classes[i] = dis.readShort() & 0xffff
+            }
+            else if (t == 1)
+            {
+                strings[i] = dis.readUTF()
+            }
+            else if (t == 5 || t == 6)
+            {
+                dis.readLong()
+                i++;
+            }
+            else if (t == 8)
+            {
+                dis.readShort()
+            }
+            else
+            {
+                dis.readInt()
+            }
+        }
+        dis.readShort() // skip access flags
+        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.')
+    }
+    
     // ------------------------------------------ END L3 Cache APIs ----------------------------------------------------
 
     protected static String expandNCubeShortCuts(String groovy)

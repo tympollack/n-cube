@@ -228,7 +228,7 @@ class NCube<T>
      */
     protected void addAdvice(Advice advice, String method)
     {
-        advices[advice.name + '/' + method] = advice
+        advices["${advice.name}/${method}"] = advice
     }
 
     /**
@@ -237,7 +237,7 @@ class NCube<T>
     List<Advice> getAdvices(String method)
     {
         List<Advice> result = []
-        method = '/' + method
+        method = "/${method}"
         for (entry in advices.entrySet())
         {
             // Entry key = "AdviceName/MethodName"
@@ -640,7 +640,8 @@ class NCube<T>
             String msg = e.message
             if (!msg.contains('-> cell:'))
             {
-                throw new CoordinateNotFoundException("${e.message}\nerror occurred in cube: ${name}\n${stackToString()}", e.cubeName, e.coordinate, e.axisName, e.value)
+                throw new CoordinateNotFoundException("${e.message}\nerror occurred in cube: ${name}\n${stackToString()}",
+                        e.cubeName, e.coordinate, e.axisName, e.value)
             }
             else
             {
@@ -686,7 +687,7 @@ class NCube<T>
             {
                 msg = t.class.name
             }
-            binding.value = '[' + msg + ']'
+            binding.value = "[${msg}]"
             throw e
         }
     }
@@ -723,7 +724,7 @@ class NCube<T>
                 if (count == null || count < 1)
                 {
                     throw new CoordinateNotFoundException("No conditions on the rule axis: ${axisName} fired, and there is no default column on this axis, cube: ${name}, input: ${coordinate}",
-                    name, coordinate, axisName)
+                        name, coordinate, axisName)
                 }
             }
         }
@@ -1020,7 +1021,8 @@ class NCube<T>
                 final Column column = axis.findColumn(value)
                 if (column == null)
                 {
-                   throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}", name, input, axisName, value)
+                   throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}",
+                           name, input, axisName, value)
                 }
                 bindings[axisName] = [column]    // Binding is a List of one column on non-rule axis
             }
@@ -1257,7 +1259,8 @@ class NCube<T>
             final Column column = (Column) axis.findColumn(value)
             if (column == null)
             {
-                throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}", name, coordinate, axisName, value)
+                throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
+                        name, coordinate, axisName, value)
             }
             ids.add(column.id)
         }
@@ -1289,7 +1292,8 @@ class NCube<T>
             if (!copy.containsKey(scopeKey))
             {
                 Set coordinateKeys = coordinate.keySet()
-                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}", name, coordinateKeys, requiredScope)
+                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}",
+                        name, coordinateKeys, requiredScope)
             }
         }
 
@@ -1326,7 +1330,8 @@ class NCube<T>
                 if (column == null)
                 {
                     String axisName = wildcardAxis.name
-                    throw new CoordinateNotFoundException("Value '${value}' not found using Set on axis: ${axisName}, cube: ${name}", name, coordinate, axisName, value)
+                    throw new CoordinateNotFoundException("Value '${value}' not found using Set on axis: ${axisName}, cube: ${name}",
+                            name, coordinate, axisName, value)
                 }
 
                 columns.add(column)
@@ -2696,9 +2701,9 @@ class NCube<T>
      * are the associated values that would bind to the axes, except for default column
      * and rule axes.  This API is typically used for display purposes.
      */
-    Map<String, T> getDisplayCoordinateFromIds(Set<Long> idCoord)
+    Map<String, Object> getDisplayCoordinateFromIds(Set<Long> idCoord)
     {
-        Map<String, T> properCoord = new CaseInsensitiveMap<>()
+        Map<String, Object> properCoord = new CaseInsensitiveMap<>()
         for (colId in idCoord)
         {
             Axis axis = getAxisFromColumnId(colId)
@@ -2716,11 +2721,11 @@ class NCube<T>
             String name = column.columnName
             if (name != null)
             {
-                properCoord[axis.name] = ("(" + name.toString() + "): " + value) as T
+                properCoord[axis.name] = "(${name.toString()}): ${value}"
             }
             else
             {
-                properCoord[axis.name] = value as T
+                properCoord[axis.name] = value
             }
         }
         return properCoord
