@@ -1351,7 +1351,7 @@ class Axis
         Column firstRule = findColumn(ruleName)
         if (firstRule == null)
         {   // A name was specified for a rule, but did not match any rule names and there is no default column.
-            throw new CoordinateNotFoundException("Rule named '" + ruleName + "' matches no column names on the rule axis '" + name + "', and there is no default column.", null, null, name, ruleName)
+            throw new CoordinateNotFoundException("Rule named '${ruleName}' matches no column names on the rule axis '${name}', and there is no default column.", null, null, name, ruleName)
         }
         else if (firstRule.default)
         {   // Matched no names, but there is a default column
