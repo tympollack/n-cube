@@ -640,7 +640,7 @@ class NCube<T>
             String msg = e.message
             if (!msg.contains('-> cell:'))
             {
-                throw new CoordinateNotFoundException(e.message + '\nerror occurred in cube: ' + name + '\n' + stackToString(), e.cubeName, e.coordinate, e.axisName, e.value)
+                throw new CoordinateNotFoundException("${e.message}\nerror occurred in cube: ${name}\n${stackToString()}", e.cubeName, e.coordinate, e.axisName, e.value)
             }
             else
             {
@@ -649,7 +649,7 @@ class NCube<T>
         }
         catch (Throwable t)
         {
-            throw new CommandCellException('Error occurred in cube: ' + name + '\n' + stackToString(), t)
+            throw new CommandCellException("Error occurred in cube: ${name}\n${stackToString()}", t)
         }
     }
 

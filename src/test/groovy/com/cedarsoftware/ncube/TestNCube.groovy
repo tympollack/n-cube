@@ -2134,7 +2134,7 @@ class TestNCube
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains('error occurred')
+            assert e.message.toLowerCase().contains("error occurred in cube: continents\n-> cell:continents:[continent:north america,country:usa,state:oh")
         }
     }
 

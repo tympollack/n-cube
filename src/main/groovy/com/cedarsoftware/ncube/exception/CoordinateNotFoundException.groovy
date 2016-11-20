@@ -24,14 +24,12 @@ import groovy.transform.CompileStatic
 @CompileStatic
 public class CoordinateNotFoundException extends RuntimeException
 {
-	private String cubeName
-	private Map coordinate
-	private String axisName
-	private Object value
+	private final String cubeName
+	private final Map coordinate
+	private final String axisName
+	private final Object value
 
-	public CoordinateNotFoundException(String msg) { super(msg) }
-
-	public CoordinateNotFoundException(String msg, String cubeName, Map coordinate = null, String axisName = null, Object value = null ) {
+	public CoordinateNotFoundException(String msg, String cubeName = null, Map coordinate = null, String axisName = null, Object value = null ) {
 		super(msg)
 		this.cubeName = cubeName
 		this.coordinate = coordinate

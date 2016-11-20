@@ -156,7 +156,7 @@ class TestWithPreloadedDatabase
         }
         catch (CoordinateNotFoundException e)
         {
-            assertTrue(e.message.contains("fail"))
+            assertTrue(e.message.contains("fail\nerror occurred in cube: test.coordinate.not.found.exception\n-> cell:test.coordinate.not.found.exception:[]"))
             assertNull(e.cubeName)
             assertNull(e.coordinate)
             assertNull(e.axisName)
