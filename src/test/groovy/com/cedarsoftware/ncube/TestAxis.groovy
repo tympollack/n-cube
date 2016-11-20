@@ -911,8 +911,9 @@ class TestAxis
         assertNull c.metaProperties.get('foo')
         c.setMetaProperty 'foo', 'bar'
 
-        assert 'Axis: foo [DISCRETE, STRING, default-column, sorted]\n' +
-                '  metaProps: [foo:bar]' == c.toString()
+        String x = c.toString().toLowerCase()
+        assert x.contains('discrete, string, default-column, sorted')
+        assert x.contains('[foo:bar]')
     }
 
     @Test
