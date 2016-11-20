@@ -422,7 +422,7 @@ class NCube<T>
         LongHashSet ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
-            throw new CoordinateNotFoundException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}", name)
+            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}", name)
         }
         return cells[ids] = value
     }
@@ -2140,7 +2140,7 @@ class NCube<T>
                     {
                         ncube.setCellById(v, colIds)
                     }
-                    catch (CoordinateNotFoundException ignore)
+                    catch (InvalidCoordinateException ignore)
                     {
                         LOG.debug("Orphaned cell on n-cube: ${cubeName}, ids: ${colIds}")
                     }

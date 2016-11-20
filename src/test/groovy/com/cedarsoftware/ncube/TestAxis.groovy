@@ -1325,10 +1325,7 @@ class TestAxis
         }
         catch (CoordinateNotFoundException e)
         {
-            assert e.message.contains('rule')
-            assert e.message.toLowerCase().contains('matches no column')
-            assert e.message.contains('foo')
-            assert e.message.contains('no default')
+            assert "Rule named 'foo' matches no column names on the rule axis 'foo', and there is no default column." == e.message
             assert !e.cubeName
             assert !e.coordinate
             assert 'foo' == e.axisName

@@ -4871,13 +4871,12 @@ class TestNCube
             ncube.setCellById(1.0, null)
             fail()
         }
-        catch (CoordinateNotFoundException e)
+        catch (InvalidCoordinateException e)
         {
             assertTrue(e.message.contains("Unable to setCellById"))
             assertEquals(ncube.name, e.cubeName)
-            assertNull(e.coordinate)
-            assertNull(e.axisName)
-            assertNull(e.value)
+            assertNull(e.coordinateKeys)
+            assertNull(e.requiredKeys)
         }
     }
 
