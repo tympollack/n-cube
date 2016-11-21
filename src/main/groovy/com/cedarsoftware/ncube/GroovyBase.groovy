@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.EncryptionUtilities
+import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.UrlUtilities
@@ -192,7 +193,7 @@ abstract class GroovyBase extends UrlCommandCell
                 {   // Another thread defined and persisted the class while this thread was blocked...
                     return
                 }
-                Class root = defineClass(gcLoader, rootClassBytes)
+                Class root = gcLoader.defineClass(null, rootClassBytes)
                 defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
                 setRunnableCode(root)
                 L2Cache[L2CacheKey] = root
@@ -263,17 +264,9 @@ abstract class GroovyBase extends UrlCommandCell
                 boolean isRoot = dollarPos == -1
 
                 // Add compiled class to classLoader
-                try
-                {
-                    clazz = gcLoader.defineClass(null, gclass.bytes)
-                }
-                catch (ThreadDeath t)
-                {
-                    throw t
-                }
-                catch (Throwable t)
-                {
-                    println "3 ${t.message}"
+                clazz = defineClass(gcLoader, gclass.bytes)
+                if (clazz == null)
+                {   // error defining class - may have already been defined thru another route
                     continue
                 }
 
@@ -297,6 +290,24 @@ abstract class GroovyBase extends UrlCommandCell
                 L2Cache[L2CacheKey] = root
             }
             return L2Cache[L2CacheKey]
+        }
+    }
+
+    private Class defineClass(GroovyClassLoader loader, byte[] byteCode)
+    {
+        // Add compiled class to classLoader
+        try
+        {
+            Class clazz = loader.defineClass(null, byteCode)
+            return clazz
+        }
+        catch (ThreadDeath t)
+        {
+            throw t
+        }
+        catch (Throwable t)
+        {
+            return null
         }
     }
 
@@ -424,76 +435,10 @@ abstract class GroovyBase extends UrlCommandCell
     private static void defineInnerClassesFromL3(Pattern pattern, GroovyClassLoader gcLoader)
     {
         new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
-            try
-            {
-                gcLoader.defineClass(null, file.bytes)
-            }
-            catch (ThreadDeath t)
-            {
-                throw t
-            }
-            catch (Throwable t)
-            {
-                println "2 ${t.message}"
-            }
+            gcLoader.defineClass(null, file.bytes)
         }
     }
 
-    static Class defineClass(GroovyClassLoader gcLoader, byte[] byteCode)
-    {
-        try
-        {
-            Class clazz = gcLoader.defineClass(null, byteCode)
-            return clazz
-        }
-        catch (ThreadDeath d)
-        {
-            throw d
-        }
-        catch (Throwable t)
-        {
-            println "1 ${t.message}"
-            return Class.forName(getClassName(byteCode))
-        }
-    }
-
-    public static String getClassName(byte[] byteCode) throws Exception
-    {
-        InputStream is = new ByteArrayInputStream(byteCode)
-        DataInputStream dis = new DataInputStream(is)
-        dis.readLong() // skip header and class version
-        int cpcnt = (dis.readShort() & 0xffff) - 1
-        int[] classes = new int[cpcnt]
-        String[] strings = new String[cpcnt]
-        for (int i=0; i < cpcnt; i++)
-        {
-            int t = dis.read()
-            if (t == 7)
-            {
-                classes[i] = dis.readShort() & 0xffff
-            }
-            else if (t == 1)
-            {
-                strings[i] = dis.readUTF()
-            }
-            else if (t == 5 || t == 6)
-            {
-                dis.readLong()
-                i++;
-            }
-            else if (t == 8)
-            {
-                dis.readShort()
-            }
-            else
-            {
-                dis.readInt()
-            }
-        }
-        dis.readShort() // skip access flags
-        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.')
-    }
-    
     // ------------------------------------------ END L3 Cache APIs ----------------------------------------------------
 
     protected static String expandNCubeShortCuts(String groovy)

@@ -228,7 +228,7 @@ class NCube<T>
      */
     protected void addAdvice(Advice advice, String method)
     {
-        advices["${advice.name}/${method}"] = advice
+        advices["${advice.name}/${method}".toString()] = advice
     }
 
     /**
