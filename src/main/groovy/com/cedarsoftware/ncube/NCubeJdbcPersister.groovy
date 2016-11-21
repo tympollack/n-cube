@@ -1748,6 +1748,12 @@ ORDER BY abs(revision_number) DESC"""
             }
             return value.toString().tokenize(', ')
         }
+        else if (filter instanceof Object[])
+        {
+            Set<String> tags = new HashSet<String>()
+            filter.each { Object tag -> tags.add(tag as String) }
+            return tags
+        }
         else
         {
             return new HashSet()
