@@ -203,7 +203,7 @@ abstract class GroovyBase extends UrlCommandCell
         {
             // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
             // correct class loader to use when inside a container.
-            Thread.currentThread().contextClassLoader = gcLoader
+            Thread.currentThread().contextClassLoader = getClass().getClassLoader()
             compile(gcLoader, groovySource, L3CacheKey, ctx)
         }
         finally
