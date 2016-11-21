@@ -204,9 +204,9 @@ abstract class GroovyBase extends UrlCommandCell
         ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
         try
         {
-            // Internally, Groovy sometimes uses the Thread.currentThread9).contextClassLoader, which is not the
+            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
             // correct class loader to use when inside a container.
-            Thread.currentThread().contextClassLoader = gcLoader
+            Thread.currentThread().contextClassLoader = null
             compile(gcLoader, groovySource, L3CacheKey, ctx)
         }
         finally
@@ -273,6 +273,7 @@ abstract class GroovyBase extends UrlCommandCell
                 }
                 catch (Throwable t)
                 {
+                    println "3 ${t.message}"
                     continue
                 }
 
@@ -423,28 +424,26 @@ abstract class GroovyBase extends UrlCommandCell
     private static void defineInnerClassesFromL3(Pattern pattern, GroovyClassLoader gcLoader)
     {
         new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
-            def clazz
             try
             {
-                clazz = defineClass(gcLoader, file.bytes)
+                gcLoader.defineClass(null, file.bytes)
+            }
+            catch (ThreadDeath t)
+            {
+                throw t
             }
             catch (Throwable t)
             {
-                println t
-            }
-            finally
-            {
-                println clazz
+                println "2 ${t.message}"
             }
         }
     }
 
-    def defineClass(GroovyClassLoader gcLoader, byte[] byteCode)
+    static Class defineClass(GroovyClassLoader gcLoader, byte[] byteCode)
     {
-        def clazz
         try
         {
-            clazz = gcLoader.defineClass(null, byteCode)
+            Class clazz = gcLoader.defineClass(null, byteCode)
             return clazz
         }
         catch (ThreadDeath d)
@@ -453,12 +452,8 @@ abstract class GroovyBase extends UrlCommandCell
         }
         catch (Throwable t)
         {
-            t.printStackTrace()
+            println "1 ${t.message}"
             return Class.forName(getClassName(byteCode))
-        }
-        finally
-        {
-            return clazz
         }
     }
 

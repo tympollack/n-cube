@@ -42,7 +42,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestNCube
 {
-    private static final boolean _debug = false;
+    private static final boolean _debug = false
 
     @Before
     public void setUp()
@@ -1111,7 +1111,7 @@ class TestNCube
         coord.put("States", "IN")
         int numCells = ncube.numCells
         assertTrue(ncube.deleteColumn("States", "IN"))
-        assertTrue(numCells == ncube.numCells + 1)
+        assertTrue(numCells == ncube.numCells + 1i)
 
         assertTrue(ncube.getCell(coord) == 9999L)
         coord.put("States", "OH")
@@ -3362,7 +3362,7 @@ class TestNCube
     void testUpdateColumns()
     {
         NCube<String> ncube = NCubeManager.getNCubeFromResource("updateColumns.json")
-        assertEquals(30, ncube.getCellMap().size())
+        assertEquals(30, ncube.cellMap.size())
 
         // Delete 1st, middle, and last column
         Map<Object, Long> valueToId = new HashMap<>()
@@ -3381,8 +3381,8 @@ class TestNCube
             column.id = id
         }
         // 1,3,5 deleted
-        ncube.updateColumns(axisDto.getName(), axisDto.getColumns())
-        assertEquals(15, ncube.getCellMap().size())
+        ncube.updateColumns(axisDto.name, axisDto.columns)
+        assertEquals(15, ncube.cellMap.size())
 
         // Delete 1st, middle, last on state axis
         code = ncube.getAxis("state")
@@ -3400,11 +3400,11 @@ class TestNCube
             column.id = id
         }
 
-        ncube.updateColumns(axisDto.getName(), axisDto.getColumns())
-        assertEquals(6, ncube.getCellMap().size())
+        ncube.updateColumns(axisDto.name, axisDto.columns)
+        assertEquals(6, ncube.cellMap.size())
 
         ncube.deleteColumn("code", null)
-        assertEquals(4, ncube.getCellMap().size())
+        assertEquals(4, ncube.cellMap.size())
 
         try
         {
@@ -3419,7 +3419,7 @@ class TestNCube
         try
         {
             Axis fake = new Axis("fake", AxisType.DISCRETE, AxisValueType.DOUBLE, false)
-            ncube.updateColumns(fake.getName(), fake.getColumns())
+            ncube.updateColumns(fake.name, fake.columns)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -3786,11 +3786,8 @@ class TestNCube
     @Test
     void testDebugExpression()
     {
-//        List urls = []
-//        urls.add("./com/acme/util/")
-//
-//        NCube sysClasspath = NCubeManager.getNCubeFromResource("sys.classpath.local.resources.json")
-//        NCubeManager.addCube(ApplicationID.testAppId, sysClasspath)
+        NCube sysClasspath = NCubeManager.getNCubeFromResource("sys.classpath.local.resources.json")
+        NCubeManager.addCube(ApplicationID.testAppId, sysClasspath)
 
         NCube ncube = NCubeManager.getNCubeFromResource("debugExp.json")
         Map coord = [:] as Map
