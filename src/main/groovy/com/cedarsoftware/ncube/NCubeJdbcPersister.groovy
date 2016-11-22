@@ -1738,28 +1738,61 @@ ORDER BY abs(revision_number) DESC"""
         }
         else if (filter instanceof Collection)
         {
-            return new CaseInsensitiveSet<String>((Collection) filter)
+            Collection items = filter as Collection
+            Set<String> tags = new CaseInsensitiveSet<>()
+            items.each { tag -> safeAdd(tag, tags) }
+            return tags
         }
         else if (filter instanceof Map)
         {
-            Object value = filter[VALUE]
-            if (value instanceof CellInfo)
+            Map map = filter as Map
+            Set<String> tags = new CaseInsensitiveSet<>()
+
+            if (map.containsKey('type') && map.containsKey('value'))
             {
-                CellInfo cellInfo = (CellInfo) value
-                value = cellInfo.value
+                CellInfo cellInfo = new CellInfo(map.type as String, map.value as String, false, false)
+                def item = cellInfo.recreate()  // recreate to original Java value (String, Boolean, Double, etc.)
+                safeAdd(item, tags)
             }
-            return new CaseInsensitiveSet<String>(value.toString().tokenize(', '))
+            else
+            {   // Use keys
+                map.keySet().each { key -> safeAdd(key, tags) }
+            }
+            return tags
         }
         else if (filter instanceof Object[])
         {
             Set<String> tags = new CaseInsensitiveSet<String>()
             Object[] filterTags = filter as Object[]
-            filterTags.each { Object tag -> tags.add(tag as String) }
+            filterTags.each { tag -> safeAdd(tag, tags) }
             return tags
         }
         else
         {
             return new CaseInsensitiveSet<String>()
+        }
+    }
+
+    /**
+     * Best possible add of tag to Set of tags, where passed in tag type is unknown.
+     */
+    private static void safeAdd(def tag, Set tags)
+    {
+        if (tag instanceof String)
+        {
+            tags.addAll((tag as String).tokenize(', '))
+        }
+        else if (tag instanceof Number)
+        {
+            tags.add(Converter.convert(tag, String.class) as String)
+        }
+        else if (tag instanceof Date)
+        {
+            tags.add(Converter.convert(tag, Date.class))
+        }
+        else if (tag instanceof Boolean)
+        {
+            tags.add(tag.toString())
         }
     }
 }
