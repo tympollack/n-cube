@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.SafeSimpleDateFormat
@@ -1600,23 +1601,23 @@ ORDER BY abs(revision_number) DESC"""
             if (includeFilter || excludeFilter)
             {
                 Map jsonNCube = (Map) JsonReader.jsonToJava(StringUtilities.createUtf8String(bytes), [(JsonReader.USE_MAPS):true] as Map)
-                Collection<String> tags = getFilter(jsonNCube[NCubeManager.CUBE_TAGS])
-                Collection<String> cubeTags = new HashSet(tags)
+                Set<String> cubeTags = getFilter(jsonNCube[NCubeManager.CUBE_TAGS])
+                Set<String> copyTags = new CaseInsensitiveSet<>(cubeTags)
 
                 if (includeFilter)
                 {   // User is filtering by one or more tokens
-                    cubeTags.retainAll(includeFilter)
-                    if (cubeTags.empty)
+                    copyTags.retainAll(includeFilter)
+                    if (copyTags.empty)
                     {   // Skip this n-cube : the user passed in TAGs to match, and none did.
                         return
                     }
                 }
 
-                cubeTags = new HashSet(tags)
+                copyTags = new CaseInsensitiveSet<String>(cubeTags)
                 if (excludeFilter)
                 {   // User is excluding by one or more tokens
-                    cubeTags.retainAll(excludeFilter)
-                    if (cubeTags.size() > 0)
+                    copyTags.retainAll(excludeFilter)
+                    if (copyTags.size() > 0)
                     {   // cube had 1 or more cube_tags that matched a tag in the exclusion list.
                         return
                     }
@@ -1725,18 +1726,19 @@ ORDER BY abs(revision_number) DESC"""
      * Given the unknown way of specifying tags, create a Collection of tags from the input.  This API
      * handles String (Command and space delimited), a Collection or Strings, or a Map of Strings in
      * which case the keySet of the map is used.
-     * @param filter
-     * @return Collection<String>
+     * @param filter String, Collection, or Map of String tags.  If it is a String, they are expected to be
+     * comma and/or space delimited.
+     * @return CaseInsensitiveSet<String> of tags
      */
-    private static Collection<String> getFilter(def filter)
+    private static CaseInsensitiveSet<String> getFilter(def filter)
     {
         if (filter instanceof String)
         {
-            return filter.tokenize(', ')
+            return new CaseInsensitiveSet<String>(filter.tokenize(', '))
         }
         else if (filter instanceof Collection)
         {
-            return (Collection) filter
+            return new CaseInsensitiveSet<String>((Collection) filter)
         }
         else if (filter instanceof Map)
         {
@@ -1746,17 +1748,18 @@ ORDER BY abs(revision_number) DESC"""
                 CellInfo cellInfo = (CellInfo) value
                 value = cellInfo.value
             }
-            return value.toString().tokenize(', ')
+            return new CaseInsensitiveSet<String>(value.toString().tokenize(', '))
         }
         else if (filter instanceof Object[])
         {
-            Set<String> tags = new HashSet<String>()
-            filter.each { Object tag -> tags.add(tag as String) }
+            Set<String> tags = new CaseInsensitiveSet<String>()
+            Object[] filterTags = filter as Object[]
+            filterTags.each { Object tag -> tags.add(tag as String) }
             return tags
         }
         else
         {
-            return new HashSet()
+            return new CaseInsensitiveSet<String>()
         }
     }
 }
