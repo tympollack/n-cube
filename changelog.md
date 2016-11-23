@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.115
+ * Bug fix: DeltaProcessor was not merging columns of other axes, when there was a reference axis.
+ * Bug fix: DeltaProcessor was incorrectly reporting a difference when there was a reference axis present with no changes.
 * 3.4.114
  * tag matching more robust for Strings and other data types
 * 3.4.113
