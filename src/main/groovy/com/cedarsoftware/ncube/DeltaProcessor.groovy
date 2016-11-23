@@ -113,8 +113,6 @@ class DeltaProcessor
     static <T> void mergeDeltaSet(NCube<T> mergeTarget, Map<String, Object> deltaSet)
     {
         // Step 1: Merge axis-level changes
-        boolean wasReferenceAxisUpdated = false
-
         Map<String, Map<String, Object>> axisDeltas = deltaSet[DELTA_AXES] as Map
         axisDeltas.each { k, v ->
             String axisName = k
@@ -127,29 +125,20 @@ class DeltaProcessor
                 {
                     axis.columnOrder = axisChanges[DELTA_AXIS_SORT_CHANGED] as int
                 }
-
-                Map<String, Object> ref = axisChanges[DELTA_AXIS_REF_CHANGE] as Map
-                if (ref.size() > 1)
-                {   // Merge the reference changes to target cube's axis.  > 1 indicates a reference, the number of
-                    // fields to specify the reference is much more than 1.
-                    wasReferenceAxisUpdated = true
-                }
             }
         }
 
         // Step 2: Merge column-level changes
-        if (!wasReferenceAxisUpdated)
-        {
-            Map<String, Map<Long, ColumnDelta>> deltaMap = deltaSet[DELTA_AXES_COLUMNS] as Map
-            deltaMap.each { k, v ->
-                String axisName = k
+        Map<String, Map<Long, ColumnDelta>> deltaMap = deltaSet[DELTA_AXES_COLUMNS] as Map
+        deltaMap.each { k, v ->
+            String axisName = k
+            Axis axis = mergeTarget.getAxis(axisName)
+            if (!axis.reference)
+            {
                 Map<Long, ColumnDelta> colChanges = v
-
                 for (ColumnDelta colDelta : colChanges.values())
                 {
                     Column column = colDelta.column
-                    Axis axis = mergeTarget.getAxis(axisName)
-
                     if (DELTA_COLUMN_ADD == colDelta.changeType)
                     {
                         Comparable value = axis.getValueToLocateColumn(column)
@@ -410,31 +399,34 @@ class DeltaProcessor
 
         if (changeAxis.reference && baseAxis.reference)
         {   // Record desired change reference axis info
-            ref.ref_tenant = changeApp.tenant
-            ref.ref_app = changeApp.app
-            ref.ref_version = changeApp.version
-            ref.ref_status = changeApp.status
-            ref.ref_branch = changeApp.branch
-            ref.ref_cube = changeAxis.referenceCubeName
-            ref.ref_axis = changeAxis.referenceAxisName
+            if (!areReferenceAxesEqual(baseAxis, changeAxis))
+            {
+                ref.ref_tenant = changeApp.tenant
+                ref.ref_app = changeApp.app
+                ref.ref_version = changeApp.version
+                ref.ref_status = changeApp.status
+                ref.ref_branch = changeApp.branch
+                ref.ref_cube = changeAxis.referenceCubeName
+                ref.ref_axis = changeAxis.referenceAxisName
 
-            if (changeAxis.referenceTransformed)
-            {
-                ref.tx_app = changeTxApp.app
-                ref.tx_version = changeTxApp.version
-                ref.tx_status = changeTxApp.status
-                ref.tx_branch = changeTxApp.branch
-                ref.tx_cube = changeAxis.transformCubeName
-                ref.tx_method = changeAxis.transformMethodName
-            }
-            else
-            {
-                ref.tx_app = null
-                ref.tx_version = null
-                ref.tx_status = null
-                ref.tx_branch = null
-                ref.tx_cube = null
-                ref.tx_method = null
+                if (changeAxis.referenceTransformed)
+                {
+                    ref.tx_app = changeTxApp.app
+                    ref.tx_version = changeTxApp.version
+                    ref.tx_status = changeTxApp.status
+                    ref.tx_branch = changeTxApp.branch
+                    ref.tx_cube = changeAxis.transformCubeName
+                    ref.tx_method = changeAxis.transformMethodName
+                }
+                else
+                {
+                    ref.tx_app = null
+                    ref.tx_version = null
+                    ref.tx_status = null
+                    ref.tx_branch = null
+                    ref.tx_cube = null
+                    ref.tx_method = null
+                }
             }
         }
         else if (changeAxis.reference != baseAxis.reference)
@@ -443,6 +435,16 @@ class DeltaProcessor
         }
 
         return axisDeltas
+    }
+
+    private static boolean areReferenceAxesEqual(Axis baseAxis, Axis changeAxis)
+    {
+        return (baseAxis.referencedApp == changeAxis.referencedApp
+            && baseAxis.referenceCubeName == changeAxis.referenceCubeName
+            && baseAxis.referenceAxisName == changeAxis.referenceAxisName
+            && baseAxis.transformApp == changeAxis.transformApp
+            && baseAxis.transformCubeName == changeAxis.transformCubeName
+            && baseAxis.transformMethodName == changeAxis.transformMethodName)
     }
 
     /**
