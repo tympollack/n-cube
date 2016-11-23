@@ -146,7 +146,7 @@ WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND tenant_cd
         {
             return cube
         }
-        throw new IllegalArgumentException('Unable to find cube: ' + cubeName + ', app: ' + appId + ' with SHA-1: ' + sha1)
+        throw new IllegalArgumentException("Unable to find cube: ${cubeName}, app: ${appId} with SHA-1: ${sha1}")
     }
 
     static List<NCubeInfoDto> getRevisions(Connection c, ApplicationID appId, String cubeName, boolean ignoreVersion)
@@ -183,7 +183,7 @@ ORDER BY abs(revision_number) DESC
 
         if (records.isEmpty())
         {
-            throw new IllegalArgumentException("Cannot fetch revision history for cube: " + cubeName + " as it does not exist in app: " + appId)
+            throw new IllegalArgumentException("Cannot fetch revision history for cube: ${cubeName} as it does not exist in app: ${appId}")
         }
         return records
     }
@@ -199,8 +199,7 @@ ORDER BY abs(revision_number) DESC
 /* ${methodName}.insertCubeBytes */
 INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, revision_number,
 sha1, head_sha1, create_dt, create_hid, ${CUBE_VALUE_BIN}, test_data_bin, notes_bin, changed)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-""")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             long uniqueId = UniqueIdGenerator.uniqueId
             s.setLong(1, uniqueId)
             s.setString(2, appId.tenant)
@@ -242,7 +241,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             {
                 return dto
             }
-            throw new IllegalStateException('Unable to insert cube: ' + name + ' into database, app: ' + appId + ', attempted action: ' + notes)
+            throw new IllegalStateException("Unable to insert cube: ${name} into database, app: ${appId}, attempted action: ${notes}")
         }
         finally
         {
@@ -307,7 +306,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             {
                 return dto
             }
-            throw new IllegalStateException('Unable to insert cube: ' + cube.name + ' into database, app: ' + appId + ", attempted action: " + notes)
+            throw new IllegalStateException("Unable to insert cube: ${cube.name} into database, app: ${appId}, attempted action: ${notes}")
         }
         finally
         {
@@ -356,11 +355,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 Long revision = null
                 runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
                     revision = row.getLong('revision_number')
-                    addBatchInsert(stmt, row, appId, cubeName, -(revision + 1), 'deleted, txId: [' + txId + ']', username, ++count)
+                    addBatchInsert(stmt, row, appId, cubeName, -(revision + 1i), "deleted, txId: [${txId}]", username, ++count)
                 })
                 if (revision == null)
                 {
-                    throw new IllegalArgumentException("Cannot delete cube: " + cubeName + " as it does not exist in app: " + appId)
+                    throw new IllegalArgumentException("Cannot delete cube: ${cubeName} as it does not exist in app: ${appId}")
                 }
             }
             if (count % EXECUTE_BATCH_CONSTANT != 0)
@@ -396,7 +395,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                                            (METHOD_NAME) : 'restoreCubes'] as Map
             int count = 0
             long txId = UniqueIdGenerator.uniqueId
-            final String msg = 'restored, txId: [' + txId + ']'
+            final String msg = "restored, txId: [${txId}]"
 
             names.each { String cubeName ->
                 Long revision = null
@@ -407,7 +406,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
                 if (revision == null)
                 {
-                    throw new IllegalArgumentException("Cannot restore cube: " + cubeName + " as it not deleted in app: " + appId)
+                    throw new IllegalArgumentException("Cannot restore cube: ${cubeName} as it not deleted in app: ${appId}")
                 }
             }
             if (count % EXECUTE_BATCH_CONSTANT != 0)
@@ -500,7 +499,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                         maxRevision = Math.abs(maxRevision as long) + 1
                     }
 
-                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, 'updated from ' + branch + ', txId: [' + txId + ']', false, sha1, sha1, username, 'pullToBranch')
+                    NCubeInfoDto dto = insertCube(c, appId, cubeName, maxRevision, jsonBytes, testData, "updated from ${branch}, txId: [${txId}]", false, sha1, sha1, username, 'pullToBranch')
                     infoRecs.add(dto)
                 }
             }
@@ -570,12 +569,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
         if (oldRevision == null)
         {   // not found
-            throw new IllegalArgumentException("Could not duplicate cube because cube does not exist, app:  " + oldAppId + ", name: " + oldName)
+            throw new IllegalArgumentException("Could not duplicate cube because cube does not exist, app: ${oldAppId}, name: ${oldName}")
         }
 
         if (oldRevision < 0)
         {
-            throw new IllegalArgumentException("Unable to duplicate deleted cube, app:  " + oldAppId + ", name: " + oldName)
+            throw new IllegalArgumentException("Unable to duplicate deleted cube, app: ${oldAppId}, name: ${oldName}")
         }
 
         Long newRevision = null
@@ -638,12 +637,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
         if (oldRevision == null)
         {   // not found
-            throw new IllegalArgumentException("Could not rename cube because cube does not exist, app:  " + appId + ", name: " + oldName)
+            throw new IllegalArgumentException("Could not rename cube because cube does not exist, app: ${appId}, name: ${oldName}")
         }
 
         if (oldRevision != null && oldRevision < 0)
         {
-            throw new IllegalArgumentException("Deleted cubes cannot be renamed (restore it first).  AppId:  " + appId + ", " + oldName + " -> " + newName)
+            throw new IllegalArgumentException("Deleted cubes cannot be renamed (restore it first), app: ${appId}, ${oldName} -> ${newName}")
         }
 
         Long newRevision = null
@@ -844,7 +843,7 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
                 Long madMaxRev = getMaxRevision(c, appId, cubeName, 'rollbackCubes')
                 if (madMaxRev == null)
                 {
-                    LOG.info('Attempt to rollback non-existing cube: ' + cubeName + ', app: ' + appId)
+                    LOG.info("Attempt to rollback non-existing cube: ${cubeName}, app: ${appId}")
                 }
                 else
                 {
@@ -972,11 +971,11 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         int count = sql.executeUpdate(map, '/* updateBranchCubeHeadSha1 */ UPDATE n_cube set head_sha1 = :sha1 WHERE n_cube_id = :id')
         if (count == 0)
         {
-            throw new IllegalArgumentException("error updating branch cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", no record found.")
+            throw new IllegalArgumentException("error updating branch cube: ${cubeId}, to HEAD SHA-1: ${headSha1}, no record found.")
         }
         if (count != 1)
         {
-            throw new IllegalStateException("error updating branch cube: " + cubeId + ", to HEAD SHA-1: " + headSha1 + ", more than one record found: " + count)
+            throw new IllegalStateException("error updating branch cube: ${cubeId}, to HEAD SHA-1: ${headSha1}, more than one record found: ${count}")
         }
         return true
     }
@@ -997,7 +996,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         if (headRevision == null)
         {
-            throw new IllegalStateException("failed to update branch cube because HEAD cube does not exist: " + cubeName + ", app: " + appId)
+            throw new IllegalStateException("failed to update branch cube because HEAD cube does not exist: ${cubeName}, app: ${appId}")
         }
 
         Long newRevision = null
@@ -1019,7 +1018,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         if (newRevision == null)
         {
-            throw new IllegalStateException("failed to update branch cube because branch cube does not exist: " + cubeName + ", app: " + appId)
+            throw new IllegalStateException("failed to update branch cube because branch cube does not exist: ${cubeName}, app: ${appId}")
         }
 
         String notes = 'merge: branch accepted over head'
@@ -1206,7 +1205,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
                 insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ('branch ' + targetAppId.version + ' copied from ' + srcAppId.app + ' / ' + srcAppId.version + '-' + srcAppId.status + ' / ' + srcAppId.branch).getBytes('UTF-8'))
+                insert.setBytes(10, ("target ${targetAppId} copied from ${srcAppId}").getBytes('UTF-8'))
                 insert.setString(11, targetAppId.tenant)
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
@@ -1244,7 +1243,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
     {
         if (doCubesExist(c, targetAppId, true, 'copyBranch'))
         {
-            throw new IllegalStateException("Branch '" + targetAppId.branch + "' already exists, app: " + targetAppId)
+            throw new IllegalStateException("Branch '${targetAppId.branch}' already exists, app: ${targetAppId}")
         }
 
         Map<String, Object> options = [(METHOD_NAME): 'copyBranch'] as Map
@@ -1268,7 +1267,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
                 insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ('branch ' + targetAppId.version + ' full copied from ' + srcAppId.app + ' / ' + srcAppId.version + '-' + srcAppId.status + ' / ' + srcAppId.branch).getBytes('UTF-8'))
+                insert.setBytes(10, ("target ${targetAppId} full copied from ${srcAppId}").getBytes('UTF-8'))
                 insert.setString(11, targetAppId.tenant)
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, row.getLong('revision_number'))
@@ -1318,8 +1317,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
 /* ${methodName}.runSelectAllCubesInBranch */
 SELECT n_cube_nm, notes_bin, create_dt, create_hid, revision_number, changed, sha1, head_sha1, test_data_bin, ${CUBE_VALUE_BIN}, notes_bin
 FROM n_cube
-WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
-"""
+WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch"""
 
         sql.eachRow(map, select, { ResultSet row ->
             if (row.fetchSize < FETCH_SIZE)
@@ -1369,7 +1367,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
         ApplicationID newSnapshot = appId.createNewSnapshotId(newVersion)
         if (doCubesExist(c, newSnapshot, true, 'changeVersionValue'))
         {
-            throw new IllegalStateException("Cannot change version value to " + newVersion + " because cubes with this version already exists.  Choose a different version number, app: " + appId)
+            throw new IllegalStateException("Cannot change version value to ${newVersion} because cubes with this version already exists.  Choose a different version number, app: ${appId}")
         }
 
         Map map = appId as Map
@@ -1380,7 +1378,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
         int count = sql.executeUpdate(map, "/* changeVersionValue */ UPDATE n_cube SET version_no_cd = :newVer WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch")
         if (count < 1)
         {
-            throw new IllegalArgumentException("No SNAPSHOT n-cubes found with version " + appId.version + ", therefore no versions updated, app: " + appId)
+            throw new IllegalArgumentException("No SNAPSHOT n-cubes found with version ${appId.version}, therefore no versions updated, app: ${appId}")
         }
         return count
     }
@@ -1391,7 +1389,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
 
         if (maxRev == null)
         {
-            throw new IllegalArgumentException("Cannot update test data, cube: " + cubeName + " does not exist in app: " + appId)
+            throw new IllegalArgumentException("Cannot update test data, cube: ${cubeName} does not exist in app: ${appId}")
         }
 
         Map map = [testData: StringUtilities.getUTF8Bytes(testData), tenant: padTenant(c, appId.tenant),
@@ -1431,7 +1429,7 @@ ORDER BY abs(revision_number) DESC"""
 
         if (!found)
         {
-            throw new IllegalArgumentException('Could not fetch test data, cube: ' + cubeName + ' does not exist in app: ' + appId)
+            throw new IllegalArgumentException("Could not fetch test data, cube: ${cubeName} does not exist in app: ${appId}")
         }
         return testBytes == null ? '' : new String(testBytes, "UTF-8")
     }
@@ -1441,7 +1439,7 @@ ORDER BY abs(revision_number) DESC"""
         Long maxRev = getMaxRevision(c, appId, cubeName, 'updateNotes')
         if (maxRev == null)
         {
-            throw new IllegalArgumentException("Cannot update notes, cube: " + cubeName + " does not exist in app: " + appId)
+            throw new IllegalArgumentException("Cannot update notes, cube: ${cubeName} does not exist in app: ${appId}")
         }
 
         Map map = appId as Map
@@ -1464,7 +1462,7 @@ AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revi
     {
         if (StringUtilities.isEmpty(tenant))
         {
-            throw new IllegalArgumentException('error calling getAppVersions(), tenant (' + tenant + ') cannot be null or empty')
+            throw new IllegalArgumentException("error calling getAppVersions(), tenant cannot be null or empty")
         }
         Map map = [tenant: padTenant(c, tenant)]
         Sql sql = new Sql(c)
@@ -1484,7 +1482,7 @@ AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revi
     {
         if (StringUtilities.isEmpty(tenant) || StringUtilities.isEmpty(app))
         {
-            throw new IllegalArgumentException('error calling getAppVersions() tenant (' + tenant + ') or app (' + app +') cannot be null or empty')
+            throw new IllegalArgumentException("error calling getAppVersions() tenant: ${tenant} or app: ${app} cannot be null or empty")
         }
         Sql sql = new Sql(c)
         Map map = [tenant: padTenant(c, tenant), app:app]
