@@ -811,7 +811,7 @@ class NCube<T>
             if (cellValue instanceof CommandCell)
             {
                 Map ctx = prepareExecutionContext(coordinate, output)
-                return (T) executeExpression(ctx, cellValue)
+                return (T) executeExpression(ctx, cellValue as CommandCell)
             }
             else
             {
