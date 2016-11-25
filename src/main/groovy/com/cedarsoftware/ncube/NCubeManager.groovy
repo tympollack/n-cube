@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
+import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.IOUtilities
@@ -670,6 +671,19 @@ class NCubeManager
         ApplicationID.validateTenant(tenant)
         ApplicationID.validateApp(app)
         return persister.getVersions(tenant, app)
+    }
+
+    /**
+     * Get the lastest version for the given tenant, app, and SNAPSHOT or RELEASE.
+     * @return String version number in the form "major.minor.patch" where each of the
+     * values (major, minor, patch) is numeric.
+     */
+    static String getLatestVersion(String tenant, String app, String releaseStatus)
+    {
+        Map<String, List<String>> versionsMap = getVersions(tenant, app)
+        Set<String> versions = new TreeSet<>(new VersionComparator())
+        versions.addAll(versionsMap[releaseStatus])
+        return versions.first() as String
     }
 
     /**
