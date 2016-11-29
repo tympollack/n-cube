@@ -174,42 +174,57 @@ abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        // check L3 cache
         GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
         String groovySource = ret.source as String
-        String L3CacheKey = sourceAndFlagsToSha1(groovySource).intern()
-        byte[] rootClassBytes = getRootClassFromL3("${L3CacheKey}.class")
 
-        if (rootClassBytes != null)
+        // TODO: Remove the code below once L3 cache is completed
+        synchronized (GroovyBase.class)
         {
-            synchronized (L3CacheKey)
-            {
-                Class clazz = L2Cache[L2CacheKey]
-                if (clazz != null)
-                {   // Another thread defined and persisted the class while this thread was blocked...
-                    return
-                }
-                Class root = defineClass(gcLoader, rootClassBytes)
-                defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
-                setRunnableCode(root)
-                L2Cache[L2CacheKey] = root
+            if (L2Cache.containsKey(L2CacheKey))
+            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+                setRunnableCode(L2Cache[L2CacheKey])
+                return
             }
-            return
+
+            Class clazz = gcLoader.parseClass(groovySource, 'N_' + L2CacheKey + '.groovy')
+            L2Cache[L2CacheKey] = clazz
+            setRunnableCode(clazz)
         }
 
-        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
-//        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
-        try
-        {
-            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
-            // correct class loader to use when inside a container.
-//            Thread.currentThread().contextClassLoader = gcLoader
-            compile(gcLoader, groovySource, L3CacheKey, ctx)
-        }
-        finally
-        {
-//            Thread.currentThread().contextClassLoader = originalClassLoader
-        }
+        // check L3 cache
+//        String L3CacheKey = sourceAndFlagsToSha1(groovySource).intern()
+//        byte[] rootClassBytes = getRootClassFromL3("${L3CacheKey}.class")
+//
+//        if (rootClassBytes != null)
+//        {
+//            synchronized (L3CacheKey)
+//            {
+//                Class clazz = L2Cache[L2CacheKey]
+//                if (clazz != null)
+//                {   // Another thread defined and persisted the class while this thread was blocked...
+//                    return
+//                }
+//                Class root = defineClass(gcLoader, rootClassBytes)
+//                defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
+//                setRunnableCode(root)
+//                L2Cache[L2CacheKey] = root
+//            }
+//            return
+//        }
+//
+//        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
+////        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
+//        try
+//        {
+//            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
+//            // correct class loader to use when inside a container.
+////            Thread.currentThread().contextClassLoader = gcLoader
+////            compile(gcLoader, groovySource, L3CacheKey, ctx)
+//        }
+//        finally
+//        {
+////            Thread.currentThread().contextClassLoader = originalClassLoader
+//        }
     }
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
@@ -302,6 +317,7 @@ abstract class GroovyBase extends UrlCommandCell
         catch (ClassCircularityError e)
         {
             e.printStackTrace()
+            return null
         }
         catch (LinkageError ignored)
         {
