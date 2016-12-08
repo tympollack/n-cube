@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.EncryptionUtilities
+import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.UrlUtilities
@@ -327,14 +328,14 @@ abstract class GroovyBase extends UrlCommandCell
         }
         catch (LinkageError ignored)
         {
-            Class clazz = Class.forName(getClassName(byteCode), false, loader)
+            Class clazz = Class.forName(ReflectionUtils.getClassName(byteCode), false, loader)
             return clazz
         }
         catch (Throwable t)
         {
             if (byteCode != null)
             {
-                LOG.warn("Unable to defineClass: ${getClassName(byteCode)}", t)
+                LOG.warn("Unable to defineClass: ${ReflectionUtils.getClassName(byteCode)}", t)
             }
             else
             {
@@ -342,43 +343,6 @@ abstract class GroovyBase extends UrlCommandCell
             }
             return null
         }
-    }
-
-    public static String getClassName(byte[] byteCode) throws Exception
-    {
-        InputStream is = new ByteArrayInputStream(byteCode)
-        DataInputStream dis = new DataInputStream(is)
-        dis.readLong() // skip header and class version
-        int cpcnt = (dis.readShort() & 0xffff) - 1
-        int[] classes = new int[cpcnt]
-        String[] strings = new String[cpcnt]
-        for (int i=0; i < cpcnt; i++)
-        {
-            int t = dis.read()
-            if (t == 7)
-            {
-                classes[i] = dis.readShort() & 0xffff
-            }
-            else if (t == 1)
-            {
-                strings[i] = dis.readUTF()
-            }
-            else if (t == 5 || t == 6)
-            {
-                dis.readLong()
-                i++;
-            }
-            else if (t == 8)
-            {
-                dis.readShort()
-            }
-            else
-            {
-                dis.readInt()
-            }
-        }
-        dis.readShort() // skip access flags
-        return strings[classes[(dis.readShort() & 0xffff) - 1] - 1].replace('/', '.')
     }
 
     protected Map getClassLoaderAndSource(Map<String, Object> ctx)
