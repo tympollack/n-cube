@@ -3386,6 +3386,7 @@ class TestWithPreloadedDatabase
     @Test
     void testUpdateConsumerUpdateHeadUpdateSame()
 	{
+        //Includes additional checks to verify changed flag on update, commit and updateBranch
         preloadCubes(BRANCH2, "test.branch.1.json")
         VersionControl.commitBranch(BRANCH2)
         NCubeManager.copyBranch(HEAD, BRANCH1)
@@ -3393,11 +3394,17 @@ class TestWithPreloadedDatabase
         NCube producerCube = NCubeManager.loadCube(BRANCH2, 'TestBranch')
         producerCube.setCell('AAA', [Code : -15])
         NCubeManager.updateCube(BRANCH2, producerCube)
+        NCubeInfoDto producerDto = NCubeManager.search(BRANCH2, 'TestBranch', null, null)[0]
+        assert producerDto.changed
         VersionControl.commitBranch(BRANCH2)
+        producerDto = NCubeManager.search(BRANCH2, 'TestBranch', null, null)[0]
+        assert !producerDto.changed
 
         NCube consumerCube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
         consumerCube.setCell('AAA', [Code : -15])
         NCubeManager.updateCube(BRANCH1, consumerCube)
+        NCubeInfoDto consumerDto = NCubeManager.search(BRANCH1, 'TestBranch', null, null)[0]
+        assert consumerDto.changed
 
         Map<String, Object> result = VersionControl.updateBranch(BRANCH1)
         assert (result[VersionControl.BRANCH_ADDS] as Map).size() == 0
@@ -3406,6 +3413,8 @@ class TestWithPreloadedDatabase
         assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
         assert (result[VersionControl.BRANCH_FASTFORWARDS] as Map).size() == 1
         assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
+        consumerDto = NCubeManager.search(BRANCH1, 'TestBranch', null, null)[0]
+        assert !consumerDto.changed
     }
 
     @Test

@@ -953,6 +953,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
      * Fast forward branch cube to HEAD cube, because even though it's HEAD_SHA-1 value is out-of-date,
      * the cubes current SHA-1 is the same as the HEAD cube's SHA-1.  Therefore, we can 'scoot' up the
      * cube record's HEAD-SHA-1 value to the same as the HEAD Cube's SHA-1.
+     * In addition, reset the changed flag to 0.
      */
     static boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String headSha1)
     {
@@ -968,7 +969,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         Map map = [sha1:headSha1, id: cubeId]
         Sql sql = new Sql(c)
-        int count = sql.executeUpdate(map, '/* updateBranchCubeHeadSha1 */ UPDATE n_cube set head_sha1 = :sha1 WHERE n_cube_id = :id')
+        int count = sql.executeUpdate(map, '/* updateBranchCubeHeadSha1 */ UPDATE n_cube set head_sha1 = :sha1, changed = 0 WHERE n_cube_id = :id')
         if (count == 0)
         {
             throw new IllegalArgumentException("error updating branch cube: ${cubeId}, to HEAD SHA-1: ${headSha1}, no record found.")
