@@ -516,31 +516,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
                                        (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
                                        (NCubeManager.SEARCH_EXACT_MATCH_NAME): true,
-                                       (NCubeManager.SEARCH_INCLUDE_HEAD): true,
                                        (METHOD_NAME) : 'updateCube'] as Map
-        List<NCubeInfoDto> cubes = search(c, appId, cube.name, null, options)
-        if (cubes.empty || (cubes.size() == 1 && cubes[0].branch == ApplicationID.HEAD))
-        {   // Add case
-            insertCube(c, appId, cube, 0L, null, "created", true, null, username, 'updateCube')
-        }
-        else
-        {
-            if (cubes.size() != 2)
-            {
-                throw new IllegalStateException("Found ${cubes.size()} n-cubes when updating ${cube.name}. Should only find 2.")
-            }
-            NCubeInfoDto headCube = cubes[0]
-            NCubeInfoDto branchCube = cubes[1]
-            if (ApplicationID.HEAD != headCube.branch)
-            {
-                headCube = cubes[1]
-                branchCube = cubes[0]
-            }
-
-            String headSha1 = headCube.sha1
-
-        }
-
         boolean rowFound = false
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
             rowFound = true
@@ -554,18 +530,15 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
             String headSha1 = row.getString('head_sha1')
             String oldSha1 = row.getString('sha1')
-            boolean changed = row.getBoolean(CHANGED)
 
-            // TODO: 1 Fetch SHA-1 of HEAD CUBE (if it exists)
-            // TODO: If it does exist, see if it matches.  If it matches, fast-fwd this n-cube
-            // TODO: If it does not exist or does not match, then do normal update (as it was below)
             if (StringUtilities.equals(oldSha1, cube.sha1()) && revision >= 0)
             {
                 // SHA-1's are equal and both revision values are positive.  No need for new revision of record.
                 return
             }
 
-            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "updated", true, headSha1, username, 'updateCube')
+            boolean changed = cube.sha1() != headSha1
+            insertCube(c, appId, cube, Math.abs(revision as long) + 1, testData, "updated", changed, headSha1, username, 'updateCube')
         })
 
         // Add Case - No existing row found, then create a new cube (updateCube can be used for update or create)
@@ -1126,7 +1099,6 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA])
         boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA])
         boolean includeNotes = toBoolean(options[NCubeManager.SEARCH_INCLUDE_NOTES])
-        boolean includeHead = toBoolean(options[NCubeManager.SEARCH_INCLUDE_HEAD])
         boolean changedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_CHANGED_RECORDS_ONLY])
         boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY])
         boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY])
@@ -1162,7 +1134,6 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         String testCondition = includeTestData ? ', n.test_data_bin' : ''
         String cubeCondition = includeCubeData ? ', n.cube_value_bin' : ''
         String notesCondition = includeNotes ? ', n.notes_bin' : ''
-        String branches = includeHead ? ":branch,${ApplicationID.HEAD}" : ":branch"
 
         Sql sql = new Sql(c)
 
@@ -1172,10 +1143,10 @@ SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.statu
 FROM n_cube n,
 ( SELECT LOWER(n_cube_nm) as low_name, max(abs(revision_number)) AS max_rev
  FROM n_cube
- WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id in (${branches})
+ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
  ${nameCondition1}
  GROUP BY LOWER(n_cube_nm) ) m
-WHERE m.low_name = LOWER(n.n_cube_nm) AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND tenant_cd = :tenant AND n.branch_id in (${branches})
+WHERE m.low_name = LOWER(n.n_cube_nm) AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND tenant_cd = :tenant AND n.branch_id = :branch
 ${revisionCondition} ${changedCondition} ${nameCondition2}"""
 
         if (max >= 1)
