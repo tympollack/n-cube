@@ -67,7 +67,6 @@ class NCubeManager
     public static final String SEARCH_DELETED_RECORDS_ONLY = 'deletedRecordsOnly'
     public static final String SEARCH_ACTIVE_RECORDS_ONLY = 'activeRecordsOnly'
     public static final String SEARCH_CHANGED_RECORDS_ONLY = 'changedRecordsOnly'
-    public static final String SEARCH_INCLUDE_HEAD = 'includeHead'
     public static final String SEARCH_EXACT_MATCH_NAME = 'exactMatchName'
     public static final String SEARCH_FILTER_INCLUDE = 'includeTags'
     public static final String SEARCH_FILTER_EXCLUDE = 'excludeTags'
