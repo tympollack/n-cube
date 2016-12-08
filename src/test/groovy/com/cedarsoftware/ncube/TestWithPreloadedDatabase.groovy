@@ -59,7 +59,7 @@ class TestWithPreloadedDatabase
     private TestingDatabaseManager manager
 
     @Before
-    public void setup()
+    void setup()
     {
         manager = testingDatabaseManager
         manager.setUp()
@@ -68,7 +68,7 @@ class TestWithPreloadedDatabase
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         manager.removeBranches(branches)
         manager.tearDown()
@@ -77,12 +77,12 @@ class TestWithPreloadedDatabase
         NCubeManager.clearCache()
     }
 
-    TestingDatabaseManager getTestingDatabaseManager()
+    static TestingDatabaseManager getTestingDatabaseManager()
     {
         return TestingDatabaseHelper.testingDatabaseManager
     }
 
-    NCubePersister getNCubePersister()
+    static NCubePersister getNCubePersister()
     {
         return TestingDatabaseHelper.persister
     }
@@ -162,7 +162,7 @@ class TestWithPreloadedDatabase
             assertNull(e.axisName)
             assertNull(e.value)
         }
-        catch (Exception e)
+        catch (Exception ignored)
         {
             fail("should throw CoordinateNotFoundException")
         }
@@ -189,7 +189,7 @@ class TestWithPreloadedDatabase
             assertEquals("value", e.value)
 
         }
-        catch (Exception e)
+        catch (Exception ignored)
         {
             fail("should throw CoordinateNotFoundException")
         }
@@ -218,7 +218,7 @@ class TestWithPreloadedDatabase
             assertEquals(['coord1','coord2'] as  Set,invalidException.coordinateKeys)
             assertEquals(['req1','req2'] as Set, invalidException.requiredKeys)
        }
-        catch (Exception e)
+        catch (Exception ignored)
         {
             fail("should throw InvalidCoordinateException")
         }
@@ -295,6 +295,40 @@ class TestWithPreloadedDatabase
 
         dtos = VersionControl.getBranchChangesForHead(BRANCH2)
         assertEquals(1, dtos.length)
+    }
+
+    @Test
+    void updateWithNoChangeClearsChangedFlag()
+    {
+        NCube cube1 = NCubeManager.getNCubeFromResource("test.branch.1.json")
+        NCubeManager.updateCube(BRANCH1, cube1)
+        VersionControl.commitBranch(BRANCH1)
+        List<NCubeInfoDto> cubes0 = NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        assert cubes0.size() == 1
+        NCubeInfoDto info0 = cubes0[0]
+        assert info0.revision == "0"
+        assert !info0.changed
+
+        cube1.setCell("XYZ", [code: 15])
+        NCubeManager.updateCube(BRANCH1, cube1)
+        List<NCubeInfoDto> cubes1 = NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        assert cubes1.size() == 1
+        NCubeInfoDto info1 = cubes1[0]
+        assert info1.id != info0.id
+        assert info1.revision == "1"
+        assert info1.sha1 != info0.sha1
+        assert info1.changed
+
+        cube1.removeCell([code: 15])
+        NCubeManager.updateCube(BRANCH1, cube1)
+        List<NCubeInfoDto> cubes2 = NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        assert cubes2.size() == 1
+        NCubeInfoDto info2 = cubes2[0]
+        assert info2.id != info1.id
+        assert info2.id != info0.id
+        assert info2.revision == "2"
+        assert info2.sha1 == info0.sha1
+        assert !info2.changed
     }
 
     @Test
@@ -2271,7 +2305,7 @@ class TestWithPreloadedDatabase
         VersionControl.commitBranch(BRANCH2, dtos)
 
         // Commit to branch 2 causes 1 pending update for BRANCH1
-        List dtos2 = VersionControl.getHeadChangesForBranch(BRANCH1)
+        List<NCubeInfoDto> dtos2 = VersionControl.getHeadChangesForBranch(BRANCH1)
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestAge'
 
@@ -4803,7 +4837,7 @@ class TestWithPreloadedDatabase
         dtos = VersionControl.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.length)
 
-        List dtos2 = VersionControl.getHeadChangesForBranch(BRANCH1)
+        List<NCubeInfoDto> dtos2 = VersionControl.getHeadChangesForBranch(BRANCH1)
         assert dtos2[0].name == 'TestBranch'
         assert dtos2[0].changeType == ChangeType.CONFLICT.code
         assert dtos2[0].sha1 != cube.sha1()
@@ -5657,7 +5691,7 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    public void testUserOverloadedClassPath()
+    void testUserOverloadedClassPath()
 	{
         preloadCubes(appId, "sys.classpath.user.overloaded.json", "sys.versions.json")
 
@@ -5721,7 +5755,7 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    public void testSystemParamsOverloads()
+    void testSystemParamsOverloads()
 	{
         preloadCubes(appId, "sys.classpath.system.params.user.overloaded.json", "sys.versions.2.json", "sys.resources.base.url.json")
 
@@ -5786,7 +5820,7 @@ class TestWithPreloadedDatabase
     }
 
     @Test
-    public void testClearCacheWithClassLoaderLoadedByCubeRequest()
+    void testClearCacheWithClassLoaderLoadedByCubeRequest()
 	{
 
         preloadCubes(appId, "sys.classpath.cp1.json", "GroovyMethodClassPath1.json")
