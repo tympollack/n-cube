@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.117
+ * Enhancement: When updating an n-cube, if the update makes the n-cube's SHA-1 match the SHA-1 of the HEAD n-cube it was based on, reset the dirty (changed) flag to 0 (not changed).  If someone manually edits an n-cube to get back to the same state it was when it was pulled from HEAD, it will reset the dirty flag - same as modern IDEs do when you edit the file and it matches it's original state.
+ * Enhancement: When updating your branch from HEAD, if an n-cube in your branch is fast-forwarded (meaning that it now matches HEAD because of a change someone else committed to HEAD), the changed flag on the n-cube in your branch is cleared.
 * 3.4.116
  * Remove L3 cache (turn it off until it is completed)
  * Inside `NCubeManger.getUrlClassLoader()`, duplicate the input coordinate before calling `.getCell()` on the `sys.classpath.cube`. Also, pass a dummy output Map.  This way, `userId` and `env_level` do not end up on utilized scope.
