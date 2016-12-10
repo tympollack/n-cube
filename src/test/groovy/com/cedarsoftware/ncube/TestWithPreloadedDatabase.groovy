@@ -10,6 +10,7 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
+import static com.cedarsoftware.ncube.NCubeManager.NCUBE_ACCEPTED_DOMAINS
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
@@ -6131,7 +6132,8 @@ class TestWithPreloadedDatabase
     @Test
     void testDynamicallyLoadedCode()
     {
-        System.properties.setProperty(CdnClassLoader.NCUBE_ACCEPTED_DOMAINS, 'org.apache.')
+        String save = NCubeManager.systemParams[NCUBE_ACCEPTED_DOMAINS]
+        NCubeManager.systemParams[NCUBE_ACCEPTED_DOMAINS] = 'org.apache.'
         NCube ncube = NCubeBuilder.discrete1DEmpty
         GroovyExpression exp = new GroovyExpression('''\
 import org.apache.commons.collections.primitives.*
@@ -6143,10 +6145,17 @@ assert ints.size() == 1
 assert ints.get(0) == 42
 return ints''', null, false)
         ncube.setCell(exp, [state: 'OH'])
-
         def x = ncube.getCell([state: 'OH'])
-//        println x
         assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.class.name
+
+        if (save)
+        {
+            NCubeManager.systemParams[NCUBE_ACCEPTED_DOMAINS] = save
+        }
+        else
+        {
+            NCubeManager.systemParams.remove(NCUBE_ACCEPTED_DOMAINS)
+        }
     }
 
     @Test

@@ -98,11 +98,12 @@ class NCubeManager
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
-    static final String NCUBE_PARAMS = 'NCUBE_PARAMS'
-    static final String NCUBE_PARAMS_BYTE_CODE_DEBUG = 'byteCodeDebug'
-    static final String NCUBE_PARAMS_BYTE_CODE_VERSION = 'byteCodeVersion'
-    static final String NCUBE_PARAMS_TEMP_DIR = 'tempDir'
-    static final String NCUBE_PARAMS_BRANCH = 'branch'
+    public static final String NCUBE_PARAMS = 'NCUBE_PARAMS'
+    public static final String NCUBE_PARAMS_BYTE_CODE_DEBUG = 'byteCodeDebug'
+    public static final String NCUBE_PARAMS_BYTE_CODE_VERSION = 'byteCodeVersion'
+    public static final String NCUBE_ACCEPTED_DOMAINS = 'acceptedDomains'
+    public static final String NCUBE_PARAMS_TEMP_DIR = 'tempDir'
+    public static final String NCUBE_PARAMS_BRANCH = 'branch'
     private static NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManager.class)
 

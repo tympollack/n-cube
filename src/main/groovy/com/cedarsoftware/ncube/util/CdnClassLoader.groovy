@@ -1,12 +1,12 @@
 package com.cedarsoftware.ncube.util
 
-import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
 import groovy.transform.CompileStatic
 
 import java.util.concurrent.ConcurrentHashMap
+
+import static com.cedarsoftware.ncube.NCubeManager.NCUBE_ACCEPTED_DOMAINS
 
 /**
  *  @author Ken Partlow (kpartlow@gmail.com)
@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap
 @CompileStatic
 class CdnClassLoader extends GroovyClassLoader
 {
-    public static final String NCUBE_ACCEPTED_DOMAINS = 'NCUBE_ACCEPTED_DOMAINS'
     private final boolean _preventRemoteBeanInfo
     private final boolean _preventRemoteCustomizer
     private final Map<String, URL> resourceCache = new ConcurrentHashMap<>()
@@ -229,8 +228,8 @@ class CdnClassLoader extends GroovyClassLoader
         if (isLocalOnlyResource(name))
         {
             Enumeration<URL> nullEnum = new Enumeration() {
-                public boolean hasMoreElements() { return false }
-                public URL nextElement() { throw new NoSuchElementException() }
+                boolean hasMoreElements() { return false }
+                URL nextElement() { throw new NoSuchElementException() }
             }
             resourcesCache[name] = nullEnum
             return nullEnum

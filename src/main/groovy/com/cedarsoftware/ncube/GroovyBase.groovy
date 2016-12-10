@@ -442,7 +442,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     private static String getTargetByteCodeVersion()
     {
-        return NCubeManager.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION]
+        return NCubeManager.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
     }
 
     private static boolean isNCubeCodeGenDebug()

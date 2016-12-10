@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.118
+ * L3 Cache implementation complete.  Dynamically compiled code within n-cube cells is now written out to a temp folder and re-loaded (instead of being recompiled).  Set the `NCUBE_PARAMS.tempDir` value to where you would like the compiled .class files to go.  If not set, they will be placed in the system property 'java.io.tmpdir'.
 * 3.4.117
  * Enhancement: When updating an n-cube, if the update makes the n-cube's SHA-1 match the SHA-1 of the HEAD n-cube it was based on, reset the dirty (changed) flag to 0 (not changed).  If someone manually edits an n-cube to get back to the same state it was when it was pulled from HEAD, it will reset the dirty flag - same as modern IDEs do when you edit the file and it matches it's original state.
  * Enhancement: When updating your branch from HEAD, if an n-cube in your branch is fast-forwarded (meaning that it now matches HEAD because of a change someone else committed to HEAD), the changed flag on the n-cube in your branch is cleared.
