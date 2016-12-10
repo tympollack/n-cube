@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.119
+ * Bug fix: all compile code paths setRunnableCode().
 * 3.4.118
  * L3 Cache implementation complete.  Dynamically compiled code within n-cube cells is now written out to a temp folder and re-loaded (instead of being recompiled).  Set the `NCUBE_PARAMS.tempDir` value to where you would like the compiled .class files to go.  If not set, they will be placed in the system property 'java.io.tmpdir'.
 * 3.4.117
