@@ -68,7 +68,7 @@ class TestThreadedClearCache
 
     private void concurrencyTestWithAppId()
     {
-        long time = 8000L
+        long time = 1000L
         int numThreads = 8
         def run =
         {
