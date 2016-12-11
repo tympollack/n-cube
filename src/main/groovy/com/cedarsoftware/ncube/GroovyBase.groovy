@@ -65,6 +65,7 @@ abstract class GroovyBase extends UrlCommandCell
         TEMP_DIR = tempDir ?: System.getProperty("java.io.tmpdir")
         new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
         new File("${TEMP_DIR}/target/classes/").mkdirs()
+        LOG.info("TEMP_DIR=${TEMP_DIR}")
     }
 
     //  Private constructor only for serialization.
@@ -202,15 +203,14 @@ abstract class GroovyBase extends UrlCommandCell
             synchronized (L3CacheKey)
             {
                 code = L2Cache[L2CacheKey]
-                if (code != null)
-                {   // Another thread defined and persisted the class while this thread was blocked...
-                    return code
+                if (code == null)
+                {   // not in L2 (from prior thread), so retrieve from L3
+                    code = defineClass(gcLoader, rootClassBytes)
+                    defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
+                    L2Cache[L2CacheKey] = code
                 }
-                code = defineClass(gcLoader, rootClassBytes)
-                defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
-                L2Cache[L2CacheKey] = code
+                return code
             }
-            return code
         }
 
         // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
@@ -266,9 +266,9 @@ abstract class GroovyBase extends UrlCommandCell
                 urlClassName = url - '.groovy'
                 urlClassName = urlClassName.replace('/', '.')
             }
+
             int numClasses = classes.size()
             Class root = null
-
             byte[] mainClassBytes = null
 
             for (int i = 0; i < numClasses; i++)
@@ -298,6 +298,11 @@ abstract class GroovyBase extends UrlCommandCell
                 }
             }
 
+            if (root == null)
+            {
+                throw new IllegalStateException("No root class found in source. Root class should implement NCubeGroovyExpression. Groovy source: ${groovySource}")
+            }
+
             L2Cache[L2CacheKey] = root
 
             // Write root (main class)
@@ -321,7 +326,7 @@ abstract class GroovyBase extends UrlCommandCell
         }
         catch (ClassCircularityError e)
         {
-            LOG.warn("Attempting to defineClass() in GroovyBase", e)
+            LOG.warn(e)
             return null
         }
         catch (LinkageError ignored)
