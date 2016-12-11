@@ -4,7 +4,6 @@ import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
@@ -97,7 +96,7 @@ abstract class GroovyBase extends UrlCommandCell
         if (!runnableCode)
         {   // L1 cache miss
             Class code = prepare(cmd ?: url, ctx)
-            setRunnableCode(code)
+            setRunnableCode(code)   // Store in L1 cache
         }
         Object result = executeInternal(ctx)
         return result
@@ -194,8 +193,8 @@ abstract class GroovyBase extends UrlCommandCell
 //            return clazz
 //        }
 
-        // check L3 cache
-        String L3CacheKey = sourceAndFlagsToSha1(groovySource).intern()
+        // check L3 cache [begin]
+        String L3CacheKey = sourceToSha1(groovySource).intern()
         byte[] rootClassBytes = getRootClassFromL3("${L3CacheKey}.class")
 
         if (rootClassBytes != null)
@@ -213,7 +212,7 @@ abstract class GroovyBase extends UrlCommandCell
             }
         }
 
-        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
+        // Newly encountered source - compile the source and store it in L2 and L3 caches
         ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
         try
         {
@@ -227,6 +226,7 @@ abstract class GroovyBase extends UrlCommandCell
         {
             Thread.currentThread().contextClassLoader = originalClassLoader
         }
+        // check L3 cache [end]
     }
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
@@ -429,7 +429,7 @@ abstract class GroovyBase extends UrlCommandCell
      * @param groovySource String groovy source code
      * @return SHA-1 of source + flags, e.g., "groovySource-1.8-false"
      */
-    private String sourceAndFlagsToSha1(String groovySource)
+    private String sourceToSha1(String groovySource)
     {
         byte sep = 45   // hyphen
         MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
