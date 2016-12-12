@@ -41,7 +41,7 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Ignoreß
+    @Ignore
     void testConcurrencyWithDifferentFiles()
     {
         Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
