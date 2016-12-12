@@ -173,7 +173,7 @@ abstract class GroovyBase extends UrlCommandCell
         // check L2 cache
         Class code = L2Cache[L2CacheKey]
         if (code)
-        {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+        {   // Already been compiled, re-use class (different cell, but has identical source or URL as another expression).
             return code
         }
 
@@ -227,7 +227,7 @@ abstract class GroovyBase extends UrlCommandCell
             // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
             // correct class loader to use when inside a container.
             Thread.currentThread().contextClassLoader = gcLoader
-            code = compile(gcLoader, groovySource, L3CacheKey, ctx)
+            code = compile(gcLoader, groovySource, L3CacheKey, L2Cache)
             return code
         }
         finally
@@ -237,10 +237,8 @@ abstract class GroovyBase extends UrlCommandCell
         // check L3 cache [end]
     }
 
-    protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)
+    protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Class> L2Cache)
     {
-        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
-
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
         compilerConfiguration.targetBytecode = targetByteCodeVersion
         compilerConfiguration.debug = NCubeCodeGenDebug
@@ -254,11 +252,11 @@ abstract class GroovyBase extends UrlCommandCell
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
         compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
-        Class generatedClass = defineClasses(L2Cache, compilationUnit.classes, gcLoader, L3CacheKey, groovySource)
+        Class generatedClass = defineClasses(compilationUnit.classes, gcLoader, groovySource, L3CacheKey, L2Cache)
         return generatedClass
     }
 
-    protected Class defineClasses(Map<String, Class> L2Cache, List classes, GroovyClassLoader gcLoader, String L3CacheKey, String groovySource)
+    protected Class defineClasses(List classes, GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Class> L2Cache)
     {
         synchronized(L3CacheKey)
         {
