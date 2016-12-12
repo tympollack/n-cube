@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -40,7 +41,6 @@ class TestThreading
 
     private static final Logger LOG = LogManager.getLogger(GroovyExpression.class)
 
-
     @Parameterized.Parameters(name = "{0}")
     static Collection<Object[]> data() {
         def data = []
@@ -56,9 +56,9 @@ class TestThreading
         data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
 
         load = 50; threads = 5; count = 5
-        data << [ ['load':load*2,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-        data << [ ['load':load*2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-        data << [ ['load':load*2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
+        data << [ ['load':load * 2,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
+        data << [ ['load':load * 2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
+        data << [ ['load':load * 2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
 
 //        load = 25; threads = 5; count = 15
 //        data << [ ['load':load,'threads':threads,'count':count*10,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
@@ -73,17 +73,18 @@ class TestThreading
         return data as Object [][]
     }
 
-    public TestThreading(Map args) {
+    TestThreading(Map args)
+    {
         testArgs = args
     }
 
-    @Test
-    public void test() {
+    @Ignore
+    void test() {
         runTest testArgs
     }
 
     @Before
-    public void setUp()
+    void setUp()
     {
         TestingDatabaseHelper.setupDatabase()
         NCubeManager.getNCubeFromResource('sys.classpath.threading.json')
@@ -93,7 +94,7 @@ class TestThreading
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         TestingDatabaseHelper.tearDownDatabase()
     }
