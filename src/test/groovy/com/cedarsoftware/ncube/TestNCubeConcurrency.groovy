@@ -41,7 +41,7 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Ignore
+    @Test
     void testConcurrencyWithDifferentFiles()
     {
         Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
@@ -82,7 +82,6 @@ class TestNCubeConcurrency
         int numThreads = 8
         int timeToRun = 3000
         Thread[] threads = new Thread[numThreads]
-        long[] iter = new long[numThreads]
         NCube n1 = NCubeManager.getNCubeFromResource('urlContent.json')
         Map map = new ConcurrentHashMap()
         AtomicInteger count = new AtomicInteger(0)
@@ -91,28 +90,24 @@ class TestNCubeConcurrency
         {
             final int index = i
 
-            Runnable runnable = new Runnable() {
-                void run()
+            Runnable runnable = {
+                try
                 {
-                    try
+                    long start = System.currentTimeMillis()
+                    while (System.currentTimeMillis() - start < timeToRun)
                     {
-                        long start = System.currentTimeMillis()
-                        while (System.currentTimeMillis() - start < timeToRun)
+                        for (int j = 0; j < 100; j++)
                         {
-                            for (int j = 0; j < 100; j++)
-                            {
-                                map.put(n1.getCell([sites:site] as Map), true)
-                                count.incrementAndGet()
-                            }
-                            iter[index]++
+                            map.put(n1.getCell([sites:site] as Map), true)
+                            count.incrementAndGet()
                         }
                     }
-                    catch (Exception e)
-                    {
-                        e.printStackTrace()
-                    }
                 }
-            }
+                catch (Exception e)
+                {
+                    e.printStackTrace()
+                }
+            } as Runnable
             threads[i] = new Thread(runnable)
             threads[i].name = 'NCubeConcurrencyTest' + i
             threads[i].daemon = true
