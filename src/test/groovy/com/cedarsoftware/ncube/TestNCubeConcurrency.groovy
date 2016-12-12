@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import java.util.concurrent.ConcurrentHashMap
@@ -40,7 +41,7 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Test
+    @Ignoreß
     void testConcurrencyWithDifferentFiles()
     {
         Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
