@@ -3,7 +3,6 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import java.util.concurrent.ConcurrentHashMap
@@ -40,17 +39,19 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Ignore
+    @Test
     void testConcurrencyWithDifferentFiles()
     {
-        def test1 = { concurrencyTest('StringFromRemoteUrlBig') }
-        def test2 = { concurrencyTest('StringFromLocalUrl') }
-        def test3 = { concurrencyTest('BinaryFromRemoteUrl') }
-        def test4 = { concurrencyTest('BinaryFromLocalUrl') }
+        Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
+        Runnable test2 = { concurrencyTest('StringFromLocalUrl') } as Runnable
+        Runnable test3 = { concurrencyTest('BinaryFromRemoteUrl') } as Runnable
+        Runnable test4 = { concurrencyTest('BinaryFromLocalUrl') } as Runnable
+
         Thread t1 = new Thread(test1)
         Thread t2 = new Thread(test2)
         Thread t3 = new Thread(test3)
         Thread t4 = new Thread(test4)
+
         t1.name = 'test 1'
         t1.daemon = true
 
@@ -88,26 +89,29 @@ class TestNCubeConcurrency
         {
             final int index = i
 
-            def run = {
-                try
+            Runnable runnable = new Runnable() {
+                void run()
                 {
-                    long start = System.currentTimeMillis()
-                    while (System.currentTimeMillis() - start < timeToRun)
+                    try
                     {
-                        for (int j = 0; j < 100; j++)
+                        long start = System.currentTimeMillis()
+                        while (System.currentTimeMillis() - start < timeToRun)
                         {
-                            map.put(n1.getCell([sites:site] as Map), true)
-                            count.incrementAndGet()
+                            for (int j = 0; j < 100; j++)
+                            {
+                                map.put(n1.getCell([sites:site] as Map), true)
+                                count.incrementAndGet()
+                            }
+                            iter[index]++
                         }
-                        iter[index]++
+                    }
+                    catch (Exception e)
+                    {
+                        e.printStackTrace()
                     }
                 }
-                catch (Exception e)
-                {
-                    e.printStackTrace()
-                }
             }
-            threads[i] = new Thread(run)
+            threads[i] = new Thread(runnable)
             threads[i].name = 'NCubeConcurrencyTest' + i
             threads[i].daemon = true
         }
