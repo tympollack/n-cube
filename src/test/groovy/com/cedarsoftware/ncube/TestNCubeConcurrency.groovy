@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestNCubeConcurrency
 {
     @Before
@@ -78,7 +79,7 @@ class TestNCubeConcurrency
     private static void concurrencyTest(final String site)
     {
         int numThreads = 8
-        int timeToRun = 3000;
+        int timeToRun = 3000
         Thread[] threads = new Thread[numThreads]
         long[] iter = new long[numThreads]
         NCube n1 = NCubeManager.getNCubeFromResource('urlContent.json')
