@@ -71,7 +71,7 @@ abstract class GroovyBase extends UrlCommandCell
         }
         else
         {
-            LOG.info("TEMP_DIR not set; L3 cache not used, parallel compilation still available.")
+            LOG.info("TEMP_DIR not set; L3 cache starts empty in memory, parallel compilation still available.")
         }
     }
 
@@ -513,7 +513,7 @@ abstract class GroovyBase extends UrlCommandCell
         else
         {
             String prefix = "${cacheKey}-"
-            ALT_L3_CACHE.findAll { String key, byte[] byteCode ->
+            ALT_L3_CACHE.each { String key, byte[] byteCode ->
                 if (key.startsWith(prefix))
                 {
                     defineClass(gcLoader, byteCode)
