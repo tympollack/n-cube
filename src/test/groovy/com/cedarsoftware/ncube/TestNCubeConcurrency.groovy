@@ -28,13 +28,13 @@ import java.util.concurrent.atomic.AtomicInteger
 class TestNCubeConcurrency
 {
     @Before
-    public void initialize()
+    void initialize()
     {
         TestingDatabaseHelper.setupDatabase()
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         TestingDatabaseHelper.tearDownDatabase()
     }
