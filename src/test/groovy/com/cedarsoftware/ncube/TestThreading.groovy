@@ -78,7 +78,7 @@ class TestThreading
         testArgs = args
     }
 
-    @Ignore
+    @Test
     void test() {
         runTest testArgs
     }
@@ -227,6 +227,7 @@ class TestThreading
                             }
                         }
                     } as Runnable)
+                    t.daemon = true
                     threads << t
                 }
             }
@@ -283,13 +284,13 @@ class TestThreading
         }
     }
 
-    private NCube buildAccessCube(def maxThreads, def maxCount, def warm) {
+    private NCube buildAccessCube(int maxThreads, int maxCount, boolean warm) {
         LOG.info '==>Creating cube...'
         NCube threadCube = NCube.createCubeFromStream(new ByteArrayInputStream(threadDef.bytes))
         assertNotNull(threadCube)
         NCube cube = NCube.createCubeFromStream(new ByteArrayInputStream(threadCountDef.bytes))
-        Axis axisTid = cube.getAxis("tid");
-        Axis axisCnt = cube.getAxis("cnt");
+        Axis axisTid = cube.getAxis("tid")
+        Axis axisCnt = cube.getAxis("cnt")
         assertNotNull(cube)
         assertNotNull(axisTid)
         assertNotNull(axisCnt)
@@ -322,7 +323,7 @@ class TestThreading
         }
 
         LOG.debug 'recreating...'
-        cube = NCube.createCubeFromStream(new ByteArrayInputStream(cube.toFormattedJson().bytes));
+        cube = NCube.createCubeFromStream(new ByteArrayInputStream(cube.toFormattedJson().bytes))
         threadCube = NCube.createCubeFromStream(new ByteArrayInputStream(threadCube.toFormattedJson().bytes))
         NCubeManager.addCube(ApplicationID.testAppId,threadCube)
         NCubeManager.addCube(ApplicationID.testAppId,cube)
