@@ -33,7 +33,7 @@ import static org.junit.Assert.assertNotNull
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-public class TestThreading
+class TestThreading
 {
     private Map testArgs
     private NCube cp
@@ -42,7 +42,7 @@ public class TestThreading
 
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() {
+    static Collection<Object[]> data() {
         def data = []
 
         int sleep = 0L

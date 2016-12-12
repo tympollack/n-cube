@@ -56,15 +56,23 @@ abstract class GroovyBase extends UrlCommandCell
      * class (URL to groovy), yet have different source code for that class.
      */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
+    private static final ConcurrentMap<String, byte[]> ALT_L3_CACHE = new ConcurrentHashMap<>()
     private static final TEMP_DIR
 
     static
     {
         String tempDir = NCubeManager.systemParams[NCUBE_PARAMS_TEMP_DIR]
-        TEMP_DIR = tempDir ?: System.getProperty("java.io.tmpdir")
-        new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
-        new File("${TEMP_DIR}/target/classes/").mkdirs()
-        LOG.info("TEMP_DIR=${TEMP_DIR}")
+        TEMP_DIR = tempDir ?: null
+        if (TEMP_DIR)
+        {
+            new File("${TEMP_DIR}/src/main/groovy/").mkdirs()
+            new File("${TEMP_DIR}/target/classes/").mkdirs()
+            LOG.info("TEMP_DIR=${TEMP_DIR}")
+        }
+        else
+        {
+            LOG.info("TEMP_DIR not set; L3 cache not used, parallel compilation still available.")
+        }
     }
 
     //  Private constructor only for serialization.
@@ -195,7 +203,7 @@ abstract class GroovyBase extends UrlCommandCell
 
         // check L3 cache [begin]
         String L3CacheKey = sourceToSha1(groovySource).intern()
-        byte[] rootClassBytes = getRootClassFromL3("${L3CacheKey}.class")
+        byte[] rootClassBytes = getRootClassFromL3(L3CacheKey)
 
         if (rootClassBytes != null)
         {   // Found in L3 cache
@@ -205,7 +213,7 @@ abstract class GroovyBase extends UrlCommandCell
                 if (code == null)
                 {   // not in L2 (from prior thread), so retrieve from L3
                     code = defineClass(gcLoader, rootClassBytes)
-                    defineInnerClassesFromL3(~/^${L3CacheKey}.+\.class$/, gcLoader)
+                    defineInnerClassesFromL3(L3CacheKey, gcLoader)
                     L2Cache[L2CacheKey] = code
                 }
                 return code
@@ -294,7 +302,7 @@ abstract class GroovyBase extends UrlCommandCell
                 }
                 else
                 {   // cache (L3) inner class or other referenced classes
-                    cacheClassInL3("${L3CacheKey}-${i}.class", gclass.bytes)
+                    cacheClassInL3(L3CacheKey, i, gclass.bytes)
                 }
             }
 
@@ -307,7 +315,7 @@ abstract class GroovyBase extends UrlCommandCell
 
             // Write root (main class)
             cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
-            cacheClassInL3("${L3CacheKey}.class", mainClassBytes)
+            cacheClassInL3(L3CacheKey, -1, mainClassBytes)
             return root
         }
     }
@@ -453,26 +461,64 @@ abstract class GroovyBase extends UrlCommandCell
 
     // --------------------------------------------- L3 Cache APIs -----------------------------------------------------
 
-    private static void cacheClassInL3(String cacheKey, byte[] byteCode)
+    private static void cacheClassInL3(String cacheKey, int i, byte[] byteCode)
     {
-        new File("${TEMP_DIR}/target/classes/${cacheKey}").bytes = byteCode
+        if (TEMP_DIR)
+        {
+            String base = "${TEMP_DIR}/target/classes/${cacheKey}"
+            String name = i == -1 ? base : "${base}-${i}"
+            new File("${name}.class").bytes = byteCode
+        }
+        else
+        {
+            String key = i == -1 ? cacheKey : "${cacheKey}-${i}"
+            ALT_L3_CACHE[key] = byteCode
+        }
     }
 
     private static void cacheSourceInL3(String cacheKey, String source)
     {
-        new File("${TEMP_DIR}/src/main/groovy/${cacheKey}").bytes = StringUtilities.getUTF8Bytes(source)
+        if (TEMP_DIR)
+        {
+            new File("${TEMP_DIR}/src/main/groovy/${cacheKey}").bytes = StringUtilities.getUTF8Bytes(source)
+        }
+        else
+        {
+            // Don't bother - why waste the memory
+        }
     }
 
     private static byte[] getRootClassFromL3(String cacheKey)
     {
-        File byteCode = new File("${TEMP_DIR}/target/classes/${cacheKey}")
-        return byteCode.exists() ? byteCode.bytes : null
+        if (TEMP_DIR)
+        {
+            File byteCode = new File("${TEMP_DIR}/target/classes/${cacheKey}.class")
+            return byteCode.exists() ? byteCode.bytes : null
+        }
+        else
+        {
+            return ALT_L3_CACHE[cacheKey]
+        }
     }
 
-    private static void defineInnerClassesFromL3(Pattern pattern, GroovyClassLoader gcLoader)
+    private static void defineInnerClassesFromL3(String cacheKey, GroovyClassLoader gcLoader)
     {
-        new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
-            defineClass(gcLoader, file.bytes)
+        if (TEMP_DIR)
+        {
+            Pattern pattern = ~/^${cacheKey}.+\.class$/
+            new File("${TEMP_DIR}/target/classes/").eachFileMatch(pattern) { File file ->
+                defineClass(gcLoader, file.bytes)
+            }
+        }
+        else
+        {
+            String prefix = "${cacheKey}-"
+            ALT_L3_CACHE.findAll { String key, byte[] byteCode ->
+                if (key.startsWith(prefix))
+                {
+                    defineClass(gcLoader, byteCode)
+                }
+            }
         }
     }
 

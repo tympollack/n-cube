@@ -35,7 +35,7 @@ class TestThreadedClearCache
     private TestingDatabaseManager manager;
 
     @Before
-    public void setup()
+    void setup()
     {
         manager = TestingDatabaseHelper.testingDatabaseManager
         manager.setUp()
@@ -44,7 +44,7 @@ class TestThreadedClearCache
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         manager.tearDown()
         manager = null
