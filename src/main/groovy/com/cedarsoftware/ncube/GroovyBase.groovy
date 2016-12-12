@@ -213,7 +213,7 @@ abstract class GroovyBase extends UrlCommandCell
                 if (code == null)
                 {   // not in L2 (from prior thread), so retrieve from L3
                     code = defineClass(gcLoader, rootClassBytes)
-                    defineInnerClassesFromL3(L3CacheKey, gcLoader)
+                    defineInnerClassesFromL3(gcLoader, L3CacheKey)
                     L2Cache[L2CacheKey] = code
                 }
                 return code
@@ -281,8 +281,8 @@ abstract class GroovyBase extends UrlCommandCell
             {
                 GroovyClass gclass = classes[i] as GroovyClass
                 String className = gclass.name
-                def dollarPos = className.indexOf('$')
-                boolean isRoot = dollarPos == -1
+                int dollarPos = className.indexOf('$')
+                boolean isRoot = dollarPos == -1i
 
                 // Add compiled class to classLoader
                 clazz = defineClass(gcLoader, gclass.bytes)
@@ -312,7 +312,7 @@ abstract class GroovyBase extends UrlCommandCell
             L2Cache[L2CacheKey] = root
 
             // Write root (main class)
-            cacheSourceInL3("${L3CacheKey}.groovy", groovySource)
+            cacheSourceInL3(L3CacheKey, groovySource)
             cacheClassInL3(L3CacheKey, -1, mainClassBytes)
             return root
         }
@@ -478,7 +478,7 @@ abstract class GroovyBase extends UrlCommandCell
     {
         if (TEMP_DIR)
         {
-            new File("${TEMP_DIR}/src/main/groovy/${cacheKey}").bytes = StringUtilities.getUTF8Bytes(source)
+            new File("${TEMP_DIR}/src/main/groovy/${cacheKey}.groovy").bytes = StringUtilities.getUTF8Bytes(source)
         }
         else
         {
@@ -499,7 +499,7 @@ abstract class GroovyBase extends UrlCommandCell
         }
     }
 
-    private static void defineInnerClassesFromL3(String cacheKey, GroovyClassLoader gcLoader)
+    private static void defineInnerClassesFromL3(GroovyClassLoader gcLoader, String cacheKey)
     {
         if (TEMP_DIR)
         {
