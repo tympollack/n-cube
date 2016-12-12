@@ -1,4 +1,6 @@
 ### Revision History
+* 3.4.120
+ * Enhancement: When `NCUBE_PARAM.tempDir` is not set, the L3 cache is stored in memory.  This is travis-ci friendly (also for developers who have not yet set their `tempDir`).
 * 3.4.119
  * Bug fix: all compile code paths setRunnableCode().
 * 3.4.118
