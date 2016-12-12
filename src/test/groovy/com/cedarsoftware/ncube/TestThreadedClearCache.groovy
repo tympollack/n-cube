@@ -52,7 +52,7 @@ class TestThreadedClearCache
         NCubeManager.clearCache()
     }
 
-    @Test
+    @Ignore
     void testCubesWithThreadedClearCacheWithAppId()
     {
         NCube[] ncubes = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.2per.app.json", "math.controller.json")
