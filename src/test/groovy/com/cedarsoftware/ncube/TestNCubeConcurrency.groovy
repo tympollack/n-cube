@@ -3,11 +3,8 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -41,7 +38,7 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Ignore
+    @Test
     void testConcurrencyWithDifferentFiles()
     {
         Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
@@ -83,31 +80,28 @@ class TestNCubeConcurrency
         int timeToRun = 3000
         Thread[] threads = new Thread[numThreads]
         NCube n1 = NCubeManager.getNCubeFromResource('urlContent.json')
-        Map map = new ConcurrentHashMap()
-        AtomicInteger count = new AtomicInteger(0)
+
+        // Ensure that the URL fetching does not have issues with high contention
+        Runnable runnable = {
+            try
+            {
+                long start = System.currentTimeMillis()
+                while (System.currentTimeMillis() - start < timeToRun)
+                {
+                    for (int j = 0; j < 100; j++)
+                    {
+                        n1.getCell([sites:site] as Map)
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace()
+            }
+        } as Runnable
 
         for (int i = 0; i < numThreads; i++)
         {
-            final int index = i
-
-            Runnable runnable = {
-                try
-                {
-                    long start = System.currentTimeMillis()
-                    while (System.currentTimeMillis() - start < timeToRun)
-                    {
-                        for (int j = 0; j < 100; j++)
-                        {
-                            map.put(n1.getCell([sites:site] as Map), true)
-                            count.incrementAndGet()
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace()
-                }
-            } as Runnable
             threads[i] = new Thread(runnable)
             threads[i].name = 'NCubeConcurrencyTest' + i
             threads[i].daemon = true
@@ -122,11 +116,6 @@ class TestNCubeConcurrency
         for (int i = 0; i < numThreads; i++)
         {
             threads[i].join()
-        }
-
-        if ('test 4' == Thread.currentThread().name)
-        {   // byte[] not cached, will each be added as different instance as Map key (BinaryFromLocalUrl)
-            assert map.size() > 1
         }
     }
 
