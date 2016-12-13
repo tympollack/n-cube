@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 
@@ -38,7 +39,7 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Test
+    @Ignore
     void testConcurrencyWithDifferentFiles()
     {
         Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
