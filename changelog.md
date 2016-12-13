@@ -1,6 +1,6 @@
 ### Revision History
 * 3.4.120
-  * Enhancement: When `NCUBE_PARAM.tempDir` is not set, the L3 cache is stored in memory.  For developers who have not yet set their `tempDir`, this way there don't have a bunch of .class files in an unknown location.
+  * Enhancement: When `NCUBE_PARAM.tempDir` is not set, the L3 cache is stored in memory.  With this change, developers who have not yet set their `tempDir`, won't have a bunch of .class files in an unknown location.
 * 3.4.119
   * Bug fix: all compile code paths setRunnableCode().
 * 3.4.118
