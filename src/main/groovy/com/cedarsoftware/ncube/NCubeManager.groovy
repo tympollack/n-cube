@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
+import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -431,6 +432,21 @@ class NCubeManager
             permCache.invalidateAll()
 
             Map<String, Object> appCache = getCacheForApp(appId)
+            for (Object cube : appCache.values())
+            {
+                if (cube instanceof NCube)
+                {
+                    NCube ncube = cube as NCube
+                    for (Object value : ncube.cellMap.values())
+                    {
+                        if (value instanceof UrlCommandCell)
+                        {
+                            UrlCommandCell cell = value as UrlCommandCell
+                            cell.clearClassLoaderCache()
+                        }
+                    }
+                }
+            }
             clearGroovyClassLoaderCache(appCache)
 
             appCache.clear()
