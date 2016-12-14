@@ -66,6 +66,7 @@ import static java.lang.Math.abs
 @CompileStatic
 class Axis
 {
+    public static final String DEFAULT_COLUMN_DEFAULT_VALUE = 'default_column_default_value'
     public static final int SORTED = 0
     public static final int DISPLAY = 1
     private static final AtomicLong baseAxisIdForTesting = new AtomicLong(1)
