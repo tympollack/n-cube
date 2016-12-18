@@ -846,7 +846,7 @@ class NCube<T>
                 continue
             }
             Column boundCol = axis.getColumnById(colId)
-            def metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+            def metaValue = boundCol.default ? axis.getMetaProperty(Axis.DEFAULT_COLUMN_DEFAULT_VALUE) : boundCol.getMetaProperty(Column.DEFAULT_VALUE)
             if (metaValue != null)
             {
                 if (colDef != null)
