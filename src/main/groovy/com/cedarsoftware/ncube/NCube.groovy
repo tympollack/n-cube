@@ -1946,14 +1946,39 @@ class NCube<T>
         // Read axes
         for (item in axes)
         {
-            final Map jsonAxis = (Map) item
+            Map jsonAxis = (Map) item
+            long axisId
+            if (jsonAxis.get('id'))
+            {
+                try
+                {
+                    Object foo = jsonAxis.get('id')
+                    if (foo instanceof Map)
+                    {
+                        Map map = (Map) foo
+                        axisId = map.value as Long
+                    }
+                    else
+                    {
+                        axisId = foo as Long
+                    }
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace()
+                }
+            }
+            else
+            {
+                axisId = idBase++
+            }
             final String axisName = getString(jsonAxis, "name")
             final boolean hasDefault = getBoolean(jsonAxis, "hasDefault")
             boolean isRef = getBoolean(jsonAxis, "isRef")
             if (isRef)
             {
                 ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, jsonAxis)
-                Axis newAxis = new Axis(axisName, idBase++, hasDefault, refAxisLoader)
+                Axis newAxis = new Axis(axisName, axisId, hasDefault, refAxisLoader)
                 ncube.addAxis(newAxis)
                 for (column in newAxis.columns)
                 {
@@ -1970,20 +1995,21 @@ class NCube<T>
                 {
                     fireAll = getBoolean(jsonAxis, "fireAll")
                 }
-                Axis axis = new Axis(axisName, type, valueType, hasDefault, preferredOrder, idBase++, fireAll)
+                Axis axis = new Axis(axisName, type, valueType, hasDefault, preferredOrder, axisId, fireAll)
                 ncube.addAxis(axis)
                 axis.metaProps = new CaseInsensitiveMap<>()
                 axis.metaProps.putAll(jsonAxis)
 
-                axis.metaProps.remove("name")
-                axis.metaProps.remove("isRef")
-                axis.metaProps.remove("type")
-                axis.metaProps.remove("hasDefault")
-                axis.metaProps.remove("valueType")
-                axis.metaProps.remove("preferredOrder")
-                axis.metaProps.remove("multiMatch")
-                axis.metaProps.remove("columns")
-                axis.metaProps.remove("fireAll")
+                axis.metaProps.remove('id')
+                axis.metaProps.remove('name')
+                axis.metaProps.remove('isRef')
+                axis.metaProps.remove('type')
+                axis.metaProps.remove('hasDefault')
+                axis.metaProps.remove('valueType')
+                axis.metaProps.remove('preferredOrder')
+                axis.metaProps.remove('multiMatch')
+                axis.metaProps.remove('columns')
+                axis.metaProps.remove('fireAll')
 
                 if (axis.metaProps.size() < 1)
                 {

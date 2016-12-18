@@ -240,6 +240,7 @@ public class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 
     private void writeAxisGuts(Axis axis, Map<String, Object> options)
     {
+        writeObjectKeyValue("id", axis.id, true)
         writeObjectKeyValue("name", axis.name, true)
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
         if (axis.reference)

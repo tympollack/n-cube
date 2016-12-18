@@ -57,7 +57,7 @@ abstract class GroovyBase extends UrlCommandCell
      */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
     private static final ConcurrentMap<String, byte[]> ALT_L3_CACHE = new ConcurrentHashMap<>()
-    private static final TEMP_DIR
+    private static final String TEMP_DIR
 
     static
     {
@@ -225,8 +225,9 @@ abstract class GroovyBase extends UrlCommandCell
                     setRunnableCode(L2Cache[L2CacheKey])
                     return
                 }
-                Class root = defineClass(gcLoader, rootClassBytes)
                 defineInnerClassesFromL3(gcLoader, L3CacheKey)
+                Class root = defineClass(gcLoader, rootClassBytes)
+                gcLoader.loadClass(root.name, false, true, true)
                 setRunnableCode(root)
                 L2Cache[L2CacheKey] = root
             }
@@ -253,6 +254,7 @@ abstract class GroovyBase extends UrlCommandCell
         Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
 
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
+        compilerConfiguration.targetDirectory = "${TEMP_DIR}/target/classes/"
         compilerConfiguration.targetBytecode = targetByteCodeVersion
         compilerConfiguration.debug = NCubeCodeGenDebug
         compilerConfiguration.defaultScriptExtension = '.groovy'
@@ -264,7 +266,7 @@ abstract class GroovyBase extends UrlCommandCell
         CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
-        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
+        compilationUnit.compile(Phases.ALL)    // concurrently compile!
         Class generatedClass = defineClasses(gcLoader, compilationUnit.classes, groovySource, L2Cache, L3CacheKey)
         return generatedClass
     }
@@ -321,6 +323,7 @@ abstract class GroovyBase extends UrlCommandCell
             // Write root (main class)
             cacheSourceInL3(L3CacheKey, groovySource)
             cacheClassInL3(L3CacheKey, -1, mainClassBytes)
+            gcLoader.loadClass(ReflectionUtils.getClassNameFromByteCode(mainClassBytes), false, true, true)
             setRunnableCode(root)
             L2Cache[L2CacheKey] = root
             return root
