@@ -198,55 +198,55 @@ abstract class GroovyBase extends UrlCommandCell
         String groovySource = ret.source as String
 
         // When no L3, use this (also see UrlCommandCell).  Comment out 'check L3 cache' and below.
-//        synchronized (GroovyBase.class)
-//        {
-//            if (L2Cache.containsKey(L2CacheKey))
-//            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-//                setRunnableCode(L2Cache[L2CacheKey])
-//                return
-//            }
-//
-//            Class clazz = gcLoader.parseClass(groovySource, 'N_' + L2CacheKey + '.groovy')
-//            setRunnableCode(clazz)
-//            L2Cache[L2CacheKey] = clazz
-//        }
+        synchronized (GroovyBase.class)
+        {
+            if (L2Cache.containsKey(L2CacheKey))
+            {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+                setRunnableCode(L2Cache[L2CacheKey])
+                return
+            }
+
+            Class clazz = gcLoader.parseClass(groovySource, 'N_' + L2CacheKey + '.groovy')
+            setRunnableCode(clazz)
+            L2Cache[L2CacheKey] = clazz
+        }
 
         // check L3 cache
-        String L3CacheKey = sourceAndFlagsToSha1(groovySource).intern()
-        byte[] rootClassBytes = getRootClassFromL3(L3CacheKey)
-
-        if (rootClassBytes != null)
-        {
-            synchronized (L3CacheKey)
-            {
-                Class clazz = L2Cache[L2CacheKey]
-                if (clazz != null)
-                {   // Another thread defined and persisted the class while this thread was blocked...
-                    setRunnableCode(L2Cache[L2CacheKey])
-                    return
-                }
-                defineInnerClassesFromL3(gcLoader, L3CacheKey)
-                Class root = defineClass(gcLoader, rootClassBytes)
-                gcLoader.loadClass(root.name, false, true, true)
-                setRunnableCode(root)
-                L2Cache[L2CacheKey] = root
-            }
-            return
-        }
-
-        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
-        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
-        try
-        {
-            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
-            // correct class loader to use when inside a container.
-            Thread.currentThread().contextClassLoader = gcLoader
-            compile(gcLoader, groovySource, L3CacheKey, ctx)
-        }
-        finally
-        {
-            Thread.currentThread().contextClassLoader = originalClassLoader
-        }
+//        String L3CacheKey = sourceAndFlagsToSha1(groovySource).intern()
+//        byte[] rootClassBytes = getRootClassFromL3(L3CacheKey)
+//
+//        if (rootClassBytes != null)
+//        {
+//            synchronized (L3CacheKey)
+//            {
+//                Class clazz = L2Cache[L2CacheKey]
+//                if (clazz != null)
+//                {   // Another thread defined and persisted the class while this thread was blocked...
+//                    setRunnableCode(L2Cache[L2CacheKey])
+//                    return
+//                }
+//                defineInnerClassesFromL3(gcLoader, L3CacheKey)
+//                Class root = defineClass(gcLoader, rootClassBytes)
+//                gcLoader.loadClass(root.name, false, true, true)
+//                setRunnableCode(root)
+//                L2Cache[L2CacheKey] = root
+//            }
+//            return
+//        }
+//
+//        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
+//        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
+//        try
+//        {
+//            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
+//            // correct class loader to use when inside a container.
+//            Thread.currentThread().contextClassLoader = gcLoader
+//            compile(gcLoader, groovySource, L3CacheKey, ctx)
+//        }
+//        finally
+//        {
+//            Thread.currentThread().contextClassLoader = originalClassLoader
+//        }
     }
 
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, String L3CacheKey, Map<String, Object> ctx)

@@ -1948,28 +1948,12 @@ class NCube<T>
         {
             Map jsonAxis = (Map) item
             long axisId
-            if (jsonAxis.get('id'))
+            if (jsonAxis.id)
             {
-                try
-                {
-                    Object foo = jsonAxis.get('id')
-                    if (foo instanceof Map)
-                    {
-                        Map map = (Map) foo
-                        axisId = map.value as Long
-                    }
-                    else
-                    {
-                        axisId = foo as Long
-                    }
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace()
-                }
+                axisId = jsonAxis.id as Long
             }
             else
-            {
+            {    // Older n-cube format with no 'id' on the 'axes' in the JSON
                 axisId = idBase++
             }
             final String axisName = getString(jsonAxis, "name")
@@ -2000,6 +1984,8 @@ class NCube<T>
                 axis.metaProps = new CaseInsensitiveMap<>()
                 axis.metaProps.putAll(jsonAxis)
 
+                // Remove known fields so that they are not listed as meta properties.
+                // If you make a change here, you need to make the corresponding change in ReferenceAxisLoader.load()
                 axis.metaProps.remove('id')
                 axis.metaProps.remove('name')
                 axis.metaProps.remove('isRef')

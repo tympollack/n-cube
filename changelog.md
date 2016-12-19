@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.121
+  * Enhancement: default value can be added to a `Default` column.  To do so, add a meta-property named `default_column_default_value` to the axis containing the `Default` column to which you want to add a default value.
+  * Enhancement: Axis ID's are now written to the JSON formats.  If they are not present, the `Axis` ids are number 1 through number of axes, in order.
 * 3.4.120
   * Enhancement: When `NCUBE_PARAM.tempDir` is not set, the L3 cache is stored in memory.  With this change, developers who have not yet set their `tempDir`, won't have a bunch of .class files in an unknown location.
 * 3.4.119
