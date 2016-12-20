@@ -2986,7 +2986,7 @@ class TestAxis
         {
             assert e.message.toLowerCase().contains('unable to load')
             assert e.message.contains('TestTransform')
-            assert e.message.toLowerCase().contains('reference axis (age)')
+            assert e.message.toLowerCase().contains('reference axis: age')
             assert e.message.toLowerCase().contains("no 'method' axis")
         }
 
@@ -3002,8 +3002,8 @@ class TestAxis
         {
             assert e.message.toLowerCase().contains('unable to load')
             assert e.message.contains('TestTransform')
-            assert e.message.toLowerCase().contains('reference axis (age)')
-            assert e.message.contains("(doubleNotThere) does not exist")
+            assert e.message.toLowerCase().contains('reference axis: age')
+            assert e.message.contains("doubleNotThere does not exist")
         }
     }
 

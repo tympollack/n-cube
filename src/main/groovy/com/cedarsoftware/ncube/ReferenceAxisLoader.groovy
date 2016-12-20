@@ -112,9 +112,9 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         }
 
         axis.name = axisName
-        axis.type = refAxis.type;
-        axis.valueType = refAxis.valueType;
-        axis.fireAll = refAxis.fireAll;
+        axis.type = refAxis.type
+        axis.valueType = refAxis.valueType
+        axis.fireAll = refAxis.fireAll
 
         // Bring over referenced axis meta properties
         for (Map.Entry<String, Object> entry : refAxis.metaProperties.entrySet())
@@ -142,7 +142,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         }
     }
 
-    private void transform(NCube transformCube, CaseInsensitiveMap<String, Object> input, CaseInsensitiveMap<String, Object> output, Axis axis)
+    private void transform(NCube transformCube, Map<String, Object> input, Map<String, Object> output, Axis axis)
     {
         try
         {
@@ -150,9 +150,10 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         }
         catch (CoordinateNotFoundException e)
         {
-            throw new IllegalStateException("Unable to load n-cube (" + cubeName +
-                    "), which has a reference axis (" + axis.name + "); method (" + input.method + ") does not exist on the 'method' axis of the transformation n-cube (" +
-                    transformCube.name + "), transform app: " + axis.transformApp, e)
+            throw new IllegalStateException("""\
+Unable to load n-cube: ${cubeName}, which has a reference axis: ${axis.name}. \
+Method: ${input.method} does not exist on the 'method' axis of the transformation \
+n-cube: ${transformCube.name}, transform app: ${axis.transformApp}""", e)
         }
     }
 
@@ -160,9 +161,9 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
     {
         if (transformCube.getAxis('method') == null)
         {
-            throw new IllegalStateException("Unable to load n-cube (" + cubeName +
-                    "), which has a reference axis (" + axis.name + "); no 'method' axis exists on the transformation n-cube (" +
-                    transformCube.name + "), transform app: " + axis.transformApp)
+            throw new IllegalStateException("""\
+Unable to load n-cube: ${cubeName}, which has a reference axis: ${axis.name}. \
+No 'method' axis exists on the transformation n-cube: ${transformCube.name}, transform app: ${axis.transformApp}""")
         }
     }
 
@@ -171,9 +172,10 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         Axis refAxis = refCube.getAxis(refAxisName)
         if (refAxis == null)
         {
-            throw new IllegalStateException("Unable to load n-cube (" + cubeName +
-                    "), which has a reference axis (" + axis.name + "), but referenced axis (" + refAxisName + ") was not found on the referenced n-cube (" +
-                    refCube.name + "), referenced app: " + axis.referencedApp)
+            throw new IllegalStateException("""\
+Unable to load n-cube: ${cubeName}, which has a reference axis: ${axis.name}, \
+but referenced axis: ${refAxisName} was not found on the referenced \
+n-cube: ${refCube.name}, referenced app: ${axis.referencedApp}""")
         }
         return refAxis
     }
@@ -183,9 +185,9 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         NCube transformCube = NCubeManager.getCube(axis.transformApp, axis.getMetaProperty(TRANSFORM_CUBE_NAME) as String)
         if (transformCube == null)
         {
-            throw new IllegalStateException("Unable to load n-cube (" + cubeName +
-                    ") which has a reference axis (" + axis.name + "); failed to load transform n-cube (" + transformCubeName + "), method (" +
-                    transformMethodName + "), transform app: " + axis.transformApp)
+            throw new IllegalStateException("""\
+Unable to load n-cube: ${cubeName}, which has a reference axis: ${axis.name}. \
+Failed to load transform n-cube: ${transformCubeName}, method: ${transformMethodName}, transform app: ${axis.transformApp}""")
         }
         return transformCube
     }
@@ -195,9 +197,9 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         NCube refCube = NCubeManager.getCube(axis.referencedApp, axis.getMetaProperty(REF_CUBE_NAME) as String)
         if (refCube == null)
         {
-            throw new IllegalStateException("Unable to load n-cube (" + cubeName +
-                    ") which has a reference axis (" + axis.name + "); failed to load referenced n-cube (" + refCubeName + "), axis (" + refAxisName +
-                    "), referenced app: " + axis.referencedApp)
+            throw new IllegalStateException("""\
+Unable to load n-cube: ${cubeName}, which has a reference axis: ${axis.name}. \
+Failed to load referenced n-cube: ${refCubeName}, axis: ${refAxisName}, referenced app: ${axis.referencedApp}""")
         }
         return refCube
     }
