@@ -52,7 +52,8 @@ class TestThreadedClearCache
         NCubeManager.clearCache()
     }
 
-    @Test
+    // Uncomment when testing concurrency
+    @Ignore
     void testCubesWithThreadedClearCacheWithAppId()
     {
         NCube[] ncubes = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.2per.app.json", "math.controller.json")
