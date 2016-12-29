@@ -20,11 +20,9 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeManager.NCUBE_PARAMS_BYTE_CODE_DEBUG
 import static com.cedarsoftware.ncube.NCubeManager.NCUBE_PARAMS_BYTE_CODE_VERSION
-import static com.cedarsoftware.ncube.NCubeManager.NCUBE_PARAMS_TEMP_DIR
 
 /**
  * Base class for Groovy CommandCells.
@@ -56,7 +54,6 @@ abstract class GroovyBase extends UrlCommandCell
      * class (URL to groovy), yet have different source code for that class.
      */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
-    private static final ConcurrentMap<ApplicationID, GroovyClassLoader> SYS_CLASSPATH_CACHE = new ConcurrentHashMap<>()
 
     //  Private constructor only for serialization.
     protected GroovyBase() {}
@@ -68,7 +65,6 @@ abstract class GroovyBase extends UrlCommandCell
 
     void clearClassLoaderCache()
     {
-        L2CacheKey = null
         runnableCode = null
         super.clearClassLoaderCache()
     }
@@ -102,12 +98,6 @@ abstract class GroovyBase extends UrlCommandCell
     {
         Map<String, Class> L2Cache = getAppL2Cache(appId)
         L2Cache.clear()
-        GroovyClassLoader gcLoader = SYS_CLASSPATH_CACHE.get(appId)
-        if (gcLoader)
-        {
-            SYS_CLASSPATH_CACHE.remove(appId)
-            gcLoader.clearCache()
-        }
     }
 
     protected static Map<String, Class> getAppL2Cache(ApplicationID appId)
@@ -185,50 +175,79 @@ abstract class GroovyBase extends UrlCommandCell
 
         GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
         String groovySource = ret.source as String
-        String sourceKey = sourceToSha1(groovySource).intern()
+        compilePrep1(gcLoader, groovySource, ctx)
+    }
 
-        synchronized (sourceKey)
+    /**
+     * Ensure that the sys.classpath CdnClassLoader is used during compilation.  It has additional
+     * classpath entries that the application developers likely have added.
+     * @return Class the compile Class associated to the main class (root of source passed in)
+     */
+    protected Class compilePrep1(GroovyClassLoader gcLoader, String groovySource, Map<String, Object> ctx)
+    {
+        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
+        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
+        try
+        {
+            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
+            // correct class loader to use when inside a container.
+            Thread.currentThread().contextClassLoader = gcLoader
+            return compilePrep2(gcLoader, groovySource, ctx)
+        }
+        finally
+        {
+            Thread.currentThread().contextClassLoader = originalClassLoader
+        }
+    }
+
+    /**
+     * Ensure that the the exact same source class is compiled only one at a time.  The second+
+     * concurrent attempts will return the answer from the L2 cache.
+     * @return Class the compile Class associated to the main class (root of source passed in)
+     */
+    protected Class compilePrep2(GroovyClassLoader gcLoader, String groovySource, Map<String, Object> ctx)
+    {
+        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
+        synchronized (lock)
         {
             Class clazz = L2Cache[L2CacheKey]
             if (clazz != null)
             {   // Another thread defined and persisted the class while this thread was blocked...
-                setRunnableCode(L2Cache[L2CacheKey])
-                return
+                setRunnableCode(clazz)
+                return clazz
             }
 
-            // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
-            ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
-            try
-            {
-                // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
-                // correct class loader to use when inside a container.
-                Thread.currentThread().contextClassLoader = gcLoader
-                compile(gcLoader, groovySource, ctx)
-            }
-            finally
-            {
-                Thread.currentThread().contextClassLoader = originalClassLoader
-            }
+            clazz = compile(gcLoader, groovySource, ctx)
+            return clazz
         }
     }
 
+    protected Object getLock()
+    {
+        return L2CacheKey.intern()
+    }
+
+    /**
+     * Ensure that the sys.classpath CdnClassLoader is used during compilation.  It has additional
+     * classpath entries that the application developers likely have added.
+     * @return Class the compile Class associated to the main class (root of source passed in)
+     */
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, Map<String, Object> ctx)
     {
-        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
-
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
         compilerConfiguration.targetBytecode = targetByteCodeVersion
         compilerConfiguration.debug = NCubeCodeGenDebug
         compilerConfiguration.defaultScriptExtension = '.groovy'
         // TODO: Research when this can be safely turned on vs having to be turned off
-//        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
+        //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
         SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
         CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
-        compilationUnit.compile(Phases.CLASS_GENERATION)    // concurrently compile!
+        compilationUnit.compile(Phases.CLASS_GENERATION)
+        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
         Class generatedClass = defineClasses(gcLoader, compilationUnit.classes, L2Cache, groovySource)
         return generatedClass
     }
@@ -347,18 +366,19 @@ abstract class GroovyBase extends UrlCommandCell
                     String className = url - '.groovy'
                     className = className.replace('/', '.')
                     output.gclass = Class.forName(className)
+                    return output
                 }
                 catch (Exception ignored)
                 { }
             }
 
             URL groovySourceUrl = getActualUrl(ctx)
-            output.loader = getAppIdBasedClassLoader(ctx)
+            output.loader = getAppIdClassLoader(ctx)
             output.source = StringUtilities.createUtf8String(UrlUtilities.getContentFromUrl(groovySourceUrl, true))
         }
         else
         {   // inline code
-            output.loader = getAppIdBasedClassLoader(ctx)
+            output.loader = getAppIdClassLoader(ctx)
             output.source = cmd
         }
         output.source = expandNCubeShortCuts(buildGroovy(ctx, output.source as String))
@@ -382,7 +402,7 @@ abstract class GroovyBase extends UrlCommandCell
         else
         {   // specified via URL, add classLoader URL strings to URL for SHA-1 source.
             NCube cube = getNCube(ctx)
-            GroovyClassLoader gcLoader = getAppIdBasedClassLoader(ctx)
+            GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
             URL[] urls = gcLoader.URLs
             StringBuilder s = new StringBuilder()
             for (URL url : urls)
@@ -396,44 +416,12 @@ abstract class GroovyBase extends UrlCommandCell
         L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
     }
 
-    private static GroovyClassLoader getAppIdBasedClassLoader(Map<String, Object> ctx)
+    private static GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx)
         ApplicationID appId = cube.applicationID
-        return (GroovyClassLoader) NCubeManager.getUrlClassLoader(appId, getInput(ctx))
-//        GroovyClassLoader gcLoader = SYS_CLASSPATH_CACHE[appId]
-//
-//        if (gcLoader == null)
-//        {
-//            gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(appId, getInput(ctx))
-//            GroovyClassLoader gcLoaderRef = SYS_CLASSPATH_CACHE.putIfAbsent(appId, gcLoader)
-//            if (gcLoaderRef != null)
-//            {
-//                gcLoader = gcLoaderRef
-//            }
-//        }
-//
-//        return gcLoader
-    }
-
-    /**
-     * Make SHA-1 key from entire groovy source (whether inline or URL).  If inline, this source includes
-     * the 'wrapper' code.  If from a URL, it is the entire source loaded from the URL.  The SHA-1
-     * also includes the target JVM version ("1.8") and "t" or "f" (debug or non-debug code generation).
-     * The format of the input is [source]-[target JVM version string]-[t | f]
-     * @param groovySource String groovy source code
-     * @return SHA-1 of source + flags, e.g., "groovySource-1.8-false"
-     */
-    private static String sourceToSha1(String groovySource)
-    {
-        byte sep = 45   // hyphen
-        MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
-        sha1Digest.update(groovySource.bytes)
-        sha1Digest.update(sep)
-        sha1Digest.update(targetByteCodeVersion.bytes)
-        sha1Digest.update(sep)
-        sha1Digest.update(isNCubeCodeGenDebug() ? NCube.TRUE_BYTES : NCube.FALSE_BYTES)
-        return ByteUtilities.encode(sha1Digest.digest())
+        GroovyClassLoader gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(appId, getInput(ctx))
+        return gcLoader
     }
 
     private static String getTargetByteCodeVersion()

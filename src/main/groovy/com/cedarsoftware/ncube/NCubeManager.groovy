@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
-import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -60,7 +59,6 @@ class NCubeManager
     public static final String ERROR_CANNOT_MOVE_TO_000 = 'Version 0.0.0 is for system configuration and branch cannot be moved to it.'
     public static final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
     public static final String ERROR_CANNOT_RELEASE_TO_000 = 'Version 0.0.0 is for system configuration and cannot be created from the release process.'
-    public static final String ERROR_NOT_ADMIN = 'Operation not performed. You do not have admin permissions for '
 
     public static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
     public static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
@@ -103,7 +101,6 @@ class NCubeManager
     public static final String NCUBE_PARAMS_BYTE_CODE_DEBUG = 'byteCodeDebug'
     public static final String NCUBE_PARAMS_BYTE_CODE_VERSION = 'byteCodeVersion'
     public static final String NCUBE_ACCEPTED_DOMAINS = 'acceptedDomains'
-    public static final String NCUBE_PARAMS_TEMP_DIR = 'tempDir'
     public static final String NCUBE_PARAMS_BRANCH = 'branch'
     private static NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManager.class)

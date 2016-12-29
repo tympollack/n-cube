@@ -47,7 +47,7 @@ class CdnClassLoader extends GroovyClassLoader
 
         if (acceptedDomains == null)
         {
-            String accepted = NCubeManager.systemParams[NCUBE_ACCEPTED_DOMAINS]
+            String accepted = NCubeManager.systemParams[(NCUBE_ACCEPTED_DOMAINS)]
             if (StringUtilities.hasContent(accepted))
             {
                 whiteList = Arrays.asList(accepted.split(";"))

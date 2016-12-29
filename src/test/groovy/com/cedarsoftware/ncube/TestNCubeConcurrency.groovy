@@ -39,7 +39,7 @@ class TestNCubeConcurrency
         TestingDatabaseHelper.tearDownDatabase()
     }
 
-    @Ignore
+    @Test
     void testConcurrencyWithDifferentFiles()
     {
         Runnable test1 = { concurrencyTest('StringFromRemoteUrlBig') } as Runnable
@@ -78,7 +78,7 @@ class TestNCubeConcurrency
     private static void concurrencyTest(final String site)
     {
         int numThreads = 8
-        int timeToRun = 3000
+        long timeToRun = 3000L
         Thread[] threads = new Thread[numThreads]
         NCube n1 = NCubeManager.getNCubeFromResource('urlContent.json')
 

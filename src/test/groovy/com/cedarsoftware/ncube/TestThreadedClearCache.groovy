@@ -69,7 +69,7 @@ class TestThreadedClearCache
 
     private void concurrencyTestWithAppId()
     {
-        long time = 2000L
+        long time = 8000L
         int numThreads = 8
         Runnable runnable = new Runnable() {
             void run()
@@ -104,7 +104,7 @@ class TestThreadedClearCache
                     catch (Exception e)
                     {
                         Throwable t = getDeepestException(e)
-                        if (!(t.message?.contains('cleared while cell was executing') || t instanceof LinkageError))
+                        if (!(t.message?.contains('cleared while cell was executing')))
                         {
                             throw e
                         }
@@ -127,7 +127,7 @@ class TestThreadedClearCache
                     catch (Exception e)
                     {
                         Throwable t = getDeepestException(e)
-                        if (!(t.message?.contains('cleared while cell was executing') || t instanceof LinkageError))
+                        if (!(t.message?.contains('cleared while cell was executing')))
                         {
                             throw e
                         }

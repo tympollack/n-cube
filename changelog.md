@@ -1,4 +1,7 @@
 ### Revision History
+* 3.4.122
+  * Refinement: To add meta-properties, just use the standard APIs to add them to the Column instance that represents the default column on an axis.  In the JSON format, they are stored on the Axis meta-properties prefixed with 'default_column_*'.  However, all APIs, including RESTful APIs expect them to be read and written via the standard meta property APIs.
+  * Enhancement: Parallel compilation has been added, and the L3 cache work removed.  There are too many cases when a consumer would have to know when to clear their L3 cache, that it would have been burdensome on the author to answer many questions related to when and why.  The parallel compilation will greatly speed up the 'warm up' phase of the application after a server restart.
 * 3.4.121
   * Enhancement: default value can be added to a `Default` column.  To do so, add a meta-property named `default_column_default_value` to the axis containing the `Default` column to which you want to add a default value.
   * Enhancement: Axis ID's are now written to the JSON formats.  If they are not present, the `Axis` ids are number 1 through number of axes, in order.
