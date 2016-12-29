@@ -27,7 +27,7 @@ class TestColumnLevelDefault
     void testColumnDefault()
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(false)
-        ncube.setDefaultCellValue(Math.PI)
+        ncube.defaultCellValue = Math.PI
         Axis axis = ncube.getAxis('age')
         Column column = axis.findColumn(15)
         column.setMetaProperty(Column.DEFAULT_VALUE, 'kid')
@@ -58,7 +58,7 @@ class TestColumnLevelDefault
         assert Math.PI == x
 
         ncube.toHtml()  // covers code inside HtmlFormatter dealing with column-level defaults
-        ncube.setDefaultCellValue(null)
+        ncube.defaultCellValue = null
 
         assert ncube.containsCell([age:15, gender:'Male'], true)
         assert ncube.containsCell([age:15, gender:'Female'], true)
@@ -85,9 +85,10 @@ class TestColumnLevelDefault
     void testDefaultColumnDefaultValue()
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(true)
-        ncube.setDefaultCellValue(Math.PI)
+        ncube.defaultCellValue = Math.PI
         Axis axis = ncube.getAxis('age')
-        axis.setMetaProperty(Axis.DEFAULT_COLUMN_DEFAULT_VALUE, 'kid')
+        Column defaultColumn = axis.findColumn(null)
+        defaultColumn.setMetaProperty(Column.DEFAULT_VALUE, 'kid')
 
         Column column = axis.findColumn(25)
         column.setMetaProperty(Column.DEFAULT_VALUE, 'adult')

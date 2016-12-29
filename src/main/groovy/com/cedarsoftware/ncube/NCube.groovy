@@ -68,8 +68,8 @@ class NCube<T>
     public static final String DEFAULT_CELL_VALUE_CACHE = 'defaultCellValueCache'
     public static final String validCubeNameChars = '0-9a-zA-Z._-'
     public static final String RULE_EXEC_INFO = '_rule'
-    private static final byte[] TRUE_BYTES = 't'.bytes
-    private static final byte[] FALSE_BYTES = 'f'.bytes
+    protected static final byte[] TRUE_BYTES = 't'.bytes
+    protected static final byte[] FALSE_BYTES = 'f'.bytes
     private static final byte[] A_BYTES = 'a'.bytes
     private static final byte[] C_BYTES = 'c'.bytes
     private static final byte[] O_BYTES = 'o'.bytes
@@ -856,7 +856,7 @@ class NCube<T>
                 continue
             }
             Column boundCol = axis.getColumnById(colId)
-            def metaValue = boundCol.default ? axis.getMetaProperty(Axis.DEFAULT_COLUMN_DEFAULT_VALUE) : boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+            def metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
             if (metaValue != null)
             {
                 if (colDef != null)
@@ -2014,6 +2014,21 @@ class NCube<T>
                 else
                 {
                     loadMetaProperties(axis.metaProps)
+                    Column defCol = axis.defaultColumn
+                    // Snag all meta-properties on Axis that start with Axis.DEFAULT_COLUMN_PREFIX, as this
+                    // is where the default column's meta properties are stored, and copy them to the default
+                    // column (if one exists)
+                    Iterator<Map.Entry<String, Object>> i = axis.metaProps.entrySet().iterator()
+                    while (i.hasNext())
+                    {
+                        Map.Entry<String, Object> entry = i.next()
+                        String key = entry.key
+                        if (key.startsWith(JsonFormatter.DEFAULT_COLUMN_PREFIX) && defCol)
+                        {
+                            defCol.setMetaProperty(key - JsonFormatter.DEFAULT_COLUMN_PREFIX, entry.value)
+                            i.remove()  // do not leave the column_default_* properties on the Axis
+                        }
+                    }
                 }
 
                 if (!jsonAxis.containsKey('columns'))
@@ -2403,6 +2418,11 @@ class NCube<T>
                         sha1Digest.update(order.bytes)
                         sha1Digest.update(sep)
                     }
+                }
+
+                if (axis.hasDefaultColumn() && !MapUtilities.isEmpty(axis.defaultColumn.metaProperties))
+                {
+                    deepSha1(sha1Digest, axis.defaultColumn.metaProperties, sep)
                 }
             }
         }
