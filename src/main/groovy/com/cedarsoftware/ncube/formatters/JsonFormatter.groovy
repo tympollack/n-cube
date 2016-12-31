@@ -10,6 +10,7 @@ import com.cedarsoftware.ncube.RangeSet
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -50,7 +51,7 @@ import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
 @CompileStatic
 class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 {
-    public static final String DEFAULT_COLUMN_PREFIX = 'default_column_'
+    public static final String DEFAULT_COLUMN_PREFIX = 'd3fault_c0lumn_'
     private static final String MAX_INT = Long.toString(Integer.MAX_VALUE)
 
     JsonFormatter() {}
@@ -250,8 +251,11 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
      */
     private static void removeDefaultColumnMetaPropsFromAxis(Axis axis)
     {
-        Map<String, Object> props = axis.metaProperties
-        props.each { String key, Object value ->
+        Map<String, Object> copy = new CaseInsensitiveMap<>(axis.metaProperties)
+        Iterator<String> i = copy.keySet().iterator()
+        while (i.hasNext())
+        {
+            String key = i.next()
             if (key.startsWith(DEFAULT_COLUMN_PREFIX))
             {
                 axis.removeMetaProperty(key)

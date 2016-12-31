@@ -6,7 +6,6 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
