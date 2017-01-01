@@ -179,40 +179,6 @@ class NCubeManager
     }
 
     /**
-     * Fetch all the n-cube names for the given ApplicationID.  This API
-     * will load all cube records for the ApplicationID (NCubeInfoDtos),
-     * and then get the names from them.
-     *
-     * @return Set < String >  n-cube names.  If an empty Set is returned,
-     * then there are no persisted n-cubes for the passed in ApplicationID.
-     */
-    @Deprecated
-    protected static Set<String> getCubeNames(ApplicationID appId)
-    {
-        List<NCubeInfoDto> cubeInfos = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY): true])
-        Set<String> names = new TreeSet<>()
-
-        for (NCubeInfoDto info : cubeInfos)
-        {   // Permission check happened in search()
-            names.add(info.name)
-        }
-
-        if (names.isEmpty())
-        {   // Support tests that load cubes from JSON files...
-            // can only be in there as ncubes, not ncubeDtoInfo
-            for (Object value : getCacheForApp(appId).values())
-            {
-                if (value instanceof NCube)
-                {
-                    NCube cube = (NCube) value
-                    names.add(cube.name)
-                }
-            }
-        }
-        return new CaseInsensitiveSet<>(names)
-    }
-
-    /**
      * Load n-cube, bypassing any caching.  This is necessary for n-cube-editor (IDE time
      * usage).  If the IDE environment is clustered, cannot be getting stale copies from
      * cache.  Any advices in the manager will be applied to the n-cube.

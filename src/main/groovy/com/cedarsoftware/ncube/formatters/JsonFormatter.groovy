@@ -295,6 +295,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             }
         }
 
+        // TODO: Write out column meta-properties always...
         if (options.indexFormat || !axis.reference)
         {
             writeObjectKeyValue("type", axis.type.name(), true)
