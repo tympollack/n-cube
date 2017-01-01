@@ -138,8 +138,7 @@ class TestColumn
         Map<String, Object> defColMetaProps = state2.findAll { String key, Object value -> key.startsWith(JsonFormatter.DEFAULT_COLUMN_PREFIX) }
         println defColMetaProps
         assert defColMetaProps.size() == 3
-        // TODO: See if I can ensure Meta-Property, after being read, can be converted from actual value (lowest possible level)
-//        assert 2017i == defColMetaProps[JsonFormatter.DEFAULT_COLUMN_PREFIX + 'default_value']
+        assert defColMetaProps[JsonFormatter.DEFAULT_COLUMN_PREFIX + 'default_value'] instanceof Map    // because it was read as a Map, not with .hydrate
         assert "bar" == defColMetaProps[JsonFormatter.DEFAULT_COLUMN_PREFIX + 'foo']
         assert "qux" == defColMetaProps[JsonFormatter.DEFAULT_COLUMN_PREFIX + 'baz']
     }
