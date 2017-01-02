@@ -1789,19 +1789,20 @@ class NCube<T>
     }
 
     /**
-     * @return Set<String> names of all referenced cubes within this
-     * specific NCube.  It is not recursive.
+     * @return Map<Map, Set<String>> A map keyed by cell coordinates within this specific NCube.
+     * Each map entry contains the cube names referenced by the cell coordinate in question.
+     * It is not recursive.
      */
-    Set<String> getReferencedCubeNames()
+    Map<Map, Set<String>> getReferencedCubeNames()
     {
-        final Set<String> cubeNames = new LinkedHashSet<>()
+        Map<Map, Set<String>> refs = new LinkedHashMap<>()
 
-        for (cell in cells.values())
-        {
+        cells.each{LongHashSet ids, T cell ->
             if (cell instanceof CommandCell)
             {
                 final CommandCell cmdCell = cell as CommandCell
-                cmdCell.getCubeNamesFromCommandText(cubeNames)
+                Map coord = this.getDisplayCoordinateFromIds(ids)
+                getReferences(refs, coord, cmdCell)
             }
         }
 
@@ -1812,7 +1813,18 @@ class NCube<T>
                 for (column in axis.columnsWithoutDefault)
                 {
                     CommandCell cmd = (CommandCell) column.value
-                    cmd.getCubeNamesFromCommandText(cubeNames)
+                    Map coord = this.getDisplayCoordinateFromIds([column.getId()] as LongHashSet)
+                    getReferences(refs, coord, cmd)
+                }
+            }
+
+            for (column in axis.columns)
+            {
+                Object defaultValue = column.metaProperties[Column.DEFAULT_VALUE]
+                if (defaultValue && defaultValue instanceof CommandCell)
+                {
+                    Map coord = this.getDisplayCoordinateFromIds([column.getId()] as LongHashSet)
+                    getReferences(refs, coord, defaultValue as CommandCell)
                 }
             }
         }
@@ -1821,9 +1833,21 @@ class NCube<T>
         if (defaultCellValue instanceof CommandCell)
         {
             CommandCell cmd = (CommandCell) defaultCellValue
-            cmd.getCubeNamesFromCommandText(cubeNames)
+            Map coord = [] as CaseInsensitiveMap
+            getReferences(refs, coord, cmd)
         }
-        return cubeNames
+        return refs
+    }
+
+    private static Map<Map, Set<String>> getReferences(Map<Map, Set<String>> refs, Map coord, CommandCell cmdCell)
+    {
+        final Set<String> cubeNames = new LinkedHashSet<>()
+        cmdCell.getCubeNamesFromCommandText(cubeNames)
+        if (cubeNames)
+        {
+            refs[coord] = cubeNames
+        }
+        return refs
     }
 
     /**
