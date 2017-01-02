@@ -270,6 +270,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
 
         // required inputs
         writeAxisGuts(axis, options)
+        endObject()
     }
 
     // default is false, so no need to write those out.
@@ -279,6 +280,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         writeObjectKey(axis.name.toLowerCase())
         startObject()
         writeAxisGuts(axis, options)
+        endObject()
     }
 
     private void writeAxisGuts(Axis axis, Map<String, Object> options)
@@ -289,15 +291,11 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         if (axis.reference)
         {
             writeReferenceAxisInfo(axis)
-            if (options.indexFormat)
-            {
-                comma()
-            }
+            comma()
         }
 
-        // TODO: Write out column meta-properties always...
         if (options.indexFormat || !axis.reference)
-        {
+        {   // indexFormat (with or without reference axis) or regular format without reference axis
             writeObjectKeyValue("type", axis.type.name(), true)
             writeObjectKeyValue("valueType", axis.valueType.name(), true)
 
@@ -311,7 +309,27 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             }
             writeColumns(axis.columns, options)
         }
-        endObject()
+        else
+        {   // regular format with reference axis
+            append('"columns":[')
+            Iterator<Column> i = axis.columnsWithoutDefault.iterator()
+            while (i.hasNext())
+            {
+                Column column = i.next()
+                Map<String, Object> metaProps = column.metaProperties
+                if (!metaProps.isEmpty())
+                {
+                    append("""{"id":${column.id},""")
+                    writeMetaProperties(metaProps)
+                    append('}')
+                    if (i.hasNext())
+                    {
+                        comma()
+                    }
+                }
+            }
+            append(']')
+        }
     }
 
     private void writeReferenceAxisInfo(Axis axis)

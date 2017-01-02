@@ -2874,7 +2874,7 @@ class TestAxis
         assert 'b' == reload.getCell([age:4] as Map)
         assert 'c' == reload.getCell([age:6] as Map)
 
-        json = reload
+        json = reload.toString()
         assert !json.contains('"columns":{')
         json = reload.toFormattedJson([indexFormat:true] as Map)
         assert json.contains('"columns":{')
