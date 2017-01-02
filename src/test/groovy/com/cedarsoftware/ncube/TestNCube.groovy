@@ -4980,7 +4980,7 @@ class TestNCube
     {
         NCube ncube = NCubeBuilder.getRuleCubeWithAllDefaults()
         Map<Map, Set<String>> refs = ncube.getReferencedCubeNames()
-        assert refs.size() == 5
+        assert refs.size() == 6
 
         Map coord = [Axis2: 'Axis2Col1', RuleAxis1: "${'(Condition1): @Condition1[:]'}"] as CaseInsensitiveMap
         assert ['CubeB'] as Set == refs[coord]
@@ -4993,6 +4993,9 @@ class TestNCube
 
         coord = [RuleAxis1: "${'(Condition1): @Condition1[:]'}"] as CaseInsensitiveMap
         assert ['Condition1'] as Set == refs[coord]
+
+        coord = [RuleAxis1: "${'(Condition3): true'}"] as CaseInsensitiveMap
+        assert ['Condition3ColumnDefault'] as Set == refs[coord]
 
         coord = [:] as CaseInsensitiveMap
         assert ['CubeLevelDefault'] as Set == refs[coord]

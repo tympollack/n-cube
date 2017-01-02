@@ -1409,6 +1409,16 @@ class NCubeBuilder
           "type": "exp",
           "name": "Condition2",
           "value": "true"
+        },
+        {
+          "id": 3001617015824,
+          "type": "exp",
+          "name": "Condition3",
+          "default_value": {
+            "type": "exp",
+            "value": "@Condition3ColumnDefault[:]"
+          },
+          "value": "true"
         }
       ]
     }
