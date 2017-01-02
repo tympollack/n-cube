@@ -1,4 +1,8 @@
 ### Revision History
+* 3.5.0
+  * Reference Axis columns can have meta-properties added, removed, etc.
+  * Parallel compilation for Groovy expressions.  
+  * Deprecated methods removed.
 * 3.4.122
   * Refinement: To add meta-properties, just use the standard APIs to add them to the Column instance that represents the default column on an axis.  In the JSON format, they are stored on the Axis meta-properties prefixed with 'd3fault_c0lumn_*'.  However, all APIs, including RESTful APIs expect them to be read and written via the standard meta property APIs.
   * Enhancement: Parallel compilation has been added, and the L3 cache work removed.  There are too many cases when a consumer would have to know when to clear their L3 cache, that it would have been burdensome on the author to answer many questions related to when and why.  The parallel compilation will greatly speed up the 'warm up' phase of the application after a server restart.
