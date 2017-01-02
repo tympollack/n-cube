@@ -34,13 +34,13 @@ import static org.junit.Assert.fail
 class TestDelta
 {
     @Before
-    public void setUp()
+    void setUp()
     {
         TestingDatabaseHelper.setupDatabase()
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         TestingDatabaseHelper.tearDownDatabase()
     }
@@ -1240,7 +1240,14 @@ class TestDelta
         assert 'bitcoin' == ref.getCell([state:'AZ', column: 'C'])
 
         String json = ref.toFormattedJson([indexFormat:false])
-        println json
+        NCube copy = NCube.fromSimpleJson(json)
+        Axis stateCopy = copy.getAxis('state')
+        Column ohioCopy = stateCopy.findColumn('OH')
+        Column defCopy = stateCopy.defaultColumn
+
+        assert 'btc' == ohioCopy.getMetaProperty('default_value')
+        assert 'bar' == ohioCopy.getMetaProperty('foo')
+        assert 'bitcoin' == defCopy.getMetaProperty('default_value')
     }
 
     // TODO: Swap order of above test

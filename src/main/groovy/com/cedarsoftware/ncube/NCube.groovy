@@ -1986,10 +1986,7 @@ class NCube<T>
             Object[] columns = (Object[]) jsonAxis.remove('columns')
 
             if (isRef)
-            {
-                // Remove known fields so that they are not listed as meta properties.
-                jsonAxis.remove('columns')
-
+            {   // reference axis
                 ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, jsonAxis)
                 Axis newAxis = new Axis(axisName, axisId, hasDefault, refAxisLoader)
                 ncube.addAxis(newAxis)
@@ -1998,10 +1995,21 @@ class NCube<T>
                     userIdToUniqueId[column.id] = column.id
                 }
 
+                moveAxisMetaPropsToDefaultColumn(newAxis)
                 if (columns)
                 {
                     columns.each { Map column ->
-                        println column
+                        Column col = newAxis.getColumnById(column.id as Long)
+                        Iterator<Map.Entry<String, Object>> i = column.entrySet().iterator()
+                        while (i.hasNext())
+                        {
+                            Map.Entry<String, Object> entry = i.next()
+                            String key = entry.key
+                            if ('id' != key)
+                            {
+                                col.setMetaProperty(key, entry.value)
+                            }
+                        }
                     }
                 }
             }
@@ -2040,21 +2048,7 @@ class NCube<T>
                 else
                 {
                     loadMetaProperties(axis.metaProps)
-                    Column defCol = axis.defaultColumn
-                    // Snag all meta-properties on Axis that start with Axis.DEFAULT_COLUMN_PREFIX, as this
-                    // is where the default column's meta properties are stored, and copy them to the default
-                    // column (if one exists)
-                    Iterator<Map.Entry<String, Object>> i = axis.metaProps.entrySet().iterator()
-                    while (i.hasNext())
-                    {
-                        Map.Entry<String, Object> entry = i.next()
-                        String key = entry.key
-                        if (key.startsWith(JsonFormatter.DEFAULT_COLUMN_PREFIX) && defCol)
-                        {
-                            defCol.setMetaProperty(key - JsonFormatter.DEFAULT_COLUMN_PREFIX, entry.value)
-                            i.remove()  // do not leave the column_default_* properties on the Axis
-                        }
-                    }
+                    moveAxisMetaPropsToDefaultColumn(axis)
                 }
 
                 // Read columns
@@ -2232,6 +2226,31 @@ class NCube<T>
         }
 
         return ncube
+    }
+
+    /**
+     * Snag all meta-properties on Axis that start with Axis.DEFAULT_COLUMN_PREFIX, as this
+     * is where the default column's meta properties are stored, and copy them to the default
+     * column (if one exists)
+     */
+    private static void moveAxisMetaPropsToDefaultColumn(Axis axis)
+    {
+        Column defCol = axis.defaultColumn
+        if (!defCol)
+        {
+            return
+        }
+        Iterator<Map.Entry<String, Object>> i = axis.metaProps.entrySet().iterator()
+        while (i.hasNext())
+        {
+            Map.Entry<String, Object> entry = i.next()
+            String key = entry.key
+            if (key.startsWith(JsonFormatter.DEFAULT_COLUMN_PREFIX))
+            {
+                defCol.setMetaProperty(key - JsonFormatter.DEFAULT_COLUMN_PREFIX, entry.value)
+                i.remove()  // do not leave the column_default_* properties on the Axis
+            }
+        }
     }
 
     private static void loadMetaProperties(Map props)
@@ -2619,7 +2638,7 @@ class NCube<T>
         Set<String> a2 = new CaseInsensitiveSet<>(other.axisList.keySet())
         a1.removeAll(a2)
 
-        if (!a1.isEmpty())
+        if (!a1.empty)
         {   // Axis names must be all be the same (ignoring case)
             return false
         }

@@ -15,20 +15,6 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_METHOD_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_STATUS
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
-
 /**
  * Format an NCube into an JSON document
  *
@@ -290,7 +276,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
         if (!axis.metaProperties.isEmpty())
         {
-            if (axis.isReference())
+            if (axis.reference)
             {
                 writeObjectKeyValue("isRef", true, true)
             }
@@ -538,7 +524,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         append(longId)
     }
 
-    public static String getColumnType(Object o)
+    static String getColumnType(Object o)
     {
         if (o instanceof Range || o instanceof RangeSet)
         {
