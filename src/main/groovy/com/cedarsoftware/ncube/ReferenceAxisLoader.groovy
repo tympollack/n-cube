@@ -79,13 +79,6 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
             axis.setMetaProperty(entry.key, entry.value)
         }
 
-        // Remove known fields so that they are not listed as meta properties.
-        // If you make a change here, you need to make the corresponding change in NCube.hydrateCube() - axis section
-        axis.removeMetaProperty('id')
-        axis.removeMetaProperty('name')
-        axis.removeMetaProperty('isRef')
-        axis.removeMetaProperty('hasDefault')
-
         NCube refCube = getReferencedCube(axis, args[REF_CUBE_NAME] as String, args[REF_AXIS_NAME] as String)
         NCube transformCube = null
 

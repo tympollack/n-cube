@@ -1935,6 +1935,14 @@ class NCube<T>
         }
     }
 
+    /**
+     * Load an n-cube from JSON format, which was read in by json-io as a Map of Maps.  This is
+     * the 'regular' JSON format that is output from the JsonFormatter with no special settings.
+     * For example, the JSON format created when indexFormat=true is not loadable by this method.
+     * @param jsonNCube Map is the regular JSON format read and returned by json-io in Map of Map format.
+     * @return NCube created from the passed in Map of Maps, created by json-io, from the regular JSON
+     * format, which was created by the JsonFormatter.
+     */
     private static <T> NCube<T> hydrateCube(Map jsonNCube)
     {
         final String cubeName = getString(jsonNCube, "ncube")  // new cubes always have ncube as they key in JSON storage
@@ -1953,7 +1961,6 @@ class NCube<T>
         ncube.metaProps.remove('ruleMode')
         ncube.metaProps.remove('axes')
         ncube.metaProps.remove('cells')
-        ncube.metaProps.remove('ruleMode')
         ncube.metaProps.remove('sha1')
         loadMetaProperties(ncube.metaProps)
 
@@ -1967,7 +1974,7 @@ class NCube<T>
             throw new IllegalArgumentException("Must specify a list of axes for the ncube, under the key 'axes' as [{axis 1}, {axis 2}, ... {axis n}], cube: ${cubeName}")
         }
 
-        Object[] axes = jsonNCube["axes"] as Object[]
+        Object[] axes = jsonNCube.axes as Object[]
 
         if (ArrayUtilities.isEmpty(axes))
         {
@@ -1993,8 +2000,20 @@ class NCube<T>
             final String axisName = getString(jsonAxis, 'name')
             final boolean hasDefault = getBoolean(jsonAxis, 'hasDefault')
             boolean isRef = getBoolean(jsonAxis, 'isRef')
+
+            // Remove these so they are not kept as meta-properties
+            jsonAxis.remove('id')
+            jsonAxis.remove('name')
+            jsonAxis.remove('isRef')
+            jsonAxis.remove('hasDefault')
+            boolean hasColumnsKey = jsonAxis.containsKey('columns')
+            Object[] columns = (Object[]) jsonAxis.remove('columns')
+
             if (isRef)
             {
+                // Remove known fields so that they are not listed as meta properties.
+                jsonAxis.remove('columns')
+
                 ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, jsonAxis)
                 Axis newAxis = new Axis(axisName, axisId, hasDefault, refAxisLoader)
                 ncube.addAxis(newAxis)
@@ -2002,9 +2021,21 @@ class NCube<T>
                 {
                     userIdToUniqueId[column.id] = column.id
                 }
+
+                if (columns)
+                {
+                    columns.each { Map column ->
+                        println column
+                    }
+                }
             }
             else
             {
+                if (!hasColumnsKey)
+                {
+                    throw new IllegalArgumentException("'columns' must be specified, axis: ${axisName}, cube: ${cubeName}")
+                }
+
                 AxisType type = AxisType.valueOf(getString(jsonAxis, 'type'))
                 AxisValueType valueType = AxisValueType.valueOf(getString(jsonAxis, 'valueType'))
                 final int preferredOrder = getLong(jsonAxis, 'preferredOrder').intValue()
@@ -2013,23 +2044,18 @@ class NCube<T>
                 {
                     fireAll = getBoolean(jsonAxis, 'fireAll')
                 }
+
+                // Remove known fields so that they are not listed as meta properties.
+                jsonAxis.remove('type')
+                jsonAxis.remove('valueType')
+                jsonAxis.remove('preferredOrder')
+                jsonAxis.remove('multiMatch')
+                jsonAxis.remove('fireAll')
+
                 Axis axis = new Axis(axisName, type, valueType, hasDefault, preferredOrder, axisId, fireAll)
                 ncube.addAxis(axis)
                 axis.metaProps = new CaseInsensitiveMap<>()
                 axis.metaProps.putAll(jsonAxis)
-
-                // Remove known fields so that they are not listed as meta properties.
-                // If you make a change here, you need to make the corresponding change in ReferenceAxisLoader.load()
-                axis.metaProps.remove('id')
-                axis.metaProps.remove('name')
-                axis.metaProps.remove('isRef')
-                axis.metaProps.remove('type')
-                axis.metaProps.remove('hasDefault')
-                axis.metaProps.remove('valueType')
-                axis.metaProps.remove('preferredOrder')
-                axis.metaProps.remove('multiMatch')
-                axis.metaProps.remove('columns')
-                axis.metaProps.remove('fireAll')
 
                 if (axis.metaProps.size() < 1)
                 {
@@ -2055,14 +2081,8 @@ class NCube<T>
                     }
                 }
 
-                if (!jsonAxis.containsKey('columns'))
-                {
-                    throw new IllegalArgumentException("'columns' must be specified, axis: ${axisName}, cube: ${cubeName}")
-                }
-
                 // Read columns
-                Object[] cols = (Object[]) jsonAxis['columns']
-                for (col in cols)
+                for (col in columns)
                 {
                     Map jsonColumn = col as Map
                     Object value = jsonColumn['value']
