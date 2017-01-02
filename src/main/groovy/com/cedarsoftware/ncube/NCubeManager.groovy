@@ -557,7 +557,7 @@ class NCubeManager
     /**
      * Retrieve all cube names that are deeply referenced by ApplicationID + n-cube name.
      */
-    static void getReferencedCubeNames(ApplicationID appId, String name,  Set<String> refs)
+    static void getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs)
     {
         if (refs == null)
         {
