@@ -3,7 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
@@ -558,7 +557,7 @@ class NCubeManager
     /**
      * Retrieve all cube names that are deeply referenced by ApplicationID + n-cube name.
      */
-    static void getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs)
+    static void getReferencedCubeNames(ApplicationID appId, String name,  Set<String> refs)
     {
         if (refs == null)
         {
@@ -571,16 +570,18 @@ class NCubeManager
         {
             throw new IllegalArgumentException("Could not get referenced cube names, n-cube: ${name} does not exist in app: ${appId}")
         }
-        Set<String> subCubeList = ncube.referencedCubeNames
+
+        Map<Map, Set<String>> subCubeRefs = ncube.referencedCubeNames
 
         // TODO: Use explicit stack, NOT recursion
 
-        for (String cubeName : subCubeList)
-        {
-            if (!refs.contains(cubeName))
-            {
-                refs.add(cubeName)
-                getReferencedCubeNames(appId, cubeName, refs)
+        subCubeRefs.values().each { Set<String> cubeNames ->
+            cubeNames.each { String cubeName ->
+                if (!refs.contains(cubeName))
+                {
+                    refs.add(cubeName)
+                    getReferencedCubeNames(appId, cubeName, refs)
+                }
             }
         }
     }
