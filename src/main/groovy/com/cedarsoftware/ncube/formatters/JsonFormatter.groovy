@@ -288,9 +288,13 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         writeObjectKeyValue("id", axis.id, true)
         writeObjectKeyValue("name", axis.name, true)
         writeObjectKeyValue("hasDefault", axis.hasDefaultColumn(), true)
-        if (axis.reference)
+        if (!axis.metaProperties.isEmpty())
         {
-            writeReferenceAxisInfo(axis)
+            if (axis.isReference())
+            {
+                writeObjectKeyValue("isRef", true, true)
+            }
+            writeMetaProperties(axis.metaProperties)
             comma()
         }
 
@@ -302,16 +306,12 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             //  optional inputs that can use defaults
             writeObjectKeyValue("preferredOrder", axis.columnOrder, true)
             writeObjectKeyValue("fireAll", axis.fireAll, true)
-            if (axis.metaProperties.size() > 0)
-            {
-                writeMetaProperties(axis.metaProperties)
-                comma()
-            }
             writeColumns(axis.columns, options)
         }
         else
         {   // regular format with reference axis
             append('"columns":[')
+            boolean first = true
             Iterator<Column> i = axis.columnsWithoutDefault.iterator()
             while (i.hasNext())
             {
@@ -319,48 +319,21 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 Map<String, Object> metaProps = column.metaProperties
                 if (!metaProps.isEmpty())
                 {
-                    append("""{"id":${column.id},""")
-                    writeMetaProperties(metaProps)
-                    append('}')
-                    if (i.hasNext())
+                    if (first)
+                    {
+                        first = false
+                    }
+                    else
                     {
                         comma()
                     }
+                    append("""{"id":${column.id},""")
+                    writeMetaProperties(metaProps)
+                    append('}')
                 }
             }
             append(']')
         }
-    }
-
-    private void writeReferenceAxisInfo(Axis axis)
-    {
-        Map meta = axis.metaProperties
-        boolean hasTransformer = axis.referenceTransformed
-
-        writeObjectKeyValue("isRef", true, true)
-        writeObjectKeyValue(REF_TENANT, meta[REF_TENANT], true)
-        writeObjectKeyValue(REF_APP, meta[REF_APP], true)
-        writeObjectKeyValue(REF_VERSION, meta[REF_VERSION], true)
-        writeObjectKeyValue(REF_STATUS, meta[REF_STATUS], true)
-        writeObjectKeyValue(REF_BRANCH, meta[REF_BRANCH], true)
-        writeObjectKeyValue(REF_CUBE_NAME, meta[REF_CUBE_NAME], true)
-        writeObjectKeyValue(REF_AXIS_NAME, meta[REF_AXIS_NAME], false)
-
-        if (hasTransformer)
-        {
-            comma()
-            writeObjectKeyValue(TRANSFORM_APP, meta[TRANSFORM_APP], true)
-            writeObjectKeyValue(TRANSFORM_VERSION, meta[TRANSFORM_VERSION], true)
-            writeObjectKeyValue(TRANSFORM_STATUS, meta[TRANSFORM_STATUS], true)
-            writeObjectKeyValue(TRANSFORM_BRANCH, meta[TRANSFORM_BRANCH], true)
-            writeObjectKeyValue(TRANSFORM_CUBE_NAME, meta[TRANSFORM_CUBE_NAME], true)
-            writeObjectKeyValue(TRANSFORM_METHOD_NAME, meta[TRANSFORM_METHOD_NAME], false)
-        }
-        if (axis.metaProperties.size() > 0)
-        {
-            comma()
-        }
-        writeMetaProperties(axis.metaProperties)
     }
 
     void writeColumns(List<Column> columns, Map<String, Object> options) throws IOException

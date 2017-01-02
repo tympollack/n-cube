@@ -1226,6 +1226,7 @@ class TestDelta
         Column ohio = state.findColumn('OH')
         Column defCol = state.defaultColumn
         ohio.setMetaProperty('default_value', 'btc')
+        ohio.setMetaProperty('foo', 'bar')
         defCol.setMetaProperty('default_value', 'bitcoin')
 
         assert 'btc' == ref.getCell([state:'OH', column: 'A'])
@@ -1239,6 +1240,7 @@ class TestDelta
         assert 'bitcoin' == ref.getCell([state:'AZ', column: 'C'])
 
         String json = ref.toFormattedJson([indexFormat:false])
+        println json
     }
 
     // TODO: Swap order of above test
