@@ -137,8 +137,9 @@ class TestThreadedClearCache
                 }
             })
         }
-        startLatch.countDown()
-        finishedLatch.await()
+        startLatch.countDown()  // trigger all Runnables to start
+        finishedLatch.await()   // wait for all Runnables to finish
+        executor.shutdown()
         assert !failed.get()
     }
 
