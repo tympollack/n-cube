@@ -1,4 +1,7 @@
 ### Revision History
+* 3.5.1
+  * Bug fix: NCube.sha1() now takes reference axis meta-properties into account.
+  * Bug fix: NCube.hydrateCube() was not converting the value side of reference axis meta-properties from JsonObject to CellInfo.  
 * 3.5.0
   * Reference Axis columns can have meta-properties added, removed, etc.
   * Parallel compilation for Groovy expressions.  

@@ -1958,7 +1958,7 @@ class NCube<T>
         ncube.metaProps.remove('axes')
         ncube.metaProps.remove('cells')
         ncube.metaProps.remove('sha1')
-        loadMetaProperties(ncube.metaProps)
+        transformMetaProperties(ncube.metaProps)
 
         String defType = jsonNCube.containsKey(DEFAULT_CELL_VALUE_TYPE) ? getString(jsonNCube, DEFAULT_CELL_VALUE_TYPE) : null
         String defUrl = jsonNCube.containsKey(DEFAULT_CELL_VALUE_URL) ? getString(jsonNCube, DEFAULT_CELL_VALUE_URL) : null
@@ -2004,6 +2004,7 @@ class NCube<T>
             jsonAxis.remove('hasDefault')
             boolean hasColumnsKey = jsonAxis.containsKey('columns')
             Object[] columns = (Object[]) jsonAxis.remove('columns')
+            transformMetaProperties(jsonAxis)
 
             if (isRef)
             {   // reference axis
@@ -2030,6 +2031,7 @@ class NCube<T>
                                 col.setMetaProperty(key, entry.value)
                             }
                         }
+                        transformMetaProperties(col.metaProps)
                     }
                 }
             }
@@ -2067,7 +2069,6 @@ class NCube<T>
                 }
                 else
                 {
-                    loadMetaProperties(axis.metaProps)
                     moveAxisMetaPropsToDefaultColumn(axis)
                 }
 
@@ -2175,7 +2176,7 @@ class NCube<T>
                     }
                     else
                     {
-                        loadMetaProperties(colAdded.metaProps)
+                        transformMetaProperties(colAdded.metaProps)
                     }
                 }
             }
@@ -2273,7 +2274,12 @@ class NCube<T>
         }
     }
 
-    private static void loadMetaProperties(Map props)
+    /**
+     * Convert the values on the value side of the Map from JsonObject to an appropriate
+     * CellInfo.  If the value is not a JsonObject, it is left alone (primitives).
+     * @param props Map of String meta-property keys to values
+     */
+    private static void transformMetaProperties(Map props)
     {
         List<MapEntry> entriesToUpdate = []
         for (entry in props.entrySet())
@@ -2458,7 +2464,17 @@ class NCube<T>
             }
             sha1Digest.update(sep)
             boolean displayOrder = axis.columnOrder == Axis.DISPLAY
-            if (!axis.reference)
+            if (axis.reference)
+            {
+                for (column in axis.columns)
+                {
+                    if (!MapUtilities.isEmpty(column.metaProps))
+                    {
+                        deepSha1(sha1Digest, column.metaProps, sep)
+                    }
+                }
+            }
+            else
             {
                 for (column in axis.columnsWithoutDefault)
                 {
