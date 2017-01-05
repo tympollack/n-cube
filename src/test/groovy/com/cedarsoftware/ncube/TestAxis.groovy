@@ -13,6 +13,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+import java.security.SecureRandom
+
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
@@ -712,11 +714,11 @@ class TestAxis
     void testAddingNullToAxis()
     {
         Axis axis = new Axis('foo', AxisType.DISCRETE, AxisValueType.LONG, false)
-        axis.addColumn null    // Add default column
+        axis.addColumn((Comparable)null)    // Add default column
         assert axis.hasDefaultColumn()
         try
         {
-            axis.addColumn null
+            axis.addColumn((Comparable)null)
             fail 'should throw exception'
         }
         catch (IllegalArgumentException expected)
@@ -873,7 +875,7 @@ class TestAxis
         Axis nearest = new Axis('points', AxisType.NEAREST, AxisValueType.COMPARABLE, false)
         try
         {
-            nearest.addColumn null
+            nearest.addColumn((Comparable)null)
             fail 'should not make it here'
         }
         catch (IllegalArgumentException e)
@@ -3112,6 +3114,38 @@ class TestAxis
         assert 'bravo' == meta.get('b')
         assert 'charlie' == meta.get('c')
         assert 'delta' == meta.get('d')
+    }
+
+    @Test
+    void testAddColumnWithSuggestedIdThatCollides()
+    {
+        Axis state = NCubeBuilder.statesAxis
+        assert state.size() == 50
+        Column oh = state.findColumn('OH')
+        long ohId = oh.id
+        Column dc = new Column('DC', oh.id)
+        Column colAdded = state.addColumn(dc)
+        dc = state.findColumn('DC')
+        assert dc.id != ohId
+        assert dc.value == colAdded.value
+        assert state.size() == 51
+    }
+
+    @Test
+    void testAddColumnWithSuggestedIdThatDoesNotCollides()
+    {
+        SecureRandom random = new SecureRandom()
+        Axis state = NCubeBuilder.statesAxis
+        assert state.size() == 50
+        Column oh = state.findColumn('OH')
+        long startId = random.nextInt(Axis.MAX_COLUMN_ID as Integer)
+        Column dc = new Column('DC', startId)
+        state.addColumn(dc)
+        dc = state.findColumn('DC')
+        assert oh.id != dc.id
+        assert dc.value == 'DC'
+        assert dc.id % Axis.MAX_COLUMN_ID == startId
+        assert state.size() == 51
     }
 
     private static boolean isValidRange(Axis axis, Range range)

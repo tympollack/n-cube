@@ -7,6 +7,7 @@ import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonReader
@@ -15,6 +16,7 @@ import com.google.common.collect.TreeRangeMap
 import gnu.trove.map.hash.TLongObjectHashMap
 import groovy.transform.CompileStatic
 
+import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Matcher
 
@@ -92,7 +94,9 @@ class Axis
     private static final ThreadLocal<Random> localRandom = new ThreadLocal<Random>() {
         Random initialValue()
         {
-            return new Random()
+            String s = Converter.convert(System.nanoTime(), String.class)
+            s = EncryptionUtilities.calculateSHA1Hash(s.bytes)
+            return new SecureRandom(s.bytes)
         }
     }
 
@@ -617,13 +621,31 @@ class Axis
         if (suggestedId != null && suggestedId > 0)
         {
             long attemptId = (id * BASE_AXIS_ID) + (suggestedId % BASE_AXIS_ID)
-            long finalId = idToCol.containsKey(attemptId) ? nextColId : attemptId
+            long finalId
+
+            if (idToCol.containsKey(attemptId))
+            {
+                long colId = getValueBasedColumnId(v)
+                finalId = idToCol.containsKey(colId) ? nextColId : colId
+            }
+            else
+            {
+                finalId = attemptId
+            }
             return new Column(v, finalId)
         }
         else
         {
             return new Column(v, v == null ? defaultColId : nextColId)
         }
+    }
+
+    private long getValueBasedColumnId(Comparable value)
+    {
+        String s = value == null ? '' : value.toString()
+        long hash = abs(EncryptionUtilities.calculateSHA1Hash(s.getBytes('UTF-8')).hashCode()) % MAX_COLUMN_ID
+        hash += id * BASE_AXIS_ID
+        return hash
     }
 
     /**
@@ -726,6 +748,39 @@ class Axis
         if (StringUtilities.hasContent(colName))
         {
             column.columnName = colName
+        }
+        addColumnInternal(column)
+        return column
+    }
+
+    /**
+     * Add a Column from another Axis to this Axis.  It will
+     * attempt to use the ID that is already on the Column, ignoring
+     * the Axis portion of the ID.  If there is a conflict, it will
+     * then use an ID deterministically generated from the value of
+     * the column.
+     * @param column Column to add
+     * @return Column added - the ID may not be the same as the ID from
+     * the Column passed in.
+     */
+    Column addColumn(Column column)
+    {
+        long baseAxisId = id * BASE_AXIS_ID
+        long colId = column.id % MAX_COLUMN_ID
+        long axisColId = baseAxisId + colId
+
+        if (idToCol.containsKey(axisColId))
+        {
+            colId = getValueBasedColumnId(column.value)
+            if (idToCol.containsKey(colId))
+            {
+                throw new IllegalArgumentException('See https://en.wikipedia.org/wiki/Mesh_(disambiguation)')
+            }
+            column.id = colId
+        }
+        else
+        {
+            column.id = axisColId
         }
         addColumnInternal(column)
         return column
