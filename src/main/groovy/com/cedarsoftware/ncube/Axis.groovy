@@ -708,41 +708,12 @@ class Axis
      * axis is SORTED, it will be returned in sorted order if getColumns() or getColumnsWithoutDefault()
      * are called.
      * @param value Comparable value to add to this Axis.
-     * @return Column instanced created from the passed in value.
-     */
-    Column addColumn(Comparable value)
-    {
-        return addColumn(value, null)
-    }
-
-    /**
-     * Add a new Column to this axis.  It will be added at the end in terms of display order.  If the
-     * axis is SORTED, it will be returned in sorted order if getColumns() or getColumnsWithoutDefault()
-     * are called.
-     * @param value Comparable value to add to this Axis.
-     * @param colName The name of the column (useful for Rule axes.  Any column can be given a name).
-     * @return Column instanced created from the passed in value.
-     */
-    Column addColumn(Comparable value, String colName)
-    {
-        if (isRef)
-        {
-            throw new IllegalStateException("You cannot add columns to a reference Axis, axis: ${name}")
-        }
-        return addColumn(value, colName, null)
-    }
-
-    /**
-     * Add a new Column to this axis.  It will be added at the end in terms of display order.  If the
-     * axis is SORTED, it will be returned in sorted order if getColumns() or getColumnsWithoutDefault()
-     * are called.
-     * @param value Comparable value to add to this Axis.
-     * @param colName The name of the column (useful for Rule axes.  Any column can be given a name).
+     * @param colName The name of the column (useful for Rule axes.  Any column can be given a name). Optional.
      * @param suggestedId Long use the suggested ID if possible.  This allows an axis to be recreated
-     * from persistent storage and have the same IDs.
+     * from persistent storage and have the same IDs. Optional.
      * @return Column instanced created from the passed in value.
      */
-    Column addColumn(Comparable value, String colName, Long suggestedId)
+    Column addColumn(Comparable value, String colName = null, Long suggestedId = null)
     {
         final Column column = createColumnFromValue(value, suggestedId)
         if (StringUtilities.hasContent(colName))
