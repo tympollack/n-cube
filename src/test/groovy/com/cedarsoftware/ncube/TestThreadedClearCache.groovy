@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import java.security.SecureRandom
@@ -58,7 +59,7 @@ class TestThreadedClearCache
     }
 
     // Uncomment when testing threading.  This hits an external website, so use sparingly
-    @Test
+    @Ignore
     void testCubesWithThreadedClearCacheWithAppId()
     {
         NCube[] ncubes = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.2per.app.json", "math.controller.json")
