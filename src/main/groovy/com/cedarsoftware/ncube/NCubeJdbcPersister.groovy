@@ -1341,7 +1341,6 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
         if (!row[0])
         {
             sql.execute(map, "/* deleteBranch */ DELETE FROM n_cube WHERE app_cd = :app AND version_no_cd = '0.0.0' AND status_cd = 'SNAPSHOT' AND tenant_cd = :tenant AND branch_id = :branch")
-
         }
         return true
     }
