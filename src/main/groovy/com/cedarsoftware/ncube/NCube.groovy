@@ -1624,10 +1624,10 @@ class NCube<T>
             }
         }
 
-        if(axis.hasDefaultColumn())
+        if(axis.defaultColumn)
         {
             Map<LongHashSet, T> newCells = [:]
-            long defaultColumnId = axis.getDefaultColId()
+            long defaultColumnId = axis.defaultColId
             for (cell in cells)
             {
                 LongHashSet cellKey = cell.key
@@ -1639,7 +1639,9 @@ class NCube<T>
             cells.putAll(newCells)
         }
         else
+        {
             cells.clear()
+        }
 
         axisList[axisName] = axis
         idToAxis.put(axis.id, axis)
