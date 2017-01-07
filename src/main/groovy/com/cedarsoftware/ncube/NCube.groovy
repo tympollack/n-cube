@@ -1624,19 +1624,23 @@ class NCube<T>
             }
         }
 
-        if(axis.defaultColumn)
-        {
-            Map<LongHashSet, T> newCells = [:]
+        if (axis.hasDefaultColumn())
+        {   // Add default column ID of the new axis to all populated cells, effectively shifting them to the
+            // default column on the new axis.
+            Collection<Map.Entry<LongHashSet, T>> newCells = new ArrayDeque<>()
             long defaultColumnId = axis.defaultColId
             for (cell in cells)
             {
                 LongHashSet cellKey = cell.key
-                def cellValue = cell.value
                 cellKey.add(defaultColumnId)
-                newCells.put(cellKey, cellValue)
+                newCells.add(cell)
             }
+
             cells.clear()
-            cells.putAll(newCells)
+            for (cell in newCells)
+            {
+                cells[cell.key] = cell.value
+            }
         }
         else
         {
