@@ -1400,34 +1400,24 @@ class Axis
     }
 
     /**
-     * Find all Columns which satisfy the passed in closure.  Each Column on the Axis is passed to Closure, and
-     * if the closure returns true, then the Column is added to the List<Column> to be returned.
+     * Pass the Axis (this) to the passed in Closure. The closure is expected to take one argument, this
+     * Axis, and return a List<Column> instances.  The closure can do whatever filtering it wants in
+     * order to generated the List of Columns.  The list can contain a column more than once.  The generated
+     * List is the orchestration (or order) in which the columns will be selected and used.
      * <pre>
      * Example:
-     * axis.findColumns { Column -> column.name.startsWith('BR') }
+     * axis.findColumns { Axis axis -> List columns = []; ... ; return columns }
      * </pre>
-     * This would return all Columns whose name starts with 'BR'.  Normally, this method is not called
-     * directly, but instead called when getCell() or at() is called, and the columns is associated to the rule
-     * axis name.
-     * @param Closure that takes a single Column argument
-     * @return A List<Column> that properly match the passed in Closure. If no Columns match, then if
-     * there is a Default column, it will be the single Column in the returned List.  The order of the Columns
-     * returned in the list will be in the order listed when .columns() is called.  A Column instance will be
-     * included only one or zero times.
+     * @param Closure that takes a single Axis argument and returns a List of Column instances.
+     * @param
+     * @return A List<Column> selected by the Closure. If the closure returns no columns, then if
+     * there is a Default column, it will be the single Column in the returned List.  The order of
+     * the Columns returned in the list will be in the order the closure returned them.  A Column
+     * instance can be included more than one time.
      */
     List<Column> findColumns(Closure closure)
     {
-        Iterator<Column> i = columns.iterator()
-        List<Column> columns = []
-
-        while (i.hasNext())
-        {
-            Column column = i.next()
-            if (closure(column))
-            {
-                columns.add(column)
-            }
-        }
+        List<Column> columns = closure(this)
 
         if (columns.empty && hasDefaultColumn())
         {
