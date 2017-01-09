@@ -45,13 +45,13 @@ class TestNCube
     private static final boolean _debug = false
 
     @Before
-    public void setUp()
+    void setUp()
     {
         TestingDatabaseHelper.setupDatabase()
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         TestingDatabaseHelper.tearDownDatabase()
     }
