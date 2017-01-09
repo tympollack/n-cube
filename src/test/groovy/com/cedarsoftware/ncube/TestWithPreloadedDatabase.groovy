@@ -6184,6 +6184,51 @@ class TestWithPreloadedDatabase
     }
 
     @Test
+    void testMultipleInstanceOfSameReferenceAxis()
+    {
+        NCube one = NCubeBuilder.discrete1DAlt
+        NCubeManager.updateCube(ApplicationID.testAppId, one, true)
+        assert one.getAxis('state').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource1', args)
+        Axis axis = new Axis('stateSource1', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.addAxis(axis)
+
+        refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource2', args)
+        axis = new Axis('stateSource2', 2, false, refAxisLoader)
+        two.addAxis(axis)
+
+        two.setCell('a', [stateSource1:'OH', stateSource2:'OH'] as Map)
+        two.setCell('b', [stateSource1:'TX', stateSource2:'OH'] as Map)
+
+        String json = two.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+        assert reload.numCells == 2
+        assert 'a' == reload.getCell([stateSource1:'OH', stateSource2:'OH'] as Map)
+        assert 'b' == reload.getCell([stateSource1:'TX', stateSource2:'OH'] as Map)
+        assert reload.getAxis('stateSource1').reference
+        assert reload.getAxis('stateSource2').reference
+        NCubeManager.updateCube(ApplicationID.testAppId, two, true)
+
+        List<AxisRef> axisRefs = NCubeManager.getReferenceAxes(ApplicationID.testAppId)
+        assert axisRefs.size() == 2
+    }
+
+    @Test
     void testDynamicallyLoadedCode()
     {
         String save = NCubeManager.systemParams[NCUBE_ACCEPTED_DOMAINS]
