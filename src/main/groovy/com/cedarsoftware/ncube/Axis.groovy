@@ -732,6 +732,7 @@ class Axis
             newId = axisColId
         }
         Column newColumn = new Column(value, newId)
+        newColumn.addMetaProperties(column.metaProperties)
         addColumnInternal(newColumn)
         return newColumn
     }
