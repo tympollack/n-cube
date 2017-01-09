@@ -62,8 +62,6 @@ import java.util.zip.GZIPOutputStream
 class NCube<T>
 {
     private static final Logger LOG = LogManager.getLogger(NCube.class)
-    public static final String RULE_LIST = 'rule-list'
-    public static final String DONT_CARE = '_︿_ψ_☼'
     public static final String DEFAULT_CELL_VALUE_TYPE = 'defaultCellValueType'
     public static final String DEFAULT_CELL_VALUE = 'defaultCellValue'
     public static final String DEFAULT_CELL_VALUE_URL = 'defaultCellValueUrl'
@@ -1052,41 +1050,20 @@ class NCube<T>
                 }
                 else if (value instanceof Collection)
                 {   // Collection of rule names to select (orchestration)
-                    List<Column> columns = []
                     Collection<String> orchestration = value as Collection
-                    Iterator<String> i = orchestration.iterator()
-
-                    while (i.hasNext())
-                    {
-                        String ruleName = i.next()
-                        Column column = axis.findColumnByName(ruleName) // O(1)
-                        if (column)
-                        {
-                            columns.add(column)
-                        }
-                    }
-
-                    addDefaultIfNoRulesSelected(columns, axis, "No rule selected on rule-axis: ${axis.name}, rule names [${orchestration}], cube: ${name}")
-                    bindings[axisName] = columns
+                    bindings[axisName] = axis.findColumns(orchestration)
+                    assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, rule names [${orchestration}], cube: ${name}")
                 }
                 else if (value instanceof Map)
                 {   // key-value pairs that meta-properties of rule columns must match to select rules.
                     Map<String, Object> required = value as Map
-                    Iterator<Column> i = axis.columns.iterator()
-                    List<Column> columns = []
-
-                    while (i.hasNext())
-                    {
-                        Column column = i.next()
-                        Map<String, Object> colProps = column.metaProperties
-                        if (hasRequiredProps(required, colProps))
-                        {
-                            columns.add(column)
-                        }
-                    }
-
-                    addDefaultIfNoRulesSelected(columns, axis, "No rule selected on rule-axis: ${axis.name}, meta-properties must match ${required}, cube: ${name}")
-                    bindings[axisName] = columns
+                    bindings[axisName] = axis.findColumns(required)
+                    assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, meta-properties must match ${required}, cube: ${name}")
+                }
+                else if (value instanceof Closure)
+                {
+                    bindings[axisName] = axis.findColumns(value as Closure)
+                    assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, meta-properties must match closure, cube: ${name}")
                 }
                 else
                 {
@@ -1108,43 +1085,12 @@ class NCube<T>
         return bindings
     }
 
-    private void addDefaultIfNoRulesSelected(Collection<Column> columns, Axis axis, String errorMessage)
+    private void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
     {
         if (columns.empty)
         {   // Match default (if it exists) and none of the orchestration columns have matched
-            if (axis.hasDefaultColumn())
-            {
-                columns.add(axis.defaultColumn)
-            }
-            else
-            {
-                throw new CoordinateNotFoundException(errorMessage)
-            }
+            throw new CoordinateNotFoundException(errorMessage)
         }
-    }
-
-    private boolean hasRequiredProps(Map<String, Object> required, Map<String, Object> metaProps)
-    {
-        Iterator<Map.Entry<String, Object>> i = required.entrySet().iterator()
-
-        while (i.hasNext())
-        {
-            Map.Entry<String, Object> entry = i.next()
-            if (metaProps.containsKey(entry.key))
-            {
-                Object value = metaProps[entry.key]
-                if (DONT_CARE != entry.value)
-                {
-                    if (value != entry.value)
-                    {
-                        return false
-                    }
-                }
-            }
-            return false
-        }
-
-        return true
     }
 
     private static Map<String, Integer> getCountersPerAxis(final String[] axisNames)
