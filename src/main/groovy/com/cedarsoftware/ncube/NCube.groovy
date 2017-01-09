@@ -1052,7 +1052,7 @@ class NCube<T>
                 {   // Collection of rule names to select (orchestration)
                     Collection<String> orchestration = value as Collection
                     bindings[axisName] = axis.findColumns(orchestration)
-                    assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, rule names [${orchestration}], cube: ${name}")
+                    assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, rule names ${orchestration}, cube: ${name}")
                 }
                 else if (value instanceof Map)
                 {   // key-value pairs that meta-properties of rule columns must match to select rules.

@@ -1417,7 +1417,7 @@ class Axis
      */
     List<Column> findColumns(Closure closure)
     {
-        List<Column> columns = closure(this)
+        List<Column> columns = closure(this) as List
 
         if (columns.empty && hasDefaultColumn())
         {
@@ -1485,7 +1485,10 @@ class Axis
                     }
                 }
             }
-            return false
+            else
+            {
+                return false
+            }
         }
 
         return true
