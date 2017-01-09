@@ -712,7 +712,8 @@ class Axis
      */
     Column addColumn(Column column)
     {
-        column.value = standardizeColumnValue(column.value)
+        Comparable value = standardizeColumnValue(column.value)
+        long newId
         long baseAxisId = id * BASE_AXIS_ID
         long colId = column.id % MAX_COLUMN_ID
         long axisColId = baseAxisId + colId
@@ -724,14 +725,15 @@ class Axis
             {
                 throw new IllegalArgumentException('See https://en.wikipedia.org/wiki/Mesh_(disambiguation)')
             }
-            column.id = colId
+            newId = colId
         }
         else
         {
-            column.id = axisColId
+            newId = axisColId
         }
-        addColumnInternal(column)
-        return column
+        Column newColumn = new Column(value, newId)
+        addColumnInternal(newColumn)
+        return newColumn
     }
 
     protected Column addColumnInternal(Column column)
