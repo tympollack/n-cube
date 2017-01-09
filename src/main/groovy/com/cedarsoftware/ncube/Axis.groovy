@@ -772,12 +772,13 @@ class Axis
 
     protected Column deleteColumnById(long colId)
     {
-        if (isRef)
+        Column col = idToCol.get(colId)
+
+        if (isRef && !col.default)
         {
-            throw new IllegalStateException("You cannot delete columns from a reference Axis, axis: ${name}")
+            throw new IllegalStateException("You cannot delete non-default columns from a reference Axis, axis: ${name}")
         }
 
-        Column col = idToCol.get(colId)
         if (col == null)
         {
             return null
