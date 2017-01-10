@@ -712,27 +712,8 @@ class Axis
      */
     Column addColumn(Column column)
     {
-        Comparable value = standardizeColumnValue(column.value)
-        long baseAxisId = id * BASE_AXIS_ID
-        long colId = column.id % MAX_COLUMN_ID
-        long axisColId = baseAxisId + colId
-        long newId
-
-        if (idToCol.containsKey(axisColId))
-        {
-            colId = getValueBasedColumnId(column.value)
-            if (idToCol.containsKey(colId))
-            {
-                throw new IllegalArgumentException('See https://en.wikipedia.org/wiki/Mesh_(disambiguation)')
-            }
-            newId = colId
-        }
-        else
-        {
-            newId = axisColId
-        }
-
-        Column newColumn = new Column(value, newId, column.metaProperties)
+        final Column newColumn = createColumnFromValue(column.value, column.id)
+        newColumn.addMetaProperties(column.metaProperties)
         addColumnInternal(newColumn)
         return newColumn
     }
@@ -848,19 +829,13 @@ class Axis
         {
             throw new IllegalStateException("You cannot update columns on a reference Axis, axis: ${name}")
         }
-        Column col = idToCol.get(colId)
+        Column column = idToCol.get(colId)
         deleteColumnById(colId)
-        Column newCol = createColumnFromValue(value, colId)     // re-use ID
-        ensureUnique(newCol.value)
-        newCol.displayOrder = col.displayOrder           // re-use displayOrder
-        String colName = col.columnName
-
-        if (StringUtilities.hasContent(colName))
-        {
-            newCol.columnName = col.columnName           // re-use name
-        }
-
-        indexColumn(newCol)
+        Column newColumn = createColumnFromValue(value, colId)      // re-use ID
+        ensureUnique(newColumn.value)
+        newColumn.displayOrder = column.displayOrder                // re-use displayOrder
+        newColumn.addMetaProperties(column.metaProperties)          // bring over meta-properties
+        indexColumn(newColumn)
     }
 
     /**
