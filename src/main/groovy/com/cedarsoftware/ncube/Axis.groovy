@@ -713,10 +713,10 @@ class Axis
     Column addColumn(Column column)
     {
         Comparable value = standardizeColumnValue(column.value)
-        long newId
         long baseAxisId = id * BASE_AXIS_ID
         long colId = column.id % MAX_COLUMN_ID
         long axisColId = baseAxisId + colId
+        long newId
 
         if (idToCol.containsKey(axisColId))
         {
@@ -731,8 +731,8 @@ class Axis
         {
             newId = axisColId
         }
-        Column newColumn = new Column(value, newId)
-        newColumn.addMetaProperties(column.metaProperties)
+
+        Column newColumn = new Column(value, newId, column.metaProperties)
         addColumnInternal(newColumn)
         return newColumn
     }
