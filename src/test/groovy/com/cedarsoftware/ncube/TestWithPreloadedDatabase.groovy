@@ -6187,8 +6187,11 @@ class TestWithPreloadedDatabase
     void testMultipleInstanceOfSameReferenceAxis()
     {
         NCube one = NCubeBuilder.discrete1DAlt
-        one.getAxis('state').findColumn('OH').setMetaProperty('foo', 'bar')
-        one.getAxis('state').findColumn('TX').setMetaProperty('baz', 'qux')
+        Axis state = one.getAxis('state')
+        state.setMetaProperty('nose', 'smell')
+        state.setMetaProperty('ear', 'sound')
+        state.findColumn('OH').setMetaProperty('foo', 'bar')
+        state.findColumn('TX').setMetaProperty('baz', 'qux')
         NCubeManager.updateCube(ApplicationID.testAppId, one, true)
         assert one.getAxis('state').size() == 2
         NCubeManager.addCube(ApplicationID.testAppId, one)
@@ -6207,6 +6210,7 @@ class TestWithPreloadedDatabase
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource1', args)
         Axis axis = new Axis('stateSource1', 1, false, refAxisLoader)
+        axis.setMetaProperty('nose', 'sniff')
         axis.findColumn('OH').setMetaProperty('foo', 'bart')    // over-ride meta-property on referenced axis
         NCube two = new NCube('Mongo')
         two.addAxis(axis)
@@ -6214,6 +6218,7 @@ class TestWithPreloadedDatabase
         refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource2', args)
         axis = new Axis('stateSource2', 2, false, refAxisLoader)
         axis.findColumn('TX').setMetaProperty('baz', 'quux')
+        axis.setMetaProperty('ear', 'hear')
         two.addAxis(axis)
 
         two.setCell('a', [stateSource1:'OH', stateSource2:'OH'] as Map)
@@ -6229,7 +6234,13 @@ class TestWithPreloadedDatabase
         assert refAxis1.reference
         assert refAxis2.reference
 
-        // Ensure meta-properties are brought over (and appropriately overridden) from referenced axis
+        // Ensure Axis meta-properties are brought over (and appropriately overridden) from referenced axis
+        assert 'sniff' == refAxis1.getMetaProperty('nose')
+        assert 'sound' == refAxis1.getMetaProperty('ear')
+        assert 'smell' == refAxis2.getMetaProperty('nose')
+        assert 'hear' == refAxis2.getMetaProperty('ear')
+
+        // Ensure Column meta-properties are brought over (and appropriately overridden) from referenced axis
         assert 'bart' == refAxis1.findColumn('OH').getMetaProperty('foo')
         assert 'qux' == refAxis1.findColumn('TX').getMetaProperty('baz')
         assert 'bar' == refAxis2.findColumn('OH').getMetaProperty('foo')
