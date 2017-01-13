@@ -742,7 +742,7 @@ class DeltaProcessor
 
         Set<String> addedKeys  = new CaseInsensitiveSet<>(newMeta.keySet())
         addedKeys.removeAll(sameKeys)
-        if (!addedKeys.isEmpty())
+        if (!addedKeys.empty)
         {
             for (String key : addedKeys)
             {
@@ -754,7 +754,7 @@ class DeltaProcessor
 
         Set<String> deletedKeys  = new CaseInsensitiveSet<>(oldMeta.keySet())
         deletedKeys.removeAll(sameKeys)
-        if (!deletedKeys.isEmpty())
+        if (!deletedKeys.empty)
         {
             for (String key: deletedKeys)
             {
