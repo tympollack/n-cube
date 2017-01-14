@@ -767,7 +767,7 @@ class DeltaProcessor
             for (String key : addedKeys)
             {
                 Object newVal = newMeta[key]
-                String s = "${locName} meta-entry added: ${key}->${newVal}"
+                String s = "${locName} meta-property added {${key}: ${newVal}}"
                 MapEntry pair = new MapEntry(key, newVal)
                 changes.add(new Delta(location, Delta.Type.ADD, s, helperId, null, pair, oldMetaList, newMetaList))
             }
@@ -780,7 +780,7 @@ class DeltaProcessor
             for (String key: deletedKeys)
             {
                 Object oldVal = oldMeta[key]
-                String s = "${locName} meta-entry deleted: ${key}->${oldVal}"
+                String s = "${locName} meta-property deleted {${key}: ${oldVal}}"
                 MapEntry pair = new MapEntry(key, oldVal)
                 changes.add(new Delta(location, Delta.Type.DELETE, s, helperId, pair, null, oldMetaList, newMetaList))
             }
@@ -792,7 +792,7 @@ class DeltaProcessor
             {
                 Object oldVal = oldMeta[key]
                 Object newVal = newMeta[key]
-                String s = "${locName} meta-entry changed: ${key}->${oldVal} ==> ${key}->${newVal}"
+                String s = "${locName} meta-property changed {${key}: ${oldVal}} ==> {${key}: ${newVal}}"
                 MapEntry oldPair = new MapEntry(key, oldVal)
                 MapEntry newPair = new MapEntry(key, newVal)
                 changes.add(new Delta(location, Delta.Type.UPDATE, s, helperId, oldPair, newPair, oldMetaList, newMetaList))

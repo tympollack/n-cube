@@ -1042,19 +1042,19 @@ class NCubeBuilder
         {
           "id": 1000000000001,
           "type": "exp",
-          "name": "",
+          "name": "init",
           "value": "true"
         },
         {
           "id": 1000000000002,
           "type": "exp",
-          "name": "",
+          "name": "br1",
           "value": "true"
         },
         {
           "id": 1000000000003,
           "type": "exp",
-          "name": "",
+          "name": "br2",
           "value": "true"
         }
       ]

@@ -1343,91 +1343,119 @@ class TestDelta
     @Test
     void testMergeDeltaNCubeProps()
     {
-    }
-
-    @Test
-    void testMergeDeltaAddColumn()
-    {
-    }
-
-    @Test
-    void testMergeDeltaAddColumnMetaProperty()
-    {
-    }
-
-    @Test
-    void testMergeDeltaDeleteColumn()
-    {
-        // Do both DISCRETE and RULE
-    }
-
-    @Test
-    void testMergeDeltaDeleteColumnMetaProperty()
-    {
-        // Do both DISCRETE and RULE
-    }
-
-    @Test
-    void testMergeDeltaUpdateColumn()
-    {
-        // Do both DISCRETE and RULE
-    }
-
-    @Test
-    void testMergeDeltaUpdateColumnMetaProperty()
-    {
-        // Do both DISCRETE and RULE
+        NCube producer = NCubeBuilder.discrete1D
+        NCube consumer = NCubeBuilder.discrete1D
+        consumer.setMetaProperty('a', 'alpha')
+        consumer.setMetaProperty('b', 'beta')
+        producer.setMetaProperty('a', 'alphabet')
+        producer.setMetaProperty('foo', 'bar')
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        assert deltas.size() == 3
+        consumer.mergeDeltas(deltas)
+        assert consumer.sha1() == producer.sha1()
     }
 
     @Test
     void testMergeDeltaAddAxis()
     {
+        NCube producer = NCubeBuilder.discrete1D
+        NCube consumer = NCubeBuilder.discrete1D
+        Axis axis = new Axis('code', AxisType.SET, AxisValueType.LONG, true, Axis.SORTED)
+        axis.addColumn(new Range(0, 21))
+        axis.addColumn(new Range(21, 65))
+        axis.addColumn(new Range(65, 199))
+        producer.addAxis(axis)
+        assert producer.numCells == 2
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        assert deltas.size() == 1
+        consumer.mergeDeltas(deltas)
+        assert consumer.sha1() == producer.sha1()
     }
 
     @Test
-    void testMergeDeltaAddAxisMetaProperty()
+    void testupdateAxisProperties()
     {
+        NCube producer = NCubeBuilder.discrete1D
+        NCube consumer = NCubeBuilder.discrete1D
+        Axis axis = producer.getAxis('state')
+        axis.columnOrder = Axis.SORTED
+        axis.fireAll = true
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        assert deltas.size() == 1
+        consumer.mergeDeltas(deltas)
+        assert consumer.sha1() == producer.sha1()
     }
 
     @Test
-    void testMergeDeltaDeleteAxis()
+    void testMergeDeltaUpdateColumn()
     {
-        // Do both DISCRETE and RULE
+        NCube producer = NCubeBuilder.discrete1D
+        NCube consumer = NCubeBuilder.discrete1D
+        Axis axis = producer.getAxis('state')
+        Column oh = axis.findColumn('OH')
+        producer.updateColumn(oh.id, 'OHIO')
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        assert deltas.size() == 1
+        consumer.mergeDeltas(deltas)
+        assert consumer.sha1() == producer.sha1()
+    }
+
+
+    @Test
+    void testMergeDeltaDeleteRuleColumn()
+    {
+        NCube producer = NCubeBuilder.testRuleCube
+        NCube consumer = NCubeBuilder.testRuleCube
+        Axis axis = producer.getAxis('rule')
+        int numCols = axis.columns.size()
+        Column br1 = axis.findColumn('br1')
+        producer.deleteColumn('rule', br1.id)
+        assert axis.columns.size() == numCols - 1
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        assert deltas.size() == 1
+        consumer.mergeDeltas(deltas)
+        assert consumer.sha1() == producer.sha1()
     }
 
     @Test
     void testMergeDeltaDeleteAxisMetaProperty()
     {
-        // Do both DISCRETE and RULE
+        NCube producer = NCubeBuilder.discrete1D
+        NCube consumer = NCubeBuilder.discrete1D
+        Axis axis = consumer.getAxis('state')
+        axis.setMetaProperty('foo', 'bar')
+        axis.setMetaProperty('bar', 'baz')
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(consumer, producer)  // backward just to get both cubes matching
+        producer.mergeDeltas(deltas)
+        axis = producer.getAxis('state')
+        axis.removeMetaProperty('foo')
+        deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        consumer.mergeDeltas(deltas)
+        axis = consumer.getAxis('state')
+        axis.metaProperties.size() == 1
+        assert consumer.sha1() == producer.sha1()
     }
 
     @Test
-    void testMergeDeltaUpdateAxis()
+    void testMergeDeltaDeleteColumnMetaProperty()
     {
-        // Do both DISCRETE and RULE
-    }
-
-    @Test
-    void testMergeDeltaUpdateAxisMetaProperty()
-    {
-        // Do both DISCRETE and RULE
-    }
-
-    @Test
-    void testMergeDeltaAddCell()
-    {
-    }
-
-    @Test
-    void testMergeDeltaDeleteCell()
-    {
-        // Do both DISCRETE and RULE
-    }
-
-    @Test
-    void testMergeDeltaUpdateCell()
-    {
-        // Do both DISCRETE and RULE
+        NCube producer = NCubeBuilder.discrete1D
+        NCube consumer = NCubeBuilder.discrete1D
+        Axis axis = consumer.getAxis('state')
+        Column column = axis.findColumn('TX')
+        column.setMetaProperty('foo', 'bar')
+        column.setMetaProperty('bar', 'baz')
+        List<Delta> deltas = DeltaProcessor.getDeltaDescription(consumer, producer)  // backward just to get both cubes matching
+        producer.mergeDeltas(deltas)
+        axis = producer.getAxis('state')
+        column = axis.findColumn('TX')
+        column.removeMetaProperty('foo')
+        deltas = DeltaProcessor.getDeltaDescription(producer, consumer)
+        consumer.mergeDeltas(deltas)
+        axis = consumer.getAxis('state')
+        column = axis.findColumn('TX')
+        column.metaProperties.size() == 1
+        assert consumer.sha1() == producer.sha1()
     }
 
     static void setupLibrary()
