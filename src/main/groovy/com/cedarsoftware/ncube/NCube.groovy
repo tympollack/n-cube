@@ -2784,11 +2784,11 @@ class NCube<T>
                     switch (delta.locId)
                     {
                         case 'DEFAULT_CELL':
-                            CellInfo cellInfo = delta.sourceVal as CellInfo
+                            CellInfo cellInfo = delta.destVal as CellInfo
                             Object cellValue = cellInfo.isUrl ?
                                     CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
                                     CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
-                            setDefaultCellValue((T)cellValue)
+                            setDefaultCellValue((T) cellValue)
                             break
                     }
                     break
@@ -2821,10 +2821,10 @@ class NCube<T>
                         Axis axis = getAxis(sourceAxis.name)
 
                         // Bring over any change to sort-order
-                        axis.columnOrder = sourceAxis.columnOrder
+                        axis.columnOrder = destAxis.columnOrder
 
                         // Bring over any change to fireAll
-                        axis.fireAll = sourceAxis.fireAll
+                        axis.fireAll = destAxis.fireAll
                     }
                     else if (delta.type == Delta.Type.DELETE)
                     {
@@ -2835,36 +2835,37 @@ class NCube<T>
                 case Delta.Location.AXIS_META:
                     Axis axis = getAxis(delta.locId as String)
                     String key = delta.sourceVal as String
-                    if (delta.type == Delta.Type.ADD)
+                    switch (delta.type)
                     {
-                        axis.removeMetaProperty(key)
+                        case Delta.Type.ADD:
+                        case Delta.Type.UPDATE:
+                            axis.setMetaProperty(key, delta.destVal)
+                            break
+                        case Delta.Type.DELETE:
+                            axis.removeMetaProperty(key)
+                            break
                     }
-                    else
-                    {
-                        axis.setMetaProperty(key, delta.destVal)
-                    }
-                    clearSha1()
                     break
 
                 case Delta.Location.COLUMN:
+                    // TODO: DONT DO THIS WHEN THE CONTAINING AXIS IS A REF AXIS!!!!!
                     String axisName = delta.locId as String
-                    Axis oldAxis = getAxis(axisName)
                     switch (delta.type)
                     {
                         case Delta.Type.ADD:
                             Column column = delta.destVal as Column
-                            oldAxis.addColumn(column)
+                            addColumn(axisName, column.value, column.columnName, column.id)
                             break
+
                         case Delta.Type.DELETE:
                             Column column = delta.sourceVal as Column
-                            oldAxis.deleteColumn(column.value)
+                            deleteColumn(axisName, column.value)
                             break
+
                         case Delta.Type.UPDATE:
-                            List<Column> columns = oldAxis.columnsWithoutDefault
-                            int prevIdx = columns.indexOf(delta.destVal as Column)
-                            columns.remove(prevIdx)
-                            columns.add(prevIdx, delta.sourceVal as Column)
-                            updateColumns(axisName, columns, true)
+                            Column oldCol = delta.sourceVal as Column
+                            Column newCol = delta.destVal as Column
+                            updateColumn(oldCol.id, newCol.value)
                             break
                     }
                     break
@@ -2874,23 +2875,31 @@ class NCube<T>
                     Map<String, Object> helperId = delta.locId as Map<String, Object>
                     Axis axis = getAxis(helperId.axis as String)
                     Column column = axis.findColumn(helperId.column as Comparable)
-                    if (delta.type == Delta.Type.ADD)
+                    switch (delta.type)
                     {
-                        column.removeMetaProperty(key)
+                        case Delta.Type.ADD:
+                        case Delta.Type.UPDATE:
+                            column.setMetaProperty(key, delta.destVal)
+                            break
+                        case Delta.Type.DELETE:
+                            column.removeMetaProperty(key)
+                            break
                     }
-                    else
-                    {
-                        column.setMetaProperty(key, delta.destVal)
-                    }
-                    clearSha1()
                     break
 
                 case Delta.Location.CELL:
                     Set<Long> coords = delta.locId as Set<Long>
-                    removeCellById(coords)
-                    if (delta.type != Delta.Type.ADD)
+
+                    switch (delta.type)
                     {
-                        setCellById((T)((CellInfo)delta.sourceVal).recreate(), coords)
+                        case Delta.Type.ADD:
+                        case Delta.Type.UPDATE:
+                            setCellById((T) (delta.destVal as CellInfo).recreate(), coords)
+                            break
+
+                        case Delta.Type.DELETE:
+                            removeCellById(coords)
+                            break
                     }
                     break
 
@@ -2899,6 +2908,7 @@ class NCube<T>
                     break
             }
         }
+        clearSha1()
     }
 
     /**

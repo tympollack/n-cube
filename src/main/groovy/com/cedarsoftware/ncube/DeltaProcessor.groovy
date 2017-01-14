@@ -640,6 +640,7 @@ class DeltaProcessor
             Object[] oldCols = oldColNames as Object[]
             Object[] newCols = newColNames as Object[]
 
+            // TODO: DONT WASTE TIME GENERATING COLUMN DIFFS ON A REF AXIS!!!!!!!
             for (Column newCol : newAxis.columns)
             {
                 Column oldCol = oldAxis.getColumnById(newCol.id)

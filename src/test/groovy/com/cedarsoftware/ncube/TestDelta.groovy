@@ -1340,6 +1340,96 @@ class TestDelta
         assert delta.compareTo(null) != 0
     }
 
+    @Test
+    void testMergeDeltaNCubeProps()
+    {
+    }
+
+    @Test
+    void testMergeDeltaAddColumn()
+    {
+    }
+
+    @Test
+    void testMergeDeltaAddColumnMetaProperty()
+    {
+    }
+
+    @Test
+    void testMergeDeltaDeleteColumn()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaDeleteColumnMetaProperty()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaUpdateColumn()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaUpdateColumnMetaProperty()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaAddAxis()
+    {
+    }
+
+    @Test
+    void testMergeDeltaAddAxisMetaProperty()
+    {
+    }
+
+    @Test
+    void testMergeDeltaDeleteAxis()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaDeleteAxisMetaProperty()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaUpdateAxis()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaUpdateAxisMetaProperty()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaAddCell()
+    {
+    }
+
+    @Test
+    void testMergeDeltaDeleteCell()
+    {
+        // Do both DISCRETE and RULE
+    }
+
+    @Test
+    void testMergeDeltaUpdateCell()
+    {
+        // Do both DISCRETE and RULE
+    }
+
     static void setupLibrary()
     {
         NCube<String> states4 = (NCube<String>) NCubeBuilder.get4StatesNotSorted()

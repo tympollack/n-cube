@@ -5362,16 +5362,6 @@ class TestWithPreloadedDatabase
         NCube cube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
         NCube cube2 = NCubeManager.loadCube(BRANCH2, 'TestBranch')
 
-        // get original values from the cube
-        List<Column> columns = cube.getAxis('Code').columns
-        Object addedCell = cube.getCell([Code : 15])
-        Object deletedCell = cube.getCell([Code : -10])
-        Object defaultCellValue = cube.defaultCellValue
-        Map cubeMetaProps = cube.metaProperties
-        Map axisMetaProps = cube.getAxis('Code').metaProperties
-        Map colMetaProps = cube.getAxis('Code').findColumn(0).metaProperties
-        Comparable colVal = cube.getAxis('Code').findColumn(10).value
-
         // make changes
         cube.addColumn('Code', 20)
         cube.deleteColumn('Code', -15)
@@ -5381,7 +5371,8 @@ class TestWithPreloadedDatabase
         cube.addMetaProperties([key : 'value' as Object])
         cube.getAxis('Code').addMetaProperties([key : 'value' as Object])
         cube.getAxis('Code').findColumn(0).addMetaProperties([key : 'value' as Object])
-        cube.getAxis('Code').findColumn(10).value = 9
+        Column column = cube.getAxis('Code').findColumn(10)
+        cube.updateColumn(column.id, 9)
 
         // save changes
         NCubeManager.updateCube(BRANCH1, cube)
@@ -5395,17 +5386,17 @@ class TestWithPreloadedDatabase
         NCubeManager.updateCube(BRANCH2, cube2)
 
         VersionControl.commitBranch(BRANCH2)
-        headCube = NCubeManager.loadCube(HEAD, headCube.name)
 
         // verify cube2 is the same as cube
-        assertEquals(columns.size(), cube2.getAxis('Code').columns.size())
-        assertEquals(addedCell, cube2.getCell([Code : 15]))
-        assertEquals(deletedCell, cube2.getCell([Code : -10]))
-        assertEquals(defaultCellValue, cube2.defaultCellValue)
-        assertEquals(cubeMetaProps.size(), cube2.metaProperties.size())
-        assertEquals(axisMetaProps.size(), cube2.getAxis('Code').metaProperties.size())
-        assertEquals(colMetaProps.size(), cube2.getAxis('Code').findColumn(0).metaProperties.size())
-        assertEquals(colVal, cube2.getAxis('Code').findColumn(10).value)
+        assertEquals(5, cube2.getAxis('Code').columns.size())
+        assertEquals('JKL', cube2.getCell([Code : 15]))     // Newly set value
+        assertEquals('AAA', cube2.getCell([Code : -10]))    // default cell value
+        assertEquals('AAA', cube2.defaultCellValue)         // default cell value
+        assertEquals(1, cube2.metaProperties.size())
+        assertEquals(1, cube2.getAxis('Code').metaProperties.size())
+        assertEquals(1, cube2.getAxis('Code').findColumn(0).metaProperties.size())
+        assert cube2.getAxis('Code').findColumn(9)
+        assert !cube2.getAxis('Code').findColumn(10)
     }
 
     @Test

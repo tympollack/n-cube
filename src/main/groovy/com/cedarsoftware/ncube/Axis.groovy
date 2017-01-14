@@ -594,7 +594,7 @@ class Axis
     protected Column createColumnFromValue(Comparable value, Long suggestedId, Map<String, Object> metaProperties = null)
     {
         value = standardizeColumnValue(value)
-        if (suggestedId != null && suggestedId > 0)
+        if (suggestedId != null && suggestedId > 0 && value != null)
         {
             long attemptId = (id * BASE_AXIS_ID) + (suggestedId % BASE_AXIS_ID)
             long finalId

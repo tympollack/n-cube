@@ -50,12 +50,7 @@ class VersionControl
         NCubeManager.assertPermissions(appId, null, Action.READ)
 
         ApplicationID headAppId = appId.asHead()
-
         List<NCubeInfoDto> records = NCubeManager.search(appId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):false])
-        if (records.empty)
-        {
-            return []
-        }
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
 
         for (NCubeInfoDto info : records)
