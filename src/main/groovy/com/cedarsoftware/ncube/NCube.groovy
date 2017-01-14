@@ -2794,14 +2794,18 @@ class NCube<T>
                     break
 
                 case Delta.Location.NCUBE_META:
-                    String key = delta.sourceVal as String
-                    if (delta.type == Delta.Type.DELETE)
+                    switch (delta.type)
                     {
-                        removeMetaProperty(key)
-                    }
-                    else
-                    {
-                        setMetaProperty(key, delta.destVal)
+                        case Delta.Type.ADD:
+                        case Delta.Type.UPDATE:
+                            MapEntry entry = delta.destVal as MapEntry
+                            setMetaProperty(entry.key as String, entry.value)
+                            break
+
+                        case Delta.Type.DELETE:
+                            MapEntry entry = delta.sourceVal as MapEntry
+                            removeMetaProperty(entry.key as String)
+                            break
                     }
                     break
 
@@ -2834,21 +2838,21 @@ class NCube<T>
 
                 case Delta.Location.AXIS_META:
                     Axis axis = getAxis(delta.locId as String)
-                    String key = delta.sourceVal as String
                     switch (delta.type)
                     {
                         case Delta.Type.ADD:
                         case Delta.Type.UPDATE:
-                            axis.setMetaProperty(key, delta.destVal)
+                            MapEntry entry = delta.destVal as MapEntry
+                            axis.setMetaProperty(entry.key as String, entry.value)
                             break
                         case Delta.Type.DELETE:
-                            axis.removeMetaProperty(key)
+                            MapEntry entry = delta.sourceVal as MapEntry
+                            axis.removeMetaProperty(entry.key as String)
                             break
                     }
                     break
 
                 case Delta.Location.COLUMN:
-                    // TODO: DONT DO THIS WHEN THE CONTAINING AXIS IS A REF AXIS!!!!!
                     String axisName = delta.locId as String
                     switch (delta.type)
                     {
@@ -2859,7 +2863,15 @@ class NCube<T>
 
                         case Delta.Type.DELETE:
                             Column column = delta.sourceVal as Column
-                            deleteColumn(axisName, column.value)
+                            Axis axis = getAxis(axisName)
+                            if (axis.type == AxisType.RULE)
+                            {
+                                deleteColumn(axisName, column.id as Long)
+                            }
+                            else
+                            {
+                                deleteColumn(axisName, column.value)
+                            }
                             break
 
                         case Delta.Type.UPDATE:
@@ -2871,18 +2883,21 @@ class NCube<T>
                     break
 
                 case Delta.Location.COLUMN_META:
-                    String key = delta.sourceVal as String
                     Map<String, Object> helperId = delta.locId as Map<String, Object>
                     Axis axis = getAxis(helperId.axis as String)
-                    Column column = axis.findColumn(helperId.column as Comparable)
+                    Column column = axis.getColumnById(helperId.column as Long)
+                    MapEntry oldPair = delta.sourceVal as MapEntry
+                    MapEntry newPair = delta.destVal as MapEntry
+
                     switch (delta.type)
                     {
                         case Delta.Type.ADD:
                         case Delta.Type.UPDATE:
-                            column.setMetaProperty(key, delta.destVal)
+                            column.setMetaProperty(newPair.key as String, newPair.value)
                             break
+
                         case Delta.Type.DELETE:
-                            column.removeMetaProperty(key)
+                            column.removeMetaProperty(oldPair.key as String)
                             break
                     }
                     break

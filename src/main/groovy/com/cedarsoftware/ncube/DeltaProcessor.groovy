@@ -640,35 +640,45 @@ class DeltaProcessor
             Object[] oldCols = oldColNames as Object[]
             Object[] newCols = newColNames as Object[]
 
-            // TODO: DONT WASTE TIME GENERATING COLUMN DIFFS ON A REF AXIS!!!!!!!
+            boolean isRef = newAxis.reference
             for (Column newCol : newAxis.columns)
             {
                 Column oldCol = oldAxis.getColumnById(newCol.id)
                 if (oldCol == null)
                 {
-                    String s = "Column: ${newCol.value} added to axis: ${newAxis.name}"
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
+                    if (!isRef)
+                    {
+                        String s = "Column: ${newCol.value} added to axis: ${newAxis.name}"
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
+                    }
                 }
                 else
                 {   // Check Column meta properties
-                    metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META, "column '${newCol.value}'", [axis:newAxis.name, column:newCol.value])
+                    String colName = StringUtilities.hasContent(oldCol.columnName) ? oldCol.columnName : oldCol.value
+                    metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META, "column '${colName}'", [axis:newAxis.name, column:newCol.id])
                     changes.addAll(metaChanges)
 
-                    if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
+                    if (!isRef)
                     {
-                        String s = "Column value changed from: ${oldCol.value} to: ${newCol.value}"
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
+                        if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
+                        {
+                            String s = "Column value changed from: ${oldCol.value} to: ${newCol.value}"
+                            changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
+                        }
                     }
                 }
             }
 
-            for (Column oldCol : oldAxis.columns)
+            if (!isRef)
             {
-                Column newCol = newAxis.getColumnById(oldCol.id)
-                if (newCol == null)
+                for (Column oldCol : oldAxis.columns)
                 {
-                    String s = "Column: ${oldCol.value} removed from axis: ${oldAxis.name}"
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
+                    Column newCol = newAxis.getColumnById(oldCol.id)
+                    if (newCol == null)
+                    {
+                        String s = "Column: ${oldCol.value} removed from axis: ${oldAxis.name}"
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
+                    }
                 }
             }
         }
@@ -734,8 +744,17 @@ class DeltaProcessor
      */
     protected static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName, Object helperId)
     {
-        Object[] oldMetaList = oldMeta.keySet() as Object[]
-        Object[] newMetaList = newMeta.keySet() as Object[]
+        List<String> oldList = []
+        oldMeta.each { String key, Object value ->
+            oldList.add("${key}: ${value?.toString()}".toString())
+        }
+        List<String> newList = []
+        newMeta.each { String key, Object value ->
+            newList.add("${key}: ${value?.toString()}".toString())
+        }
+        Object[] oldMetaList = oldList as Object[]
+        Object[] newMetaList = newList as Object[]
+
         List<Delta> changes = []
         Set<String> oldKeys = new CaseInsensitiveSet<>(oldMeta.keySet())
         Set<String> sameKeys = new CaseInsensitiveSet<>(newMeta.keySet())
@@ -748,8 +767,9 @@ class DeltaProcessor
             for (String key : addedKeys)
             {
                 Object newVal = newMeta[key]
-                String s = "${locName} meta-entry added: ${key}->${newMeta[key]}"
-                changes.add(new Delta(location, Delta.Type.ADD, s, helperId, key, newVal, oldMetaList, newMetaList))
+                String s = "${locName} meta-entry added: ${key}->${newVal}"
+                MapEntry pair = new MapEntry(key, newVal)
+                changes.add(new Delta(location, Delta.Type.ADD, s, helperId, null, pair, oldMetaList, newMetaList))
             }
         }
 
@@ -761,7 +781,8 @@ class DeltaProcessor
             {
                 Object oldVal = oldMeta[key]
                 String s = "${locName} meta-entry deleted: ${key}->${oldVal}"
-                changes.add(new Delta(location, Delta.Type.DELETE, s, helperId, key, null, oldMetaList, newMetaList))
+                MapEntry pair = new MapEntry(key, oldVal)
+                changes.add(new Delta(location, Delta.Type.DELETE, s, helperId, pair, null, oldMetaList, newMetaList))
             }
         }
 
@@ -772,7 +793,9 @@ class DeltaProcessor
                 Object oldVal = oldMeta[key]
                 Object newVal = newMeta[key]
                 String s = "${locName} meta-entry changed: ${key}->${oldVal} ==> ${key}->${newVal}"
-                changes.add(new Delta(location, Delta.Type.UPDATE, s, helperId, key, newVal, oldMetaList, newMetaList))
+                MapEntry oldPair = new MapEntry(key, oldVal)
+                MapEntry newPair = new MapEntry(key, newVal)
+                changes.add(new Delta(location, Delta.Type.UPDATE, s, helperId, oldPair, newPair, oldMetaList, newMetaList))
             }
         }
 
