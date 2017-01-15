@@ -2824,11 +2824,14 @@ class NCube<T>
                     {
                         Axis axis = getAxis(sourceAxis.name)
 
-                        // Bring over any change to sort-order
-                        axis.columnOrder = destAxis.columnOrder
+                        if (axis)
+                        {
+                            // Bring over any change to sort-order
+                            axis.columnOrder = destAxis.columnOrder
 
-                        // Bring over any change to fireAll
-                        axis.fireAll = destAxis.fireAll
+                            // Bring over any change to fireAll
+                            axis.fireAll = destAxis.fireAll
+                        }
                     }
                     else if (delta.type == Delta.Type.DELETE)
                     {
@@ -2838,6 +2841,10 @@ class NCube<T>
 
                 case Delta.Location.AXIS_META:
                     Axis axis = getAxis(delta.locId as String)
+                    if (!axis)
+                    {
+                        break
+                    }
                     switch (delta.type)
                     {
                         case Delta.Type.ADD:
@@ -2854,16 +2861,25 @@ class NCube<T>
 
                 case Delta.Location.COLUMN:
                     String axisName = delta.locId as String
+                    Axis axis = getAxis(axisName)
+                    if (!axis)
+                    {   // axis not found
+                        break
+                    }
                     switch (delta.type)
                     {
                         case Delta.Type.ADD:
                             Column column = delta.destVal as Column
-                            addColumn(axisName, column.value, column.columnName, column.id)
+                            Comparable value = axis.type == AxisType.RULE ? column.columnName : column.value
+                            Column existingCol = axis.findColumn(value)
+                            if (!existingCol)
+                            {   // Don't attempt to add column that already exists on axis.
+                                addColumn(axisName, column.value, column.columnName, column.id)
+                            }
                             break
 
                         case Delta.Type.DELETE:
                             Column column = delta.sourceVal as Column
-                            Axis axis = getAxis(axisName)
                             if (axis.type == AxisType.RULE)
                             {
                                 deleteColumn(axisName, column.id as Long)
@@ -2885,7 +2901,15 @@ class NCube<T>
                 case Delta.Location.COLUMN_META:
                     Map<String, Object> helperId = delta.locId as Map<String, Object>
                     Axis axis = getAxis(helperId.axis as String)
+                    if (!axis)
+                    {
+                        break
+                    }
                     Column column = axis.getColumnById(helperId.column as Long)
+                    if (!column)
+                    {
+                        break
+                    }
                     MapEntry oldPair = delta.sourceVal as MapEntry
                     MapEntry newPair = delta.destVal as MapEntry
 
