@@ -572,13 +572,13 @@ class DeltaProcessor
 
         if (!newCube.name.equalsIgnoreCase(oldCube.name))
         {
-            String s = "Name changed from '${oldCube.name}' to '${newCube.name}'"
+            String s = "Name change from '${oldCube.name}' to '${newCube.name}'"
             changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'NAME', oldCube.name, newCube.name, null, null))
         }
 
         if (newCube.defaultCellValue != oldCube.defaultCellValue)
         {
-            String s = "Default cell value changed from '${CellInfo.formatForDisplay((Comparable)oldCube.defaultCellValue)}' to '${CellInfo.formatForDisplay((Comparable)newCube.defaultCellValue)}'"
+            String s = "Default cell value change from '${CellInfo.formatForDisplay((Comparable)oldCube.defaultCellValue)}' to '${CellInfo.formatForDisplay((Comparable)newCube.defaultCellValue)}'"
             changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'DEFAULT_CELL', new CellInfo(oldCube.defaultCellValue), new CellInfo(newCube.defaultCellValue), null, null))
         }
 
@@ -595,7 +595,7 @@ class DeltaProcessor
         {
             for (String axisName : newAxisNames)
             {
-                String s = "Added axis: ${axisName}"
+                String s = "Add axis: ${axisName}"
                 changes.add(new Delta(Delta.Location.AXIS, Delta.Type.ADD, s, null, null, newCube.getAxis(axisName), oldAxes, newAxes))
             }
             axesChanged = true
@@ -607,7 +607,7 @@ class DeltaProcessor
         {
             for (String axisName : oldAxisNames)
             {
-                String s = "Removed axis: ${axisName}"
+                String s = "Remove axis: ${axisName}"
                 changes.add(new Delta(Delta.Location.AXIS, Delta.Type.DELETE, s, null, oldCube.getAxis(axisName), null, oldAxes, newAxes))
             }
             axesChanged = true
@@ -622,7 +622,7 @@ class DeltaProcessor
             }
             if (!newAxis.areAxisPropsEqual(oldAxis))
             {
-                String s = "Axis properties changed from ${oldAxis.axisPropString} to ${newAxis.axisPropString}"
+                String s = "Axis properties change from ${oldAxis.axisPropString} to ${newAxis.axisPropString}"
                 changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis, oldAxes, newAxes))
             }
 
@@ -648,7 +648,7 @@ class DeltaProcessor
                 {
                     if (!isRef)
                     {
-                        String s = "Column: ${newCol.value} added to axis: ${newAxis.name}"
+                        String s = "Add column: ${newCol.value} to axis: ${newAxis.name}"
                         changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
                     }
                 }
@@ -662,7 +662,7 @@ class DeltaProcessor
                     {
                         if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                         {
-                            String s = "Column value changed from: ${oldCol.value} to: ${newCol.value}"
+                            String s = "Column value change from: ${oldCol.value} to: ${newCol.value}"
                             changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
                         }
                     }
@@ -676,7 +676,7 @@ class DeltaProcessor
                     Column newCol = newAxis.getColumnById(oldCol.id)
                     if (newCol == null)
                     {
-                        String s = "Column: ${oldCol.value} removed from axis: ${oldAxis.name}"
+                        String s = "Remove column: ${oldCol.value} from axis: ${oldAxis.name}"
                         changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
                     }
                 }
@@ -698,14 +698,14 @@ class DeltaProcessor
                 if (!DeepEquals.deepEquals(value, oldCellValue))
                 {
                     Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
-                    String s = "Cell changed at location: ${properCoord}, from: ${oldCellValue}, to: ${value}"
+                    String s = "Cell change at: ${properCoord}, from: ${oldCellValue}, to: ${value}"
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(colIds)), new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
                 }
             }
             else
             {
                 Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
-                String s = "Cell added at location: ${properCoord}, value: ${value}"
+                String s = "Add cell at: ${properCoord}, value: ${value}"
                 changes.add(new Delta(Delta.Location.CELL, Delta.Type.ADD, s, colIds, null, new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
             }
         }
@@ -730,7 +730,7 @@ class DeltaProcessor
                 if (allColsStillExist)
                 {
                     Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
-                    String s = "Cell removed at location: ${properCoord}, value: ${value}"
+                    String s = "Remove cell at: ${properCoord}, value: ${value}"
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(colIds)), null, null, null))
                 }
             }

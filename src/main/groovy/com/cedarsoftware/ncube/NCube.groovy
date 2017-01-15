@@ -2813,29 +2813,28 @@ class NCube<T>
                     Axis sourceAxis = delta.sourceVal as Axis
                     Axis destAxis = delta.destVal as Axis
 
-                    if (delta.type == Delta.Type.ADD)
+                    switch (delta.type)
                     {
-                        if (getAxis(destAxis.name) == null)
-                        {
-                            addAxis(delta.destVal as Axis)
-                        }
-                    }
-                    else if (delta.type == Delta.Type.UPDATE)
-                    {
-                        Axis axis = getAxis(sourceAxis.name)
+                        case Delta.Type.ADD:
+                            if (getAxis(destAxis.name) == null)
+                            {   // Only add if not already there.
+                                addAxis(delta.destVal as Axis)
+                            }
+                            break
 
-                        if (axis)
-                        {
-                            // Bring over any change to sort-order
-                            axis.columnOrder = destAxis.columnOrder
+                        case Delta.Type.UPDATE:
+                            Axis axis = getAxis(sourceAxis.name)
 
-                            // Bring over any change to fireAll
-                            axis.fireAll = destAxis.fireAll
-                        }
-                    }
-                    else if (delta.type == Delta.Type.DELETE)
-                    {
-                        deleteAxis(sourceAxis.name)
+                            if (axis)
+                            {
+                                axis.columnOrder = destAxis.columnOrder
+                                axis.fireAll = destAxis.fireAll
+                            }
+                            break
+
+                        case Delta.Type.DELETE:
+                            deleteAxis(sourceAxis.name)
+                            break
                     }
                     break
 
@@ -2870,10 +2869,17 @@ class NCube<T>
                     {
                         case Delta.Type.ADD:
                             Column column = delta.destVal as Column
-                            Comparable value = axis.type == AxisType.RULE ? column.columnName : column.value
-                            Column existingCol = axis.findColumn(value)
+                            Column existingCol
+                            if (axis.type == AxisType.RULE)
+                            {
+                                existingCol = axis.findColumn(column.columnName ?: column.id as Long)
+                            }
+                            else
+                            {
+                                existingCol = axis.findColumn(column.value)
+                            }
                             if (!existingCol)
-                            {   // Don't attempt to add column that already exists on axis.
+                            {   // Only add column if it is not already there
                                 addColumn(axisName, column.value, column.columnName, column.id)
                             }
                             break
@@ -2882,7 +2888,7 @@ class NCube<T>
                             Column column = delta.sourceVal as Column
                             if (axis.type == AxisType.RULE)
                             {
-                                deleteColumn(axisName, column.id as Long)
+                                deleteColumn(axisName, column.columnName ?: column.id as Long)
                             }
                             else
                             {
@@ -2893,7 +2899,20 @@ class NCube<T>
                         case Delta.Type.UPDATE:
                             Column oldCol = delta.sourceVal as Column
                             Column newCol = delta.destVal as Column
-                            updateColumn(oldCol.id, newCol.value)
+                            Column existingCol
+                            if (axis.type == AxisType.RULE)
+                            {
+                                existingCol = axis.findColumn(oldCol.columnName ?: oldCol.id as Long)
+                            }
+                            else
+                            {
+                                existingCol = axis.findColumn(oldCol.value)
+                            }
+
+                            if (existingCol)
+                            {
+                                updateColumn(existingCol.id, newCol.value)
+                            }
                             break
                     }
                     break

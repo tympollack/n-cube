@@ -1206,7 +1206,7 @@ class TestDelta
         delta.location == Delta.Location.NCUBE
         String desc = delta.description.toLowerCase()
         assert desc.contains('default cell')
-        assert desc.contains('changed from')
+        assert desc.contains('change from')
         assert desc.contains("'10' to '3.14'")
     }
 

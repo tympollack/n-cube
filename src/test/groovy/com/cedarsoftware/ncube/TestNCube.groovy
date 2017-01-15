@@ -4310,7 +4310,7 @@ class TestNCube
         cube2.setCell(2, coord)
         delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
-        assertTrue(delta.get(0).toString().toLowerCase().contains("cell changed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("cell change"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("gender"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("male"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("age"))
@@ -4325,7 +4325,7 @@ class TestNCube
         cube2.setCell(3.1, coord)
         delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(2, delta.size())
-        assertTrue(delta.get(1).toString().toLowerCase().contains("cell changed"))
+        assertTrue(delta.get(1).toString().toLowerCase().contains("cell change"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("gender"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("male"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("age"))
@@ -4344,7 +4344,7 @@ class TestNCube
         cube2.name = "funkey"
         List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
-        assertTrue(delta.get(0).toString().toLowerCase().contains("name changed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("name change"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("from"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("delta"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("to"))
@@ -4373,7 +4373,7 @@ class TestNCube
         cube2.addAxis(NCubeBuilder.statesAxis)
         List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("state"))
     }
@@ -4389,7 +4389,7 @@ class TestNCube
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("prop"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("changed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("change"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("sorted"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("unsorted"))
     }
@@ -4419,7 +4419,7 @@ class TestNCube
         cube2.deleteAxis("gender")
         List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(1, delta.size())
-        assertTrue(delta.get(0).toString().toLowerCase().contains("removed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("remove"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("gender"))
     }
@@ -4434,11 +4434,11 @@ class TestNCube
         List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(2, delta.size())
 
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("state"))
 
-        assertTrue(delta.get(1).toString().toLowerCase().contains("removed"))
+        assertTrue(delta.get(1).toString().toLowerCase().contains("remove"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("gender"))
     }
@@ -4455,7 +4455,7 @@ class TestNCube
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("55"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("70"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
     }
 
     @Test
@@ -4469,7 +4469,7 @@ class TestNCube
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("male"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("removed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("remove"))
     }
 
     @Test
@@ -4487,7 +4487,7 @@ class TestNCube
         assertTrue(delta.get(0).toString().toLowerCase().contains("[30 - 55)"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("meta"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("property"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("baz: qux"))
     }
 
@@ -4504,7 +4504,7 @@ class TestNCube
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("male"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("30"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("value: 1"))
@@ -4523,7 +4523,7 @@ class TestNCube
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("removed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("remove"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("gender"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("male"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("age"))
@@ -4545,7 +4545,7 @@ class TestNCube
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("column"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("changed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("change"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("male"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("mule"))
     }
@@ -4563,12 +4563,12 @@ class TestNCube
         List<Delta> delta = DeltaProcessor.getDeltaDescription(cube2, cube)
         assertEquals(2, delta.size())
 
-        assertTrue(delta.get(0).toString().toLowerCase().contains("removed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("remove"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("axis"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("age"))
 
         assertTrue(delta.get(1).toString().toLowerCase().contains("column"))
-        assertTrue(delta.get(1).toString().toLowerCase().contains("changed"))
+        assertTrue(delta.get(1).toString().toLowerCase().contains("change"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("male"))
         assertTrue(delta.get(1).toString().toLowerCase().contains("mule"))
     }
@@ -4621,7 +4621,7 @@ class TestNCube
         assertEquals(1, delta.size())
 
         assertTrue(delta.get(0).toString().toLowerCase().contains("cell"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("changed"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("change"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("rule"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("init random"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("input.random"))
