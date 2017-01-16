@@ -4361,7 +4361,7 @@ class TestNCube
         assertEquals(1, delta.size())
         assertTrue(delta.get(0).toString().toLowerCase().contains("meta"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("property"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("foo: bar"))
     }
 
@@ -4407,7 +4407,7 @@ class TestNCube
         assertTrue(delta.get(0).toString().toLowerCase().contains("age"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("meta"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("property"))
-        assertTrue(delta.get(0).toString().toLowerCase().contains("added"))
+        assertTrue(delta.get(0).toString().toLowerCase().contains("add"))
         assertTrue(delta.get(0).toString().toLowerCase().contains("foo: 18"))
     }
 
@@ -4644,9 +4644,9 @@ class TestNCube
         newMeta.put("alpha", "bravo")
         List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'", null)
         String s = changes.toString()
-        assertTrue(s.contains("meta-property added {qux: quxqux}"))
-        assertTrue(s.contains("meta-property deleted {baz: bazinga}"))
-        assertTrue(s.contains("meta-property changed {foo: foot}"))
+        assertTrue(s.contains("Add Axis 'state' meta-property {qux: quxqux}"))
+        assertTrue(s.contains("Delete Axis 'state' meta-property {baz: bazinga}"))
+        assertTrue(s.contains("Change Axis 'state' meta-property {foo: foot} ==> {foo: fool}"))
         assertTrue(s.contains("foo: fool"))
         assertTrue(s.contains("bar: bart"))
         assertTrue(s.contains("bar: barf"))
@@ -4662,8 +4662,8 @@ class TestNCube
         newMeta.put("bar", "bart")
         List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'", null)
         String s = changes.toString()
-        assertTrue(s.contains("meta-property added {foo: foot}"))
-        assertTrue(s.contains("bar: bart"))
+        assertTrue(s.contains("Add Axis 'state' meta-property {foo: foot}"))
+        assertTrue(s.contains("Add Axis 'state' meta-property {bar: bart}"))
     }
 
     @Test
@@ -4678,10 +4678,8 @@ class TestNCube
         newMeta.put("bar", "barf")
         List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'", null)
         String s = changes.toString()
-        assertTrue(s.contains("meta-property changed {foo: foot}"))
-        assertTrue(s.contains("foo: fool"))
-        assertTrue(s.contains("bar: bart"))
-        assertTrue(s.contains("bar: barf"))
+        assertTrue(s.contains("Change Axis 'state' meta-property {foo: foot} ==> {foo: fool}"))
+        assertTrue(s.contains("Change Axis 'state' meta-property {bar: bart} ==> {bar: barf}"))
     }
 
     @Test
@@ -4694,8 +4692,8 @@ class TestNCube
         oldMeta.put("bar", "bart")
         List<Delta> changes = DeltaProcessor.compareMetaProperties(oldMeta, newMeta, Delta.Location.AXIS, "Axis 'state'", null)
         String s = changes.toString()
-        assertTrue(s.contains("meta-property deleted {foo: foot}"))
-        assertTrue(s.contains("bar: bart"))
+        assertTrue(s.contains("Delete Axis 'state' meta-property {foo: foot}"))
+        assertTrue(s.contains("Delete Axis 'state' meta-property {bar: bart}"))
     }
 
     @Test

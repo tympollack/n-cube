@@ -176,7 +176,6 @@ class TestDelta
         List<Delta> delta1 = DeltaProcessor.getDeltaDescription(cube1, orig1)
         List<Delta> delta2 = DeltaProcessor.getDeltaDescription(cube2, orig2)
         List<Delta> delta3 = DeltaProcessor.getDeltaDescription(cube2, cube1)
-        println delta3
 
         assert delta1.size() == delta2.size()
         //TODO assert delta sets are incompatible

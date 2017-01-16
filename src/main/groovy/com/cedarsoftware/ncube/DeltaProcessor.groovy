@@ -579,17 +579,7 @@ class DeltaProcessor
     {
         List<Delta> changes = []
 
-        if (!newCube.name.equalsIgnoreCase(oldCube.name))
-        {
-            String s = "Name change from '${oldCube.name}' to '${newCube.name}'"
-            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'NAME', oldCube.name, newCube.name, null, null))
-        }
-
-        if (newCube.defaultCellValue != oldCube.defaultCellValue)
-        {
-            String s = "Default cell value change from '${CellInfo.formatForDisplay((Comparable)oldCube.defaultCellValue)}' to '${CellInfo.formatForDisplay((Comparable)newCube.defaultCellValue)}'"
-            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'DEFAULT_CELL', new CellInfo(oldCube.defaultCellValue), new CellInfo(newCube.defaultCellValue), null, null))
-        }
+        getNCubeChanges(newCube, oldCube, changes)
 
         List<Delta> metaChanges = compareMetaProperties(oldCube.metaProperties, newCube.metaProperties, Delta.Location.NCUBE_META, "n-cube '${newCube.name}'", null)
         changes.addAll(metaChanges)
@@ -622,6 +612,9 @@ class DeltaProcessor
             axesChanged = true
         }
 
+        // Create Map that maps column IDs from one cube to another (needed when columns are matched by value)
+        Map<Long, Long> idMap = [:] as Map
+
         for (Axis newAxis : newCube.axes)
         {
             Axis oldAxis = oldCube.getAxis(newAxis.name)
@@ -652,9 +645,8 @@ class DeltaProcessor
             boolean isRef = newAxis.reference
             for (Column newCol : newAxis.columns)
             {
-                Comparable locatorKey = newAxis.getValueToLocateColumn(newCol)
-                Column oldCol = oldAxis.getColumnById(newCol.id) ?: oldAxis.findColumn(locatorKey)
-                if (oldCol == null || oldCol.default)
+                Column oldCol = findColumn(newAxis, oldAxis, newCol)
+                if (oldCol == null)
                 {
                     if (!isRef)
                     {
@@ -674,12 +666,13 @@ class DeltaProcessor
                             Object newVal = newCol.getMetaProperty(key)
                             String s = "Add column meta-property {${key}: ${newVal}}"
                             MapEntry pair = new MapEntry(key, newVal)
-                            changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s, newAxis.name, null, pair, [] as Object[], newMetaList))
+                            changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s, [axis:newAxis.name, column:newCol.id], null, pair, [] as Object[], newMetaList))
                         }
                     }
                 }
                 else
                 {   // Check Column meta properties
+                    idMap[newCol.id] = oldCol.id
                     String colName = StringUtilities.hasContent(oldCol.columnName) ? oldCol.columnName : oldCol.value
                     metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META, "column '${colName}'", [axis:newAxis.name, column:newCol.id])
                     changes.addAll(metaChanges)
@@ -699,12 +692,15 @@ class DeltaProcessor
             {
                 for (Column oldCol : oldAxis.columns)
                 {
-                    Comparable locatorKey = oldAxis.getValueToLocateColumn(oldCol)
-                    Column newCol = newAxis.getColumnById(oldCol.id) ?: newAxis.findColumn(locatorKey)
+                    Column newCol = findColumn(oldAxis, newAxis, oldCol)
                     if (newCol == null)
                     {
                         String s = "Remove column: ${oldCol.value} from axis: ${oldAxis.name}"
                         changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
+                    }
+                    else
+                    {
+                        idMap[oldCol.id] = newCol.id
                     }
                 }
             }
@@ -717,9 +713,16 @@ class DeltaProcessor
             return changes
         }
 
+        getCellChanges(newCube, oldCube, idMap, changes)
+        Collections.sort(changes)
+        return changes
+    }
+
+    private static void getCellChanges(NCube newCube, NCube oldCube, Map<Long, Long> idMap, List<Delta> changes)
+    {
         Map<LongHashSet, Object> cellMap = newCube.cellMap
         cellMap.each { LongHashSet colIds, value ->
-            if (oldCube.cellMap.containsKey(colIds))
+            if (doesCellExist(colIds, oldCube.cellMap, idMap))
             {
                 Object oldCellValue = oldCube.cellMap[colIds]
                 if (!DeepEquals.deepEquals(value, oldCellValue))
@@ -739,7 +742,7 @@ class DeltaProcessor
 
         Map<LongHashSet, Object> srcCellMap = oldCube.cellMap
         srcCellMap.each { LongHashSet colIds, value ->
-            if (!newCube.cellMap.containsKey(colIds))
+            if (!doesCellExist(colIds, newCube.cellMap, idMap))
             {
                 boolean allColsStillExist = true
                 for (Long colId : colIds)
@@ -762,8 +765,52 @@ class DeltaProcessor
                 }
             }
         }
-        Collections.sort(changes)
-        return changes
+    }
+
+    /**
+     * Get changes at the NCUBE level (name, default cell value)
+     * @param newCube NCube transmitting the change (instigator)
+     * @param oldCube NCube receiving the change
+     * @param changes List of Deltas to be added to if needed
+     */
+    private static void getNCubeChanges(NCube newCube, NCube oldCube, List<Delta> changes)
+    {
+        if (!newCube.name.equalsIgnoreCase(oldCube.name))
+        {
+            String s = "Name change from '${oldCube.name}' to '${newCube.name}'"
+            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'NAME', oldCube.name, newCube.name, null, null))
+        }
+
+        if (newCube.defaultCellValue != oldCube.defaultCellValue)
+        {
+            String s = "Default cell value change from '${CellInfo.formatForDisplay((Comparable) oldCube.defaultCellValue)}' to '${CellInfo.formatForDisplay((Comparable) newCube.defaultCellValue)}'"
+            changes.add(new Delta(Delta.Location.NCUBE, Delta.Type.UPDATE, s, 'DEFAULT_CELL', new CellInfo(oldCube.defaultCellValue), new CellInfo(newCube.defaultCellValue), null, null))
+        }
+    }
+
+    private static boolean doesCellExist(LongHashSet colIds, Map cellMap, Map<Long, Long> idMap)
+    {
+        if (cellMap.containsKey(colIds))
+        {
+            return true
+        }
+
+        LongHashSet coord = new LongHashSet()
+        Iterator<Long> i = colIds.iterator()
+        while (i.hasNext())
+        {
+            Long id = i.next()
+            if (idMap.containsKey(id))
+            {
+                coord.add(idMap[id])
+            }
+            else
+            {
+                coord.add(id)
+            }
+        }
+
+        return cellMap.containsKey(coord)
     }
 
     /**
@@ -829,6 +876,22 @@ class DeltaProcessor
         return changes
     }
 
+    private static Column findColumn(Axis transmitterAxis, Axis receiverAxis, Column transmitterCol)
+    {
+        Column column = receiverAxis.getColumnById(transmitterCol.id)
+        if (column)
+        {
+            return column
+        }
+
+        Comparable locatorKey = transmitterAxis.getValueToLocateColumn(transmitterCol)
+        column = receiverAxis.findColumn(locatorKey)
+        if (column && column.default)
+        {
+            return null
+        }
+        return column
+    }
     /**
      * Convert a DeltaCoord to a Set<Long>.  A 'deltaCoord' is a coordinate which has String axis name
      * keys and associated values (to match against standard axes), but for Rule axes it has the Long ID
