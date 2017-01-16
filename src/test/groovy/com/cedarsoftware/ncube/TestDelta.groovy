@@ -121,10 +121,10 @@ class TestDelta
     }
 
     @Test
-    void testDiscreteChangeSameColumnDifferently()
+    void testDiscreteChangeSameColumnDifferentlyOld()
     {
-        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
-        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.discrete1D
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.discrete1DAlt
         assert cube1 == cube2
 
         Axis state1 = cube1.getAxis('state')
@@ -135,59 +135,75 @@ class TestDelta
         cube1.updateColumn(oh1.id, 'GA')
         cube2.updateColumn(oh2.id, 'AZ')
 
-        assert cube1.getNumCells() == 2
-        assert cube2.getNumCells() == 2
+        assert cube1.numCells == 2
+        assert cube2.numCells == 2
 
         assert cube1 != cube2
 
-        NCube<String> orig1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
-        NCube<String> orig2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+        NCube<String> orig1 = (NCube<String>) NCubeBuilder.discrete1D
+        NCube<String> orig2 = (NCube<String>) NCubeBuilder.discrete1DAlt
 
         Map<String, Object> delta1 = DeltaProcessor.getDelta(orig1, cube1)
-        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig2, cube2)  // Other guy made no changes
+        Map<String, Object> delta2 = DeltaProcessor.getDelta(orig2, cube2)
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2, false)
-        assert compatibleChange
-        DeltaProcessor.mergeDeltaSet(cube2, delta1)
-
-        state2 = cube2.getAxis('state')
-        assert cube2.getNumCells() == 2
-        assert state2.getColumns().size() == 3
-        assert state2.findColumn('AZ')
-        assert state2.findColumn('TX')
-        assert state2.findColumn('GA')
+        assert !compatibleChange
     }
 
     @Test
-    void testDiscreteRemoveSameColumnDifferently()
+    void testDiscreteChangeSameColumnDifferently()
     {
-        NCube<String> cube1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
-        NCube<String> cube2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.discrete1D
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.discrete1DAlt
         assert cube1 == cube2
 
         Axis state1 = cube1.getAxis('state')
         Axis state2 = cube2.getAxis('state')
 
         Column oh1 = state1.findColumn("OH")
+        Column oh2 = state2.findColumn("OH")
+        cube1.updateColumn(oh1.id, 'GA')
+        cube2.updateColumn(oh2.id, 'AZ')
+
+        assert cube1.numCells == 2
+        assert cube2.numCells == 2
+
+        assert cube1 != cube2
+
+        NCube<String> orig1 = (NCube<String>) NCubeBuilder.discrete1D
+        NCube<String> orig2 = (NCube<String>) NCubeBuilder.discrete1DAlt
+
+        List<Delta> delta1 = DeltaProcessor.getDeltaDescription(cube1, orig1)
+        List<Delta> delta2 = DeltaProcessor.getDeltaDescription(cube2, orig2)
+        List<Delta> delta3 = DeltaProcessor.getDeltaDescription(cube2, cube1)
+        println delta3
+
+        assert delta1.size() == delta2.size()
+        //TODO assert delta sets are incompatible
+    }
+
+    @Test
+    void testDiscreteRemoveSameColumnDifferently()
+    {
+        NCube<String> cube1 = (NCube<String>) NCubeBuilder.discrete1D
+        NCube<String> cube2 = (NCube<String>) NCubeBuilder.discrete1DAlt
+        assert cube1 == cube2
+
+        Axis state1 = cube1.getAxis('state')
+        Column oh1 = state1.findColumn("OH")
         cube1.updateColumn(oh1.id, 'GA')
         cube2.deleteColumn('state', 'OH')
 
         assert cube1 != cube2
 
-        NCube<String> orig1 = (NCube<String>) NCubeBuilder.getDiscrete1D()
-        NCube<String> orig2 = (NCube<String>) NCubeBuilder.getDiscrete1DAlt()
+        NCube<String> orig1 = (NCube<String>) NCubeBuilder.discrete1D
+        NCube<String> orig2 = (NCube<String>) NCubeBuilder.discrete1DAlt
 
         Map<String, Object> delta1 = DeltaProcessor.getDelta(orig1, cube1)
         Map<String, Object> delta2 = DeltaProcessor.getDelta(orig2, cube2)  // Other guy made no changes
 
         boolean compatibleChange = DeltaProcessor.areDeltaSetsCompatible(delta1, delta2, false)
-        assert compatibleChange
-        DeltaProcessor.mergeDeltaSet(cube2, delta1)
-
-        state2 = cube2.getAxis('state')
-        assert state2.getColumns().size() == 2
-        assert state2.findColumn('TX')
-        assert state2.findColumn('GA')
+        assert !compatibleChange
     }
 
     @Test
@@ -1458,11 +1474,42 @@ class TestDelta
         assert consumer.sha1() == producer.sha1()
     }
 
+    @Test
+    void testColumnCaseChange()
+    {
+        NCube cube1 = NCubeBuilder.discrete1D
+        NCube cube2 = NCubeBuilder.discrete1D
+        NCube cube3 = NCubeBuilder.discrete1D
+
+        Axis state = cube1.getAxis('state')
+        Column col1 = state.findColumn('OH')
+        col1.setMetaProperty('foo', 'bar')
+        state.updateColumn(col1.id, 'oh')
+        Column col2 = state.findColumn('TX')
+        state.updateColumn(col2.id, 'KY')
+
+        Map<String, Object> deltaMap = DeltaProcessor.getDelta(cube2, cube1)
+        DeltaProcessor.mergeDeltaSet(cube2, deltaMap)
+        Axis cube2state = cube2.getAxis('state')
+        assert 2 == cube2state.columns.size()
+        assert col1.id == cube2state.findColumn('oh').id
+        assert col2.id == cube2state.findColumn('KY').id
+
+        List<Delta> deltaList = DeltaProcessor.getDeltaDescription(cube1, cube3)
+        cube3.mergeDeltas(deltaList)
+        Axis cube3state = cube3.getAxis('state')
+        Column oh = cube3state.findColumn('oh')
+        assert 2 == cube3state.columns.size()
+        assert 'bar' == oh.getMetaProperty('foo')
+        assert col1.id == oh.id
+        assert col2.id == cube3state.findColumn('KY').id
+    }
+
     static void setupLibrary()
     {
         NCube<String> states4 = (NCube<String>) NCubeBuilder.get4StatesNotSorted()
         NCube<String> states3 = (NCube<String>) NCubeBuilder.get3StatesNotSorted()
-        NCube<String> states2 = (NCube<String>) NCubeBuilder.getDiscrete1D()
+        NCube<String> states2 = (NCube<String>) NCubeBuilder.discrete1D
 
         ApplicationID appId = ApplicationID.testAppId.asVersion('1.0.0')
         NCubeManager.updateCube(appId, states2, true)
@@ -1485,7 +1532,7 @@ class TestDelta
 
     static void setupLibraryReference()
     {
-        NCube<String> statesRef = NCubeBuilder.getStateReferrer()
+        NCube<String> statesRef = NCubeBuilder.stateReferrer
 
         ApplicationID appId = ApplicationID.testAppId.asVersion('2.0.0')
         NCubeManager.updateCube(appId, statesRef, true)
@@ -1503,7 +1550,7 @@ class TestDelta
 
     static ApplicationID setupBranch(String branch, String refVer)
     {
-        NCube<String> states = (NCube<String>) NCubeBuilder.getStateReferrer()
+        NCube<String> states = (NCube<String>) NCubeBuilder.stateReferrer
         Axis state = states.getAxis('state')
         state.setMetaProperty(ReferenceAxisLoader.REF_VERSION, refVer)
         ApplicationID appId = ApplicationID.testAppId.asBranch(branch).asSnapshot().asVersion('2.0.0')
