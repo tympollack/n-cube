@@ -1524,6 +1524,25 @@ class NCube<T>
     }
 
     /**
+     * Convenience method to locate column when you have the axis name as a String and the value to find.
+     * If the named axis is a rule axis, then it is expected that value is either a String name of the rule
+     * or the long ID of the rule column.
+     * @param axisName String name of axis.  Case does not matter when locating by name.
+     * @param value Comparable value used to find the column.
+     * @return Column instance if located, otherwise null.
+     */
+    Column findColumn(String axisName, Comparable value)
+    {
+        Axis axis = getAxis(axisName)
+        if (!axis)
+        {
+            return null
+        }
+
+        return axis.findColumn(value)
+    }
+
+    /**
      * Change the value of a Column along an axis.
      * @param id long indicates the column to change
      * @param value Comparable new value to set into the column
@@ -2869,46 +2888,40 @@ class NCube<T>
                     {
                         case Delta.Type.ADD:
                             Column column = delta.destVal as Column
-                            Column existingCol
-                            if (axis.type == AxisType.RULE)
+                            if (column.default)
                             {
-                                existingCol = axis.findColumn(column.columnName ?: column.id as Long)
+                                if (!axis.hasDefaultColumn())
+                                {
+                                    addColumn(axisName, null, column.columnName)
+                                }
                             }
                             else
                             {
-                                existingCol = axis.findColumn(column.value)
-                            }
-                            if (!existingCol)
-                            {   // Only add column if it is not already there
-                                addColumn(axisName, column.value, column.columnName, column.id)
+                                Column existingCol = axis.locateDeltaColumn(column)
+                                if (!existingCol || existingCol.default)
+                                {   // Only add column if it is not already there
+                                    addColumn(axisName, column.value, column.columnName, column.id)
+                                }
                             }
                             break
 
                         case Delta.Type.DELETE:
                             Column column = delta.sourceVal as Column
+                            Column existingCol = axis.locateDeltaColumn(column)
                             if (axis.type == AxisType.RULE)
                             {
-                                deleteColumn(axisName, column.columnName ?: column.id as Long)
+                                deleteColumn(axisName, existingCol.columnName ?: existingCol.id as Long)
                             }
                             else
                             {
-                                deleteColumn(axisName, column.value)
+                                deleteColumn(axisName, existingCol.value)
                             }
                             break
 
                         case Delta.Type.UPDATE:
                             Column oldCol = delta.sourceVal as Column
                             Column newCol = delta.destVal as Column
-                            Column existingCol
-                            if (axis.type == AxisType.RULE)
-                            {
-                                existingCol = axis.findColumn(oldCol.columnName ?: oldCol.id as Long)
-                            }
-                            else
-                            {
-                                existingCol = axis.findColumn(oldCol.value)
-                            }
-
+                            Column existingCol = axis.locateDeltaColumn(oldCol)
                             if (existingCol)
                             {
                                 updateColumn(existingCol.id, newCol.value)
@@ -2924,7 +2937,7 @@ class NCube<T>
                     {
                         break
                     }
-                    Column column = axis.getColumnById(helperId.column as Long)
+                    Column column = axis.locateDeltaColumn(helperId.column as Column)
                     if (!column)
                     {
                         break

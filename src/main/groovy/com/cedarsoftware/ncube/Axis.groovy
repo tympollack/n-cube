@@ -1772,4 +1772,34 @@ class Axis
         }
         return fireAll == axis.fireAll
     }
+
+    protected String getDisplayColumnName(Column column)
+    {
+        String colName = StringUtilities.hasContent(column.columnName) ? column.columnName : column.value
+        return colName ?: 'default'
+    }
+
+    /**
+     * Find the Column on 'this' axis which has the same ID as the passed in axis.  If not found,
+     * then check for Column with the same value (or name in case of RULE axis).
+     * @param source
+     * @return
+     */
+    protected Column locateDeltaColumn(Column source)
+    {
+        Column column = getColumnById(source.id)
+        if (column)
+        {
+            return column
+        }
+
+        if (type == AxisType.RULE)
+        {
+            return findColumn(source.columnName)
+        }
+        else
+        {
+            return findColumn(source.value)
+        }
+    }
 }

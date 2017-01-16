@@ -641,18 +641,19 @@ class DeltaProcessor
             }
             Object[] oldCols = oldColNames as Object[]
             Object[] newCols = newColNames as Object[]
-
             boolean isRef = newAxis.reference
-            for (Column newCol : newAxis.columns)
+
+            List<Column> newColumns = getAllowedColumns(newAxis, isRef)
+            for (Column newCol : newColumns)
             {
                 Column oldCol = findColumn(newAxis, oldAxis, newCol)
                 if (oldCol == null)
                 {
-                    if (!isRef)
-                    {
-                        String s = "Add column: ${newCol.value} to axis: ${newAxis.name}"
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
-                    }
+                    String colName = newAxis.getDisplayColumnName(newCol)
+                    String s = "Add column '${colName}' to axis: ${newAxis.name}"
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
+
+                    // If new Column has meta-properties, generate a Delta.COLUMN_META, ADD for each meta-property
                     if (!newCol.metaProperties.isEmpty())
                     {   // Add new column's meta-properties as Deltas
                         List<String> newList = []
@@ -664,41 +665,46 @@ class DeltaProcessor
                         for (String key : newCol.metaProperties.keySet())
                         {
                             Object newVal = newCol.getMetaProperty(key)
-                            String s = "Add column meta-property {${key}: ${newVal}}"
+                            s = "Add column '${colName}' meta-property {${key}: ${newVal}}"
                             MapEntry pair = new MapEntry(key, newVal)
-                            changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s, [axis:newAxis.name, column:newCol.id], null, pair, [] as Object[], newMetaList))
+                            changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s,
+                                    [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)],
+                                    null, pair, [] as Object[], newMetaList))
                         }
                     }
                 }
                 else
                 {   // Check Column meta properties
-                    idMap[newCol.id] = oldCol.id
-                    String colName = StringUtilities.hasContent(oldCol.columnName) ? oldCol.columnName : oldCol.value
-                    metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META, "column '${colName}'", [axis:newAxis.name, column:newCol.id])
+                    if (newCol.id != oldCol.id)
+                    {
+                        idMap[newCol.id] = oldCol.id
+                    }
+                    String colName = newAxis.getDisplayColumnName(newCol)
+                    metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META,
+                            "column '${colName}'", [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)])
                     changes.addAll(metaChanges)
 
-                    if (!isRef)
+                    if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                     {
-                        if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
-                        {
-                            String s = "Column value change from: ${oldCol.value} to: ${newCol.value}"
-                            changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
-                        }
+                        String s = "Column value change from: ${oldCol.value} to: ${newCol.value}"
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
                     }
                 }
             }
 
-            if (!isRef)
+            List<Column> oldColumns = getAllowedColumns(oldAxis, isRef)
+            for (Column oldCol : oldColumns)
             {
-                for (Column oldCol : oldAxis.columns)
+                Column newCol = findColumn(oldAxis, newAxis, oldCol)
+                if (newCol == null)
                 {
-                    Column newCol = findColumn(oldAxis, newAxis, oldCol)
-                    if (newCol == null)
-                    {
-                        String s = "Remove column: ${oldCol.value} from axis: ${oldAxis.name}"
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
-                    }
-                    else
+                    String colName = newAxis.getDisplayColumnName(oldCol)
+                    String s = "Remove column '${colName}' from axis: ${oldAxis.name}"
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
+                }
+                else
+                {
+                    if (oldCol.id != newCol.id)
                     {
                         idMap[oldCol.id] = newCol.id
                     }
@@ -716,6 +722,27 @@ class DeltaProcessor
         getCellChanges(newCube, oldCube, idMap, changes)
         Collections.sort(changes)
         return changes
+    }
+
+    /**
+     * Return all the Columns on the passed in Axis, unless the axis is a reference axis,
+     * in which case either none are returned or the default column if it has one.
+     */
+    private static List<Column> getAllowedColumns(Axis axis, boolean isRef)
+    {
+        List<Column> columns = []
+        if (isRef)
+        {
+            if (axis.hasDefaultColumn())
+            {
+                columns.add(axis.defaultColumn)
+            }
+        }
+        else
+        {
+            columns.addAll(axis.columns)
+        }
+        return columns
     }
 
     private static void getCellChanges(NCube newCube, NCube oldCube, Map<Long, Long> idMap, List<Delta> changes)
