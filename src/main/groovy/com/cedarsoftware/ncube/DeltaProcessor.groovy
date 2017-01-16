@@ -477,8 +477,17 @@ class DeltaProcessor
 
         for (Column changeColumn : changeAxis.columnsWithoutDefault)
         {
-            Comparable locatorKey = changeAxis.getValueToLocateColumn(changeColumn)
-            Column foundCol = baseAxis.findColumn(locatorKey)
+            Comparable locatorKey
+            Column foundCol = baseAxis.getColumnById(changeColumn.id)
+            if (foundCol == null)
+            {
+                locatorKey = changeAxis.getValueToLocateColumn(changeColumn)
+                foundCol = baseAxis.findColumn(locatorKey)
+            }
+            else
+            {
+                locatorKey = baseAxis.getValueToLocateColumn(foundCol)
+            }
 
             // add because you didn't find the column or you landed on the default
             if (foundCol == null || foundCol.default)
@@ -643,13 +652,30 @@ class DeltaProcessor
             boolean isRef = newAxis.reference
             for (Column newCol : newAxis.columns)
             {
-                Column oldCol = oldAxis.getColumnById(newCol.id)
-                if (oldCol == null)
+                Comparable locatorKey = newAxis.getValueToLocateColumn(newCol)
+                Column oldCol = oldAxis.getColumnById(newCol.id) ?: oldAxis.findColumn(locatorKey)
+                if (oldCol == null || oldCol.default)
                 {
                     if (!isRef)
                     {
                         String s = "Add column: ${newCol.value} to axis: ${newAxis.name}"
                         changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
+                    }
+                    if (!newCol.metaProperties.isEmpty())
+                    {   // Add new column's meta-properties as Deltas
+                        List<String> newList = []
+                        newCol.metaProperties.each { String key, Object value ->
+                            newList.add("${key}: ${value?.toString()}".toString())
+                        }
+                        Object[] newMetaList = newList as Object[]
+
+                        for (String key : newCol.metaProperties.keySet())
+                        {
+                            Object newVal = newCol.getMetaProperty(key)
+                            String s = "Add column meta-property {${key}: ${newVal}}"
+                            MapEntry pair = new MapEntry(key, newVal)
+                            changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s, newAxis.name, null, pair, [] as Object[], newMetaList))
+                        }
                     }
                 }
                 else
@@ -673,7 +699,8 @@ class DeltaProcessor
             {
                 for (Column oldCol : oldAxis.columns)
                 {
-                    Column newCol = newAxis.getColumnById(oldCol.id)
+                    Comparable locatorKey = oldAxis.getValueToLocateColumn(oldCol)
+                    Column newCol = newAxis.getColumnById(oldCol.id) ?: newAxis.findColumn(locatorKey)
                     if (newCol == null)
                     {
                         String s = "Remove column: ${oldCol.value} from axis: ${oldAxis.name}"
