@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.StringUtilities
-import groovy.transform.CompileStatic;
+import groovy.transform.CompileStatic
 
 /**
  * This class records information about the delta (difference) between
