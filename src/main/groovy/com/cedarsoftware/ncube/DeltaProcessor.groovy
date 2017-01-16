@@ -624,7 +624,7 @@ class DeltaProcessor
             }
             if (!newAxis.areAxisPropsEqual(oldAxis))
             {
-                String s = "Axis properties change from ${oldAxis.axisPropString} to ${newAxis.axisPropString}"
+                String s = "Change axis '${oldAxis.name}' properties from ${oldAxis.axisPropString} to ${newAxis.axisPropString}"
                 changes.add(new Delta(Delta.Location.AXIS, Delta.Type.UPDATE, s, null, oldAxis, newAxis, oldAxes, newAxes))
             }
 
@@ -654,31 +654,16 @@ class DeltaProcessor
                     changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
 
                     // If new Column has meta-properties, generate a Delta.COLUMN_META, ADD for each meta-property
-                    if (!newCol.metaProperties.isEmpty())
-                    {   // Add new column's meta-properties as Deltas
-                        List<String> newList = []
-                        newCol.metaProperties.each { String key, Object value ->
-                            newList.add("${key}: ${value?.toString()}".toString())
-                        }
-                        Object[] newMetaList = newList as Object[]
-
-                        for (String key : newCol.metaProperties.keySet())
-                        {
-                            Object newVal = newCol.getMetaProperty(key)
-                            s = "Add column '${colName}' meta-property {${key}: ${newVal}}"
-                            MapEntry pair = new MapEntry(key, newVal)
-                            changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s,
-                                    [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)],
-                                    null, pair, [] as Object[], newMetaList))
-                        }
-                    }
+                    addMetaPropertiesToColumn(newCol, changes, newAxis)
                 }
                 else
-                {   // Check Column meta properties
+                {
                     if (newCol.id != oldCol.id)
                     {
                         idMap[newCol.id] = oldCol.id
                     }
+
+                    // Check Column meta properties
                     String colName = newAxis.getDisplayColumnName(newCol)
                     metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META,
                             "column '${colName}'", [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)])
@@ -686,8 +671,23 @@ class DeltaProcessor
 
                     if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                     {
-                        String s = "Column value change from: ${oldCol.value} to: ${newCol.value}"
+                        String s = "Change column value from: ${oldCol.value} to: ${newCol.value}"
                         changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
+                    }
+                }
+            }
+
+            if (isRef)
+            {
+                for (Column newCol : newAxis.columnsWithoutDefault)
+                {
+                    String colName = newAxis.getDisplayColumnName(newCol)
+                    Column oldCol = findColumn(newAxis, oldAxis, newCol)
+                    if (oldCol)
+                    {
+                        metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META,
+                                "column '${colName}'", [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)])
+                        changes.addAll(metaChanges)
                     }
                 }
             }
@@ -724,6 +724,29 @@ class DeltaProcessor
         return changes
     }
 
+    private static void addMetaPropertiesToColumn(Column newCol, List<Delta> changes, Axis newAxis)
+    {
+        if (!newCol.metaProperties.isEmpty())
+        {   // Add new column's meta-properties as Deltas
+            List<String> newList = []
+            newCol.metaProperties.each { String key, Object value ->
+                newList.add("${key}: ${value?.toString()}".toString())
+            }
+            Object[] newMetaList = newList as Object[]
+            String colName = newAxis.getDisplayColumnName(newCol)
+
+            for (String key : newCol.metaProperties.keySet())
+            {
+                Object newVal = newCol.getMetaProperty(key)
+                String s = "Add column '${colName}' meta-property {${key}: ${newVal}}"
+                MapEntry pair = new MapEntry(key, newVal)
+                changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s,
+                        [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)],
+                        null, pair, [] as Object[], newMetaList))
+            }
+        }
+    }
+
     /**
      * Return all the Columns on the passed in Axis, unless the axis is a reference axis,
      * in which case either none are returned or the default column if it has one.
@@ -755,7 +778,7 @@ class DeltaProcessor
                 if (!DeepEquals.deepEquals(value, oldCellValue))
                 {
                     Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
-                    String s = "Cell change at: ${properCoord}, from: ${oldCellValue}, to: ${value}"
+                    String s = "Change cell at: ${properCoord} from: ${oldCellValue} to: ${value}"
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(colIds)), new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
                 }
             }
@@ -817,11 +840,13 @@ class DeltaProcessor
 
     private static boolean doesCellExist(LongHashSet colIds, Map cellMap, Map<Long, Long> idMap)
     {
+        // 1st attempt - is it there with the exact same coordinate ids?
         if (cellMap.containsKey(colIds))
         {
             return true
         }
 
+        // Is it there with substituted coordinate ids (column was matched by value, so trying the id of THAT column)
         LongHashSet coord = new LongHashSet()
         Iterator<Long> i = colIds.iterator()
         while (i.hasNext())
@@ -914,7 +939,7 @@ class DeltaProcessor
         Comparable locatorKey = transmitterAxis.getValueToLocateColumn(transmitterCol)
         column = receiverAxis.findColumn(locatorKey)
         if (column && column.default)
-        {
+        {   // && column.default is needed because we are locating by value and landed on the default column.
             return null
         }
         return column

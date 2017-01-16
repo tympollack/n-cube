@@ -432,7 +432,7 @@ class NCube<T>
         LongHashSet ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
-            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}", name)
+            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}. Add column(s) before assigning cells.", name)
         }
         return cells[ids] = value
     }
@@ -2115,17 +2115,20 @@ class NCube<T>
                 {
                     columns.each { Map column ->
                         Column col = newAxis.getColumnById(column.id as Long)
-                        Iterator<Map.Entry<String, Object>> i = column.entrySet().iterator()
-                        while (i.hasNext())
-                        {
-                            Map.Entry<String, Object> entry = i.next()
-                            String key = entry.key
-                            if ('id' != key)
+                        if (col)
+                        {    // skip deleted columns
+                            Iterator<Map.Entry<String, Object>> i = column.entrySet().iterator()
+                            while (i.hasNext())
                             {
-                                col.setMetaProperty(key, entry.value)
+                                Map.Entry<String, Object> entry = i.next()
+                                String key = entry.key
+                                if ('id' != key)
+                                {
+                                    col.setMetaProperty(key, entry.value)
+                                }
                             }
+                            transformMetaProperties(col.metaProps)
                         }
-                        transformMetaProperties(col.metaProps)
                     }
                 }
             }
