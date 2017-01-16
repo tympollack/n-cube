@@ -1,4 +1,8 @@
 ### Revision History
+* 3.5.5
+  * Improved the robustness of `DeltaProcessor.getDelta()`.  Renaming a colum in case only now supported.  @jsnyder4
+  * Improved the robustness of `DeltaProcessor.getDeltaDescription()` API.  It handles adding and removing the default column on regular or reference axis, detecting meta-property changes.
+  * Improved the robustness of `NCube.mergeDeltas()` API.  It handles applying delta changes in many more cases, and makes attempts to locate target items first by ID, and if not found, by value.
 * 3.5.4
   * Enhancement: JDBC statement fetchSize is set before query is executed, and ResultSet uses same value.  Set to 1,000.
 * 3.5.3
