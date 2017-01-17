@@ -566,7 +566,7 @@ class NCubeBuilder
       "type": "DISCRETE",
       "valueType": "LONG",
       "preferredOrder": 1,
-      "hasDefault": false,
+      "hasDefault": true,
       "columns": [
         {
           "id": 1000000000001,

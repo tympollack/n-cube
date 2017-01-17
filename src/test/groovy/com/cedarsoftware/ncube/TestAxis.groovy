@@ -2892,7 +2892,7 @@ class TestAxis
     void testReferenceAxisWithTransform()
     {
         NCube one = NCubeBuilder.discrete1DLong
-        assert one.getAxis('code').size() == 3
+        assert one.getAxis('code').size() == 4
         NCubeManager.addCube(ApplicationID.testAppId, one)
 
         NCube transform = NCubeBuilder.transformMultiply
@@ -3000,7 +3000,7 @@ class TestAxis
     void testNonExistingTransformCube()
     {
         NCube one = NCubeBuilder.discrete1DLong
-        assert one.getAxis('code').size() == 3
+        assert one.getAxis('code').size() == 4
         NCubeManager.addCube(ApplicationID.testAppId, one)
 
         NCube transform = NCubeBuilder.transformMultiply
@@ -3149,6 +3149,12 @@ class TestAxis
         code.setMetaProperty('a', 'alpha')
         code.setMetaProperty('b', 'ball')
         code.setMetaProperty('c', 'charlie')
+        Column col2 = one.findColumn('code', 2)
+        col2.setMetaProperty('a', '1')
+        col2.setMetaProperty('b', 2)
+        Column colDef = code.defaultColumn
+        colDef.setMetaProperty('foo', 'bar')
+        colDef.setMetaProperty('baz', 'qux')
         NCubeManager.addCube(ApplicationID.testAppId, one)
         NCube two = new NCube('two')
 
@@ -3163,20 +3169,36 @@ class TestAxis
         args[REF_AXIS_NAME] = 'code'
 
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(one.name, 'code', args)
-        code =  new Axis('code', 1L, false, refAxisLoader)
+        code =  new Axis('code', 1L, true, refAxisLoader)
         code.setMetaProperty('b', 'bravo')
         code.setMetaProperty('d', 'delta')
         two.addAxis(code)
+        col2 = code.findColumn(2)
+        col2.removeMetaProperty('b')
+        col2.setMetaProperty('c', new GroovyExpression('return true', null, false))
+        colDef = code.defaultColumn
+        colDef.setMetaProperty('foo', 'bart')
+        colDef.removeMetaProperty('baz')
+        colDef.setMetaProperty('monkey', 'socks')
         NCubeManager.addCube(ApplicationID.testAppId, two)
 
         String json = two.toFormattedJson()
         NCube reload = NCube.fromSimpleJson(json)
+        code = reload.getAxis('code')
 
-        Map meta = reload.getAxis('code').metaProperties
+        Map meta = code.metaProperties
         assert 'alpha' == meta.get('a')
         assert 'bravo' == meta.get('b')
         assert 'charlie' == meta.get('c')
         assert 'delta' == meta.get('d')
+        col2 = code.findColumn(2)
+        assert '1' == col2.getMetaProperty('a')
+        assert 2 == col2.getMetaProperty('b')
+        assert new GroovyExpression('return true', null, false) == col2.getMetaProperty('c')
+
+        colDef = code.defaultColumn
+        assert 'bart' == colDef.getMetaProperty('foo')
+        assert 'socks' == colDef.getMetaProperty('monkey')
     }
 
     @Test
