@@ -659,7 +659,8 @@ class DeltaProcessor
                 else
                 {
                     if (newCol.id != oldCol.id && !oldCol.default)
-                    {
+                    {   // If a column has to be found by value, that means its ID changed.  Map the old ID to new ID.
+                        // Later, when mapping cells, they will be checked against this Map if their ID is not found.
                         idMap[newCol.id] = oldCol.id
                     }
 
@@ -705,7 +706,8 @@ class DeltaProcessor
                 else
                 {
                     if (oldCol.id != newCol.id && !newCol.default)
-                    {
+                    {   // If a column has to be found by value, that means its ID changed.  Map the old ID to new ID.
+                        // Later, when mapping cells, they will be checked against this Map if their ID is not found.
                         idMap[oldCol.id] = newCol.id
                     }
                 }
@@ -772,14 +774,15 @@ class DeltaProcessor
     {
         Map<LongHashSet, Object> cellMap = newCube.cellMap
         cellMap.each { LongHashSet colIds, value ->
-            if (doesCellExist(colIds, oldCube.cellMap, idMap))
+            LongHashSet coord = adjustCoord(colIds, oldCube.cellMap, idMap)
+            if (oldCube.cellMap.containsKey(coord))
             {
-                Object oldCellValue = oldCube.cellMap[colIds]
+                Object oldCellValue = oldCube.cellMap[coord]
                 if (!DeepEquals.deepEquals(value, oldCellValue))
                 {
                     Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
                     String s = "Change cell at: ${properCoord} from: ${oldCellValue} to: ${value}"
-                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(colIds)), new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
+                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(coord)), new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
                 }
             }
             else
@@ -792,7 +795,8 @@ class DeltaProcessor
 
         Map<LongHashSet, Object> srcCellMap = oldCube.cellMap
         srcCellMap.each { LongHashSet colIds, value ->
-            if (!doesCellExist(colIds, newCube.cellMap, idMap))
+            LongHashSet coord = adjustCoord(colIds, newCube.cellMap, idMap)
+            if (!newCube.cellMap.containsKey(coord))
             {
                 boolean allColsStillExist = true
                 for (Long colId : colIds)
@@ -809,7 +813,7 @@ class DeltaProcessor
                 // dropped column would report a ton of removed cells.
                 if (allColsStillExist)
                 {
-                    Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
+                    Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(coord)
                     String s = "Remove cell at: ${properCoord}, value: ${value}"
                     changes.add(new Delta(Delta.Location.CELL, Delta.Type.DELETE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(colIds)), null, null, null))
                 }
@@ -838,12 +842,12 @@ class DeltaProcessor
         }
     }
 
-    private static boolean doesCellExist(LongHashSet colIds, Map cellMap, Map<Long, Long> idMap)
+    private static LongHashSet adjustCoord(LongHashSet colIds, Map cellMap, Map<Long, Long> idMap)
     {
         // 1st attempt - is it there with the exact same coordinate ids?
         if (cellMap.containsKey(colIds))
         {
-            return true
+            return colIds
         }
 
         // Is it there with substituted coordinate ids (column was matched by value, so trying the id of THAT column)
@@ -862,7 +866,7 @@ class DeltaProcessor
             }
         }
 
-        return cellMap.containsKey(coord)
+        return coord
     }
 
     /**
