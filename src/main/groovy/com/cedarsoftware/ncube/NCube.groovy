@@ -194,6 +194,30 @@ class NCube<T>
     }
 
     /**
+     * Walk cell map and ensure all coordinates are fully resolvable
+     */
+    protected void dropOrphans(Set<Long> columnIds, long axisId)
+    {
+        Iterator<LongHashSet> i = cells.keySet().iterator()
+        while (i.hasNext())
+        {
+            LongHashSet cols = i.next()
+            for (id in cols)
+            {
+                Axis axis = getAxisFromColumnId(id, false)
+                if (axis && axis.id == axisId)
+                {
+                    if (!columnIds.contains(id))
+                    {
+                        i.remove()
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * This is a "Pointer" (or Key) to a cell in an NCube.
      * It consists of a String cube Name and a Set of
      * Column references (one Column per axis).
@@ -1579,10 +1603,10 @@ class NCube<T>
 
         final Axis axisToUpdate = axisList[axisName]
         final Set<Long> colsToDel = axisToUpdate.updateColumns(newCols, allowPositiveColumnIds)
-        Iterator<LongHashSet> i = cells.keySet().iterator()
 
         if (!colsToDel.empty)
         {   // If there are columns to delete, then delete any cells referencing those columns
+            Iterator<LongHashSet> i = cells.keySet().iterator()
             while (i.hasNext())
             {
                 LongHashSet cols = i.next()
@@ -2376,7 +2400,7 @@ class NCube<T>
      * CellInfo.  If the value is not a JsonObject, it is left alone (primitives).
      * @param props Map of String meta-property keys to values
      */
-    private static void transformMetaProperties(Map props)
+    protected static void transformMetaProperties(Map props)
     {
         List<MapEntry> entriesToUpdate = []
         for (entry in props.entrySet())
@@ -2387,6 +2411,11 @@ class NCube<T>
                 Boolean cache = (Boolean) map['cache']
                 Object value = CellInfo.parseJsonValue(map['value'], (String) map['url'], (String) map['type'], cache == null ? false : cache)
                 entriesToUpdate.add(new MapEntry(entry.key, value))
+            }
+            else if (entry.value instanceof CellInfo)
+            {
+                CellInfo info = entry.value as CellInfo
+                entriesToUpdate.add(new MapEntry(entry.key, info.recreate()))
             }
         }
 

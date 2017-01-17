@@ -163,6 +163,13 @@ class Axis
     // for construction during serialization
     private Axis() { id=0 }
 
+    private void reindex(String cubeName, Map<String, Object> props)
+    {
+        clear()
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, name, props)
+        refAxisLoader.load(this)
+    }
+
     /**
      * Use this constructor to create a 'reference' axis.  This allows a single MASTER DATA axis to be referenced
      * by many other axes without repeating the columnar data.
@@ -197,6 +204,34 @@ class Axis
         if (preferredOrder != DISPLAY && preferredOrder != SORTED)
         {
             throw new IllegalStateException("preferred order not set, axis: ${name}")
+        }
+    }
+
+    protected updateMetaProperties(Map<String, Object> newMetaProperties, String cubeName, Closure dropOrphans)
+    {
+        // Backup meta-properties
+        Map<Long, Map> metaMap = [:] as Map
+        columns.each { Column column ->
+            metaMap[column.id] = column.metaProperties
+        }
+
+        clearMetaProperties()
+        addMetaProperties(newMetaProperties)
+        reindex(cubeName, newMetaProperties)
+
+        Set<Long> colIds = new HashSet()
+        columns.each { Column column ->
+            colIds.add(column.id)
+        }
+
+        dropOrphans(colIds)
+
+        // Restore meta-properties
+        columns.each { Column column ->
+            if (metaMap.containsKey(column.id))
+            {
+                column.addMetaProperties(metaMap[column.id])
+            }
         }
     }
 
@@ -399,15 +434,15 @@ class Axis
 
     /**
      * Add a Map of meta properties all at once.
-     * @param allAtOnce Map of meta properties to add
+     * @param props Map of meta properties to add
      */
-    void addMetaProperties(Map<String, Object> allAtOnce)
+    void addMetaProperties(Map<String, Object> props)
     {
         if (metaProps == null)
         {
             metaProps = new CaseInsensitiveMap<>()
         }
-        metaProps.putAll(allAtOnce)
+        metaProps.putAll(props)
     }
 
     /**
@@ -1773,6 +1808,9 @@ class Axis
         return fireAll == axis.fireAll
     }
 
+    /**
+     * Return a display-friendly String for the passed in column.
+     */
     protected String getDisplayColumnName(Column column)
     {
         String colName = StringUtilities.hasContent(column.columnName) ? column.columnName : column.value

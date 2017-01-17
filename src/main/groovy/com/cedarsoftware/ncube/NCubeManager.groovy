@@ -1305,6 +1305,23 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         }
     }
 
+    /**
+     * Update an Axis meta-properties
+     */
+    static void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
+    {
+        NCube.transformMetaProperties(newMetaProperties)
+        String resourceName = cubeName + '/' + axisName
+        assertPermissions(appId, resourceName, Action.UPDATE)
+        NCube ncube = loadCube(appId, cubeName)
+        Axis axis = ncube.getAxis(axisName)
+        axis.updateMetaProperties(newMetaProperties, cubeName, { Set<Long> colIds ->
+            ncube.dropOrphans(colIds, axis.id)
+        })
+        ncube.clearSha1()
+        updateCube(appId, ncube)
+    }
+
     // ----------------------------------------- Resource APIs ---------------------------------------------------------
     static String getResourceAsString(String name) throws Exception
     {

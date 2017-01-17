@@ -658,7 +658,7 @@ class DeltaProcessor
                 }
                 else
                 {
-                    if (newCol.id != oldCol.id)
+                    if (newCol.id != oldCol.id && !oldCol.default)
                     {
                         idMap[newCol.id] = oldCol.id
                     }
@@ -704,7 +704,7 @@ class DeltaProcessor
                 }
                 else
                 {
-                    if (oldCol.id != newCol.id)
+                    if (oldCol.id != newCol.id && !newCol.default)
                     {
                         idMap[oldCol.id] = newCol.id
                     }
