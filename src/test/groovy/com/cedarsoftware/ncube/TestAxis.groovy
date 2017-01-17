@@ -3147,7 +3147,7 @@ class TestAxis
         NCube one = NCubeBuilder.discrete1DLong
         Axis code = one.getAxis('code')
         code.setMetaProperty('a', 'alpha')
-        code.setMetaProperty('b', 'ball')
+        code.setMetaProperty('b', new GroovyExpression('return 7', null, false))
         code.setMetaProperty('c', 'charlie')
         Column col2 = one.findColumn('code', 2)
         col2.setMetaProperty('a', '1')
@@ -3170,7 +3170,7 @@ class TestAxis
 
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(one.name, 'code', args)
         code =  new Axis('code', 1L, true, refAxisLoader)
-        code.setMetaProperty('b', 'bravo')
+        code.setMetaProperty('b', new GroovyExpression('return 1.0', null, false))
         code.setMetaProperty('d', 'delta')
         two.addAxis(code)
         col2 = code.findColumn(2)
@@ -3188,7 +3188,7 @@ class TestAxis
 
         Map meta = code.metaProperties
         assert 'alpha' == meta.get('a')
-        assert 'bravo' == meta.get('b')
+        assert new GroovyExpression('return 1.0', null, false) == meta.get('b')
         assert 'charlie' == meta.get('c')
         assert 'delta' == meta.get('d')
         col2 = code.findColumn(2)
