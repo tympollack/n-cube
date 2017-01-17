@@ -5124,6 +5124,18 @@ class TestNCube
         sorted.toString() == '[12.999.8888, 11.999.8888, 2.9.88, 1.111.0, 1.20.0, 1.11.0, 1.2.0, 1.1.0, 1.0.20, 1.0.12, 1.0.11, 1.0.10, 1.0.2, 1.0.1]'
     }
 
+    @Test
+    void testFindColumn()
+    {
+        NCube ncube = NCubeBuilder.discrete1D
+        Column col = ncube.findColumn('city', 'Dallas')
+        assert null == col
+        col = ncube.findColumn('state', 'OH')
+        assert 1000000000001L == col.id
+        assert 'OH' == col.value
+        // See TestAxis.groovy for complete findColumn() test cases
+    }
+
     // For testing getCube speed()
     @Ignore
     void testGetCubeSpeed()
