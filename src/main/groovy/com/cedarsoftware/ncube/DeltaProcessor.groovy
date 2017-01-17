@@ -782,7 +782,7 @@ class DeltaProcessor
                 {
                     Map<String, Object> properCoord = newCube.getDisplayCoordinateFromIds(colIds)
                     String s = "Change cell at: ${properCoord} from: ${oldCellValue} to: ${value}"
-                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, colIds, new CellInfo(oldCube.getCellByIdNoExecute(coord)), new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
+                    changes.add(new Delta(Delta.Location.CELL, Delta.Type.UPDATE, s, coord, new CellInfo(oldCube.getCellByIdNoExecute(coord)), new CellInfo(newCube.getCellByIdNoExecute(colIds)), null, null))
                 }
             }
             else
