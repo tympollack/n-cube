@@ -43,7 +43,7 @@ class TestJsonFormatter
     private TestingDatabaseManager manager;
 
     @Before
-    public void setup()
+    void setup()
     {
         manager = TestingDatabaseHelper.testingDatabaseManager
         manager.setUp()
@@ -51,7 +51,7 @@ class TestJsonFormatter
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         manager.tearDown()
         manager = null;
@@ -269,7 +269,7 @@ class TestJsonFormatter
         }
     }
 
-    public List<String> getAllTestFiles()
+    List<String> getAllTestFiles()
     {
         URL u = getClass().classLoader.getResource('')
         File dir = new File(u.file)
@@ -283,10 +283,11 @@ class TestJsonFormatter
         return names;
     }
 
-    public void runAllTests(List<String> strings)
+    void runAllTests(List<String> strings)
     {
         for (String f : strings)
         {
+            println f
             String original = NCubeManager.getResourceAsString(f)
             NCube ncube = NCube.fromSimpleJson(original)
 

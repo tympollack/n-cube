@@ -762,6 +762,20 @@ class Axis
             defaultCol = column
         }
 
+        if (type == AxisType.RULE && !column.default)
+        {
+            String colName = column.columnName
+            if (StringUtilities.isEmpty(colName))
+            {
+                throw new IllegalArgumentException('Rule name cannot be empty.')
+            }
+
+            if (findColumnByName(colName))
+            {
+                throw new IllegalArgumentException("There is already a rule named: ${colName} on axis: ${name}.")
+            }
+        }
+
         // New columns are always added at the end in terms of displayOrder.
         int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
         column.setDisplayOrder(column.default ? Integer.MAX_VALUE : order)

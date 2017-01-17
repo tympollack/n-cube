@@ -326,8 +326,8 @@ class TestDelta
         NCube<String> cube2 = (NCube<String>) NCubeBuilder.get5DTestCube()
         NCube<String> orig = (NCube<String>) NCubeBuilder.get5DTestCube()
 
-        int numCols = cube1.getAxis('rule').getColumns().size()
-        cube1.addColumn('rule', 'true')
+        int numCols = cube1.getAxis('rule').columns.size()
+        cube1.addColumn('rule', 'true', 'init-rule')
 
         // Compute delta between copy of original cube and the cube with deleted column.
         // Apply this delta to the 2nd cube to force the same changes on it.
@@ -338,7 +338,7 @@ class TestDelta
         assert compatibleChange
         DeltaProcessor.mergeDeltaSet(cube2, delta1)
         Axis axis = cube2.getAxis('rule')
-        assert axis.getColumns().size() == numCols + 1
+        assert axis.columns.size() == numCols + 1
     }
 
     @Test
