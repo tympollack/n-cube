@@ -1,4 +1,8 @@
 ### Revision History
+* 3.5.6
+  * Bug fix: When merging updated reference axis, the cells from deleted columns were being attached to the default column if present.
+  * Bug fix: When merging reference axis, the column meta-properties were being overwritten from the new column on the updated reference.  Now those properties are brought over, and then the existing meta-properties are overlaid.
+  * Bug fix: When merging cells, if the cell was not able to be located by iD (same id on both ncubes), then it was failing to use its old-id to new-id map for locating the cells on the new (transmitting changes) ncube.
 * 3.5.5
   * Improved the robustness of `DeltaProcessor.getDelta()`.  Renaming a colum in case only now supported.  @jsnyder4
   * Improved the robustness of `DeltaProcessor.getDeltaDescription()` API.  It handles adding and removing the default column on regular or reference axis, detecting meta-property changes.
