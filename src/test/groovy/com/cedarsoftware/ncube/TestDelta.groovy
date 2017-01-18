@@ -1108,6 +1108,112 @@ class TestDelta
     }
 
     @Test
+    void testUpdateReferenceAxisMetaProperties()
+    {
+        String axisName = 'state'
+        setupLibrary()
+        setupLibraryReference()
+        ApplicationID appId = setupBranch('MyBranch', '1.0.2')
+        NCube cube = NCubeManager.loadCube(appId, 'States')
+
+        // Add default column
+        cube.addColumn(axisName, null)
+        // Setup cell values
+        cube.setCell(1, [(axisName): 'AL'])
+        cube.setCell(2, [(axisName): 'GA'])
+        cube.setCell(3, [(axisName): 'OH'])
+        cube.setCell(4, [(axisName): 'TX'])
+        // Setup column meta properties
+        Axis axis = cube.getAxis(axisName)
+        Column al = axis.findColumn('AL')
+        Column ga = axis.findColumn('GA')
+        Column oh = axis.findColumn('OH')
+        Column tx = axis.findColumn('TX')
+        Column defCol = axis.findColumn(null)
+        al.setMetaProperty('foo', 'bar')
+        ga.setMetaProperty('foo', 'baz')
+        oh.setMetaProperty('foo', 'qux')
+        tx.setMetaProperty('foo', 'garply')
+        al.setMetaProperty('num', 1)
+        ga.setMetaProperty('num', 2)
+        oh.setMetaProperty('num', 3)
+        tx.setMetaProperty('num', 4)
+        defCol.setMetaProperty('meta', 'prop')
+        NCubeManager.updateCube(appId, cube)
+
+        // Initial basic setup assertions
+        assert axis.hasDefaultColumn()
+        assert 5 == axis.columns.size()
+        assert null != al
+        assert null != ga
+        assert null != oh
+        assert null != tx
+        assert null == cube.getCell([(axisName): 'KY'])
+
+        // Update reference axis via meta properties
+        axis.addMetaProperties([referenceVersion: '1.0.1'] as Map)
+        NCubeManager.updateAxisMetaProperties(appId, 'States', 'state', axis.metaProperties)
+
+        cube = NCubeManager.getCube(appId, 'States')
+        axis = cube.getAxis(axisName)
+        ga = axis.findColumn('GA')
+        oh = axis.findColumn('OH')
+        tx = axis.findColumn('TX')
+        defCol = axis.findColumn(null)
+        // Changed structure assertions
+        assert axis.hasDefaultColumn()
+        assert 4 == axis.columns.size()
+        assert null != ga
+        assert null != oh
+        assert null != tx
+        // Assert no cell value for default column
+        assert null == cube.getCell([(axisName): 'KY'])
+        // Cell and meta property assertions
+        assert 2 == cube.getCell([(axisName): 'GA'])
+        assert 3 == cube.getCell([(axisName): 'OH'])
+        assert 4 == cube.getCell([(axisName): 'TX'])
+        Map<String, Object> defProps = defCol.metaProperties
+        assert 1 == defProps.size()
+        assert 'prop' == defProps.meta
+        Map<String, Object> gaProps = ga.metaProperties
+        assert 2 == gaProps.size()
+        assert 'baz' == gaProps.foo
+        assert 2 == gaProps.num
+        Map<String, Object> ohProps = oh.metaProperties
+        assert 2 == ohProps.size()
+        assert 'qux' == ohProps.foo
+        assert 3 == ohProps.num
+        Map<String, Object> txProps = tx.metaProperties
+        assert 2 == txProps.size()
+        assert 'garply' == txProps.foo
+        assert 4 == txProps.num
+
+        // Update reference axis via meta properties to previous version
+        axis.addMetaProperties([referenceVersion: '1.0.2'] as Map)
+        NCubeManager.updateAxisMetaProperties(appId, 'States', 'state', axis.metaProperties)
+
+        cube = NCubeManager.getCube(appId, 'States')
+        axis = cube.getAxis(axisName)
+        al = axis.findColumn('AL')
+        ga = axis.findColumn('GA')
+        oh = axis.findColumn('OH')
+        tx = axis.findColumn('TX')
+        defCol = axis.findColumn(null)
+        // Changed structure assertions
+        assert axis.hasDefaultColumn()
+        assert 5 == axis.columns.size()
+        assert null != al
+        assert null != ga
+        assert null != oh
+        assert null != tx
+        // Assert no cell value for default column
+        assert null == cube.getCell([(axisName): 'KY'])
+        // Assert no cell value of meta properties for re-added column
+        assert null == cube.getCell([(axisName): 'AL'])
+        assert 0 == al.metaProperties.size()
+    }
+
+    @Test
     void testMergeBreakReferenceAxis()
     {
         setupLibrary()
