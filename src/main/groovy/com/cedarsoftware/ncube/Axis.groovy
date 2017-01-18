@@ -71,7 +71,7 @@ class Axis
     public static final String DONT_CARE = '_︿_ψ_☼'
     public static final int SORTED = 0
     public static final int DISPLAY = 1
-    private static final AtomicLong baseAxisIdForTesting = new AtomicLong(1)
+    private static final AtomicLong BASE_AXIS_ID_FOR_TESTING = new AtomicLong(1)
     protected static final long BASE_AXIS_ID = 1000000000000L
     protected static final long MAX_COLUMN_ID = 2000000000L
 
@@ -92,7 +92,7 @@ class Axis
     private transient NavigableMap<Comparable, Column> valueToCol = new TreeMap<>()
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
-    private static final ThreadLocal<Random> localRandom = new ThreadLocal<Random>() {
+    private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
         Random initialValue()
         {
             String s = Converter.convert(System.nanoTime(), String.class)
@@ -112,7 +112,7 @@ class Axis
     // for testing
     protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order = SORTED)
     {
-        this(name, type, valueType, hasDefault, order, baseAxisIdForTesting.getAndIncrement())
+        this(name, type, valueType, hasDefault, order, BASE_AXIS_ID_FOR_TESTING.getAndIncrement())
     }
 
     /**
@@ -366,7 +366,7 @@ class Axis
     protected long getNextColId()
     {
         long baseAxisId = id * BASE_AXIS_ID
-        Random random = localRandom.get()
+        Random random = LOCAL_RANDOM.get()
         long uniqueId = random.nextLong()
         long total = uniqueId % MAX_COLUMN_ID
 
@@ -1825,7 +1825,7 @@ class Axis
     /**
      * Return a display-friendly String for the passed in column.
      */
-    protected String getDisplayColumnName(Column column)
+    protected static String getDisplayColumnName(Column column)
     {
         String colName = StringUtilities.hasContent(column.columnName) ? column.columnName : column.value
         return colName ?: 'default'

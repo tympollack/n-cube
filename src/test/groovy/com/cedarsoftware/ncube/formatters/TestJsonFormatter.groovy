@@ -287,7 +287,6 @@ class TestJsonFormatter
     {
         for (String f : strings)
         {
-            println f
             String original = NCubeManager.getResourceAsString(f)
             NCube ncube = NCube.fromSimpleJson(original)
 

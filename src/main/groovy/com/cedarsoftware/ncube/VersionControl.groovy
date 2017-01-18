@@ -604,7 +604,7 @@ class VersionControl
         ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), userId, txId)
         ret[BRANCH_REJECTS] = rejects
 
-        if (!rejects.isEmpty())
+        if (!rejects.empty)
         {
             int rejectSize = rejects.size()
             throw new BranchMergeException("Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}.", ret)

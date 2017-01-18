@@ -2834,6 +2834,10 @@ class NCube<T>
                 case Delta.Location.NCUBE:
                     switch (delta.locId)
                     {
+                        case 'NAME':
+                            name = delta.destVal
+                            break
+
                         case 'DEFAULT_CELL':
                             CellInfo cellInfo = delta.destVal as CellInfo
                             Object cellValue = cellInfo.isUrl ?
@@ -2869,17 +2873,15 @@ class NCube<T>
                         case Delta.Type.ADD:
                             if (getAxis(destAxis.name) == null)
                             {   // Only add if not already there.
-                                addAxis(delta.destVal as Axis)
+                                addAxis(destAxis)
                             }
                             break
 
                         case Delta.Type.UPDATE:
-                            Axis axis = getAxis(sourceAxis.name)
-
-                            if (axis)
+                            if (sourceAxis)
                             {
-                                axis.columnOrder = destAxis.columnOrder
-                                axis.fireAll = destAxis.fireAll
+                                sourceAxis.columnOrder = destAxis.columnOrder
+                                sourceAxis.fireAll = destAxis.fireAll
                             }
                             break
 
@@ -3011,6 +3013,7 @@ class NCube<T>
                     break
             }
         }
+
         clearSha1()
     }
 
