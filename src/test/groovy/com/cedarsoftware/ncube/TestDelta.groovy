@@ -1154,7 +1154,7 @@ class TestDelta
         axis.addMetaProperties([referenceVersion: '1.0.1'] as Map)
         NCubeManager.updateAxisMetaProperties(appId, 'States', 'state', axis.metaProperties)
 
-        cube = NCubeManager.getCube(appId, 'States')
+        cube = NCubeManager.loadCube(appId, 'States')
         axis = cube.getAxis(axisName)
         ga = axis.findColumn('GA')
         oh = axis.findColumn('OH')
@@ -1167,7 +1167,7 @@ class TestDelta
         assert null != oh
         assert null != tx
         // Assert no cell value for default column
-        assert null == cube.getCell([(axisName): 'KY'])
+        assert null == cube.getCell([(axisName): null])
         // Cell and meta property assertions
         assert 2 == cube.getCell([(axisName): 'GA'])
         assert 3 == cube.getCell([(axisName): 'OH'])
@@ -1192,7 +1192,7 @@ class TestDelta
         axis.addMetaProperties([referenceVersion: '1.0.2'] as Map)
         NCubeManager.updateAxisMetaProperties(appId, 'States', 'state', axis.metaProperties)
 
-        cube = NCubeManager.getCube(appId, 'States')
+        cube = NCubeManager.loadCube(appId, 'States')
         axis = cube.getAxis(axisName)
         al = axis.findColumn('AL')
         ga = axis.findColumn('GA')
@@ -1207,7 +1207,7 @@ class TestDelta
         assert null != oh
         assert null != tx
         // Assert no cell value for default column
-        assert null == cube.getCell([(axisName): 'KY'])
+        assert null == cube.getCell([(axisName): null])
         // Assert no cell value of meta properties for re-added column
         assert null == cube.getCell([(axisName): 'AL'])
         assert 0 == al.metaProperties.size()
