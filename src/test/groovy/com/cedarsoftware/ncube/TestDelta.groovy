@@ -1108,13 +1108,21 @@ class TestDelta
     }
 
     @Test
-    void testUpdateReferenceAxisMetaProperties()
+    void testUpdateAxisMetaProperties()
     {
         String axisName = 'state'
         setupLibrary()
         setupLibraryReference()
         ApplicationID appId = setupBranch('MyBranch', '1.0.2')
         NCube cube = NCubeManager.loadCube(appId, 'States')
+
+        // Add non-reference axis
+        Axis property = new Axis('property', AxisType.DISCRETE, AxisValueType.STRING, true)
+        cube.addAxis(property)
+        NCubeManager.updateCube(appId, cube)
+        // Update meta-properties on a non-reference axis
+        property.addMetaProperties([hip: 'hop'] as Map)
+        NCubeManager.updateAxisMetaProperties(appId, 'States', 'property', property.metaProperties)
 
         // Add default column
         cube.addColumn(axisName, null)
@@ -1152,7 +1160,7 @@ class TestDelta
 
         // Update reference axis via meta properties
         axis.addMetaProperties([referenceVersion: '1.0.1'] as Map)
-        NCubeManager.updateAxisMetaProperties(appId, 'States', 'state', axis.metaProperties)
+        NCubeManager.updateAxisMetaProperties(appId, 'States', axisName, axis.metaProperties)
 
         cube = NCubeManager.loadCube(appId, 'States')
         axis = cube.getAxis(axisName)
@@ -1190,7 +1198,7 @@ class TestDelta
 
         // Update reference axis via meta properties to previous version
         axis.addMetaProperties([referenceVersion: '1.0.2'] as Map)
-        NCubeManager.updateAxisMetaProperties(appId, 'States', 'state', axis.metaProperties)
+        NCubeManager.updateAxisMetaProperties(appId, 'States', axisName, axis.metaProperties)
 
         cube = NCubeManager.loadCube(appId, 'States')
         axis = cube.getAxis(axisName)

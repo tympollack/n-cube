@@ -163,7 +163,7 @@ class Axis
     // for construction during serialization
     private Axis() { id=0 }
 
-    private void reindex(String cubeName, Map<String, Object> props)
+    private void reloadReferenceAxis(String cubeName, Map<String, Object> props)
     {
         clear()
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, name, props)
@@ -217,7 +217,11 @@ class Axis
 
         clearMetaProperties()
         addMetaProperties(newMetaProperties)
-        reindex(cubeName, newMetaProperties)
+        if (isRef)
+        {
+            reloadReferenceAxis(cubeName, newMetaProperties)
+        }
+
 
         Set<Long> colIds = new HashSet()
         columns.each { Column column ->
