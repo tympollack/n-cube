@@ -109,6 +109,9 @@ class Axis
         void load(Axis axis)
     }
 
+    // for construction during serialization
+    private Axis() { id=0 }
+
     // for testing
     protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order = SORTED)
     {
@@ -160,16 +163,6 @@ class Axis
         verifyAxisType()
     }
 
-    // for construction during serialization
-    private Axis() { id=0 }
-
-    private void reloadReferenceAxis(String cubeName, Map<String, Object> props)
-    {
-        clear()
-        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, name, props)
-        refAxisLoader.load(this)
-    }
-
     /**
      * Use this constructor to create a 'reference' axis.  This allows a single MASTER DATA axis to be referenced
      * by many other axes without repeating the columnar data.
@@ -205,6 +198,13 @@ class Axis
         {
             throw new IllegalStateException("preferred order not set, axis: ${name}")
         }
+    }
+
+    private void reloadReferenceAxis(String cubeName, Map<String, Object> props)
+    {
+        clear()
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, name, props)
+        refAxisLoader.load(this)
     }
 
     protected updateMetaProperties(Map<String, Object> newMetaProperties, String cubeName, Closure dropOrphans)
