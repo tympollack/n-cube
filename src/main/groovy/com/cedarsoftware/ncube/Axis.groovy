@@ -222,7 +222,6 @@ class Axis
             reloadReferenceAxis(cubeName, newMetaProperties)
         }
 
-
         Set<Long> colIds = new HashSet()
         columns.each { Column column ->
             colIds.add(column.id)
