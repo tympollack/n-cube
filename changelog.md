@@ -1,4 +1,9 @@
 ### Revision History
+* 3.6.0
+  * Columns on a rule axis must have a name.  The name must be unique on the axis.  This is now enforced with an IllegalArgumentException.
+  * When a new branch is created, sys.permissions is set to allow UPDATE action by default.  @tpollack 
+  * Re-ordering support added for delta/merge.
+  * Bug fix: NCubeManager.updateAxisMetaProperties() was temporarily not working on a non-reference axis.  Fixed and test added.  @jsynder4 
 * 3.5.6
   * Bug fix: When merging updated reference axis, the cells from deleted columns were being attached to the default column if present.
   * Bug fix: When merging reference axis, the column meta-properties were being overwritten from the new column on the updated reference.  Now those properties are brought over, and then the existing meta-properties are overlaid.
