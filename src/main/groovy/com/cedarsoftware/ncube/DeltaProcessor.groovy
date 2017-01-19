@@ -667,13 +667,20 @@ class DeltaProcessor
                     // Check Column meta properties
                     String colName = newAxis.getDisplayColumnName(newCol)
                     metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META,
-                            "column '${colName}'", [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)])
+                            "column '${colName}'", [axis: newAxis.name, column: new Column(newCol)])
                     changes.addAll(metaChanges)
 
                     if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                     {
                         String s = "Change column value from: ${oldCol.value} to: ${newCol.value}"
                         changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
+                    }
+
+                    // For non-reference axes, if they are manually ordered (DISPLAY) and the displayOrder field has changed...
+                    if (!isRef && newAxis.columnOrder == Axis.DISPLAY && oldCol.displayOrder != newCol.displayOrder)
+                    {   // ...create a COLUMN ORDER delta.
+                        String s = "Change column position from: ${oldCol.displayOrder} to: ${newCol.displayOrder}"
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ORDER, s, newAxis.name, oldCol, newCol, oldCols, newCols))
                     }
                 }
             }
@@ -687,7 +694,7 @@ class DeltaProcessor
                     if (oldCol)
                     {
                         metaChanges = compareMetaProperties(oldCol.metaProperties, newCol.metaProperties, Delta.Location.COLUMN_META,
-                                "column '${colName}'", [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)])
+                                "column '${colName}'", [axis: newAxis.name, column: new Column(newCol)])
                         changes.addAll(metaChanges)
                     }
                 }
@@ -743,7 +750,7 @@ class DeltaProcessor
                 String s = "Add column '${colName}' meta-property {${key}: ${newVal}}"
                 MapEntry pair = new MapEntry(key, newVal)
                 changes.add(new Delta(Delta.Location.COLUMN_META, Delta.Type.ADD, s,
-                        [axis: newAxis.name, column: new Column(newCol.value, newCol.id, newCol.metaProperties)],
+                        [axis: newAxis.name, column: new Column(newCol)],
                         null, pair, [] as Object[], newMetaList))
             }
         }
@@ -948,6 +955,7 @@ class DeltaProcessor
         }
         return column
     }
+
     /**
      * Convert a DeltaCoord to a Set<Long>.  A 'deltaCoord' is a coordinate which has String axis name
      * keys and associated values (to match against standard axes), but for Rule axes it has the Long ID

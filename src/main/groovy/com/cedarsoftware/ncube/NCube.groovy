@@ -1570,8 +1570,9 @@ class NCube<T>
      * Change the value of a Column along an axis.
      * @param id long indicates the column to change
      * @param value Comparable new value to set into the column
+     * @param order int (optional) new display order for column
      */
-    void updateColumn(long id, Comparable value)
+    void updateColumn(long id, Comparable value, int order = -1i)
     {
         Axis axis = getAxisFromColumnId(id)
         if (axis == null)
@@ -1579,7 +1580,7 @@ class NCube<T>
             throw new IllegalArgumentException("No column exists with the id ${id} within cube: ${name}")
         }
         clearSha1()
-        axis.updateColumn(id, value)
+        axis.updateColumn(id, value, order)
     }
 
     /**
@@ -2865,28 +2866,28 @@ class NCube<T>
                     break
 
                 case Delta.Location.AXIS:
-                    Axis sourceAxis = delta.sourceVal as Axis
-                    Axis destAxis = delta.destVal as Axis
+                    Axis receiverAxis = delta.sourceVal as Axis
+                    Axis transmitterAxis = delta.destVal as Axis
 
                     switch (delta.type)
                     {
                         case Delta.Type.ADD:
-                            if (getAxis(destAxis.name) == null)
+                            if (getAxis(transmitterAxis.name) == null)
                             {   // Only add if not already there.
-                                addAxis(destAxis)
+                                addAxis(transmitterAxis)
                             }
                             break
 
                         case Delta.Type.UPDATE:
-                            if (sourceAxis)
+                            if (receiverAxis)
                             {
-                                sourceAxis.columnOrder = destAxis.columnOrder
-                                sourceAxis.fireAll = destAxis.fireAll
+                                receiverAxis.columnOrder = transmitterAxis.columnOrder
+                                receiverAxis.fireAll = transmitterAxis.fireAll
                             }
                             break
 
                         case Delta.Type.DELETE:
-                            deleteAxis(sourceAxis.name)
+                            deleteAxis(receiverAxis.name)
                             break
                     }
                     break
@@ -2961,6 +2962,16 @@ class NCube<T>
                                 updateColumn(existingCol.id, newCol.value)
                             }
                             break
+
+                        case Delta.Type.ORDER:
+                            Column oldCol = delta.sourceVal as Column
+                            Column newCol = delta.destVal as Column
+                            Column existingCol = axis.locateDeltaColumn(oldCol)
+                            if (existingCol)
+                            {
+                                updateColumn(existingCol.id, newCol.value, newCol.displayOrder)
+                            }
+                            break
                     }
                     break
 
@@ -3009,7 +3020,7 @@ class NCube<T>
                     break
 
                 case Delta.Location.CELL_META:
-                    // TODO - cell metaproperties not yet implemented
+                    // TODO - cell meta-properties not yet implemented
                     break
             }
         }

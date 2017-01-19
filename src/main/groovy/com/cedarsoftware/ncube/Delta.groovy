@@ -52,7 +52,8 @@ class Delta implements Comparable
     {
         ADD,
         DELETE,
-        UPDATE
+        UPDATE,
+        ORDER
     }
 
     Delta(Location location, Type type, String description, Object locId, Object sourceVal, Object destVal, Object[] sourceList, Object[] destList)
@@ -64,13 +65,13 @@ class Delta implements Comparable
         if (sourceVal instanceof Column)
         {
             Column column = sourceVal as Column
-            sourceVal = new Column(column.value, column.id, column.metaProps)
+            sourceVal = new Column(column)
         }
         this.sourceVal = sourceVal
         if (destVal instanceof Column)
         {
             Column column = destVal as Column
-            destVal = new Column(column.value, column.id, column.metaProps)
+            destVal = new Column(column)
         }
         this.destVal = destVal
         this.sourceList = sourceList

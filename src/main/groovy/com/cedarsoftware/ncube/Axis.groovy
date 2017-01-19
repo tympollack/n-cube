@@ -237,7 +237,12 @@ class Axis
 
     private void verifyAxisType()
     {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
+        if (type == AxisType.RULE)
+        {
+            rangeToCol = null
+            valueToCol = null
+        }
+        else if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             rangeToCol = null
         }
@@ -505,9 +510,14 @@ class Axis
         }
 
         // 4. Index columns by display order
-        displayOrder[column.displayOrder] = column
+        int order = column.displayOrder
+        if (displayOrder.containsKey(column.displayOrder))
+        {   // collision - move it to end
+            order = displayOrder.lastKey() + 1
+        }
+        displayOrder[order] = column
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
             valueToCol[standardizeColumnValue(column.value)] = column
         }
@@ -832,13 +842,14 @@ class Axis
         idToCol.remove(col.id)
         colNameToCol.remove(col.columnName)
         displayOrder.remove(col.displayOrder)
-        if (col.value == null)
+        if (col.value == null || type == AxisType.RULE)
         {   // Default Column is not indexed by value/range (null), so we are done.
+            // Rule columns are not indexed by value/range
             return
         }
 
         // Remove from 'value' storage
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST || type == AxisType.RULE)
+        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {   // O(1) remove
             valueToCol.remove(standardizeColumnValue(col.value))
         }
@@ -870,8 +881,9 @@ class Axis
      * does not change it's display order.)
      * @param colId long Column ID to update
      * @param value 'raw' value to set into the new column (will be up-promoted).
+     * @param order int (optional) new display order for column
      */
-    void updateColumn(long colId, Comparable value)
+    void updateColumn(long colId, Comparable value, int order = -1i)
     {
         if (isRef)
         {
@@ -881,7 +893,9 @@ class Axis
         deleteColumnById(colId)
         Column newColumn = createColumnFromValue(value, colId, column.metaProperties)  // re-use ID & column meta-props
         ensureUnique(newColumn.value)
-        newColumn.displayOrder = column.displayOrder                // re-use displayOrder
+
+        // re-use displayOrder or take it from order arg
+        newColumn.setDisplayOrder(order == -1i ? column.displayOrder : order)
         indexColumn(newColumn)
     }
 
@@ -1568,7 +1582,7 @@ class Axis
             }
             else if (promotedValue instanceof String)
             {
-                Column colToFind = findColumnByName(promotedValue as String)
+                Column colToFind = colNameToCol[promotedValue as String]
                 return colToFind == null ? defaultCol : colToFind
             }
             else
@@ -1595,12 +1609,7 @@ class Axis
      */
     Column findColumnByName(String colName)
     {
-        Column col = colNameToCol[colName]
-        if (col != null)
-        {
-            return col
-        }
-        return null
+        return colNameToCol[colName]
     }
 
     private Column findNearest(final Comparable promotedValue)
