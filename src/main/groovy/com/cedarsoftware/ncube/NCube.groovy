@@ -1572,7 +1572,7 @@ class NCube<T>
      * @param value Comparable new value to set into the column
      * @param order int (optional) new display order for column
      */
-    void updateColumn(long id, Comparable value, int order = -1i)
+    void updateColumn(long id, Comparable value, String name = null, int order = -1i)
     {
         Axis axis = getAxisFromColumnId(id)
         if (axis == null)
@@ -1580,7 +1580,7 @@ class NCube<T>
             throw new IllegalArgumentException("No column exists with the id ${id} within cube: ${name}")
         }
         clearSha1()
-        axis.updateColumn(id, value, order)
+        axis.updateColumn(id, value, name, order)
     }
 
     /**
@@ -2194,6 +2194,9 @@ class NCube<T>
                     moveAxisMetaPropsToDefaultColumn(axis)
                 }
 
+                // Temporary - eventually should be removed.  Fixes rule columns with no or non-unique names
+                healUnamedRules(type, columns)
+
                 // Read columns
                 for (col in columns)
                 {
@@ -2217,7 +2220,6 @@ class NCube<T>
                     }
 
                     boolean cache = false
-
                     if (jsonColumn.containsKey('cache'))
                     {
                         cache = getBoolean(jsonColumn, 'cache')
@@ -2371,7 +2373,39 @@ class NCube<T>
         return ncube
     }
 
-    /**
+    static void healUnamedRules(AxisType type, Object[] columns)
+    {
+        if (type != AxisType.RULE)
+        {
+            return
+        }
+
+        int count = 1
+        Map<String, Map<String, Object>> mappedCols = new CaseInsensitiveMap<>()
+
+        for (Object col : columns)
+        {
+            Map column = col as Map
+            String name = column.name
+            if (!name || mappedCols.containsKey(name))
+            {
+                MapEntry result = generateRuleName(mappedCols.keySet(), count)
+                column.name = result.key
+                count = result.value as int
+                mappedCols.put(name, column)
+            }
+        }
+    }
+
+    static MapEntry generateRuleName(Set<String> names, int count)
+    {
+        String name
+        while (names.contains(name = "BR${count++}"))
+            ;
+        return new MapEntry(name, count)
+    }
+
+   /**
      * Snag all meta-properties on Axis that start with Axis.DEFAULT_COLUMN_PREFIX, as this
      * is where the default column's meta properties are stored, and copy them to the default
      * column (if one exists)
@@ -2969,7 +3003,7 @@ class NCube<T>
                             Column existingCol = axis.locateDeltaColumn(oldCol)
                             if (existingCol)
                             {
-                                updateColumn(existingCol.id, newCol.value, newCol.displayOrder)
+                                updateColumn(existingCol.id, existingCol.value, existingCol.columnName, newCol.displayOrder)
                             }
                             break
                     }
