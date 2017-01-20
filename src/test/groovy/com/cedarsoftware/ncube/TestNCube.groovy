@@ -5136,11 +5136,32 @@ class TestNCube
         // See TestAxis.groovy for complete findColumn() test cases
     }
 
+    @Test
+    void testOpenInvalidRuleNCube()
+    {
+        try
+        {
+            NCube rule = NCubeBuilder.simpleAutoBadRule
+            Axis axis = rule.getAxis('Smoker')
+            assert axis.findColumnByName('br1')
+            assert axis.findColumnByName('Credit-Score')
+
+            axis = rule.getAxis('Obesity')
+            assert axis.findColumnByName('br1')
+            assert axis.findColumnByName('BR2')
+        }
+        catch (IllegalArgumentException e)
+        {
+            e.printStackTrace()
+            fail('NCube RULE axis without name causing error.')
+        }
+    }
+
     // For testing getCube speed()
     @Ignore
     void testGetCubeSpeed()
     {
-        NCube ncube = NCubeBuilder.getDiscrete1D()
+        NCube ncube = NCubeBuilder.discrete1D
         NCubeManager.addCube(ApplicationID.testAppId, ncube)
 
         long start = System.nanoTime()

@@ -2381,18 +2381,18 @@ class NCube<T>
         }
 
         int count = 1
-        Map<String, Map<String, Object>> mappedCols = new CaseInsensitiveMap<>()
+        Set<String> names = new CaseInsensitiveSet<>()
 
         for (Object col : columns)
         {
             Map column = col as Map
             String name = column.name
-            if (!name || mappedCols.containsKey(name))
+            if (!name || names.contains(name))
             {
-                MapEntry result = generateRuleName(mappedCols.keySet(), count)
+                MapEntry result = generateRuleName(names, count)
                 column.name = result.key
                 count = result.value as int
-                mappedCols.put(name, column)
+                names.add(column.name as String)
             }
         }
     }

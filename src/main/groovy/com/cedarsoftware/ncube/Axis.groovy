@@ -886,7 +886,7 @@ class Axis
      * @param value 'raw' value to set into the new column (will be up-promoted).
      * @param order int (optional) new display order for column
      */
-    void updateColumn(long colId, Comparable value, int order = -1i)
+    void updateColumn(long colId, Comparable value, String name = null, int order = -1i)
     {
         if (isRef)
         {
@@ -894,6 +894,11 @@ class Axis
         }
         Column column = idToCol.get(colId)
         deleteColumnById(colId)
+
+        if (StringUtilities.hasContent(name))
+        {
+            column.columnName = name
+        }
         Column newColumn = createColumnFromValue(value, colId, column.metaProperties)  // re-use ID & column meta-props
         ensureUnique(newColumn.value)
 

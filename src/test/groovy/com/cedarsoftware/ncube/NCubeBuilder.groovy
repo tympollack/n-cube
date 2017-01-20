@@ -397,6 +397,57 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube getSimpleAutoBadRule()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "SmokerPenalty",
+  "axes": [
+    {
+      "name": "Smoker",
+      "hasDefault": false,
+      "type": "RULE",
+      "valueType": "EXPRESSION",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "exp",
+          "value": "input.age < 18"
+        },
+        {
+          "id": 1000000000002,
+          "type": "exp",
+          "name": "credit-score",
+          "value": "input.creditScore > 700"
+        }
+      ]
+    },
+    {
+      "name": "Obesity",
+      "hasDefault": false,
+      "type": "RULE",
+      "valueType": "EXPRESSION",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000001,
+          "type": "exp",
+          "value": "input.age < 18"
+        },
+        {
+          "id": 2000000000002,
+          "type": "exp",
+          "value": "input.creditScore > 700"
+        }
+      ]
+    }
+  ],
+  "cells": []}''')
+    }
+
     static NCube getTrackingTestCube()
     {
         return NCube.fromSimpleJson('''\
