@@ -1,4 +1,7 @@
 ### Revision History
+* 3.6.1
+  * Bug fix: In `VersionControl` - When user modified cube, then deleted it, and there was no change in head, it was being incorrectly marked as a conflict.
+  * Bug fix: Fixed bug in self healing code for rule names.
 * 3.6.0
   * Columns on a rule axis must have a name.  The name must be unique on the axis.  This is now enforced with an IllegalArgumentException.
   * When a new branch is created, sys.permissions is set to allow UPDATE action by default.  @tpollack 
