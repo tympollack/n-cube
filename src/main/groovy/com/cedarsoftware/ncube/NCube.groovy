@@ -2394,6 +2394,10 @@ class NCube<T>
                 count = result.value as int
                 names.add(column.name as String)
             }
+            else
+            {
+                names.add(name)
+            }
         }
     }
 

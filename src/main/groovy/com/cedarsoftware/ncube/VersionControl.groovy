@@ -132,8 +132,15 @@ class VersionControl
                     }
                     else
                     {
-                        head.changeType = ChangeType.CONFLICT.code
-                        cubeDiffs.add(head)
+                        if (infoRev < 0)
+                        {   // If branch cube was changed and then deleted...
+                            // don't care
+                        }
+                        else
+                        {
+                            head.changeType = ChangeType.CONFLICT.code
+                            cubeDiffs.add(head)
+                        }
                     }
                 }
                 else

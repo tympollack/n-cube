@@ -5149,10 +5149,14 @@ class TestNCube
             axis = rule.getAxis('Obesity')
             assert axis.findColumnByName('br1')
             assert axis.findColumnByName('BR2')
+
+            NCubeBuilder.duplicateRule
+            axis = rule.getAxis('Smoker')
+            assert axis.findColumnByName('credit-score')
+            assert axis.findColumnByName('BR1')
         }
         catch (IllegalArgumentException e)
         {
-            e.printStackTrace()
             fail('NCube RULE axis without name causing error.')
         }
     }

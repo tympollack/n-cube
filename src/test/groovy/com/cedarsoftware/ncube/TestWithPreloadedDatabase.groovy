@@ -3169,6 +3169,27 @@ class TestWithPreloadedDatabase
     }
 
     @Test
+    void testConsumerUpdateCubeDeleteCubePullFromHead()
+    {
+        preloadCubes(BRANCH2, "test.branch.1.json")
+        VersionControl.commitBranch(BRANCH2)
+        NCubeManager.copyBranch(HEAD, BRANCH1)
+
+        NCube consumerCube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
+        consumerCube.setCell('AAA', [Code : -15])
+        NCubeManager.updateCube(BRANCH1, consumerCube)
+        NCubeManager.deleteCubes(BRANCH1, 'TestBranch')
+
+        Map<String, Object> result = VersionControl.updateBranch(BRANCH1)
+        assert (result[VersionControl.BRANCH_ADDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_DELETES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_UPDATES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_FASTFORWARDS] as Map).size() == 0
+        assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
+    }
+
+    @Test
     void testCommitConsumerUpdateHeadRestore()
 	{
         preloadCubes(BRANCH2, "test.branch.1.json")
