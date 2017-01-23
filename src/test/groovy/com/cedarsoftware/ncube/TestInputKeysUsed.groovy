@@ -50,6 +50,10 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().size() == 2
         assert ruleInfo.getInputKeysUsed().contains('Column')
         assert ruleInfo.getInputKeysUsed().contains('Row')
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        Set keysUsed =  ruleInfo.getDefaultKeysUsed()[ncube.name]
+        assert keysUsed.size() == 1
+        assert keysUsed.contains('Row')
     }
 
     @Test
@@ -64,6 +68,11 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('Row')
         assert ruleInfo.getInputKeysUsed().contains('Column')
         assert ruleInfo.getInputKeysUsed().contains('smokes')
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        Set keysUsed =  ruleInfo.getDefaultKeysUsed()[ncube.name]
+        assert keysUsed.size() == 1
+        assert keysUsed.contains('Row')
+
 
         input = [column: 'B', Row: 99]
         output = [:]
@@ -73,6 +82,7 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('Column')
         assert ruleInfo.getInputKeysUsed().contains('Row')
         assert ruleInfo.getInputKeysUsed().contains('smokes')
+        assert ruleInfo.getDefaultKeysUsed().size() == 0
 
         input = [column: 'B', Row: 99, SMOKES: null]
         output = [rate: 0]
@@ -82,6 +92,7 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('Column')
         assert ruleInfo.getInputKeysUsed().contains('Row')
         assert ruleInfo.getInputKeysUsed().contains('smokes')
+        assert ruleInfo.getDefaultKeysUsed().size() == 0
     }
 
     @Test
@@ -97,6 +108,7 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('Row')
         assert ruleInfo.getInputKeysUsed().contains('age')
         assert ruleInfo.getInputKeysUsed().contains('Weight')
+        assert ruleInfo.getDefaultKeysUsed().size() == 0
     }
 
     @Test
@@ -112,6 +124,7 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('Row')
         assert ruleInfo.getInputKeysUsed().contains('age')
         assert ruleInfo.getInputKeysUsed().contains('Weight')
+        assert ruleInfo.getDefaultKeysUsed().size() == 0
     }
 
     @Test
@@ -134,6 +147,7 @@ class TestInputKeysUsed
         assert ruleInfo.getInputKeysUsed().contains('state')
         assert ruleInfo.getInputKeysUsed().contains('age')
         assert ruleInfo.getInputKeysUsed().contains('weight')
+        assert ruleInfo.getDefaultKeysUsed().size() == 0
     }
 
     @Test
@@ -142,21 +156,31 @@ class TestInputKeysUsed
         NCube ncube = NCubeBuilder.getSimpleAutoRule()
         Map output = [:]
         ncube.getCell([rate:0], output)
-        Set keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        RuleInfo ruleInfo = ncube.getRuleInfo(output)
+        Set keys = ruleInfo.getInputKeysUsed()
         assert keys.size() == 4
         assert keys.contains('conditions')
         assert keys.contains('AGe')
         assert keys.contains('coLOR')
         assert keys.contains('creditSCORE')
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        Set keysUsed =  ruleInfo.getDefaultKeysUsed()[ncube.name]
+        assert keysUsed.size() == 1
+        assert keysUsed.contains('conditions')
 
         output = [:]
         output.rate = 0.0
         ncube.getCell([age:50, creditScore:701], output)
-        keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        ruleInfo = ncube.getRuleInfo(output)
+        keys = ruleInfo.getInputKeysUsed()
         assert keys.size() == 3
         assert keys.contains('conditions')
         assert keys.contains('AGe')
         assert keys.contains('creditSCORE')
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        keysUsed =  ruleInfo.getDefaultKeysUsed()[ncube.name]
+        assert keysUsed.size() == 1
+        assert keysUsed.contains('conditions')
     }
 
     @Test
@@ -166,17 +190,28 @@ class TestInputKeysUsed
         Map output = [:]
         def formula = ncube.getMetaProperty("formula")
         ncube.extractMetaPropertyValue(formula, [:], output)
-        Set keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        RuleInfo ruleInfo = ncube.getRuleInfo(output)
+        Set keys = ruleInfo.getInputKeysUsed()
         assert keys.size() == 1
         assert keys.contains("Revenue")
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        Set keysUsed =  ruleInfo.getDefaultKeysUsed()[ncube.name]
+        assert keysUsed.size() == 1
+        assert keysUsed.contains('Column')
+
 
         formula = ncube.getMetaProperty("formula")
         def profit = ncube.extractMetaPropertyValue(formula, [revenue:100, cost:40, tax:(1 - 0.2)], output)
         assert profit == 48.0
-        keys = NCube.getRuleInfo(output).getInputKeysUsed()
+        ruleInfo = ncube.getRuleInfo(output)
+        keys = ruleInfo.getInputKeysUsed()
         assert keys.size() == 3
         assert keys.contains("Revenue")
         assert keys.contains("Cost")
         assert keys.contains("Tax")
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        keysUsed =  ruleInfo.getDefaultKeysUsed()[ncube.name]
+        assert keysUsed.size() == 1
+        assert keysUsed.contains('Column')
     }
 }

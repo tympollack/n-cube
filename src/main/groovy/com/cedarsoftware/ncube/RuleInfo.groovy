@@ -35,6 +35,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
     public static final String LAST_EXECUTED_STATEMENT = 'LAST_EXECUTED_STATEMENT'
     public static final String AXIS_BINDINGS = 'AXIS_BINDINGS'
     public static final String INPUT_KEYS_USED = 'INPUT_KEYS_ACCESSED'
+    public static final String DEFAULT_KEYS_USED = 'DEFAULT_KEYS_ACCESSED'
 
     RuleInfo()
     {
@@ -148,5 +149,27 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
     protected void addInputKeysUsed(Collection keys)
     {
         getInputKeysUsed().addAll(keys)
+    }
+
+    Map<String, Set<String>> getDefaultKeysUsed()
+    {
+        Map<String, Set<String>> keysUsed =  get(DEFAULT_KEYS_USED) as Map
+        if (keysUsed == null)
+        {
+            keysUsed = new CaseInsensitiveMap()
+            put(DEFAULT_KEYS_USED, keysUsed)
+        }
+        return keysUsed
+    }
+
+    protected void addDefaultKeysUsed(String cubeName, Collection keys)
+    {
+        Set keysUsedByCube = defaultKeysUsed[cubeName]
+        if (keysUsedByCube == null)
+        {
+            keysUsedByCube = new CaseInsensitiveSet()
+            defaultKeysUsed[cubeName] = keysUsedByCube
+        }
+        keysUsedByCube.addAll(keys)
     }
 }

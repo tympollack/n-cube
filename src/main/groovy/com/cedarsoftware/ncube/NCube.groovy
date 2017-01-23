@@ -917,12 +917,20 @@ class NCube<T>
         return colDef
     }
 
-    private static void trackInputKeysUsed(Map input, Map output)
+    private void trackInputKeysUsed(Map input, Map output)
     {
         if (input instanceof TrackingMap)
         {
             RuleInfo ruleInfo = getRuleInfo(output)
             ruleInfo.addInputKeysUsed(((TrackingMap)input).keysUsed())
+        }
+
+        Set<String> optionalKeys = getOptionalScope(input, output,  false)
+        optionalKeys.removeAll(input.keySet())
+        if (optionalKeys)
+        {
+            RuleInfo ruleInfo = getRuleInfo(output)
+            ruleInfo.addDefaultKeysUsed(name, optionalKeys)
         }
     }
 
@@ -1838,7 +1846,7 @@ class NCube<T>
      *
      * @return Set of String scope key names that are optional.
      */
-    Set<String> getOptionalScope(Map input, Map output)
+    Set<String> getOptionalScope(Map input, Map output, boolean includeDeclared = true)
     {
         final Set<String> optionalScope = new CaseInsensitiveSet<>()
 
@@ -1850,8 +1858,11 @@ class NCube<T>
             }
         }
 
-        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
-        optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
+        if (includeDeclared)
+        {
+            Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
+            optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
+        }
         return optionalScope
     }
 
