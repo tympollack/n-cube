@@ -1369,6 +1369,121 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube  getCubeCallingCubeWithDefaultColumn()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "test.CubeCallingCubeWithDefaultColumn",
+  "axes": [
+    {
+      "id": 1,
+      "name": "Axis1Primary",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000527254003,
+          "type": "string",
+          "value": "Axis1Col1"
+        },
+        {
+          "id": 1001328925773,
+          "type": "string",
+          "value": "Axis1Col2"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Axis2Primary",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000453853552,
+          "type": "string",
+          "value": "Axis2Col1"
+        },
+        {
+          "id": 2001566313159,
+          "type": "string",
+          "value": "Axis2Col2"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000527254003,
+        2000453853552
+      ],
+      "type": "exp",
+      "value": "@test.CubeWithDefaultColumn[:]"
+    }
+  ]
+}''')
+    }
+
+    static NCube  getCubeWithDefaultColumn()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "test.CubeWithDefaultColumn",
+  "axes": [
+    {
+      "id": 1,
+      "name": "Axis1Secondary",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000527254003,
+          "type": "string",
+          "value": "Axis1Col1"
+        },
+        {
+          "id": 1001328925773,
+          "type": "string",
+          "value": "Axis1Col2"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Axis2Secondary",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000453853552,
+          "type": "string",
+          "value": "Axis2Col1"
+        },
+        {
+          "id": 2001566313159,
+          "type": "string",
+          "value": "Axis2Col2"
+        }
+      ]
+    }
+  ],
+  "cells": []
+}''')
+    }
+
     static NCube  getCubeWithMultipleRefCubesPerCoord()
     {
         return NCube.fromSimpleJson('''\

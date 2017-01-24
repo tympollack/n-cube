@@ -214,4 +214,36 @@ class TestInputKeysUsed
         assert keysUsed.size() == 1
         assert keysUsed.contains('Column')
     }
+
+    @Test
+    void testKeyTrackingWithSecondaryCubeWithDefaults()
+    {
+        NCube primary = NCubeBuilder.getCubeCallingCubeWithDefaultColumn()
+        NCubeManager.addCube(ApplicationID.testAppId, primary)
+        NCube secondary = NCubeBuilder.getCubeWithDefaultColumn()
+        NCubeManager.addCube(ApplicationID.testAppId, secondary)
+        Map input = [Axis1Primary: 'Axis1Col1', Axis2Primary: 'Axis2Col1', Axis1Secondary: 'Axis1Col1', Axis2Secondary: 'Axis2Col1']
+        Map output = [:]
+        primary.getCell(input, output)
+        RuleInfo ruleInfo = primary.getRuleInfo(output)
+        assert ruleInfo.getInputKeysUsed().size() == 4
+        assert ruleInfo.getInputKeysUsed().contains('Axis1Primary')
+        assert ruleInfo.getInputKeysUsed().contains('Axis2Primary')
+        assert ruleInfo.getInputKeysUsed().contains('Axis1Secondary')
+        assert ruleInfo.getInputKeysUsed().contains('Axis2Secondary')
+        assert ruleInfo.getDefaultKeysUsed().size() == 0
+
+        input.remove('Axis1Secondary')
+        primary.getCell(input, output)
+        ruleInfo = primary.getRuleInfo(output)
+        assert ruleInfo.getInputKeysUsed().size() == 4
+        assert ruleInfo.getInputKeysUsed().contains('Axis1Primary')
+        assert ruleInfo.getInputKeysUsed().contains('Axis2Primary')
+        assert ruleInfo.getInputKeysUsed().contains('Axis1Secondary')
+        assert ruleInfo.getInputKeysUsed().contains('Axis2Secondary')
+        assert ruleInfo.getDefaultKeysUsed().size() == 1
+        Set keysUsed =  ruleInfo.getDefaultKeysUsed()[secondary.name]
+        assert keysUsed.size() == 1
+        assert ruleInfo.getInputKeysUsed().contains('Axis1Secondary')
+    }
 }
