@@ -795,6 +795,31 @@ class NCubeManager
         {
             throw new IllegalArgumentException("No ncube exists with the name: ${cubeName}, no changes will be merged, app: ${appId}")
         }
+
+        assertPermissions(appId, cubeName, Action.UPDATE)
+        deltas.each { Delta delta ->
+            if ([Delta.Location.AXIS, Delta.Location.AXIS_META, Delta.Location.COLUMN, Delta.Location.COLUMN_META].contains(delta.location))
+            {
+                String axisName
+                switch (delta.location)
+                {
+                    case Delta.Location.AXIS:
+                        axisName = ((delta.sourceVal ?: delta.destVal) as Axis).name
+                        break
+                    case Delta.Location.AXIS_META:
+                    case Delta.Location.COLUMN:
+                        axisName = delta.locId as String
+                        break
+                    case Delta.Location.COLUMN_META:
+                        axisName = (delta.locId as Map<String, Object>).axis
+                        break
+                    default:
+                        throw new IllegalArgumentException("Invalid properties on delta, no changes will be merged, app: ${appId}, cube: ${cubeName}")
+                }
+                assertPermissions(appId, cubeName + '/' + axisName, Action.UPDATE)
+            }
+        }
+
         ncube.mergeDeltas(deltas)
         updateCube(appId, ncube)
         return ncube
