@@ -1378,7 +1378,7 @@ class NCubeBuilder
     {
       "id": 1,
       "name": "Axis1Primary",
-      "hasDefault": false,
+      "hasDefault": true,
       "type": "DISCRETE",
       "valueType": "STRING",
       "preferredOrder": 0,
@@ -1426,6 +1426,14 @@ class NCubeBuilder
       ],
       "type": "exp",
       "value": "@test.CubeWithDefaultColumn[:]"
+    },
+    {
+      "id": [
+        1001328925773,
+        2001566313159
+      ],
+      "type": "exp",
+      "value": "@test.CubeWithDefaultColumn[:]"
     }
   ]
 }''')
@@ -1461,7 +1469,7 @@ class NCubeBuilder
     {
       "id": 2,
       "name": "Axis2Secondary",
-      "hasDefault": true,
+      "hasDefault": false,
       "type": "DISCRETE",
       "valueType": "STRING",
       "preferredOrder": 1,
@@ -1478,9 +1486,33 @@ class NCubeBuilder
           "value": "Axis2Col2"
         }
       ]
+    },
+    {
+      "id": 3,
+      "name": "Axis3Secondary",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 3000813453087,
+          "type": "string",
+          "value": "Axis3Col1"
+        }
+      ]
     }
   ],
-  "cells": []
+  "cells": [
+    {
+      "id": [
+        2000453853552
+      ],
+      "type": "exp",
+      "value": "input.remove('Axis1Primary')\\n@test.CubeCallingCubeWithDefaultColumn[:]"
+    }
+  ]
 }''')
     }
 

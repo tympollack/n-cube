@@ -564,7 +564,7 @@ class NCube<T>
 
         if (!hasRuleAxis())
         {   // Perform fast bind and execute.
-            lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue)
+            lastStatementValue = getCellById(getCoordinateKey(input, output), input, output, defaultValue)
             ruleInfo.setLastExecutedStatement(lastStatementValue)
             return output.return = lastStatementValue
         }
@@ -579,7 +579,7 @@ class NCube<T>
         while (run)
         {
             run = false
-            final Map<String, List<Column>> selectedColumns = selectColumns(input)   // get [potential subset of] rule columns to execute, per Axis
+            final Map<String, List<Column>> selectedColumns = selectColumns(input, output)   // get [potential subset of] rule columns to execute, per Axis
             final Map<String, Integer> counters = getCountersPerAxis(axisNames)
             final Map<Long, Object> cachedConditionValues = [:]
             final Map<String, Integer> conditionsFiredCountPerAxis = [:]
@@ -917,20 +917,12 @@ class NCube<T>
         return colDef
     }
 
-    private void trackInputKeysUsed(Map input, Map output)
+    private static void trackInputKeysUsed(Map input, Map output)
     {
         if (input instanceof TrackingMap)
         {
             RuleInfo ruleInfo = getRuleInfo(output)
             ruleInfo.addInputKeysUsed(((TrackingMap)input).keysUsed())
-        }
-
-        Set<String> optionalKeys = getOptionalScope(input, output,  false)
-        optionalKeys.removeAll(input.keySet())
-        if (optionalKeys)
-        {
-            RuleInfo ruleInfo = getRuleInfo(output)
-            ruleInfo.addDefaultKeysUsed(name, optionalKeys)
         }
     }
 
@@ -1065,7 +1057,7 @@ class NCube<T>
      * of binding to an axis results in a List<Column>.
      * @param input The passed in input coordinate to bind (or multi-bind) to each axis.
      */
-    private Map<String, List<Column>> selectColumns(Map<String, Object> input)
+    private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map<String, Object> output)
     {
         Map<String, List<Column>> bindings = new CaseInsensitiveMap<>()
         for (entry in axisList.entrySet())
@@ -1105,6 +1097,9 @@ class NCube<T>
             else
             {   // Find the single column that binds to the input coordinate on a regular axis.
                 final Column column = axis.findColumn(value as Comparable)
+                if (column == null || column.isDefault()){
+                    trackUnBoundColumn(output, name, axisName, value)
+                }
                 if (column == null)
                 {
                    throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}",
@@ -1115,6 +1110,12 @@ class NCube<T>
         }
 
         return bindings
+    }
+
+    private static void trackUnBoundColumn(Map output, String cubeName, String axisName, Object value)
+    {
+        RuleInfo ruleInfo = getRuleInfo(output)
+        ruleInfo.addUnboundColumn(cubeName, axisName, value)
     }
 
     private void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
@@ -1317,7 +1318,7 @@ class NCube<T>
      * stored within in NCube.  The returned Set is the 'key' of NCube's cells Map, which
      * maps a coordinate (Set of column IDs) to the cell value.
      */
-    LongHashSet getCoordinateKey(final Map coordinate)
+    LongHashSet getCoordinateKey(final Map coordinate, Map output = new CaseInsensitiveMap())
     {
         Map safeCoord
 
@@ -1351,6 +1352,9 @@ class NCube<T>
             String axisName = axis.name
             final Comparable value = (Comparable) safeCoord[axisName]
             final Column column = (Column) axis.findColumn(value)
+            if (column == null || column.isDefault()){
+                trackUnBoundColumn(output, name, axisName, value)
+            }
             if (column == null)
             {
                 throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
@@ -1846,7 +1850,7 @@ class NCube<T>
      *
      * @return Set of String scope key names that are optional.
      */
-    Set<String> getOptionalScope(Map input, Map output, boolean includeDeclared = true)
+    Set<String> getOptionalScope(Map input, Map output)
     {
         final Set<String> optionalScope = new CaseInsensitiveSet<>()
 
@@ -1858,11 +1862,8 @@ class NCube<T>
             }
         }
 
-        if (includeDeclared)
-        {
-            Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
-            optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
-        }
+        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
+        optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
         return optionalScope
     }
 

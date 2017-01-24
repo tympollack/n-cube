@@ -35,7 +35,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
     public static final String LAST_EXECUTED_STATEMENT = 'LAST_EXECUTED_STATEMENT'
     public static final String AXIS_BINDINGS = 'AXIS_BINDINGS'
     public static final String INPUT_KEYS_USED = 'INPUT_KEYS_ACCESSED'
-    public static final String DEFAULT_KEYS_USED = 'DEFAULT_KEYS_ACCESSED'
+    public static final String UNBOUND_COLUMNS_USED = 'UNBOUND_COLUMNS_ACCESSED'
 
     RuleInfo()
     {
@@ -151,25 +151,39 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         getInputKeysUsed().addAll(keys)
     }
 
-    Map<String, Set<String>> getDefaultKeysUsed()
+    /**
+     * @return Map of cube names containing a map keyed by axis name.
+     * Each axis name map contains a list of column values that could
+     * not be bound.
+     */
+    Map<String, Map<String, Set<Object>>> getUnboundColumns()
     {
-        Map<String, Set<String>> keysUsed =  get(DEFAULT_KEYS_USED) as Map
-        if (keysUsed == null)
+        //This method return a map of cube names containing a map of axis names.
+        //Each axis name map contains a set of column values.
+        Map<String, Map<String, Set<Object>>> unBoundColumns = get(UNBOUND_COLUMNS_USED) as Map
+        if (unBoundColumns == null)
         {
-            keysUsed = new CaseInsensitiveMap()
-            put(DEFAULT_KEYS_USED, keysUsed)
+            unBoundColumns = new CaseInsensitiveMap()
+            put(UNBOUND_COLUMNS_USED, unBoundColumns)
         }
-        return keysUsed
+        return unBoundColumns
     }
 
-    protected void addDefaultKeysUsed(String cubeName, Collection keys)
+    protected void addUnboundColumn(String cubeName, String axisName, Object value)
     {
-        Set keysUsedByCube = defaultKeysUsed[cubeName]
-        if (keysUsedByCube == null)
+        Map<String, Map<String, Set<Object>>> unBoundColumns = getUnboundColumns()
+        Map<String, Set<Object>> unBoundColumnsForCube = unBoundColumns[cubeName]
+        if (!unBoundColumnsForCube)
         {
-            keysUsedByCube = new CaseInsensitiveSet()
-            defaultKeysUsed[cubeName] = keysUsedByCube
+            unBoundColumnsForCube = new CaseInsensitiveMap()
         }
-        keysUsedByCube.addAll(keys)
+        Set values = unBoundColumnsForCube[axisName]
+        if (!values)
+        {
+            values = []
+        }
+        values << value
+        unBoundColumnsForCube[axisName] = values
+        unBoundColumns[cubeName] = unBoundColumnsForCube
     }
 }

@@ -700,6 +700,92 @@ class TestRuleEngine
     }
 
     @Test
+    void testRuleInfoUnboundColumns()
+    {
+        NCube primary = NCubeBuilder.getCubeCallingCubeWithDefaultColumn()
+        NCube secondary = NCubeBuilder.getCubeWithDefaultColumn()
+        NCubeManager.addCube(ApplicationID.testAppId, primary)
+        NCubeManager.addCube(ApplicationID.testAppId, secondary)
+
+        //Primary cube calls secondary cube.
+        //No unbound columns
+        Map input = [Axis1Primary: 'Axis1Col1',
+                     Axis2Primary: 'Axis2Col1',
+                     Axis1Secondary: 'Axis1Col1',
+                     Axis2Secondary: 'Axis2Col1',
+                     Axis3Secondary: 'Axis3Col1']
+        Map output = [:]
+        primary.getCell(input, output)
+        RuleInfo ruleInfo = primary.getRuleInfo(output)
+        assert ruleInfo.getUnboundColumns().size() == 0
+
+        //Primary cube calls secondary cube.
+        //One unbound column with a value provided, but not found.
+        input['Axis1Secondary'] = 'bogus'
+        primary.getCell(input, output)
+        ruleInfo = primary.getRuleInfo(output)
+        assert ruleInfo.getUnboundColumns().size() == 1
+        Map unboundColumns =  ruleInfo.getUnboundColumns()
+        assert unboundColumns.size() == 1
+        Map unboundColumnsForCube = unboundColumns[secondary.name]
+        assert unboundColumnsForCube.size() == 1
+        Set values = unboundColumnsForCube['Axis1Secondary']
+        assert values.size() == 1
+        assert values.contains('bogus')
+
+        //Primary cube calls secondary cube.
+        //One unbound column with a value provided, but not found.
+        //One unbound column, no value was provided.
+        NCubeManager.addCube(ApplicationID.testAppId, primary)
+        NCubeManager.addCube(ApplicationID.testAppId, secondary)
+        input = [Axis1Primary: 'Axis1Col1',
+                 Axis2Primary: 'Axis2Col1',
+                 Axis1Secondary: 'bogus',
+                 Axis2Secondary: 'Axis2Col2']
+        primary.getCell(input, output)
+        ruleInfo = primary.getRuleInfo(output)
+        assert ruleInfo.getUnboundColumns().size() == 1
+        unboundColumns =  ruleInfo.getUnboundColumns()
+        assert unboundColumns.size() == 1
+        unboundColumnsForCube = unboundColumns[secondary.name]
+        assert unboundColumnsForCube.size() == 2
+        values = unboundColumnsForCube['Axis1Secondary']
+        assert values.size() == 1
+        assert values.contains('bogus')
+        values = unboundColumnsForCube['Axis3Secondary']
+        assert values.size() == 1
+        assert values.contains(null)
+
+        //Primary cube calls secondary cube and secondary cube calls back to different cell on primary.
+        NCubeManager.addCube(ApplicationID.testAppId, primary)
+        NCubeManager.addCube(ApplicationID.testAppId, secondary)
+        input = [Axis1Primary: 'Axis1Col2',
+                 Axis2Primary: 'Axis2Col2',
+                 Axis1Secondary: 'bogus2',
+                 Axis2Secondary: 'Axis2Col1',
+                 Axis3Secondary: 'bogus3']
+        output = [:]
+        primary.getCell(input, output)
+        ruleInfo = primary.getRuleInfo(output)
+        assert ruleInfo.getUnboundColumns().size() == 2
+        unboundColumns =  ruleInfo.getUnboundColumns()
+        assert unboundColumns.size() == 2
+        unboundColumnsForCube = unboundColumns[secondary.name]
+        assert unboundColumnsForCube.size() == 2
+        values = unboundColumnsForCube['Axis1Secondary']
+        assert values.size() == 1
+        assert values.contains('bogus2')
+        values = unboundColumnsForCube['Axis3Secondary']
+        assert values.size() == 1
+        assert values.contains('bogus3')
+        unboundColumnsForCube = unboundColumns[primary.name]
+        assert unboundColumnsForCube.size() == 1
+        values = unboundColumnsForCube['Axis1Primary']
+        assert values.size() == 1
+        assert values.contains(null)
+    }
+
+    @Test
     void testRuleSimpleWithDefault()
     {
         NCube ncube = NCubeManager.getNCubeFromResource('ruleSimpleWithDefault.json')
