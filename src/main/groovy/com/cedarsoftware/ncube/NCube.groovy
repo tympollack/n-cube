@@ -564,7 +564,7 @@ class NCube<T>
 
         if (!hasRuleAxis())
         {   // Perform fast bind and execute.
-            lastStatementValue = getCellById(getCoordinateKey(input), input, output, defaultValue)
+            lastStatementValue = getCellById(getCoordinateKey(input, output), input, output, defaultValue)
             ruleInfo.setLastExecutedStatement(lastStatementValue)
             return output.return = lastStatementValue
         }
@@ -579,7 +579,7 @@ class NCube<T>
         while (run)
         {
             run = false
-            final Map<String, List<Column>> selectedColumns = selectColumns(input)   // get [potential subset of] rule columns to execute, per Axis
+            final Map<String, List<Column>> selectedColumns = selectColumns(input, output)   // get [potential subset of] rule columns to execute, per Axis
             final Map<String, Integer> counters = getCountersPerAxis(axisNames)
             final Map<Long, Object> cachedConditionValues = [:]
             final Map<String, Integer> conditionsFiredCountPerAxis = [:]
@@ -616,6 +616,10 @@ class NCube<T>
                                     {   // Only fire one condition on this axis (fireAll is false)
                                         counters[axisName] = 1
                                         selectedColumns[axisName] = [boundColumn]
+                                    }
+                                    if (cmd == null)
+                                    {
+                                        trackUnboundAxis(output, name, axisName, coordinate[axisName])
                                     }
                                 }
                             }
@@ -1057,7 +1061,7 @@ class NCube<T>
      * of binding to an axis results in a List<Column>.
      * @param input The passed in input coordinate to bind (or multi-bind) to each axis.
      */
-    private Map<String, List<Column>> selectColumns(Map<String, Object> input)
+    private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map<String, Object> output)
     {
         Map<String, List<Column>> bindings = new CaseInsensitiveMap<>()
         for (entry in axisList.entrySet())
@@ -1097,6 +1101,9 @@ class NCube<T>
             else
             {   // Find the single column that binds to the input coordinate on a regular axis.
                 final Column column = axis.findColumn(value as Comparable)
+                if (column == null || column.isDefault()){
+                    trackUnboundAxis(output, name, axisName, value)
+                }
                 if (column == null)
                 {
                    throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}",
@@ -1107,6 +1114,12 @@ class NCube<T>
         }
 
         return bindings
+    }
+
+    private static void trackUnboundAxis(Map output, String cubeName, String axisName, Object value)
+    {
+        RuleInfo ruleInfo = getRuleInfo(output)
+        ruleInfo.addUnboundColumn(cubeName, axisName, value)
     }
 
     private void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
@@ -1309,7 +1322,7 @@ class NCube<T>
      * stored within in NCube.  The returned Set is the 'key' of NCube's cells Map, which
      * maps a coordinate (Set of column IDs) to the cell value.
      */
-    LongHashSet getCoordinateKey(final Map coordinate)
+    LongHashSet getCoordinateKey(final Map coordinate, Map output = new CaseInsensitiveMap())
     {
         Map safeCoord
 
@@ -1343,6 +1356,9 @@ class NCube<T>
             String axisName = axis.name
             final Comparable value = (Comparable) safeCoord[axisName]
             final Column column = (Column) axis.findColumn(value)
+            if (column == null || column.isDefault()){
+                trackUnboundAxis(output, name, axisName, value)
+            }
             if (column == null)
             {
                 throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
