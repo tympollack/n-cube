@@ -35,7 +35,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
     public static final String LAST_EXECUTED_STATEMENT = 'LAST_EXECUTED_STATEMENT'
     public static final String AXIS_BINDINGS = 'AXIS_BINDINGS'
     public static final String INPUT_KEYS_USED = 'INPUT_KEYS_ACCESSED'
-    public static final String UNBOUND_COLUMNS_USED = 'UNBOUND_COLUMNS_ACCESSED'
+    public static final String UNBOUND_AXES_USED = 'UNBOUND_AXES_ACCESSED'
 
     RuleInfo()
     {
@@ -158,11 +158,11 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
      */
     List<MapEntry> getUnboundAxesList()
     {
-        List<MapEntry> unBoundAxesList = get(UNBOUND_COLUMNS_USED) as List<MapEntry>
+        List<MapEntry> unBoundAxesList = get(UNBOUND_AXES_USED) as List<MapEntry>
         if (unBoundAxesList == null)
         {
             unBoundAxesList = []
-            put(UNBOUND_COLUMNS_USED, unBoundAxesList)
+            put(UNBOUND_AXES_USED, unBoundAxesList)
         }
         return unBoundAxesList
     }
