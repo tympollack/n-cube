@@ -617,6 +617,10 @@ class NCube<T>
                                         counters[axisName] = 1
                                         selectedColumns[axisName] = [boundColumn]
                                     }
+                                    if (cmd == null)
+                                    {
+                                        trackUnboundAxes(output, name, axisName, coordinate[axisName])
+                                    }
                                 }
                             }
                             else
@@ -1098,7 +1102,7 @@ class NCube<T>
             {   // Find the single column that binds to the input coordinate on a regular axis.
                 final Column column = axis.findColumn(value as Comparable)
                 if (column == null || column.isDefault()){
-                    trackUnBoundColumn(output, name, axisName, value)
+                    trackUnboundAxes(output, name, axisName, value)
                 }
                 if (column == null)
                 {
@@ -1112,7 +1116,7 @@ class NCube<T>
         return bindings
     }
 
-    private static void trackUnBoundColumn(Map output, String cubeName, String axisName, Object value)
+    private static void trackUnboundAxes(Map output, String cubeName, String axisName, Object value)
     {
         RuleInfo ruleInfo = getRuleInfo(output)
         ruleInfo.addUnboundColumn(cubeName, axisName, value)
@@ -1353,7 +1357,7 @@ class NCube<T>
             final Comparable value = (Comparable) safeCoord[axisName]
             final Column column = (Column) axis.findColumn(value)
             if (column == null || column.isDefault()){
-                trackUnBoundColumn(output, name, axisName, value)
+                trackUnboundAxes(output, name, axisName, value)
             }
             if (column == null)
             {

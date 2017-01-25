@@ -152,38 +152,54 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
     }
 
     /**
+     * @return List of map entries where the key is a cube name and the value is
+     * another map entry. The second map entry contains the name of an
+     * unbound axis and the value that could not be bound.
+     */
+    List<MapEntry> getUnboundAxesList()
+    {
+        List<MapEntry> unBoundAxesList = get(UNBOUND_COLUMNS_USED) as List<MapEntry>
+        if (unBoundAxesList == null)
+        {
+            unBoundAxesList = []
+            put(UNBOUND_COLUMNS_USED, unBoundAxesList)
+        }
+        return unBoundAxesList
+    }
+
+    /**
      * @return Map of cube names containing a map keyed by axis name.
      * Each axis name map contains a list of column values that could
      * not be bound.
      */
-    Map<String, Map<String, Set<Object>>> getUnboundColumns()
+    Map<String, Map<String, Set<Object>>> getUnboundAxesMap()
     {
-        //This method return a map of cube names containing a map of axis names.
-        //Each axis name map contains a set of column values.
-        Map<String, Map<String, Set<Object>>> unBoundColumns = get(UNBOUND_COLUMNS_USED) as Map
-        if (unBoundColumns == null)
-        {
-            unBoundColumns = new CaseInsensitiveMap()
-            put(UNBOUND_COLUMNS_USED, unBoundColumns)
+        Map<String, Map<String, Set<Object>>> unBoundAxesMap = [:]
+        getUnboundAxesList().each{MapEntry<String, Object> cubeEntry ->
+            String cubeName = cubeEntry.key
+            MapEntry<String, Object> axisEntry = cubeEntry.value as MapEntry<String, Object>
+            String axisName = axisEntry.key
+            Map<String, Set<Object>> axisMap = unBoundAxesMap[cubeName]
+            if (!axisMap)
+            {
+                axisMap = [:]
+            }
+            Set<Object> values = axisMap[axisName]
+            if (!values)
+            {
+                values = []
+            }
+            values << axisEntry.value
+            axisMap[axisName] = values
+            unBoundAxesMap[cubeName] = axisMap
         }
-        return unBoundColumns
+        return unBoundAxesMap
     }
 
     protected void addUnboundColumn(String cubeName, String axisName, Object value)
     {
-        Map<String, Map<String, Set<Object>>> unBoundColumns = getUnboundColumns()
-        Map<String, Set<Object>> unBoundColumnsForCube = unBoundColumns[cubeName]
-        if (!unBoundColumnsForCube)
-        {
-            unBoundColumnsForCube = new CaseInsensitiveMap()
-        }
-        Set values = unBoundColumnsForCube[axisName]
-        if (!values)
-        {
-            values = []
-        }
-        values << value
-        unBoundColumnsForCube[axisName] = values
-        unBoundColumns[cubeName] = unBoundColumnsForCube
+        MapEntry<String, Object> axisEntry = new MapEntry(axisName, value)
+        MapEntry<String,  MapEntry<String, Object>> cubeEntry = new MapEntry(cubeName, axisEntry)
+        unboundAxesList << cubeEntry
     }
 }

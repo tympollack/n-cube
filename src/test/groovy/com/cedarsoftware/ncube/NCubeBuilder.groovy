@@ -1586,6 +1586,62 @@ class NCubeBuilder
 }''')
     }
 
+    static NCube  getRuleCubeWithDefaultColumn()
+    {
+        return NCube.fromSimpleJson('''\
+{
+  "ncube": "test.RuleCubeWithDefaultColumn",
+  "axes": [
+    {
+      "id": 2,
+      "name": "Axis2",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000453853552,
+          "type": "string",
+          "value": "Axis2Col1"
+        },
+        {
+          "id": 2001566313159,
+          "type": "string",
+          "value": "Axis2Col2"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "RuleAxis1",
+      "hasDefault": true,
+      "type": "RULE",
+      "valueType": "EXPRESSION",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 3000480286806,
+          "type": "exp",
+          "name": "Condition1",
+          "value": "input.foo == true"
+        },
+        {
+          "id": 3000155851047,
+          "type": "exp",
+          "name": "Condition2",
+          "value": "input.foo == true"
+        }
+      ]
+    }
+  ],
+  "cells": []
+}
+''')
+    }
+
     static NCube  getRuleCubeWithAllDefaults()
     {
         return NCube.fromSimpleJson('''\
