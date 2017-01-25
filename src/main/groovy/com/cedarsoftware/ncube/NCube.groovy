@@ -1120,7 +1120,7 @@ class NCube<T>
     private static void trackUnboundAxis(Map output, String cubeName, String axisName, Object value)
     {
         RuleInfo ruleInfo = getRuleInfo(output)
-        ruleInfo.addUnboundColumn(cubeName, axisName, value)
+        ruleInfo.addUnboundAxis(cubeName, axisName, value)
     }
 
     private static void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
