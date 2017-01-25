@@ -1061,7 +1061,7 @@ class NCube<T>
      * of binding to an axis results in a List<Column>.
      * @param input The passed in input coordinate to bind (or multi-bind) to each axis.
      */
-    private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map<String, Object> output)
+    private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output)
     {
         Map<String, List<Column>> bindings = new CaseInsensitiveMap<>()
         for (entry in axisList.entrySet())
@@ -1101,7 +1101,8 @@ class NCube<T>
             else
             {   // Find the single column that binds to the input coordinate on a regular axis.
                 final Column column = axis.findColumn(value as Comparable)
-                if (column == null || column.isDefault()){
+                if (column == null || column.default)
+                {
                     trackUnboundAxis(output, name, axisName, value)
                 }
                 if (column == null)
@@ -1122,7 +1123,7 @@ class NCube<T>
         ruleInfo.addUnboundColumn(cubeName, axisName, value)
     }
 
-    private void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
+    private static void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
     {
         if (columns.empty)
         {   // Match default (if it exists) and none of the orchestration columns have matched
@@ -1356,7 +1357,8 @@ class NCube<T>
             String axisName = axis.name
             final Comparable value = (Comparable) safeCoord[axisName]
             final Column column = (Column) axis.findColumn(value)
-            if (column == null || column.isDefault()){
+            if (column == null || column.default)
+            {
                 trackUnboundAxis(output, name, axisName, value)
             }
             if (column == null)

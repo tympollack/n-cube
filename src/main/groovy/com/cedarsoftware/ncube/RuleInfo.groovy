@@ -49,7 +49,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
      */
     long getNumberOfRulesExecuted()
     {
-        return getAxisBindings().size()
+        return axisBindings.size()
     }
 
     void ruleStopThrown()
@@ -62,7 +62,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
      */
     boolean wasRuleStopThrown()
     {
-        return containsKey(RULE_STOP) && (Boolean.TRUE.equals(get(RULE_STOP)))
+        return containsKey(RULE_STOP) && Boolean.TRUE == get(RULE_STOP)
     }
 
     String getSystemOut()
@@ -71,7 +71,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         {
             return (String) get(SYSTEM_OUT)
         }
-        return ""
+        return ''
     }
 
     void setSystemOut(String out)
@@ -85,7 +85,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         {
             return (String) get(SYSTEM_ERR)
         }
-        return ""
+        return ''
     }
 
     void setSystemErr(String err)
@@ -119,7 +119,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         return null
     }
 
-    protected void setLastExecutedStatement(def value)
+    protected void setLastExecutedStatement(Object value)
     {
         put(LAST_EXECUTED_STATEMENT, value)
     }
@@ -148,7 +148,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
 
     protected void addInputKeysUsed(Collection keys)
     {
-        getInputKeysUsed().addAll(keys)
+        inputKeysUsed.addAll(keys)
     }
 
     /**
@@ -174,32 +174,32 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
      */
     Map<String, Map<String, Set<Object>>> getUnboundAxesMap()
     {
-        Map<String, Map<String, Set<Object>>> unBoundAxesMap = [:]
-        getUnboundAxesList().each{MapEntry<String, Object> cubeEntry ->
-            String cubeName = cubeEntry.key
-            MapEntry<String, Object> axisEntry = cubeEntry.value as MapEntry<String, Object>
-            String axisName = axisEntry.key
+        Map<String, Map<String, Set<Object>>> unBoundAxesMap = new CaseInsensitiveMap<>()
+        unboundAxesList.each { MapEntry entry ->
+            String cubeName = entry.key
+            MapEntry axisBinding = entry.value as MapEntry
+            String axisName = axisBinding.key
+            
             Map<String, Set<Object>> axisMap = unBoundAxesMap[cubeName]
-            if (!axisMap)
+            if (axisMap == null)
             {
-                axisMap = [:]
+                axisMap = new CaseInsensitiveMap<>()
+                unBoundAxesMap[cubeName] = axisMap
             }
+
             Set<Object> values = axisMap[axisName]
-            if (!values)
+            if (values == null)
             {
-                values = []
+                values = new LinkedHashSet<>()
+                axisMap[axisName] = values
             }
-            values << axisEntry.value
-            axisMap[axisName] = values
-            unBoundAxesMap[cubeName] = axisMap
+            values << axisBinding.value
         }
         return unBoundAxesMap
     }
 
     protected void addUnboundColumn(String cubeName, String axisName, Object value)
     {
-        MapEntry<String, Object> axisEntry = new MapEntry(axisName, value)
-        MapEntry<String,  MapEntry<String, Object>> cubeEntry = new MapEntry(cubeName, axisEntry)
-        unboundAxesList << cubeEntry
+        unboundAxesList << new MapEntry(cubeName, new MapEntry(axisName, value))
     }
 }
