@@ -81,8 +81,8 @@ class NCube<T>
     private String name
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
-    private final TLongObjectHashMap<Axis> idToAxis = new TLongObjectHashMap<>(16, 0.8f)
-    protected final Map<LongHashSet, T> cells = new THashMap<>(128, 0.8f)
+    private final Map<Long, Axis> idToAxis = new HashMap<>(16, 0.8f)
+    protected final Map<LongHashSet, T> cells = new HashMap<>(128, 0.8f)
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
     private Map metaProps = new CaseInsensitiveMap<>()
@@ -1348,7 +1348,7 @@ class NCube<T>
             safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate)
         }
 
-        Set<Long> ids = new HashSet<>()
+        LongHashSet ids = new LongHashSet()
         Iterator<Axis> i = axisList.values().iterator()
 
         while (i.hasNext())
@@ -1369,7 +1369,7 @@ class NCube<T>
             ids.add(column.id)
         }
 
-        return new LongHashSet(ids)
+        return ids
     }
 
     /**
