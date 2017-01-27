@@ -27,6 +27,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import java.util.zip.GZIPOutputStream
+
+import static com.cedarsoftware.ncube.NCubeConstants.*
+
 /**
  * SQL Persister for n-cubes.  Manages all reads and writes of n-cubes to an SQL database.
  *
@@ -69,23 +72,23 @@ class NCubeJdbcPersister
 
         Map<String, Object> copyOptions = new CaseInsensitiveMap<>(options)
         boolean hasSearchContent = StringUtilities.hasContent(searchContent)
-        copyOptions[NCubeManager.SEARCH_INCLUDE_CUBE_DATA] = hasSearchContent
+        copyOptions[SEARCH_INCLUDE_CUBE_DATA] = hasSearchContent
         if (hasSearchContent)
         {
             searchPattern = Pattern.compile(StringUtilities.wildcardToRegexString(searchContent), Pattern.CASE_INSENSITIVE)
         }
 
         // Convert INCLUDE or EXCLUDE filter query from String, Set, or Map to Set.
-        copyOptions[NCubeManager.SEARCH_FILTER_INCLUDE] = getFilter(copyOptions[NCubeManager.SEARCH_FILTER_INCLUDE])
-        copyOptions[NCubeManager.SEARCH_FILTER_EXCLUDE] = getFilter(copyOptions[NCubeManager.SEARCH_FILTER_EXCLUDE])
-        Set includeTags = copyOptions[NCubeManager.SEARCH_FILTER_INCLUDE] as Set
-        Set excludeTags = copyOptions[NCubeManager.SEARCH_FILTER_EXCLUDE] as Set
+        copyOptions[SEARCH_FILTER_INCLUDE] = getFilter(copyOptions[SEARCH_FILTER_INCLUDE])
+        copyOptions[SEARCH_FILTER_EXCLUDE] = getFilter(copyOptions[SEARCH_FILTER_EXCLUDE])
+        Set includeTags = copyOptions[SEARCH_FILTER_INCLUDE] as Set
+        Set excludeTags = copyOptions[SEARCH_FILTER_EXCLUDE] as Set
 
         // If filtering by tags, we need to include CUBE DATA, so add that flag to the search
-        boolean includeCubeData = copyOptions[NCubeManager.SEARCH_INCLUDE_CUBE_DATA]
+        boolean includeCubeData = copyOptions[SEARCH_INCLUDE_CUBE_DATA]
         includeCubeData |= includeTags || excludeTags  // Set to true if either inclusion or exclusion filter has content, or if it was already set to true.
 
-        copyOptions[NCubeManager.SEARCH_INCLUDE_CUBE_DATA] = includeCubeData
+        copyOptions[SEARCH_INCLUDE_CUBE_DATA] = includeCubeData
         copyOptions[METHOD_NAME] = 'search'
         runSelectCubesStatement(c, appId, cubeNamePattern, copyOptions, { ResultSet row -> getCubeInfoRecords(appId, searchPattern, list, copyOptions, row) })
         return list
@@ -93,9 +96,9 @@ class NCubeJdbcPersister
 
     static NCube loadCube(Connection c, ApplicationID appId, String cubeName)
     {
-        Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                       (NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true] as Map
+        Map<String, Object> options = [(SEARCH_ACTIVE_RECORDS_ONLY): true,
+                                       (SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (SEARCH_EXACT_MATCH_NAME): true] as Map
 
         NCube cube = null
         options[METHOD_NAME] = 'loadCube'
@@ -350,10 +353,10 @@ sha1, head_sha1, create_dt, create_hid, ${CUBE_VALUE_BIN}, test_data_bin, notes_
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
             long txId = UniqueIdGenerator.uniqueId
-            Map<String, Object> options = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                           (NCubeManager.SEARCH_INCLUDE_CUBE_DATA)  : true,
-                                           (NCubeManager.SEARCH_INCLUDE_TEST_DATA)  : true,
-                                           (NCubeManager.SEARCH_EXACT_MATCH_NAME)   : true,
+            Map<String, Object> options = [(SEARCH_ACTIVE_RECORDS_ONLY): true,
+                                           (SEARCH_INCLUDE_CUBE_DATA)  : true,
+                                           (SEARCH_INCLUDE_TEST_DATA)  : true,
+                                           (SEARCH_EXACT_MATCH_NAME)   : true,
                                            (METHOD_NAME) : 'deleteCubes'] as Map
             cubeNames.each { String cubeName ->
                 Long revision = null
@@ -392,10 +395,10 @@ INSERT INTO n_cube (n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, bran
 sha1, head_sha1, create_dt, create_hid, ${CUBE_VALUE_BIN}, test_data_bin, notes_bin, changed)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
-            Map<String, Object> options = [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY): true,
-                                           (NCubeManager.SEARCH_INCLUDE_CUBE_DATA)   : true,
-                                           (NCubeManager.SEARCH_INCLUDE_TEST_DATA)   : true,
-                                           (NCubeManager.SEARCH_EXACT_MATCH_NAME)    : true,
+            Map<String, Object> options = [(SEARCH_DELETED_RECORDS_ONLY): true,
+                                           (SEARCH_INCLUDE_CUBE_DATA)   : true,
+                                           (SEARCH_INCLUDE_TEST_DATA)   : true,
+                                           (SEARCH_EXACT_MATCH_NAME)    : true,
                                            (METHOD_NAME) : 'restoreCubes'] as Map
             int count = 0
             long txId = UniqueIdGenerator.uniqueId
@@ -517,9 +520,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
     static void updateCube(Connection c, ApplicationID appId, NCube cube, String username)
     {
-        Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
-                                       (NCubeManager.SEARCH_EXACT_MATCH_NAME): true,
+        Map<String, Object> options = [(SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (SEARCH_INCLUDE_TEST_DATA): true,
+                                       (SEARCH_EXACT_MATCH_NAME): true,
                                        (METHOD_NAME) : 'updateCube'] as Map
         boolean rowFound = false
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
@@ -560,9 +563,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         String sha1 = null
 
         Map<String, Object> options = [
-                (NCubeManager.SEARCH_INCLUDE_CUBE_DATA):true,
-                (NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
-                (NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+                (SEARCH_INCLUDE_CUBE_DATA):true,
+                (SEARCH_INCLUDE_TEST_DATA):true,
+                (SEARCH_EXACT_MATCH_NAME):true,
                 (METHOD_NAME) : 'duplicateCube'] as Map
 
         runSelectCubesStatement(c, oldAppId, oldName, options, 1, { ResultSet row ->
@@ -586,7 +589,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         String headSha1 = null
 
         // Do not include test, n-cube, or notes blob columns in search - much faster
-        Map<String, Object> options1 = [(NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+        Map<String, Object> options1 = [(SEARCH_EXACT_MATCH_NAME):true,
                                         (METHOD_NAME) : 'duplicateCube'] as Map
         runSelectCubesStatement(c, newAppId, newName, options1, 1, { ResultSet row ->
             newRevision = row.getLong('revision_number')
@@ -626,9 +629,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         byte[] testData = null
 
         Map<String, Object> options = [
-                (NCubeManager.SEARCH_INCLUDE_CUBE_DATA):true,
-                (NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
-                (NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+                (SEARCH_INCLUDE_CUBE_DATA):true,
+                (SEARCH_INCLUDE_TEST_DATA):true,
+                (SEARCH_EXACT_MATCH_NAME):true,
                 (METHOD_NAME) : 'renameCube'] as Map
 
         NCube ncube = null
@@ -654,7 +657,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         String newHeadSha1 = null
 
         // Do not include n-cube, tests, or notes in search
-        Map<String, Object> options1 = [(NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+        Map<String, Object> options1 = [(SEARCH_EXACT_MATCH_NAME):true,
                                         (METHOD_NAME) : 'renameCube'] as Map
         runSelectCubesStatement(c, appId, newName, options1, 1, { ResultSet row ->
             newRevision = row.getLong('revision_number')
@@ -681,8 +684,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
     static NCubeInfoDto commitMergedCubeToBranch(Connection c, ApplicationID appId, NCube cube, String headSha1, String username, long txId)
     {
-        Map options = [(NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
-                       (NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+        Map options = [(SEARCH_INCLUDE_TEST_DATA):true,
+                       (SEARCH_EXACT_MATCH_NAME):true,
                        (METHOD_NAME) : 'commitMergedCubeToBranch'] as Map
 
         NCubeInfoDto result = null
@@ -699,8 +702,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
     static NCubeInfoDto commitMergedCubeToHead(Connection c, ApplicationID appId, NCube cube, String username, long txId)
     {
         final String methodName = 'commitMergedCubeToHead'
-        Map options = [(NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
-                       (NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+        Map options = [(SEARCH_INCLUDE_TEST_DATA):true,
+                       (SEARCH_EXACT_MATCH_NAME):true,
                        (METHOD_NAME) : methodName]
 
         ApplicationID headAppId = appId.asHead()
@@ -990,7 +993,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         Long headRevision = null
         String headSha1 = null
 
-        Map<String, Object> options = [(NCubeManager.SEARCH_EXACT_MATCH_NAME): true,
+        Map<String, Object> options = [(SEARCH_EXACT_MATCH_NAME): true,
                                        (METHOD_NAME) : 'mergeAcceptMine'] as Map
 
         runSelectCubesStatement(c, headId, cubeName, options, 1, { ResultSet row ->
@@ -1008,8 +1011,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         byte[] myTestData = null
         byte[] myBytes = null
         boolean changed = false
-        options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA] = true
-        options[NCubeManager.SEARCH_INCLUDE_TEST_DATA] = true
+        options[SEARCH_INCLUDE_CUBE_DATA] = true
+        options[SEARCH_INCLUDE_TEST_DATA] = true
         options[METHOD_NAME] = 'mergeAcceptMine'
 
         runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
@@ -1041,9 +1044,9 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         boolean sourceChanged = false
 
         Map<String, Object> options = [
-                (NCubeManager.SEARCH_INCLUDE_CUBE_DATA):true,
-                (NCubeManager.SEARCH_INCLUDE_TEST_DATA):true,
-                (NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+                (SEARCH_INCLUDE_CUBE_DATA):true,
+                (SEARCH_INCLUDE_TEST_DATA):true,
+                (SEARCH_EXACT_MATCH_NAME):true,
                 (METHOD_NAME) : 'mergeAcceptTheirs'] as Map
 
         runSelectCubesStatement(c, sourceId, cubeName, options, 1, { ResultSet row ->
@@ -1063,7 +1066,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         String targetHeadSha1 = null
 
         // Do not use cube_value_bin, test data, or notes to speed up search
-        Map<String, Object> options1 = [(NCubeManager.SEARCH_EXACT_MATCH_NAME):true,
+        Map<String, Object> options1 = [(SEARCH_EXACT_MATCH_NAME):true,
                                         (METHOD_NAME) : 'mergeAcceptTheirs'] as Map
         runSelectCubesStatement(c, appId, cubeName, options1, 1, { ResultSet row ->
             newRevision = row.getLong('revision_number')
@@ -1098,13 +1101,13 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
      */
     protected static void runSelectCubesStatement(Connection c, ApplicationID appId, String namePattern, Map options, int max, Closure closure)
     {
-        boolean includeCubeData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_CUBE_DATA])
-        boolean includeTestData = toBoolean(options[NCubeManager.SEARCH_INCLUDE_TEST_DATA])
-        boolean includeNotes = toBoolean(options[NCubeManager.SEARCH_INCLUDE_NOTES])
-        boolean changedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_CHANGED_RECORDS_ONLY])
-        boolean activeRecordsOnly = toBoolean(options[NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY])
-        boolean deletedRecordsOnly = toBoolean(options[NCubeManager.SEARCH_DELETED_RECORDS_ONLY])
-        boolean exactMatchName = toBoolean(options[NCubeManager.SEARCH_EXACT_MATCH_NAME])
+        boolean includeCubeData = toBoolean(options[SEARCH_INCLUDE_CUBE_DATA])
+        boolean includeTestData = toBoolean(options[SEARCH_INCLUDE_TEST_DATA])
+        boolean includeNotes = toBoolean(options[SEARCH_INCLUDE_NOTES])
+        boolean changedRecordsOnly = toBoolean(options[SEARCH_CHANGED_RECORDS_ONLY])
+        boolean activeRecordsOnly = toBoolean(options[SEARCH_ACTIVE_RECORDS_ONLY])
+        boolean deletedRecordsOnly = toBoolean(options[SEARCH_DELETED_RECORDS_ONLY])
+        boolean exactMatchName = toBoolean(options[SEARCH_EXACT_MATCH_NAME])
         String methodName = (String)options[METHOD_NAME]
         if (StringUtilities.isEmpty(methodName))
         {
@@ -1178,8 +1181,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
             throw new IllegalStateException("Branch '" + targetAppId.branch + "' already exists, app: " + targetAppId)
         }
 
-        Map<String, Object> options = [(NCubeManager.SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (NCubeManager.SEARCH_INCLUDE_TEST_DATA): true,
+        Map<String, Object> options = [(SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (SEARCH_INCLUDE_TEST_DATA): true,
                                        (METHOD_NAME) : 'copyBranch'] as Map
         int count = 0
         boolean autoCommit = c.autoCommit
@@ -1559,8 +1562,8 @@ ORDER BY abs(revision_number) DESC"""
     protected static void getCubeInfoRecords(ApplicationID appId, Pattern searchPattern, List<NCubeInfoDto> list, Map options, ResultSet row)
     {
         boolean hasSearchPattern = searchPattern != null
-        Set<String> includeFilter = options[NCubeManager.SEARCH_FILTER_INCLUDE] as Set
-        Set<String> excludeFilter = options[NCubeManager.SEARCH_FILTER_EXCLUDE] as Set
+        Set<String> includeFilter = options[SEARCH_FILTER_INCLUDE] as Set
+        Set<String> excludeFilter = options[SEARCH_FILTER_EXCLUDE] as Set
 
         if (hasSearchPattern || includeFilter || excludeFilter)
         {   // Only read CUBE_VALUE_BIN if needed (searching content or filtering by cube_tags)
@@ -1579,7 +1582,7 @@ ORDER BY abs(revision_number) DESC"""
             if (includeFilter || excludeFilter)
             {
                 Map jsonNCube = (Map) JsonReader.jsonToJava(StringUtilities.createUtf8String(bytes), [(JsonReader.USE_MAPS):true] as Map)
-                Set<String> cubeTags = getFilter(jsonNCube[NCubeManager.CUBE_TAGS])
+                Set<String> cubeTags = getFilter(jsonNCube[CUBE_TAGS])
                 Set<String> copyTags = new CaseInsensitiveSet<>(cubeTags)
 
                 if (includeFilter)
