@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.4
+  * Enhancement: Create NCubeConstants
 * 3.6.3 
   * Enhancement: Re-ordering of columns on a non-sorted axis are now handled in all cases, API: `DeltaProcessor.getDeltaDescription()` and `NCube.mergeDeltas()`.  Reorder column delta's only show up when there are no outstanding `ADD` or `DELETE` deltas for the same axis.
 * 3.6.2

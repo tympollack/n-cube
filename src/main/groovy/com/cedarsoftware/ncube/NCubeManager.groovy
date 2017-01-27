@@ -26,6 +26,8 @@ import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
+import static com.cedarsoftware.ncube.NCubeConstants.*
+
 /**
  * This class manages a list of NCubes.  This class is referenced
  * by NCube in one place - when it joins to other cubes, it consults
@@ -54,53 +56,11 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeManager
 {
-    public static final String ERROR_CANNOT_MOVE_000 = 'Version 0.0.0 is for system configuration and cannot be move.'
-    public static final String ERROR_CANNOT_MOVE_TO_000 = 'Version 0.0.0 is for system configuration and branch cannot be moved to it.'
-    public static final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
-    public static final String ERROR_CANNOT_RELEASE_TO_000 = 'Version 0.0.0 is for system configuration and cannot be created from the release process.'
-
-    public static final String SEARCH_INCLUDE_CUBE_DATA = 'includeCubeData'
-    public static final String SEARCH_INCLUDE_TEST_DATA = 'includeTestData'
-    public static final String SEARCH_INCLUDE_NOTES = 'includeNotes'
-    public static final String SEARCH_DELETED_RECORDS_ONLY = 'deletedRecordsOnly'
-    public static final String SEARCH_ACTIVE_RECORDS_ONLY = 'activeRecordsOnly'
-    public static final String SEARCH_CHANGED_RECORDS_ONLY = 'changedRecordsOnly'
-    public static final String SEARCH_EXACT_MATCH_NAME = 'exactMatchName'
-    public static final String SEARCH_FILTER_INCLUDE = 'includeTags'
-    public static final String SEARCH_FILTER_EXCLUDE = 'excludeTags'
-
-    public static final String SYS_BOOTSTRAP = 'sys.bootstrap'
-    public static final String SYS_PROTOTYPE = 'sys.prototype'
-    public static final String SYS_PERMISSIONS = 'sys.permissions'
-    public static final String SYS_USERGROUPS = 'sys.usergroups'
-    public static final String SYS_LOCK = 'sys.lock'
-    public static final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
-    public static final String CLASSPATH_CUBE = 'sys.classpath'
-
-    public static final String ROLE_ADMIN = 'admin'
-    public static final String ROLE_USER = 'user'
-    public static final String ROLE_READONLY = 'readonly'
-
-    public static final String AXIS_ROLE = 'role'
-    public static final String AXIS_USER = 'user'
-    public static final String AXIS_RESOURCE = 'resource'
-    public static final String AXIS_ACTION = 'action'
-    public static final String AXIS_SYSTEM = 'system'
-
-    public static final String PROPERTY_CACHE = 'cache'
-
-    public static final String CUBE_TAGS = 'cube_tags'
-
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private static final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private static final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
-    public static final String NCUBE_PARAMS = 'NCUBE_PARAMS'
-    public static final String NCUBE_PARAMS_BYTE_CODE_DEBUG = 'byteCodeDebug'
-    public static final String NCUBE_PARAMS_BYTE_CODE_VERSION = 'byteCodeVersion'
-    public static final String NCUBE_ACCEPTED_DOMAINS = 'acceptedDomains'
-    public static final String NCUBE_PARAMS_BRANCH = 'branch'
     private static NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManager.class)
 

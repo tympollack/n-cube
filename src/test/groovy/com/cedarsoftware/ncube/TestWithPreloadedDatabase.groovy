@@ -10,7 +10,7 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
-import static com.cedarsoftware.ncube.NCubeManager.NCUBE_ACCEPTED_DOMAINS
+import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
@@ -279,7 +279,7 @@ class TestWithPreloadedDatabase
         assert dtos.size() == 0
 
         ApplicationID headId = HEAD
-        assert 1 == NCubeManager.search(headId, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size()
+        assert 1 == NCubeManager.search(headId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size()
     }
 
     @Test
@@ -304,7 +304,7 @@ class TestWithPreloadedDatabase
         NCube cube1 = NCubeManager.getNCubeFromResource("test.branch.1.json")
         NCubeManager.updateCube(BRANCH1, cube1)
         VersionControl.commitBranch(BRANCH1)
-        List<NCubeInfoDto> cubes0 = NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> cubes0 = NCubeManager.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assert cubes0.size() == 1
         NCubeInfoDto info0 = cubes0[0]
         assert info0.revision == "0"
@@ -312,7 +312,7 @@ class TestWithPreloadedDatabase
 
         cube1.setCell("XYZ", [code: 15])
         NCubeManager.updateCube(BRANCH1, cube1)
-        List<NCubeInfoDto> cubes1 = NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> cubes1 = NCubeManager.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assert cubes1.size() == 1
         NCubeInfoDto info1 = cubes1[0]
         assert info1.id != info0.id
@@ -322,7 +322,7 @@ class TestWithPreloadedDatabase
 
         cube1.removeCell([code: 15])
         NCubeManager.updateCube(BRANCH1, cube1)
-        List<NCubeInfoDto> cubes2 = NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> cubes2 = NCubeManager.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assert cubes2.size() == 1
         NCubeInfoDto info2 = cubes2[0]
         assert info2.id != info1.id
@@ -457,8 +457,8 @@ class TestWithPreloadedDatabase
         assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
         assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
 
-        assertEquals(1, NCubeManager.search(HEAD, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
-        assertEquals(1, NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        assertEquals(1, NCubeManager.search(HEAD, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        assertEquals(1, NCubeManager.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
 
         NCubeManager.deleteCubes(BRANCH1, 'TestBranch')
 
@@ -492,8 +492,8 @@ class TestWithPreloadedDatabase
         assert (result[VersionControl.BRANCH_RESTORES] as Map).size() == 0
         assert (result[VersionControl.BRANCH_REJECTS] as Map).size() == 0
 
-        assertEquals(1, NCubeManager.search(HEAD, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
-        assertEquals(1, NCubeManager.search(BRANCH1, null, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        assertEquals(1, NCubeManager.search(HEAD, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        assertEquals(1, NCubeManager.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
 
         NCubeManager.deleteCubes(BRANCH1, cubeName)
         assertNull(NCubeManager.getCube(BRANCH1, cubeName))
@@ -565,7 +565,7 @@ class TestWithPreloadedDatabase
         def cube1Sha1 = NCubeManager.getCube(HEAD, "TestBranch").sha1()
         def cube2Sha1 = NCubeManager.getCube(HEAD, "TestAge").sha1()
 
-        List<NCubeInfoDto> objects = NCubeManager.search(HEAD, "*", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> objects = NCubeManager.search(HEAD, "*", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         objects.each { NCubeInfoDto dto ->
             assertNull(dto.headSha1)
         }
@@ -575,7 +575,7 @@ class TestWithPreloadedDatabase
         assertEquals(cube1Sha1, NCubeManager.getCube(BRANCH1, "TestBranch").sha1())
         assertEquals(cube2Sha1, NCubeManager.getCube(BRANCH1, "TestAge").sha1())
 
-        objects = NCubeManager.search(BRANCH1, "*", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        objects = NCubeManager.search(BRANCH1, "*", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         objects.each { NCubeInfoDto dto ->
             assertNotNull(dto.headSha1)
         }
@@ -1099,7 +1099,7 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.search(HEAD, null, "ZZZ", map).size())
 
         map = new HashMap()
-        map.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true)
+        map.put(SEARCH_ACTIVE_RECORDS_ONLY, true)
 
         assertEquals(3, NCubeManager.search(HEAD, null, null, map).size())
         assertEquals(3, NCubeManager.search(HEAD, "", "", map).size())
@@ -1109,8 +1109,8 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.search(HEAD, "*Codes*", "OH", map).size())
         assertEquals(0, NCubeManager.search(HEAD, null, "ZZZ", map).size())
 
-        map.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, false)
-        map.put(NCubeManager.SEARCH_DELETED_RECORDS_ONLY, true)
+        map.put(SEARCH_ACTIVE_RECORDS_ONLY, false)
+        map.put(SEARCH_DELETED_RECORDS_ONLY, true)
 
         assertEquals(1, NCubeManager.search(HEAD, null, null, map).size())
         assertEquals(1, NCubeManager.search(HEAD, "", "", map).size())
@@ -1120,8 +1120,8 @@ class TestWithPreloadedDatabase
         assertEquals(0, NCubeManager.search(HEAD, "*Codes*", "OH", map).size())
         assertEquals(1, NCubeManager.search(HEAD, null, "ZZZ", map).size())
 
-        map.put(NCubeManager.SEARCH_DELETED_RECORDS_ONLY, false)
-        map.put(NCubeManager.SEARCH_CHANGED_RECORDS_ONLY, true)
+        map.put(SEARCH_DELETED_RECORDS_ONLY, false)
+        map.put(SEARCH_CHANGED_RECORDS_ONLY, true)
     }
 
     @Test
@@ -1132,7 +1132,7 @@ class TestWithPreloadedDatabase
         testValuesOnBranch(HEAD)
 
         Map map = new HashMap()
-        map.put(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY, true)
+        map.put(SEARCH_ACTIVE_RECORDS_ONLY, true)
 
         assertEquals(2, NCubeManager.search(HEAD, "Test*", null, map).size())
         assertEquals(1, NCubeManager.search(HEAD, "TestBranch", "ZZZ", map).size())
@@ -1151,7 +1151,7 @@ class TestWithPreloadedDatabase
         String cubeName = 'bracketsInString'
         preloadCubes(HEAD, cubeName + '.json')
 
-        Map map = [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true]
+        Map map = [(SEARCH_ACTIVE_RECORDS_ONLY): true]
 
         NCube cube = NCubeManager.getCube(HEAD, cubeName)
         String value = cube.getCell([axis1: 'column1', axis2: 'column2'])
@@ -1171,7 +1171,7 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.search(HEAD, 'racketsIn', null, map).size())
 
         //Test search with cube name pattern, with or without wildcard, exact match
-        map[NCubeManager.SEARCH_EXACT_MATCH_NAME] = true
+        map[SEARCH_EXACT_MATCH_NAME] = true
         assertEquals(1, NCubeManager.search(HEAD, cubeName, null, map).size())
         assertEquals(0, NCubeManager.search(HEAD, '*racketsIn*', null, map).size())
         assertEquals(0, NCubeManager.search(HEAD, 'racketsIn', null, map).size())
@@ -2452,17 +2452,17 @@ class TestWithPreloadedDatabase
 
         // set permission on cube to deny commit for normal user
         ApplicationID branchBoot = BRANCH1.asVersion('0.0.0')
-        NCube sysPermissions = NCubeManager.getCube(branchBoot, NCubeManager.SYS_PERMISSIONS)
-        sysPermissions.addColumn(NCubeManager.AXIS_RESOURCE, cubeName)
-        sysPermissions.setCell(true, [(NCubeManager.AXIS_RESOURCE): cubeName, (NCubeManager.AXIS_ROLE): NCubeManager.ROLE_USER, (NCubeManager.AXIS_ACTION): Action.READ.lower()])
+        NCube sysPermissions = NCubeManager.getCube(branchBoot, SYS_PERMISSIONS)
+        sysPermissions.addColumn(AXIS_RESOURCE, cubeName)
+        sysPermissions.setCell(true, [(AXIS_RESOURCE): cubeName, (AXIS_ROLE): ROLE_USER, (AXIS_ACTION): Action.READ.lower()])
         NCubeManager.updateCube(branchBoot, sysPermissions)
         VersionControl.commitBranch(branchBoot)
 
         // set testUser to have user role on branch
-        NCube sysBranchPermissions = NCubeManager.getCube(branchBoot, NCubeManager.SYS_BRANCH_PERMISSIONS)
+        NCube sysBranchPermissions = NCubeManager.getCube(branchBoot, SYS_BRANCH_PERMISSIONS)
         String testUser = 'testUser'
-        sysBranchPermissions.addColumn(NCubeManager.AXIS_USER, testUser)
-        sysBranchPermissions.setCell(true, [(NCubeManager.AXIS_USER): testUser])
+        sysBranchPermissions.addColumn(AXIS_USER, testUser)
+        sysBranchPermissions.setCell(true, [(AXIS_USER): testUser])
         NCubeManager.updateCube(branchBoot, sysBranchPermissions)
 
         // impersonate testUser, who shouldn't be able to commit the changed cube
@@ -5356,7 +5356,7 @@ class TestWithPreloadedDatabase
             assert (e.errors[VersionControl.BRANCH_REJECTS] as Map).size() == 1
         }
 
-        dtos = NCubeManager.search(HEAD, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        dtos = NCubeManager.search(HEAD, "TestAge", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         String sha1 = dtos[0].sha1
         assertNotEquals(sha1, newSha1)
 
@@ -5366,7 +5366,7 @@ class TestWithPreloadedDatabase
         String branchHeadSha1 = dtos[0].headSha1
         assertEquals(1, dtos.size())
 
-        dtos = NCubeManager.search(HEAD, "TestAge", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        dtos = NCubeManager.search(HEAD, "TestAge", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertEquals(branchHeadSha1, dtos[0].sha1)
     }
 
@@ -6318,15 +6318,15 @@ return ints''', null, false)
 
         // Mark TestBranch as red & white
         NCube testBranch = NCubeManager.getCube(appId, 'TestBranch')
-        testBranch.addMetaProperties([(NCubeManager.CUBE_TAGS): new CellInfo('string', 'rEd , whiTe', false, false)] as Map)
+        testBranch.addMetaProperties([(CUBE_TAGS): new CellInfo('string', 'rEd , whiTe', false, false)] as Map)
         NCubeManager.updateCube(appId, testBranch)
 
-        List<NCubeInfoDto> list = NCubeManager.search(appId, null, null, [(NCubeManager.SEARCH_FILTER_INCLUDE):['red', 'white']])
+        List<NCubeInfoDto> list = NCubeManager.search(appId, null, null, [(SEARCH_FILTER_INCLUDE):['red', 'white']])
         assert list.size() == 2
         assert 'TestCube' == list[0].name || 'TestBranch' == list[0].name
         assert 'TestCube' == list[1].name || 'TestBranch' == list[1].name
 
-        list = NCubeManager.search(appId, null, null, [(NCubeManager.SEARCH_FILTER_INCLUDE):['red', 'white'], (NCubeManager.SEARCH_FILTER_EXCLUDE):['white', 'blue']])
+        list = NCubeManager.search(appId, null, null, [(SEARCH_FILTER_INCLUDE):['red', 'white'], (SEARCH_FILTER_EXCLUDE):['white', 'blue']])
         assert list.size() == 1
         assert 'TestCube' == list[0].name
     }
@@ -6346,7 +6346,7 @@ return ints''', null, false)
         testBranch.setMetaProperty("cube_tags", "red , WHIte")
         NCubeManager.updateCube(appId, testBranch)
 
-        List<NCubeInfoDto> list = NCubeManager.search(appId, null, null, [(NCubeManager.SEARCH_FILTER_EXCLUDE):['red', 'white']])
+        List<NCubeInfoDto> list = NCubeManager.search(appId, null, null, [(SEARCH_FILTER_EXCLUDE):['red', 'white']])
         assert list.size() == 5
     }
 
@@ -6396,7 +6396,7 @@ return ints''', null, false)
     static List<NCubeInfoDto> getDeletedCubesFromDatabase(ApplicationID appId, String pattern)
     {
         Map options = new HashMap()
-        options.put(NCubeManager.SEARCH_DELETED_RECORDS_ONLY, true)
+        options.put(SEARCH_DELETED_RECORDS_ONLY, true)
 
         return NCubeManager.search(appId, pattern, null, options)
     }
