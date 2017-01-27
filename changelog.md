@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.3 
+  * Enhancement: Re-ordering of columns on a non-sorted axis are now handled in all cases, API: `DeltaProcessor.getDeltaDescription()` and `NCube.mergeDeltas()`.  Reorder column delta's only show up when there are no outstanding `ADD` or `DELETE` deltas for the same axis.
 * 3.6.2
   * Enhancement: Added additional information to the output map - for each call to `ncube.getCell()`, `at()`, or `go()`, if an input coordinate fails to bind to an axis value, and instead bind to the Default column (or completely misses [`CoordianteNotFoundException` case]), the n-cube name, axis name, and input bind-value are added to a list.  This list grows as cells call other cells until it pops-the-stack to the original call.  Use the `RuleInfo.getUnboundAxesList()` and `.getUnboundAxesMap()` to see these values. `RuleInfo.getUnboundAxesList()` shows them in order of occurrence, whereas `.getUnboundAxesMap()` packages this information up by n-cube name and axis name.
 * 3.6.1

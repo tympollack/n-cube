@@ -21,8 +21,6 @@ import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
-import gnu.trove.map.hash.THashMap
-import gnu.trove.map.hash.TLongObjectHashMap
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -81,8 +79,8 @@ class NCube<T>
     private String name
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
-    private final TLongObjectHashMap<Axis> idToAxis = new TLongObjectHashMap<>(16, 0.8f)
-    protected final Map<LongHashSet, T> cells = new THashMap<>(128, 0.8f)
+    private final Map<Long, Axis> idToAxis = new HashMap<>(16, 0.8f)
+    protected final Map<LongHashSet, T> cells = new HashMap<>(128, 0.8f)
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
     private Map metaProps = new CaseInsensitiveMap<>()
@@ -1348,7 +1346,7 @@ class NCube<T>
             safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate)
         }
 
-        Set<Long> ids = new HashSet<>()
+        LongHashSet ids = new LongHashSet()
         Iterator<Axis> i = axisList.values().iterator()
 
         while (i.hasNext())
@@ -1369,7 +1367,7 @@ class NCube<T>
             ids.add(column.id)
         }
 
-        return new LongHashSet(ids)
+        return ids
     }
 
     /**
@@ -2884,6 +2882,7 @@ class NCube<T>
      */
     void mergeDeltas(List<Delta> deltas)
     {
+        List<Delta> columnReorders = []
         for (Delta delta : deltas)
         {
             switch (delta.location)
@@ -3020,13 +3019,7 @@ class NCube<T>
                             break
 
                         case Delta.Type.ORDER:
-                            Column oldCol = delta.sourceVal as Column
-                            Column newCol = delta.destVal as Column
-                            Column existingCol = axis.locateDeltaColumn(oldCol)
-                            if (existingCol)
-                            {
-                                updateColumn(existingCol.id, existingCol.value, existingCol.columnName, newCol.displayOrder)
-                            }
+                            columnReorders.add(delta)
                             break
                     }
                     break
@@ -3078,6 +3071,18 @@ class NCube<T>
                 case Delta.Location.CELL_META:
                     // TODO - cell meta-properties not yet implemented
                     break
+            }
+        }
+
+        columnReorders.each { Delta delta ->
+            String axisName = delta.locId as String
+            if (axisName)
+            {
+                Axis axis = getAxis(delta.locId as String)
+                if (axis)
+                {
+                    updateColumns(axisName, delta.destVal as Collection, true)
+                }
             }
         }
 

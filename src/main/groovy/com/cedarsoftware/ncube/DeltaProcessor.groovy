@@ -634,16 +634,20 @@ class DeltaProcessor
             Set<String> oldColNames = new CaseInsensitiveSet<>()
             Set<String> newColNames = new CaseInsensitiveSet<>()
             oldAxis.columns.each { Column oldCol ->
-                oldColNames.add(oldCol.toString())
+                oldColNames.add(getDisplayColumnName(oldCol))
             }
             newAxis.columns.each { Column newCol ->
-                newColNames.add(newCol.toString())
+                newColNames.add(getDisplayColumnName(newCol))
             }
             Object[] oldCols = oldColNames as Object[]
             Object[] newCols = newColNames as Object[]
             boolean isRef = newAxis.reference
+            boolean displayOrderMatters = !isRef && newAxis.columnOrder == Axis.DISPLAY
 
             List<Column> newColumns = getAllowedColumns(newAxis, isRef)
+            boolean columnChanges = false
+            boolean needsReorder = false
+
             for (Column newCol : newColumns)
             {
                 Column oldCol = findColumn(newAxis, oldAxis, newCol)
@@ -651,7 +655,9 @@ class DeltaProcessor
                 {
                     String colName = newAxis.getDisplayColumnName(newCol)
                     String s = "Add column '${colName}' to axis: ${newAxis.name}"
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name, null, newCol, oldCols, newCols))
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ADD, s, newAxis.name,
+                            null, newCol, [] as Object[], [getDisplayColumnName(newCol)] as Object[]))
+                    columnChanges = true
 
                     // If new Column has meta-properties, generate a Delta.COLUMN_META, ADD for each meta-property
                     addMetaPropertiesToColumn(newCol, changes, newAxis)
@@ -673,14 +679,14 @@ class DeltaProcessor
                     if (!DeepEquals.deepEquals(oldCol.value, newCol.value))
                     {
                         String s = "Change column value from: ${oldCol.value} to: ${newCol.value}"
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name, oldCol, newCol, oldCols, newCols))
+                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.UPDATE, s, newAxis.name,
+                                oldCol, newCol, [getDisplayColumnName(oldCol)] as Object[], [getDisplayColumnName(newCol)] as Object[]))
                     }
 
                     // For non-reference axes, if they are manually ordered (DISPLAY) and the displayOrder field has changed...
-                    if (!isRef && newAxis.columnOrder == Axis.DISPLAY && oldCol.displayOrder != newCol.displayOrder)
+                    if (displayOrderMatters && oldCol.displayOrder != newCol.displayOrder)
                     {   // ...create a COLUMN ORDER delta.
-                        String s = "Change column position from: ${oldCol.displayOrder} to: ${newCol.displayOrder}"
-                        changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ORDER, s, newAxis.name, oldCol, newCol, oldCols, newCols))
+                        needsReorder = true
                     }
                 }
             }
@@ -708,7 +714,9 @@ class DeltaProcessor
                 {
                     String colName = newAxis.getDisplayColumnName(oldCol)
                     String s = "Remove column '${colName}' from axis: ${oldAxis.name}"
-                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name, oldCol, null, oldCols, newCols))
+                    changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.DELETE, s, newAxis.name,
+                            oldCol, null, [getDisplayColumnName(oldCol)] as Object[], [] as Object[]))
+                    columnChanges = true
                 }
                 else
                 {
@@ -718,6 +726,13 @@ class DeltaProcessor
                         idMap[oldCol.id] = newCol.id
                     }
                 }
+            }
+
+            // For non-reference axes, if they are manually ordered (DISPLAY) and the displayOrder field has changed...
+            if (displayOrderMatters && !columnChanges && needsReorder)
+            {   // ...create a REORDER columns delta.
+                String s = "Column order changed on axis ${newAxis.name}"
+                changes.add(new Delta(Delta.Location.COLUMN, Delta.Type.ORDER, s, newAxis.name, null, newAxis.columnsWithoutDefault, oldCols, newCols))
             }
         }
 
@@ -731,6 +746,12 @@ class DeltaProcessor
         getCellChanges(newCube, oldCube, idMap, changes)
         Collections.sort(changes)
         return changes
+    }
+
+    private static String getDisplayColumnName(Column column)
+    {
+        String value = column.toString()
+        return StringUtilities.hasContent(column.columnName) ? "${column.columnName}:\n${value}" : value
     }
 
     private static void addMetaPropertiesToColumn(Column newCol, List<Delta> changes, Axis newAxis)
@@ -882,12 +903,12 @@ class DeltaProcessor
     protected static List<Delta> compareMetaProperties(Map<String, Object> oldMeta, Map<String, Object> newMeta, Delta.Location location, String locName, Object helperId)
     {
         List<String> oldList = []
-        oldMeta.each { String key, Object value ->
-            oldList.add("${key}: ${value?.toString()}".toString())
+        oldMeta.each { String metaKey, Object value ->
+            oldList.add("${metaKey}: ${value?.toString()}".toString())
         }
         List<String> newList = []
-        newMeta.each { String key, Object value ->
-            newList.add("${key}: ${value?.toString()}".toString())
+        newMeta.each { String metaKey, Object value ->
+            newList.add("${metaKey}: ${value?.toString()}".toString())
         }
         Object[] oldMetaList = oldList as Object[]
         Object[] newMetaList = newList as Object[]
@@ -914,24 +935,24 @@ class DeltaProcessor
         deletedKeys.removeAll(sameKeys)
         if (!deletedKeys.empty)
         {
-            for (String key: deletedKeys)
+            for (String metaKey: deletedKeys)
             {
-                Object oldVal = oldMeta[key]
-                String s = "Delete ${locName} meta-property {${key}: ${oldVal}}"
-                MapEntry pair = new MapEntry(key, oldVal)
+                Object oldVal = oldMeta[metaKey]
+                String s = "Delete ${locName} meta-property {${metaKey}: ${oldVal}}"
+                MapEntry pair = new MapEntry(metaKey, oldVal)
                 changes.add(new Delta(location, Delta.Type.DELETE, s, helperId, pair, null, oldMetaList, newMetaList))
             }
         }
 
-        for (String key : sameKeys)
+        for (String metaKey : sameKeys)
         {
-            if (!DeepEquals.deepEquals(oldMeta[key], newMeta[key]))
+            if (!DeepEquals.deepEquals(oldMeta[metaKey], newMeta[metaKey]))
             {
-                Object oldVal = oldMeta[key]
-                Object newVal = newMeta[key]
-                String s = "Change ${locName} meta-property {${key}: ${oldVal}} ==> {${key}: ${newVal}}"
-                MapEntry oldPair = new MapEntry(key, oldVal)
-                MapEntry newPair = new MapEntry(key, newVal)
+                Object oldVal = oldMeta[metaKey]
+                Object newVal = newMeta[metaKey]
+                String s = "Change ${locName} meta-property {${metaKey}: ${oldVal}} ==> {${metaKey}: ${newVal}}"
+                MapEntry oldPair = new MapEntry(metaKey, oldVal)
+                MapEntry newPair = new MapEntry(metaKey, newVal)
                 changes.add(new Delta(location, Delta.Type.UPDATE, s, helperId, oldPair, newPair, oldMetaList, newMetaList))
             }
         }
