@@ -52,7 +52,10 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         return axisBindings.size()
     }
 
-    void ruleStopThrown()
+    /**
+     * Set the indicator that a ruleStop was thrown
+     */
+    protected void ruleStopThrown()
     {
         put(RULE_STOP, Boolean.TRUE)
     }
@@ -65,6 +68,10 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         return containsKey(RULE_STOP) && Boolean.TRUE == get(RULE_STOP)
     }
 
+    /**
+     * @return String output of all println calls that occurred from the start of the initial getCell() call
+     * until it returned.
+     */
     String getSystemOut()
     {
         if (containsKey(SYSTEM_OUT))
@@ -79,6 +86,10 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         put(SYSTEM_OUT, out)
     }
 
+    /**
+     * @return String output of system.err that occurred from the start of the initial getCell() call
+     * until it returned.  Kept separately per thread.
+     */
     String getSystemErr()
     {
         if (containsKey(SYSTEM_ERR))
@@ -93,6 +104,9 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         put(SYSTEM_ERR, err)
     }
 
+    /**
+     * @return Set of String assert failures that occurred when runTest was called.
+     */
     Set<String> getAssertionFailures()
     {
         if (containsKey(ASSERTION_FAILURES))
@@ -110,6 +124,9 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         put(ASSERTION_FAILURES, failures)
     }
 
+    /**
+     * @return Object value of last executed statement value.
+     */
     Object getLastExecutedStatementValue()
     {
         if (containsKey(LAST_EXECUTED_STATEMENT))
@@ -124,6 +141,10 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         put(LAST_EXECUTED_STATEMENT, value)
     }
 
+    /**
+     * @return List of Binding instances which describe each Binding per getCell() call.  A binding
+     * holds the axisNames and values that were supplied.
+     */
     List<Binding> getAxisBindings()
     {
         if (containsKey(AXIS_BINDINGS))
@@ -135,6 +156,9 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
         return bindings
     }
 
+    /**
+     * @return Set of input keys that were used (.get() or .containsKey() accessed) from the input Map.
+     */
     Set getInputKeysUsed()
     {
         Set keysUsed = (Set)get(INPUT_KEYS_USED)
