@@ -202,7 +202,7 @@ class Axis
 
     private void reloadReferenceAxis(String cubeName, Map<String, Object> props)
     {
-        clear()
+        clearIndexes()
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, name, props)
         refAxisLoader.load(this)
     }
@@ -618,7 +618,7 @@ class Axis
         valueType = newValueType
     }
 
-    protected void clear()
+    protected void clearIndexes()
     {
         idToCol.clear()
         colNameToCol.clear()
@@ -945,8 +945,8 @@ class Axis
             {   // Update case - matches existing column
                 Column newCol = newColumnMap[col.id]
                 col.value = newCol.value
-
                 Map<String, Object> metaProperties = newCol.metaProperties
+                
                 for (Map.Entry<String, Object> entry : metaProperties.entrySet())
                 {
                     col.setMetaProperty(entry.key, entry.value)
@@ -961,7 +961,7 @@ class Axis
                 }
             }
         }
-        clear()
+        clearIndexes()
 
         // Step 3. Save existing before clearing all columns
         Map<Long, Column> existingColumns = [:]
@@ -1011,7 +1011,7 @@ class Axis
             }
         }
 
-        clear()
+        clearIndexes()
         for (Column col : existingColumns.values())
         {
             indexColumn(col)
