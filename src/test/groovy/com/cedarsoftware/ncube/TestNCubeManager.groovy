@@ -1585,6 +1585,32 @@ class TestNCubeManager
     }
 
     @Test
+    void testThinCopyBranch()
+    {
+        ApplicationID copyAppId = defaultSnapshotApp.asBranch('copy')
+        NCube cube = NCubeManager.getNCubeFromResource(defaultSnapshotApp, 'test.branch.1.json')
+        NCubeManager.updateCube(defaultSnapshotApp, cube)
+        VersionControl.commitBranch(defaultSnapshotApp)
+
+        NCubeManager.copyBranch(defaultSnapshotApp.asHead(), copyAppId)
+        assert 1 == NCubeManager.getRevisionHistory(copyAppId, cube.name).size()
+        NCubeManager.deleteBranch(copyAppId)
+
+        NCubeManager.copyBranch(defaultSnapshotApp, copyAppId)
+        assert 1 == NCubeManager.getRevisionHistory(copyAppId, cube.name).size()
+        NCubeManager.deleteBranch(copyAppId)
+
+        cube.setCell('AAA', [Code : -15])
+        NCubeManager.updateCube(defaultSnapshotApp, cube)
+        cube.setCell('BBB', [Code : -15])
+        NCubeManager.updateCube(defaultSnapshotApp, cube)
+        assert 3 == NCubeManager.getRevisionHistory(defaultSnapshotApp, cube.name).size()
+
+        NCubeManager.copyBranch(defaultSnapshotApp, copyAppId)
+        assert 2 == NCubeManager.getRevisionHistory(copyAppId, cube.name).size()
+    }
+
+    @Test
     void testLoadCubeByUsingNonExistingSha1()
     {
         NCube cube = createCube()
