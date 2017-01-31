@@ -1181,6 +1181,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
             throw new IllegalStateException("Branch '" + targetAppId.branch + "' already exists, app: " + targetAppId)
         }
 
+        int headCount = srcAppId.head ? 0 : copyBranchInitialRevisions(c, srcAppId, targetAppId)
+
         Map<String, Object> options = [(SEARCH_INCLUDE_CUBE_DATA): true,
                                        (SEARCH_INCLUDE_TEST_DATA): true,
                                        (METHOD_NAME) : 'copyBranch'] as Map
@@ -1194,7 +1196,78 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                     "/* copyBranch */ INSERT /*+append*/ INTO n_cube (n_cube_id, n_cube_nm, ${CUBE_VALUE_BIN}, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             runSelectCubesStatement(c, srcAppId, null, options, { ResultSet row ->
-                String sha1 = row.getString('sha1')
+                insert.setLong(1, UniqueIdGenerator.uniqueId)
+                insert.setString(2, row.getString('n_cube_nm'))
+                insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
+                insert.setTimestamp(4, nowAsTimestamp())
+                insert.setString(5, row.getString('create_hid'))
+                insert.setString(6, targetAppId.version)
+                insert.setString(7, ReleaseStatus.SNAPSHOT.name())
+                insert.setString(8, targetAppId.app)
+                insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
+                insert.setBytes(10, ("target ${targetAppId} copied from ${srcAppId}").getBytes('UTF-8'))
+                insert.setString(11, targetAppId.tenant)
+                insert.setString(12, targetAppId.branch)
+                insert.setLong(13, row.getLong('revision_number'))
+                insert.setBoolean(14, targetAppId.head ? false : (boolean)row.getBoolean(CHANGED))
+                insert.setString(15, row.getString('sha1'))
+
+                String headSha1 = null
+                if (!targetAppId.head)
+                {
+                    headSha1 = row.getString(srcAppId.head ? 'sha1' : 'head_sha1')
+                }
+                insert.setString(16, headSha1)
+
+                insert.addBatch()
+                count++
+                if (count % EXECUTE_BATCH_CONSTANT == 0)
+                {
+                    insert.executeBatch()
+                }
+            })
+            if (count % EXECUTE_BATCH_CONSTANT != 0)
+            {
+                insert.executeBatch()
+            }
+            return count + headCount
+        }
+        finally
+        {
+            c.autoCommit = autoCommit
+            insert?.close()
+        }
+    }
+
+    private static int copyBranchInitialRevisions(Connection c, ApplicationID srcAppId, ApplicationID targetAppId)
+    {
+        Map map = srcAppId as Map
+        map.tenant = padTenant(c, srcAppId.tenant)
+
+        Sql sql = getSql(c)
+        String select = """SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.cube_value_bin, n.test_data_bin,
+                n.version_no_cd, n.status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1
+        FROM n_cube n,
+        (SELECT x.n_cube_nm, x.head_sha1, x.sha1
+            FROM n_cube x
+            JOIN (SELECT n_cube_nm, MAX(ABS(revision_number)) AS max_rev
+                            FROM n_cube
+                            WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND branch_id = :branch GROUP BY n_cube_nm) y
+                    ON LOWER(x.n_cube_nm) = LOWER(y.n_cube_nm) AND ABS(x.revision_number) = y.max_rev
+                            WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND branch_id = :branch) m
+        WHERE LOWER(m.n_cube_nm) = LOWER(n.n_cube_nm) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status
+                AND n.branch_id = 'HEAD' AND n.sha1 = m.head_sha1 AND m.head_sha1 <> m.sha1"""
+
+        int count = 0
+        boolean autoCommit = c.autoCommit
+        PreparedStatement insert = null
+        try
+        {
+            c.autoCommit = false
+            insert = c.prepareStatement(
+                    "/* copyBranch */ INSERT /*+append*/ INTO n_cube (n_cube_id, n_cube_nm, ${CUBE_VALUE_BIN}, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            sql.eachRow(map, select, { ResultSet row ->
                 insert.setLong(1, UniqueIdGenerator.uniqueId)
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
@@ -1209,14 +1282,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
                 insert.setBoolean(14, targetAppId.head ? false : (boolean)row.getBoolean(CHANGED))
-                insert.setString(15, sha1)
-
-                String headSha1 = null
-                if (!targetAppId.head)
-                {
-                    headSha1 = row.getString(srcAppId.head ? 'sha1' : 'head_sha1')
-                }
-                insert.setString(16, headSha1)
+                insert.setString(15, row.getString('sha1'))
+                insert.setString(16, null)
 
                 insert.addBatch()
                 count++
