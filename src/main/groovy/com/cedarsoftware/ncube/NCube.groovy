@@ -94,6 +94,43 @@ class NCube<T>
     }
 
     /**
+     * Custom reader for NCube when used with json-io
+     */
+    static class NCubeReader implements JsonReader.JsonClassReaderEx
+    {
+        Object read(Object jOb, Deque<JsonObject<String, Object>> stack, Map<String, Object> args)
+        {
+            Map map = (Map)jOb
+            if (map.size() == 1)
+            {
+                map = map.ncube as Map
+            }
+            NCube ncube = hydrateCube(map)
+            return ncube
+        }
+    }
+
+    /**
+     * Custom writer for NCube when used with json-io
+     */
+    static class NCubeWriter implements JsonWriter.JsonClassWriterEx
+    {
+        void write(Object o, boolean showType, Writer output, Map<String, Object> args) throws IOException
+        {
+            NCube ncube = (NCube)o
+            String json = ncube.toFormattedJson()
+            if (showType)
+            {
+                output.write(""""ncube":${json}""")
+            }
+            else
+            {
+                output.write(json.substring(1, json.length()-1))
+            }
+        }
+    }
+
+    /**
      * Creata a new NCube instance with the passed in name
      * @param name String name to use for the NCube.
      */
