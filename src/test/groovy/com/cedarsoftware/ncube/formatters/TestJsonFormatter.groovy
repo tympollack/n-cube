@@ -1,11 +1,14 @@
 package com.cedarsoftware.ncube.formatters
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeBuilder
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.TestNCubeManager
 import com.cedarsoftware.ncube.TestingDatabaseHelper
 import com.cedarsoftware.ncube.TestingDatabaseManager
 import com.cedarsoftware.util.IOUtilities
+import com.cedarsoftware.util.io.JsonReader
+import com.cedarsoftware.util.io.JsonWriter
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -252,6 +255,16 @@ class TestJsonFormatter
         assert json.contains('"axes":[{"id":1,"name":"Age"')
         assert json.contains('"columns":[{"id":2')
         assert json.contains(',"type":"string","value":"CA"}')
+    }
+
+    @Test
+    void testNCubeUsesCustomReaderWriterWithJsonIo()
+    {
+        NCube ncube = NCubeBuilder.get5DTestCube()
+        String json = JsonWriter.objectToJson(ncube)
+        NCube cube = JsonReader.jsonToJava(json) as NCube
+        assert cube.name == 'testMerge'
+        assert cube.numDimensions == 5
     }
 
     private static class TestFilenameFilter implements FilenameFilter

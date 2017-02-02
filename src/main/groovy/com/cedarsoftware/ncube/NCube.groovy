@@ -94,6 +94,16 @@ class NCube<T>
     }
 
     /**
+     * Permanently add Custom Reader / Writer to json-io so that n-cube will use its native JSON
+     * format when written or read with json-io.
+     */
+    static
+    {
+        JsonReader.addReaderPermanent(NCube.class, new NCubeReader())
+        JsonWriter.addWriterPermanent(NCube.class, new NCubeWriter())
+    }
+
+    /**
      * Custom reader for NCube when used with json-io
      */
     static class NCubeReader implements JsonReader.JsonClassReaderEx
@@ -102,7 +112,7 @@ class NCube<T>
         {
             Map map = (Map)jOb
             if (map.size() == 1)
-            {
+            {   // If "@type" was added, then you need to extract the n-cube instance from the "ncube" field.
                 map = map.ncube as Map
             }
             NCube ncube = hydrateCube(map)
@@ -120,12 +130,13 @@ class NCube<T>
             NCube ncube = (NCube)o
             String json = ncube.toFormattedJson()
             if (showType)
-            {
+            {   // {"@type":"com.cedarsoftware.ncube.NCube", "ncube": xxx }.  xxx = NCube's native JSON format.
                 output.write(""""ncube":${json}""")
             }
             else
-            {
-                output.write(json.substring(1, json.length()-1))
+            {   // Write out NCube's native JSON format, minus the { and } at the beginning and end, as this is
+                // written by json-io.
+                output.write(json.substring(1, json.length() - 1))
             }
         }
     }
