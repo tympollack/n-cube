@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.6
+  * Enhancement: Added custom reader and writer for NCube when used with json-io.
 * 3.6.5
   * Enhancement: Rewrite copy branch in persister to allow a thin copy of branch instead of with full history.
 * 3.6.4
