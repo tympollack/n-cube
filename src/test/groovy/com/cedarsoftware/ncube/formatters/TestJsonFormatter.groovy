@@ -261,10 +261,19 @@ class TestJsonFormatter
     void testNCubeUsesCustomReaderWriterWithJsonIo()
     {
         NCube ncube = NCubeBuilder.get5DTestCube()
+        ApplicationID appId = new ApplicationID('foo', 'bar', '1.0.4', 'SNAPSHOT', 'baz')
+        ncube.applicationID = appId
         String json = JsonWriter.objectToJson(ncube)
         NCube cube = JsonReader.jsonToJava(json) as NCube
         assert cube.name == 'testMerge'
         assert cube.numDimensions == 5
+        assert cube.getAxis('age').size() == 2
+        assert cube.getAxis('salary').size() == 2
+        assert cube.getAxis('log').size() == 2
+        assert cube.getAxis('rule').size() == 2
+        assert cube.getAxis('state').size() == 3
+        assert cube.applicationID == appId
+        assert cube.metaProperties.size() == 0
     }
 
     private static class TestFilenameFilter implements FilenameFilter
