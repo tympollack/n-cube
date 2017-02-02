@@ -116,6 +116,16 @@ class NCube<T>
                 map = map.ncube as Map
             }
             NCube ncube = hydrateCube(map)
+            String tenant = ncube.getMetaProperty('n.tenant')
+            String app = ncube.getMetaProperty('n.app')
+            String version = ncube.getMetaProperty('n.version')
+            String status = ncube.getMetaProperty('n.status')
+            String branch = ncube.getMetaProperty('n.branch')
+
+            ApplicationID appId = new ApplicationID(tenant, app, version, status, branch)
+            ncube.applicationID = appId
+
+            stripFoistedAppId(ncube)
             return ncube
         }
     }
@@ -128,6 +138,15 @@ class NCube<T>
         void write(Object o, boolean showType, Writer output, Map<String, Object> args) throws IOException
         {
             NCube ncube = (NCube)o
+
+            // Temporarily set App ID as meta-properties before json-io serialization
+            ApplicationID appId1 = ncube.applicationID
+            ncube.setMetaProperty('n.tenant', appId1.tenant)
+            ncube.setMetaProperty('n.app', appId1.app)
+            ncube.setMetaProperty('n.version', appId1.version)
+            ncube.setMetaProperty('n.status', appId1.status)
+            ncube.setMetaProperty('n.branch', appId1.branch)
+
             String json = ncube.toFormattedJson()
             if (showType)
             {   // {"@type":"com.cedarsoftware.ncube.NCube", "ncube": xxx }.  xxx = NCube's native JSON format.
@@ -138,7 +157,18 @@ class NCube<T>
                 // written by json-io.
                 output.write(json.substring(1, json.length() - 1))
             }
+
+            stripFoistedAppId(ncube)
         }
+    }
+    
+    private static void stripFoistedAppId(NCube ncube)
+    {
+        ncube.removeMetaProperty('n.tenant')
+        ncube.removeMetaProperty('n.app')
+        ncube.removeMetaProperty('n.version')
+        ncube.removeMetaProperty('n.status')
+        ncube.removeMetaProperty('n.branch')
     }
 
     /**
