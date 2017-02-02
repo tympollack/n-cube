@@ -1839,6 +1839,17 @@ class NCube<T>
     }
 
     /**
+     * Remove transform from a reference axis.
+     * @param axisName String name of reference axis.
+     */
+    void removeAxisReferenceTransform(final String axisName)
+    {
+        Axis axis = getAxis(axisName)
+        axis.removeTransform()
+        clearSha1()
+    }
+
+    /**
      * Remove an axis from an NCube.
      * All cells will be cleared when an axis is deleted.
      * @param axisName String name of axis to remove
