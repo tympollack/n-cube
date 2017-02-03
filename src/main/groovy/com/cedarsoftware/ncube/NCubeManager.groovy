@@ -1282,6 +1282,10 @@ Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
 target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${transformMethodName}""")
                         }
                     }
+                    else
+                    {
+                        axis.removeTransform()o
+                    }
 
                     ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
                     persister.updateCube(axisRef.srcAppId, ncube, getUserId())

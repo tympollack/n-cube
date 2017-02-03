@@ -360,6 +360,14 @@ class Axis
         removeMetaProperty(REF_BRANCH)
         removeMetaProperty(REF_CUBE_NAME)
         removeMetaProperty(REF_AXIS_NAME)
+        removeTransform()
+    }
+
+    /**
+     * Remove transform from reference axis.
+     */
+    void removeTransform()
+    {
         removeMetaProperty(TRANSFORM_APP)
         removeMetaProperty(TRANSFORM_VERSION)
         removeMetaProperty(TRANSFORM_STATUS)
