@@ -1284,7 +1284,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
                     }
                     else
                     {
-                        axis.removeTransform()o
+                        axis.removeTransform()
                     }
 
                     ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
@@ -1628,7 +1628,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         {
             return allowed
         }
-        long now = System.currentTimeMillis()
 
         if (Action.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
         {
