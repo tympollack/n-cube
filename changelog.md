@@ -1,4 +1,7 @@
 ### Revision History
+* 3.6.7
+  * Easily remove a transform from a reference axis
+  * NCube serialized through json-io now brings along ApplicationID
 * 3.6.6
   * Enhancement: Added custom reader and writer for NCube when used with json-io.
 * 3.6.5
