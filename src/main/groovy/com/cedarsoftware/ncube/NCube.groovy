@@ -116,11 +116,11 @@ class NCube<T>
                 map = map.ncube as Map
             }
             NCube ncube = hydrateCube(map)
-            String tenant = ncube.getMetaProperty('n.tenant')
-            String app = ncube.getMetaProperty('n.app')
-            String version = ncube.getMetaProperty('n.version')
-            String status = ncube.getMetaProperty('n.status')
-            String branch = ncube.getMetaProperty('n.branch')
+            String tenant = ncube.getMetaProperty('n-tenant')
+            String app = ncube.getMetaProperty('n-app')
+            String version = ncube.getMetaProperty('n-version')
+            String status = ncube.getMetaProperty('n-status')
+            String branch = ncube.getMetaProperty('n-branch')
 
             ApplicationID appId = new ApplicationID(tenant, app, version, status, branch)
             ncube.applicationID = appId
@@ -141,11 +141,11 @@ class NCube<T>
 
             // Temporarily set App ID as meta-properties before json-io serialization
             ApplicationID appId1 = ncube.applicationID
-            ncube.setMetaProperty('n.tenant', appId1.tenant)
-            ncube.setMetaProperty('n.app', appId1.app)
-            ncube.setMetaProperty('n.version', appId1.version)
-            ncube.setMetaProperty('n.status', appId1.status)
-            ncube.setMetaProperty('n.branch', appId1.branch)
+            ncube.setMetaProperty('n-tenant', appId1.tenant)
+            ncube.setMetaProperty('n-app', appId1.app)
+            ncube.setMetaProperty('n-version', appId1.version)
+            ncube.setMetaProperty('n-status', appId1.status)
+            ncube.setMetaProperty('n-branch', appId1.branch)
 
             String json = ncube.toFormattedJson()
             if (showType)
@@ -164,11 +164,11 @@ class NCube<T>
     
     private static void stripFoistedAppId(NCube ncube)
     {
-        ncube.removeMetaProperty('n.tenant')
-        ncube.removeMetaProperty('n.app')
-        ncube.removeMetaProperty('n.version')
-        ncube.removeMetaProperty('n.status')
-        ncube.removeMetaProperty('n.branch')
+        ncube.removeMetaProperty('n-tenant')
+        ncube.removeMetaProperty('n-app')
+        ncube.removeMetaProperty('n-version')
+        ncube.removeMetaProperty('n-status')
+        ncube.removeMetaProperty('n-branch')
     }
 
     /**
