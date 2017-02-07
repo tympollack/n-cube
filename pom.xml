@@ -71,12 +71,12 @@
         <version.log4j>2.5</version.log4j>
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.8</version.groovy>
-        <version.jgit>3.6.1.201501031845-r</version.jgit>
         <version.guava>21.0</version.guava>
         <version.commons.math>3.5</version.commons.math>
         <version.encog.core>3.3.0</version.encog.core>
         <version.mockito>1.10.19</version.mockito>
-        <!--<version.jgit>3.6.1.201501031845-r</version.jgit>-->
+        <version.httpclient>4.5.3</version.httpclient>
+        <version.spring>4.3.5.RELEASE</version.spring>
         <version.mongo>2.12.3</version.mongo>
         <version.mysql.connector.java>5.1.40</version.mysql.connector.java>
         <version.nosqlunit>0.7.9</version.nosqlunit>
@@ -224,11 +224,41 @@
 
     <dependencies>
 
-        <!--<dependency>-->
-            <!--<groupId>org.eclipse.jgit</groupId>-->
-            <!--<artifactId>org.eclipse.jgit</artifactId>-->
-            <!--<version>${version.jgit}</version>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${version.httpclient}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aspects</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.codehaus.groovy</groupId>

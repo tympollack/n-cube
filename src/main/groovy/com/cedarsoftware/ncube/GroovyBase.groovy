@@ -44,6 +44,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERS
 @CompileStatic
 abstract class GroovyBase extends UrlCommandCell
 {
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     private volatile transient Class runnableCode = null
@@ -348,7 +349,7 @@ abstract class GroovyBase extends UrlCommandCell
 
         if (cube.name.toLowerCase().startsWith("sys."))
         {   // No URLs allowed, nor code from sys.classpath when executing these cubes
-            output.loader = (GroovyClassLoader)NCubeManager.getLocalClassloader(cube.applicationID)
+            output.loader = (GroovyClassLoader)ncubeClient.getLocalClassloader(cube.applicationID)
             output.source = cmd
         }
         else if (isUrlUsed)
@@ -414,11 +415,11 @@ abstract class GroovyBase extends UrlCommandCell
         L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
     }
 
-    private static GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
+    private GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx)
         ApplicationID appId = cube.applicationID
-        GroovyClassLoader gcLoader = (GroovyClassLoader) NCubeManager.getUrlClassLoader(appId, getInput(ctx))
+        GroovyClassLoader gcLoader = (GroovyClassLoader) ncubeClient.getUrlClassLoader(appId, getInput(ctx))
         return gcLoader
     }
 

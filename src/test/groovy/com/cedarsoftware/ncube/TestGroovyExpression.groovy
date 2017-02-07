@@ -242,7 +242,7 @@ return ret
     @Test
     void testSysProtoErrorHandling2()
     {
-        assert null == GroovyExpression.getSysPrototype(null)
+        assert null == (new GroovyExpression('1', null, false)).getSysPrototype(null)
     }
 
     @Test

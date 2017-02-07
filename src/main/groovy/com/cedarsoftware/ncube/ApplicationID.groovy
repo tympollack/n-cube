@@ -382,4 +382,17 @@ class ApplicationID
         int patch = Integer.valueOf(pieces[2].split('-')[0])
         return major + minor + patch
     }
+
+    /**
+     * Validate ApplicationID is not null and valid
+     * @param appId ApplicationID to test
+     */
+    static void validateAppId(ApplicationID appId)
+    {
+        if (appId == null)
+        {
+            throw new IllegalArgumentException('ApplicationID cannot be null')
+        }
+        appId.validate()
+    }
 }

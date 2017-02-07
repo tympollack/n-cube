@@ -1,4 +1,5 @@
 package com.cedarsoftware.ncube
+
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 abstract class UrlCommandCell implements CommandCell
 {
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private static final Logger LOG = LogManager.getLogger(UrlCommandCell.class)
     private String cmd
     private volatile transient String errorMsg = null
@@ -110,7 +112,7 @@ abstract class UrlCommandCell implements CommandCell
         {   // Try URL resolution twice (HTTP HEAD called for connecting relative URLs to sys.classpath)
             try
             {
-                return NCubeManager.getActualUrl(getNCube(ctx).applicationID, url, getInput(ctx))
+                return ncubeClient.getActualUrl(getNCube(ctx).applicationID, url, getInput(ctx))
             }
             catch(Exception e)
             {
