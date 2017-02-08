@@ -21,7 +21,7 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-interface NCubeReleaseClient
+interface NCubeReleaseClient extends NCubeRuntimeClient
 {
 
 }

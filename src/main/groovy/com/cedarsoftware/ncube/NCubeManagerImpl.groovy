@@ -44,7 +44,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeManagerImpl
+class NCubeManagerImpl implements NCubeEditorClient
 {
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
@@ -69,10 +69,7 @@ class NCubeManagerImpl
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    /**
-     * Store the Persister to be used with the NCubeManager API (Dependency Injection API)
-     */
-    void setNCubePersister(NCubePersister persister)
+    NCubeManagerImpl(NCubePersister persister)
     {
         nCubePersister = persister
     }
@@ -124,6 +121,11 @@ class NCubeManagerImpl
         systemParams = null;
     }
 
+    NCube getCube(ApplicationID appId, String cubeName)
+    {
+        return loadCube(appId, cubeName)
+    }
+
     /**
      * Load n-cube, bypassing any caching.  This is necessary for n-cube-editor (IDE time
      * usage).  If the IDE environment is clustered, cannot be getting stale copies from
@@ -133,11 +135,12 @@ class NCubeManagerImpl
     NCube loadCube(ApplicationID appId, String cubeName)
     {
         assertPermissions(appId, cubeName)
+        return loadCubeInternal(appId, cubeName)
+    }
+
+    private NCube loadCubeInternal(ApplicationID appId, String cubeName)
+    {
         NCube ncube = persister.loadCube(appId, cubeName)
-        if (ncube == null)
-        {
-            return null
-        }
         return ncube
     }
 
@@ -483,7 +486,7 @@ class NCubeManagerImpl
         }
 
         lockApp(appId)
-        if (!isJUnitTest())
+        if (!JUnitTest)
         {   // Only sleep when running in production (not by JUnit)
             sleep(10000)
         }
@@ -944,10 +947,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     private void assertLockedByMe(ApplicationID appId)
     {
         final ApplicationID bootAppId = getBootAppId(appId)
-        final NCube sysLockCube = loadCube(bootAppId, SYS_LOCK)
+        final NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {   // If there is no sys.lock cube, then no permissions / locking being used.
-            if (isJUnitTest())
+            if (JUnitTest)
             {
                 return
             }
@@ -1016,14 +1019,14 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         }
 
         ApplicationID bootVersion = getBootAppId(appId)
-        NCube permCube = loadCube(bootVersion, SYS_PERMISSIONS)
+        NCube permCube = loadCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
         {   // Allow everything if no permissions are set up.
             permCache.put(key, true)
             return true
         }
 
-        NCube userToRole = loadCube(bootVersion, SYS_USERGROUPS)
+        NCube userToRole = loadCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userToRole == null)
         {   // Allow everything if no user roles are set up.
             permCache.put(key, true)
@@ -1035,7 +1038,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
         if (!roles.contains(ROLE_ADMIN) && CUBE_MUTATE_ACTIONS.contains(action))
         {   // If user is not an admin, check branch permissions.
-            NCube branchPermCube = loadCube(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
+            NCube branchPermCube = loadCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
             {
                 permCache.put(key, false)
@@ -1109,14 +1112,14 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         Map<String, Object> info = [skipPermCheck:false] as Map
         ApplicationID bootVersion = getBootAppId(appId)
         info.bootVersion = bootVersion
-        NCube permCube = loadCube(bootVersion, SYS_PERMISSIONS)
+        NCube permCube = loadCubeInternal(bootVersion, SYS_PERMISSIONS)
         if (permCube == null)
         {   // Allow everything if no permissions are set up.
             info.skipPermCheck = true
         }
         info.permCube = permCube
 
-        NCube userToRole = loadCube(bootVersion, SYS_USERGROUPS)
+        NCube userToRole = loadCubeInternal(bootVersion, SYS_USERGROUPS)
         if (userToRole == null)
         {   // Allow everything if no user roles are set up.
             info.skipPermCheck = true
@@ -1127,7 +1130,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         }
 
         info.branch000 = bootVersion.asBranch(appId.branch)
-        info.branchPermCube = loadCube((ApplicationID)info.branch000, SYS_BRANCH_PERMISSIONS)
+        info.branchPermCube = loadCubeInternal((ApplicationID)info.branch000, SYS_BRANCH_PERMISSIONS)
         return info
     }
 
@@ -1215,7 +1218,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     boolean isAdmin(ApplicationID appId)
     {
-        NCube userCube = loadCube(getBootAppId(appId), SYS_USERGROUPS)
+        NCube userCube = loadCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
         if (userCube == null)
         {   // Allow everything if no permissions are set up.
             return true
@@ -1230,7 +1233,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     protected void detectNewAppId(ApplicationID appId)
     {
-        if (search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false]).size() == 0)
+        if (persister.doCubesExist(appId, true, 'detectNewAppId'))
         {
             addAppPermissionsCubes(appId)
             if (!appId.head)
@@ -1243,7 +1246,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     private void addBranchPermissionsCube(ApplicationID appId)
     {
         ApplicationID permAppId = appId.asVersion('0.0.0')
-        if (loadCube(permAppId, SYS_BRANCH_PERMISSIONS) != null)
+        if (loadCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null)
         {
             return
         }
@@ -1278,7 +1281,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     private void addSysLockingCube(ApplicationID appId)
     {
-        if (loadCube(appId, SYS_LOCK) != null)
+        if (loadCubeInternal(appId, SYS_LOCK) != null)
         {
             return
         }
@@ -1296,7 +1299,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      */
     String getAppLockedBy(ApplicationID appId)
     {
-        NCube sysLockCube = loadCube(getBootAppId(appId), SYS_LOCK)
+        NCube sysLockCube = loadCubeInternal(getBootAppId(appId), SYS_LOCK)
         if (sysLockCube == null)
         {
             return null
@@ -1324,7 +1327,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             throw new SecurityException("Application ${appId} already locked by ${lockOwner}")
         }
 
-        NCube sysLockCube = loadCube(bootAppId, SYS_LOCK)
+        NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {
             return false
@@ -1342,7 +1345,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     {
         assertPermissions(appId, null, Action.RELEASE)
         ApplicationID bootAppId = getBootAppId(appId)
-        NCube sysLockCube = loadCube(bootAppId, SYS_LOCK)
+        NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {
             return
@@ -1361,7 +1364,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     private void addAppUserGroupsCube(ApplicationID appId)
     {
-        if (loadCube(appId, SYS_USERGROUPS) != null)
+        if (loadCubeInternal(appId, SYS_USERGROUPS) != null)
         {
             return
         }
@@ -1390,7 +1393,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     private void addAppPermissionsCube(ApplicationID appId)
     {
-        if (loadCube(appId, SYS_PERMISSIONS))
+        if (loadCubeInternal(appId, SYS_PERMISSIONS))
         {
             return
         }

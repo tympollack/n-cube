@@ -5,15 +5,12 @@ import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.JsonHttpClient
 import com.cedarsoftware.util.MapUtilities
-import com.cedarsoftware.util.ReflectiveClient
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
-import com.google.common.cache.Cache
-import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
@@ -24,7 +21,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
@@ -53,7 +49,6 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 class NCubeRuntime implements NCubeRuntimeClient
 {
     private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'))
-//    private static NCubeRuntime self = new NCubeRuntime(new ReflectiveClient())
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -114,6 +109,18 @@ class NCubeRuntime implements NCubeRuntimeClient
             throw new IllegalArgumentException('cubeName cannot be null')
         }
         return getCubeInternal(appId, cubeName)
+    }
+
+    boolean updateCube(NCube ncube)
+    {
+        boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
+        return result
+    }
+
+    NCube loadCubeById(long id)
+    {
+        NCube ncube = bean.call('ncubeController', 'loadCubeById', [id]) as NCube
+        return ncube
     }
 
     //-- NCube Caching -------------------------------------------------------------------------------------------------

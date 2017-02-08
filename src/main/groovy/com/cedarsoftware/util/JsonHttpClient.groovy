@@ -99,13 +99,9 @@ class JsonHttpClient implements CallableBean
         LOG.info("${bean}.${method}(${jsonArgs})")
         long start = System.nanoTime()
 
-        // Add AuthCache to the execution context
         HttpClientContext clientContext = HttpClientContext.create()
         clientContext.credentialsProvider = credsProvider
         clientContext.authCache = authCache
-
-        long stopNew = System.nanoTime()
-        println("    foo - ${(stopNew - start) / 1000000.0d}ms")
 
         HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${method}")
         request.entity = new StringEntity(jsonArgs, ContentType.APPLICATION_JSON)

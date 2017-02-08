@@ -21,7 +21,9 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-interface NCubeEditorClient
+interface NCubeEditorClient extends NCubeReleaseClient
 {
+    boolean updateCube(ApplicationID appId, NCube ncube, boolean createPermCubesIfNeeded)
 
+    NCube loadCubeById(long id)
 }

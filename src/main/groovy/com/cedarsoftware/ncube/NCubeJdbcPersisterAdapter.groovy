@@ -104,6 +104,12 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 "deleteBranch(${branchId})")
     }
 
+    boolean doCubesExist(ApplicationID appId, boolean ignoreStatus, String methodName)
+    {
+        return (boolean) jdbcOperation({ Connection c -> persister.doCubesExist(c, appId, ignoreStatus, methodName) },
+                "doCubesExist(${appId})")
+    }
+
     boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)
     {
         return (boolean) jdbcOperation({ Connection c -> persister.deleteCubes(c, appId, cubeNames, allowDelete, username) },

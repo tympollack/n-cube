@@ -8,7 +8,7 @@ import org.junit.Test
 class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')
-    private NCubeRuntimeClient ncubeClient = NCubeRuntime.instance
+    private NCubeRuntimeClient runtimeClient = NCubeRuntime.instance
 
     @Ignore
     @Test
@@ -34,7 +34,7 @@ class TestNCubeClient
     @Test
     void testPlinko()
     {
-        NCube ncube = ncubeClient.getCube(TEST_APP, '0Plinko')
+        NCube ncube = runtimeClient.getCube(TEST_APP, '0Plinko')
         def result = ncube.getCell([setting: 'prop1', bu: 'RATP'])
         assert 'waldo' == result
     }
@@ -42,19 +42,19 @@ class TestNCubeClient
     @Test
     void testSearch()
     {
-        Object[] dtos = ncubeClient.search(TEST_APP, '0Plinko', null, null)
-        ncubeClient.search(TEST_APP, '0Plinko', null, null)
-        ncubeClient.search(TEST_APP, '0Plinko', null, null)
-        ncubeClient.search(TEST_APP, '0Plinko', null, null)
-        ncubeClient.search(TEST_APP, '0Plinko', null, null)
-        ncubeClient.search(TEST_APP, '0Plinko', null, null)
+        Object[] dtos = runtimeClient.search(TEST_APP, '0Plinko', null, null)
+        runtimeClient.search(TEST_APP, '0Plinko', null, null)
+        runtimeClient.search(TEST_APP, '0Plinko', null, null)
+        runtimeClient.search(TEST_APP, '0Plinko', null, null)
+        runtimeClient.search(TEST_APP, '0Plinko', null, null)
+        runtimeClient.search(TEST_APP, '0Plinko', null, null)
         assert 1 == dtos.size()
     }
 
     @Test
     void testHttpReference()
     {
-        NCube ncube = ncubeClient.getCube(TEST_APP, '0Plinko')
+        NCube ncube = runtimeClient.getCube(TEST_APP, '0Plinko')
         def result = ncube.getCell([setting: 'prop1', bu: 'SHS'])
         assert 'Hello, world.' == result
     }
@@ -62,7 +62,7 @@ class TestNCubeClient
     @Test
     void testRelativeUrl()
     {
-        NCube ncube = ncubeClient.getCube(TEST_APP, '0Plinko')
+        NCube ncube = runtimeClient.getCube(TEST_APP, '0Plinko')
         def result = ncube.getCell([setting: 'prop1'])
         assert 'Hello, world.' == result
     }
@@ -70,8 +70,14 @@ class TestNCubeClient
     @Test
     void testRefAxis()
     {
-        NCube ncube = ncubeClient.getCube(TEST_APP, '0RefAxisAndOrder')
+        NCube ncube = runtimeClient.getCube(TEST_APP, '0RefAxisAndOrder')
         def result = ncube.getCell([test: 'test1', letter: 'a', ref: 'USAddress'])
         assert 'foo' == result
+    }
+
+    @Test
+    void testUpdateCube()
+    {
+
     }
 }
