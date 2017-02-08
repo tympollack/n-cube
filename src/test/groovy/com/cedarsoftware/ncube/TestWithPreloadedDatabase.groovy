@@ -1108,6 +1108,7 @@ class TestWithPreloadedDatabase
         assertEquals(0, NCubeManager.search(HEAD, "*Codes*", "ZZZ", map).size())
         assertEquals(1, NCubeManager.search(HEAD, "*Codes*", "OH", map).size())
         assertEquals(0, NCubeManager.search(HEAD, null, "ZZZ", map).size())
+        assertEquals(0, NCubeManager.search(HEAD, null, "TestCubeLevelDefault", map).size())
 
         map.put(SEARCH_ACTIVE_RECORDS_ONLY, false)
         map.put(SEARCH_DELETED_RECORDS_ONLY, true)
@@ -1175,6 +1176,46 @@ class TestWithPreloadedDatabase
         assertEquals(1, NCubeManager.search(HEAD, cubeName, null, map).size())
         assertEquals(0, NCubeManager.search(HEAD, '*racketsIn*', null, map).size())
         assertEquals(0, NCubeManager.search(HEAD, 'racketsIn', null, map).size())
+    }
+
+    @Test
+    void testSearchReferenceAxesContent()
+    {
+        NCube one = NCubeBuilder.discrete1DAlt
+        NCubeManager.updateCube(ApplicationID.testAppId, one, true)
+        assert one.getAxis('state').size() == 2
+        NCubeManager.addCube(ApplicationID.testAppId, one)
+
+        Map<String, Object> args = [:]
+
+        ApplicationID appId = ApplicationID.testAppId
+        args[REF_TENANT] = appId.tenant
+        args[REF_APP] = appId.app
+        args[REF_VERSION] = appId.version
+        args[REF_STATUS] = appId.status
+        args[REF_BRANCH] = appId.branch
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
+
+        // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource', args)
+        Axis axis = new Axis('stateSource', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.addAxis(axis)
+
+        two.setCell('a', [stateSource:'OH'] as Map)
+        two.setCell('b', [stateSource:'TX'] as Map)
+
+        String json = two.toFormattedJson()
+        NCube reload = NCube.fromSimpleJson(json)
+        assert reload.numCells == 2
+        assert 'a' == reload.getCell([stateSource:'OH'] as Map)
+        assert 'b' == reload.getCell([stateSource:'TX'] as Map)
+        assert reload.getAxis('stateSource').reference
+        NCubeManager.updateCube(ApplicationID.testAppId, two, true)
+
+        List<NCubeInfoDto> result = NCubeManager.search(ApplicationID.testAppId, 'Mongo', 'OH', [(SEARCH_ACTIVE_RECORDS_ONLY): true])
+        assert 1 == result.size()
     }
 
     @Test
