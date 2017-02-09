@@ -29,6 +29,7 @@ import java.util.regex.Pattern
 import java.util.zip.GZIPOutputStream
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
 
 /**
  * SQL Persister for n-cubes.  Manages all reads and writes of n-cubes to an SQL database.
@@ -63,6 +64,7 @@ class NCubeJdbcPersister
     private static final long EXECUTE_BATCH_CONSTANT = 35
     private static final int FETCH_SIZE = 1000
     private static final String METHOD_NAME = '~method~'
+    private static final Pattern REF_APP_SEARCH_PATTERN = Pattern.compile(StringUtilities.wildcardToRegexString('*' + REF_APP + '*'), Pattern.CASE_INSENSITIVE)
     private static volatile AtomicBoolean isOracle = null
 
     static List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchContent, Map<String, Object> options)
@@ -1639,10 +1641,42 @@ ORDER BY abs(revision_number) DESC"""
 
             if (hasSearchPattern)
             {
-                Matcher matcher = searchPattern.matcher(cubeData)
-                if (!matcher.find())
+                if (!searchPattern.matcher(cubeData.substring(cubeData.indexOf(','))).find()) // don't search name of cube
                 {   // Did not contains-match content pattern
-                    return
+                    // check if cube has reference axes before returning, as the value may exist on a referenced column
+
+                    if (REF_APP_SEARCH_PATTERN.matcher(cubeData).find())
+                    {
+                        boolean foundInRefAxColumn = false
+                        NCube cube = NCube.fromSimpleJson(cubeData)
+                        for (Axis axis : cube.axes)
+                        {
+                            if (axis.reference)
+                            {
+                                for (Column column : axis.columnsWithoutDefault)
+                                {
+                                    if (searchPattern.matcher(column.value.toString())
+                                            || (column.columnName != null && searchPattern.matcher(column.columnName)))
+                                    {
+                                        foundInRefAxColumn = true
+                                        break
+                                    }
+                                }
+                                if (foundInRefAxColumn)
+                                {
+                                    break
+                                }
+                            }
+                        }
+                        if (!foundInRefAxColumn)
+                        {
+                            return
+                        }
+                    }
+                    else
+                    {
+                        return
+                    }
                 }
             }
 
