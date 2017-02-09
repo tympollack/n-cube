@@ -1651,18 +1651,21 @@ ORDER BY abs(revision_number) DESC"""
                         NCube cube = NCube.fromSimpleJson(cubeData)
                         for (Axis axis : cube.axes)
                         {
-                            for (Column column : axis.columnsWithoutDefault)
+                            if (axis.reference)
                             {
-                                if (searchPattern.matcher(column.value.toString())
-                                    || (column.columnName != null && searchPattern.matcher(column.columnName)))
+                                for (Column column : axis.columnsWithoutDefault)
                                 {
-                                    foundInRefAxColumn = true
+                                    if (searchPattern.matcher(column.value.toString())
+                                            || (column.columnName != null && searchPattern.matcher(column.columnName)))
+                                    {
+                                        foundInRefAxColumn = true
+                                        break
+                                    }
+                                }
+                                if (foundInRefAxColumn)
+                                {
                                     break
                                 }
-                            }
-                            if (foundInRefAxColumn)
-                            {
-                                break
                             }
                         }
                         if (!foundInRefAxColumn)
