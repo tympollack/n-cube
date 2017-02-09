@@ -1645,13 +1645,27 @@ ORDER BY abs(revision_number) DESC"""
                 {   // Did not contains-match content pattern
                     // check if cube has reference axes before returning, as the value may exist on a referenced column
 
-                    if (REF_APP_SEARCH_PATTERN.matcher(cubeData).find()) {
+                    if (REF_APP_SEARCH_PATTERN.matcher(cubeData).find())
+                    {
+                        boolean foundInRefAxColumn = false
                         NCube cube = NCube.fromSimpleJson(cubeData)
-                        String cubeContent = cube.axes.collect { Axis axis ->
-                            axis.columns.collect { Column column -> column.valueThatMatches }
-                        }.toString()
-
-                        if (!searchPattern.matcher(cubeContent).find())
+                        for (Axis axis : cube.axes)
+                        {
+                            for (Column column : axis.columnsWithoutDefault)
+                            {
+                                if (searchPattern.matcher(column.value.toString())
+                                    || (column.columnName != null && searchPattern.matcher(column.columnName)))
+                                {
+                                    foundInRefAxColumn = true
+                                    break
+                                }
+                            }
+                            if (foundInRefAxColumn)
+                            {
+                                break
+                            }
+                        }
+                        if (!foundInRefAxColumn)
                         {
                             return
                         }
@@ -1660,10 +1674,6 @@ ORDER BY abs(revision_number) DESC"""
                     {
                         return
                     }
-                }
-                else if (searchPattern.matcher(cubeData.substring(0, cubeData.indexOf(','))).find())
-                {
-                    return
                 }
             }
 
