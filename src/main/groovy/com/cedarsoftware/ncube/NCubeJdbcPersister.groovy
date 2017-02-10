@@ -1473,7 +1473,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
 
     static boolean updateTestData(Connection c, ApplicationID appId, String cubeName, String testData)
     {
-        Long maxRev = getMaxRevision(c, appId, cubeName, 'updateTestData')
+        Long maxRev = getMaxRevision(c, appId, cubeName, 'saveTests')
 
         if (maxRev == null)
         {
@@ -1486,7 +1486,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
         Sql sql = getSql(c)
 
         String update = """\
-/* updateTestData */
+/* saveTests */
 UPDATE n_cube SET test_data_bin=:testData
 WHERE app_cd = :app AND ${buildNameCondition('n_cube_nm')} = :cube AND version_no_cd = :ver
 AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev"""

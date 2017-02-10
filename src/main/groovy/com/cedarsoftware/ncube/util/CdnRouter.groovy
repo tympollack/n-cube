@@ -2,7 +2,7 @@ package com.cedarsoftware.ncube.util
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.Regexes
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
@@ -35,6 +35,7 @@ import java.util.regex.Matcher
 @CompileStatic
 class CdnRouter
 {
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private static CdnRoutingProvider provider
     private static final Logger LOG = LogManager.getLogger(CdnRouter.class)
     public static final String TENANT = 'router.tenant'
@@ -137,7 +138,7 @@ class CdnRouter
             coord[HTTP_RESPONSE] = response
 
             ApplicationID appId = new ApplicationID(tenant, app, version, status, branch)
-            NCube routingCube = NCubeManager.getCube(appId, cubeName)
+            NCube routingCube = ncubeClient.getCube(appId, cubeName)
             if (routingCube == null)
             {
                 throw new IllegalStateException("Could not load routing cube using app: " + appId + ", cube name: " + cubeName)

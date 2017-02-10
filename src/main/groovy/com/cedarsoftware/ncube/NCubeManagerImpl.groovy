@@ -39,7 +39,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  *         <br><br>
  *         Unless required by applicable law or agreed to in writing, software
  *         distributed under the License is distributed on an "AS IS" BASIS,
- *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either eƒfetxpress or implied.
+ *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
@@ -206,7 +206,7 @@ class NCubeManagerImpl implements NCubeEditorClient
     /**
      * Restore a previously deleted n-cube.
      */
-    void restoreCubes(ApplicationID appId, Object[] cubeNames)
+    Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -228,7 +228,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         }
 
         // Batch restore
-        persister.restoreCubes(appId, cubeNames, getUserId())
+        return persister.restoreCubes(appId, cubeNames, getUserId())
     }
 
     /**
@@ -278,7 +278,7 @@ class NCubeManagerImpl implements NCubeEditorClient
     /**
      * Duplicate the given n-cube specified by oldAppId and oldName to new ApplicationID and name,
      */
-    void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
+    Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
         ApplicationID.validateAppId(oldAppId)
         ApplicationID.validateAppId(newAppId)
@@ -305,7 +305,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         }
         assertPermissions(newAppId, newName, Action.UPDATE)
         assertNotLockBlocked(newAppId)
-        persister.duplicateCube(oldAppId, newAppId, oldName, newName, getUserId())
+        return persister.duplicateCube(oldAppId, newAppId, oldName, newName, getUserId())
     }
 
     /**
@@ -345,7 +345,7 @@ class NCubeManagerImpl implements NCubeEditorClient
      * @param targetAppId Branch copied to (must not exist)
      * @return int number of n-cubes in branch (number copied - revision depth is not copied)
      */
-    int copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
     {
         assertPermissions(srcAppId, null, Action.READ)
         assertPermissions(targetAppId, null, Action.UPDATE)
@@ -415,7 +415,7 @@ class NCubeManagerImpl implements NCubeEditorClient
      * @param newSnapVer String version to move cubes to
      * @return number of rows moved (count includes revisions per cube).
      */
-    int moveBranch(ApplicationID appId, String newSnapVer)
+    Integer moveBranch(ApplicationID appId, String newSnapVer)
     {
         ApplicationID.validateAppId(appId)
         if (ApplicationID.HEAD == appId.branch)
@@ -439,7 +439,7 @@ class NCubeManagerImpl implements NCubeEditorClient
     /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
-    int releaseVersion(ApplicationID appId, String newSnapVer)
+    Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
         ApplicationID.validateAppId(appId)
         assertPermissions(appId, null, Action.RELEASE)
@@ -465,7 +465,7 @@ class NCubeManagerImpl implements NCubeEditorClient
     /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
-    int releaseCubes(ApplicationID appId, String newSnapVer)
+    Integer releaseCubes(ApplicationID appId, String newSnapVer)
     {
         assertPermissions(appId, null, Action.RELEASE)
         ApplicationID.validateAppId(appId)
@@ -536,7 +536,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         persister.changeVersionValue(appId, newVersion)
     }
 
-    boolean renameCube(ApplicationID appId, String oldName, String newName)
+    Boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -563,7 +563,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         return result
     }
 
-    boolean deleteBranch(ApplicationID appId)
+    Boolean deleteBranch(ApplicationID appId)
     {
         appId.validateBranchIsNotHead()
         assertPermissions(appId, null, Action.UPDATE)
@@ -576,7 +576,7 @@ class NCubeManagerImpl implements NCubeEditorClient
      *
      * @param cubeNames  Object[] of String cube names to be deleted (soft deleted)
      */
-    boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
+    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
     {
         appId.validateBranchIsNotHead()
         assertNotLockBlocked(appId)
@@ -587,7 +587,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         return deleteCubes(appId, cubeNames, false)
     }
 
-    boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
+    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
     {
         ApplicationID.validateAppId(appId)
         if (!allowDelete)
@@ -611,7 +611,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         return false
     }
 
-    boolean updateTestData(ApplicationID appId, String cubeName, String testData)
+    Boolean saveTests(ApplicationID appId, String cubeName, String testData)
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
@@ -662,7 +662,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         return persister.getBranches(appId)
     }
 
-    int getBranchCount(ApplicationID appId)
+    Integer getBranchCount(ApplicationID appId)
     {
         Set<String> branches = getBranches(appId)
         return branches.size()
@@ -1005,7 +1005,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @return boolean true if allowed, false if not.  If the permissions cubes restricting access have not yet been
      * added to the same App, then all access is granted.
      */
-    boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
         String key = getPermissionCacheKey(appId, resource, action)
         Boolean allowed = checkPermissionCache(key)
@@ -1218,7 +1218,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return p.matcher(text).matches()
     }
 
-    boolean isAdmin(ApplicationID appId)
+    Boolean isAdmin(ApplicationID appId)
     {
         NCube userCube = loadCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
         if (userCube == null)
@@ -1313,7 +1313,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * Lock the given appId so that no changes can be made to any cubes within it
      * @param appId ApplicationID to lock
      */
-    void lockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId)
     {
         assertPermissions(appId, null, Action.RELEASE)
         String userId = getUserId()
@@ -1322,7 +1322,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         String lockOwner = getAppLockedBy(appId)
         if (userId == lockOwner)
         {
-            return
+            return false
         }
         if (lockOwner != null)
         {
@@ -1332,10 +1332,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {
-            return
+            return false
         }
         sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
         persister.updateCube(sysLockCube, userId)
+        return true
     }
 
     /**

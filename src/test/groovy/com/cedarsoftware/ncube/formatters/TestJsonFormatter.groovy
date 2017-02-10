@@ -3,6 +3,7 @@ import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeBuilder
 import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.TestNCubeManager
 import com.cedarsoftware.ncube.TestingDatabaseHelper
 import com.cedarsoftware.ncube.TestingDatabaseManager
@@ -309,7 +310,7 @@ class TestJsonFormatter
     {
         for (String f : strings)
         {
-            String original = NCubeManager.getResourceAsString(f)
+            String original = NCubeRuntime.getResourceAsString(f)
             NCube ncube = NCube.fromSimpleJson(original)
 
             //long start = System.nanoTime()

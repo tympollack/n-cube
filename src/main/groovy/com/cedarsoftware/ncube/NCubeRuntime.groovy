@@ -15,6 +15,9 @@ import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.springframework.cache.Cache
+import org.springframework.cache.CacheManager
+import org.springframework.cache.support.SimpleCacheManager
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -40,7 +43,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
  *         <br><br>
  *         Unless required by applicable law or agreed to in writing, software
  *         distributed under the License is distributed on an "AS IS" BASIS,
- *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either eƒfetxpress or implied.
+ *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
@@ -49,6 +52,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 class NCubeRuntime implements NCubeEditorClient
 {
     private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'))
+    private final CacheManager cacheManager = new SimpleCacheManager()
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -111,6 +115,12 @@ class NCubeRuntime implements NCubeEditorClient
         return getCubeInternal(appId, cubeName)
     }
 
+    String getTestData(ApplicationID appId, String cubeName)
+    {
+        String result = bean.call('ncubeController', 'updateCube', [appId, cubeName]) as String
+        return result
+    }
+
     boolean updateCube(NCube ncube)
     {
         boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
@@ -128,20 +138,21 @@ class NCubeRuntime implements NCubeEditorClient
         bean.call('ncubeController', 'createCube', [ncube])
     }
 
-    void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
+    Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
-        bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName])
-    }
-
-    boolean checkPermissions(ApplicationID appId, String resource, Action action)
-    {
-        boolean result = bean.call('ncubeController', 'checkPermissions', [appId, resource, action]) as boolean
+        Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
         return result
     }
 
-    boolean isAdmin(ApplicationID appId)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
-        boolean result = bean.call('ncubeController', 'isAppAdmin', [appId]) as boolean
+        Boolean result = bean.call('ncubeController', 'checkPermissions', [appId, resource, action]) as Boolean
+        return result
+    }
+
+    Boolean isAdmin(ApplicationID appId)
+    {
+        Boolean result = bean.call('ncubeController', 'isAppAdmin', [appId]) as Boolean
         return result
     }
 
@@ -151,14 +162,137 @@ class NCubeRuntime implements NCubeEditorClient
         return result
     }
 
-    void lockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId)
     {
-        bean.call('ncubeController', 'lockApp', [appId, true])
+        Boolean result = bean.call('ncubeController', 'lockApp', [appId, true]) as Boolean
+        return result
     }
 
     void unlockApp(ApplicationID appId)
     {
         bean.call('ncubeController', 'unlockApp', [appId, false])
+    }
+
+    Integer moveBranch(ApplicationID appId, String newSnapVer)
+    {
+        Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
+        return result
+    }
+
+    Integer releaseVersion(ApplicationID appId, String newSnapVer)
+    {
+        Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
+        return result
+    }
+
+    Integer releaseCubes(ApplicationID appId, String newSnapVer)
+    {
+        Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
+        return result
+    }
+
+    Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
+    {
+        Boolean result = bean.call('ncubeController', 'restoreCubes', [appId, cubeNames]) as Boolean
+        return result
+    }
+
+    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
+    {
+        List<NCubeInfoDto> result = bean.call('ncubeController', 'getRevisionHistory', [appId, cubeName, ignoreVersion]) as List<NCubeInfoDto>
+        return result
+    }
+
+    List<String> getAppNames(String tenant)
+    {
+        List<String> result = bean.call('ncubeController', 'getAppNames', [tenant]) as List<String>
+        return result
+    }
+
+    Map<String, List<String>> getVersions(String tenant, String app)
+    {
+        Map<String, List<String>> result = bean.call('ncubeController', 'getVersions', [tenant, app]) as Map<String, List<String>>
+        return result
+    }
+
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
+    {
+        Integer result = bean.call('ncubeController', 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
+        return result
+    }
+
+    Set<String> getBranches(ApplicationID appId)
+    {
+        Set<String> result = bean.call('ncubeController', 'getBranches', [appId]) as Set<String>
+        return result
+    }
+
+    Integer getBranchCount(ApplicationID appId)
+    {
+        Integer result = bean.call('ncubeController', 'getBranchCount', [appId]) as Integer
+        return result
+    }
+
+    Boolean deleteBranch(ApplicationID appId)
+    {
+        Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
+        return result
+    }
+
+    NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
+    {
+        NCube result = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
+        return result
+    }
+
+    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
+    {
+        Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
+        return result
+    }
+
+    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
+    {
+        Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames, allowDelete]) as Boolean
+        return result
+    }
+
+    void changeVersionValue(ApplicationID appId, String newVersion)
+    {
+        bean.call('ncubeController', 'changeVersionValue', [appId, newVersion])
+    }
+
+    Boolean renameCube(ApplicationID appId, String oldName, String newName)
+    {
+        Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
+        return result
+    }
+
+    void getReferencedCubeNames(ApplicationID appId, String cubeName, Set<String> references)
+    {
+        // TODO - no controller method
+    }
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
+    {
+        List<AxisRef> result = bean.call('ncubeController', 'getReferenceAxes', [appId]) as List<AxisRef>
+        return result
+    }
+
+    void updateReferenceAxes(List<AxisRef> axisRefs)
+    {
+        bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
+    }
+
+    void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
+    {
+        bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
+    }
+
+    Boolean saveTests(ApplicationID appId, String cubeName, String tests)
+    {
+        Boolean result = bean.call('ncubeController', 'saveTests', [appId, cubeName, tests]) as Boolean
+        return result
     }
 
     //-- NCube Caching -------------------------------------------------------------------------------------------------
@@ -543,7 +677,7 @@ class NCubeRuntime implements NCubeEditorClient
 
     //-- Resource APIs -------------------------------------------------------------------------------------------------
 
-    String getResourceAsString(String name) throws Exception
+    static String getResourceAsString(String name) throws Exception
     {
         URL url = NCubeRuntime.class.getResource("/${name}")
         Path resPath = Paths.get(url.toURI())

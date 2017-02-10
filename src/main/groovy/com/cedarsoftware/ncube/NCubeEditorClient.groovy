@@ -15,7 +15,7 @@ import groovy.transform.CompileStatic
  *         <br><br>
  *         Unless required by applicable law or agreed to in writing, software
  *         distributed under the License is distributed on an "AS IS" BASIS,
- *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either eƒfetxpress or implied.
+ *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
@@ -29,15 +29,57 @@ interface NCubeEditorClient extends NCubeReleaseClient
 
     void createCube(NCube ncube)
 
-    void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
+    Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
 
-    boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
 
-    boolean isAdmin(ApplicationID appId)
+    Boolean isAdmin(ApplicationID appId)
 
     String getAppLockedBy(ApplicationID appId)
 
-    void lockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId)
 
     void unlockApp(ApplicationID appId)
+
+    Integer moveBranch(ApplicationID appId, String newSnapVer)
+
+    Integer releaseVersion(ApplicationID appId, String newSnapVer)
+
+    Integer releaseCubes(ApplicationID appId, String newSnapVer)
+
+    Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
+
+    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
+
+    List<String> getAppNames(String tenant)
+
+    Map<String, List<String>> getVersions(String tenant, String app)
+
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
+
+    Set<String> getBranches(ApplicationID appId)
+
+    Integer getBranchCount(ApplicationID appId)
+
+    Boolean deleteBranch(ApplicationID appId)
+
+    NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
+
+    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
+
+    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
+
+    void changeVersionValue(ApplicationID appId, String newVersion)
+
+    Boolean renameCube(ApplicationID appId, String oldName, String newName)
+
+    void getReferencedCubeNames(ApplicationID appId, String cubeName, Set<String> references)
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
+
+    void updateReferenceAxes(List<AxisRef> axisRefs)
+
+    void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
+
+    Boolean saveTests(ApplicationID appId, String cubeName, String tests)
 }

@@ -10,7 +10,6 @@ import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.io.JsonWriter
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
@@ -86,7 +85,7 @@ class TestNCubeManager
         ncube.setCell(1.8d, coord)
 
         NCubeManager.updateCube(defaultSnapshotApp, ncube, true)
-        NCubeManager.updateTestData(defaultSnapshotApp, ncube.name, new NCubeTestWriter().format(createTests()))
+        NCubeManager.saveTests(defaultSnapshotApp, ncube.name, new NCubeTestWriter().format(createTests()))
         NCubeManager.updateNotes(defaultSnapshotApp, ncube.name, 'notes follow')
         return ncube
     }
@@ -113,7 +112,7 @@ class TestNCubeManager
 
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, version, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
         NCubeManager.updateCube(appId, ncube, true)
-        NCubeManager.updateTestData(appId, ncube.name, JsonWriter.objectToJson(coord))
+        NCubeManager.saveTests(appId, ncube.name, JsonWriter.objectToJson(coord))
         NCubeManager.updateNotes(appId, ncube.name, 'notes follow')
 
         NCubeManager.search(appId, name1, null, [(SEARCH_EXACT_MATCH_NAME) : true]);
@@ -491,7 +490,7 @@ class TestNCubeManager
         NCubeManager.updateCube(defaultSnapshotApp, ncube1, true)
         assertTrue(ncube1.numDimensions == 3)
         NCubeManager.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray())
-        NCubeManager.updateTestData(defaultSnapshotApp, ncube1.name, 'test data')
+        NCubeManager.saveTests(defaultSnapshotApp, ncube1.name, 'test data')
         String testData = NCubeManager.getTestData(defaultSnapshotApp, ncube1.name)
         assert 'test data' == testData
     }
@@ -613,11 +612,11 @@ class TestNCubeManager
         notes1 = NCubeManager.getNotes(next, 'test.ValidTrailorConfigs')
         assertTrue('Trailer Config Notes'.equals(notes1))
 
-        NCubeManager.updateTestData(next, 'test.ValidTrailorConfigs', null)
+        NCubeManager.saveTests(next, 'test.ValidTrailorConfigs', null)
         String testData = NCubeManager.getTestData(next, 'test.ValidTrailorConfigs')
         assertTrue(''.equals(testData))
 
-        NCubeManager.updateTestData(next, 'test.ValidTrailorConfigs', 'This is JSON data')
+        NCubeManager.saveTests(next, 'test.ValidTrailorConfigs', 'This is JSON data')
         testData = NCubeManager.getTestData(next, 'test.ValidTrailorConfigs')
         assertTrue('This is JSON data'.equals(testData))
 
@@ -970,7 +969,7 @@ class TestNCubeManager
 
         try
         {
-            NCubeManager.updateTestData(defaultSnapshotApp, 'test.funky', null)
+            NCubeManager.saveTests(defaultSnapshotApp, 'test.funky', null)
             fail('should not make it here')
         }
         catch (Exception e)

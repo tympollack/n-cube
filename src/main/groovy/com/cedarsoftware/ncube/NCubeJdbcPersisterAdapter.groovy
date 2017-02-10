@@ -197,7 +197,7 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
     boolean updateTestData(ApplicationID appId, String cubeName, String testData)
     {
         return (boolean) jdbcOperation({ Connection c -> persister.updateTestData(c, appId, cubeName, testData) },
-                "updateTestData(${appId.cacheKey(cubeName)})")
+                "saveTests(${appId.cacheKey(cubeName)})")
     }
 
     String getTestData(ApplicationID appId, String cubeName)

@@ -423,14 +423,14 @@ abstract class GroovyBase extends UrlCommandCell
         return gcLoader
     }
 
-    private static String getTargetByteCodeVersion()
+    private String getTargetByteCodeVersion()
     {
-        return NCubeManager.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
+        return ncubeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
     }
 
-    private static boolean isNCubeCodeGenDebug()
+    private boolean isNCubeCodeGenDebug()
     {
-        return 'true'.equalsIgnoreCase(NCubeManager.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
+        return 'true'.equalsIgnoreCase(ncubeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
     }
 
     protected static String expandNCubeShortCuts(String groovy)

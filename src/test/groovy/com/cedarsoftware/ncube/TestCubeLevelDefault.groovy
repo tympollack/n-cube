@@ -95,7 +95,7 @@ class TestCubeLevelDefault
 
     private void assertSha1Calculation(String jsonFile)
     {
-        String json = NCubeManager.getResourceAsString(jsonFile)
+        String json = NCubeRuntime.getResourceAsString(jsonFile)
 
         NCube x = NCube.fromSimpleJson(json)
         String json2 = x.toFormattedJson()
