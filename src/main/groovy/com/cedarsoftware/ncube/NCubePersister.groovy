@@ -26,7 +26,8 @@ import groovy.transform.CompileStatic
 interface NCubePersister extends NCubeReadOnlyPersister
 {
     // Basic CRUD operations
-    void updateCube(ApplicationID appId, NCube cube, String username)
+    void updateCube(NCube cube, String username)
+    void createCube(NCube cube, String username)
     boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
     boolean duplicateCube(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName, String username)
     boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete, String username)

@@ -23,7 +23,11 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeEditorClient extends NCubeReleaseClient
 {
-    boolean updateCube(ApplicationID appId, NCube ncube, boolean createPermCubesIfNeeded)
+    boolean updateCube(NCube ncube)
 
     NCube loadCubeById(long id)
+
+    void createCube(NCube ncube)
+
+    void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
 }

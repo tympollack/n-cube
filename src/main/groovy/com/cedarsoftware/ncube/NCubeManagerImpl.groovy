@@ -156,6 +156,12 @@ class NCubeManagerImpl implements NCubeEditorClient
         return ncube
     }
 
+    void createCube(NCube ncube)
+    {
+        detectNewAppId(ncube.applicationID)
+        persister.createCube(ncube, getUserId())
+    }
+
     /**
      * This method will clear all caches for all ApplicationIDs.
      * Do not call it for anything other than test purposes.
@@ -164,7 +170,6 @@ class NCubeManagerImpl implements NCubeEditorClient
     {
         permCache.invalidateAll()
     }
-
 
     /**
      * Retrieve all cube names that are deeply referenced by ApplicationID + n-cube name.
@@ -309,8 +314,9 @@ class NCubeManagerImpl implements NCubeEditorClient
      * @param ncube      NCube to be updated.
      * @return boolean true on success, false otherwise
      */
-    boolean updateCube(ApplicationID appId, NCube ncube, boolean createPermCubesIfNeeded = false)
+    boolean updateCube(NCube ncube)
     {
+        ApplicationID appId = ncube.applicationID
         ApplicationID.validateAppId(appId)
         if (ncube == null)
         {
@@ -326,13 +332,9 @@ class NCubeManagerImpl implements NCubeEditorClient
         appId.validateBranchIsNotHead()
 
         final String cubeName = ncube.name
-        if (createPermCubesIfNeeded)
-        {
-            detectNewAppId(appId)
-        }
         assertPermissions(appId, cubeName, Action.UPDATE)
         assertNotLockBlocked(appId)
-        persister.updateCube(appId, ncube, getUserId())
+        persister.updateCube(ncube, getUserId())
         ncube.applicationID = appId
         return true
     }
@@ -403,7 +405,7 @@ class NCubeManagerImpl implements NCubeEditorClient
         }
 
         ncube.mergeDeltas(deltas)
-        updateCube(appId, ncube)
+        updateCube(ncube)
         return ncube
     }
 
@@ -888,7 +890,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
                     }
 
                     ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
-                    persister.updateCube(axisRef.srcAppId, ncube, getUserId())
+                    persister.updateCube(ncube, getUserId())
                 }
             }
         }
@@ -908,7 +910,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             ncube.dropOrphans(colIds, axis.id)
         })
         ncube.clearSha1()
-        updateCube(appId, ncube)
+        updateCube(ncube)
     }
 
     // ---------------------- Broadcast APIs for notifying other services in cluster of cache changes ------------------
@@ -1233,7 +1235,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     protected void detectNewAppId(ApplicationID appId)
     {
-        if (persister.doCubesExist(appId, true, 'detectNewAppId'))
+        if (!persister.doCubesExist(appId, true, 'detectNewAppId'))
         {
             addAppPermissionsCubes(appId)
             if (!appId.head)
@@ -1267,7 +1269,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
         branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):null])
 
-        persister.updateCube(permAppId, branchPermCube, userId)
+        persister.updateCube(branchPermCube, userId)
         VersionControl.updateBranch(permAppId)
     }
 
@@ -1290,7 +1292,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         sysLockCube.applicationID = appId
         sysLockCube.setMetaProperty(PROPERTY_CACHE, false)
         sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.STRING, true))
-        persister.updateCube(appId, sysLockCube, getUserId())
+        persister.updateCube(sysLockCube, getUserId())
     }
 
     /**
@@ -1333,7 +1335,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             return false
         }
         sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
-        persister.updateCube(bootAppId, sysLockCube, userId)
+        persister.updateCube(sysLockCube, userId)
         return true
     }
 
@@ -1359,7 +1361,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         }
 
         sysLockCube.removeCell([(AXIS_SYSTEM):null])
-        persister.updateCube(bootAppId, sysLockCube, getUserId())
+        persister.updateCube(sysLockCube, getUserId())
     }
 
     private void addAppUserGroupsCube(ApplicationID appId)
@@ -1388,7 +1390,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         userGroupsCube.setCell(true, [(AXIS_USER):userId, (AXIS_ROLE):ROLE_USER])
         userGroupsCube.setCell(true, [(AXIS_USER):null, (AXIS_ROLE):ROLE_USER])
 
-        persister.updateCube(appId, userGroupsCube, userId)
+        persister.updateCube(userGroupsCube, userId)
     }
 
     private void addAppPermissionsCube(ApplicationID appId)
@@ -1438,7 +1440,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.COMMIT.lower()])
         appPermCube.setCell(false, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
 
-        persister.updateCube(appId, appPermCube, getUserId())
+        persister.updateCube(appPermCube, getUserId())
     }
 
     /**

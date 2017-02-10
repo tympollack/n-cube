@@ -99,7 +99,8 @@ class JdbcTestingDatabaseManager implements TestingDatabaseManager
         {
             for (NCube ncube : cubes)
             {
-                persister.updateCube(c, appId, ncube, username)
+                ncube.applicationID = appId
+                persister.updateCube(c, ncube, username)
             }
         }
         finally
@@ -129,7 +130,8 @@ class JdbcTestingDatabaseManager implements TestingDatabaseManager
         Connection c = provider.connection;
         try
         {
-            persister.updateCube(c, appId, ncube, username)
+            ncube.applicationID = appId
+            persister.updateCube(c, ncube, username)
         }
         finally
         {

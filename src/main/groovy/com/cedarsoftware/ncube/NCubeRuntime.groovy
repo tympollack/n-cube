@@ -46,7 +46,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeRuntimeClient
+class NCubeRuntime implements NCubeEditorClient
 {
     private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'))
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
@@ -121,6 +121,16 @@ class NCubeRuntime implements NCubeRuntimeClient
     {
         NCube ncube = bean.call('ncubeController', 'loadCubeById', [id]) as NCube
         return ncube
+    }
+
+    void createCube(NCube ncube)
+    {
+        bean.call('ncubeController', 'createCube', [ncube])
+    }
+
+    void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
+    {
+        bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName])
     }
 
     //-- NCube Caching -------------------------------------------------------------------------------------------------

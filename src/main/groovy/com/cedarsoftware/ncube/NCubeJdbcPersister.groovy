@@ -518,8 +518,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         return infoRecs
     }
 
-    static void updateCube(Connection c, ApplicationID appId, NCube cube, String username)
+    static void updateCube(Connection c, NCube cube, String username)
     {
+        ApplicationID appId = cube.applicationID
         Map<String, Object> options = [(SEARCH_INCLUDE_CUBE_DATA): true,
                                        (SEARCH_INCLUDE_TEST_DATA): true,
                                        (SEARCH_EXACT_MATCH_NAME): true,
@@ -551,7 +552,26 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         // Add Case - No existing row found, then create a new cube (updateCube can be used for update or create)
         if (!rowFound)
         {
-            insertCube(c, appId, cube, 0L, null, "created", true, null, username, 'updateCube')
+            throw new IllegalArgumentException("Unable to update cube: ${cube.name} in app: ${appId}, cube does not exist")
+        }
+    }
+
+    static void createCube(Connection c, NCube cube, String username)
+    {
+        ApplicationID appId = cube.applicationID
+        Map<String, Object> options = [(SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (SEARCH_INCLUDE_TEST_DATA): true,
+                                       (SEARCH_EXACT_MATCH_NAME): true,
+                                       (METHOD_NAME) : 'createCube'] as Map
+        boolean rowFound = false
+        runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
+            throw new IllegalArgumentException("Unable to create cube: ${cube.name} in app: ${appId}, cube already exists (it may need to be restored)")
+        })
+
+        // Add Case - No existing row found, then create a new cube (updateCube can be used for update or create)
+        if (!rowFound)
+        {
+            insertCube(c, appId, cube, 0L, null, "created", true, null, username, 'createCube')
         }
     }
 
