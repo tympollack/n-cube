@@ -133,6 +133,34 @@ class NCubeRuntime implements NCubeEditorClient
         bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName])
     }
 
+    boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    {
+        boolean result = bean.call('ncubeController', 'checkPermissions', [appId, resource, action]) as boolean
+        return result
+    }
+
+    boolean isAdmin(ApplicationID appId)
+    {
+        boolean result = bean.call('ncubeController', 'isAppAdmin', [appId]) as boolean
+        return result
+    }
+
+    String getAppLockedBy(ApplicationID appId)
+    {
+        String result = bean.call('ncubeController', 'getAppLockedBy', [appId]) as String
+        return result
+    }
+
+    void lockApp(ApplicationID appId)
+    {
+        bean.call('ncubeController', 'lockApp', [appId, true])
+    }
+
+    void unlockApp(ApplicationID appId)
+    {
+        bean.call('ncubeController', 'unlockApp', [appId, false])
+    }
+
     //-- NCube Caching -------------------------------------------------------------------------------------------------
 
     /**

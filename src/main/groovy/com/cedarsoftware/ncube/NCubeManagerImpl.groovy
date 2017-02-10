@@ -1313,7 +1313,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * Lock the given appId so that no changes can be made to any cubes within it
      * @param appId ApplicationID to lock
      */
-    boolean lockApp(ApplicationID appId)
+    void lockApp(ApplicationID appId)
     {
         assertPermissions(appId, null, Action.RELEASE)
         String userId = getUserId()
@@ -1322,7 +1322,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         String lockOwner = getAppLockedBy(appId)
         if (userId == lockOwner)
         {
-            return false
+            return
         }
         if (lockOwner != null)
         {
@@ -1332,11 +1332,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {
-            return false
+            return
         }
         sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
         persister.updateCube(sysLockCube, userId)
-        return true
     }
 
     /**

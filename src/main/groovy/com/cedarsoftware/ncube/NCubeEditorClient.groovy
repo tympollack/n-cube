@@ -30,4 +30,14 @@ interface NCubeEditorClient extends NCubeReleaseClient
     void createCube(NCube ncube)
 
     void duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
+
+    boolean checkPermissions(ApplicationID appId, String resource, Action action)
+
+    boolean isAdmin(ApplicationID appId)
+
+    String getAppLockedBy(ApplicationID appId)
+
+    void lockApp(ApplicationID appId)
+
+    void unlockApp(ApplicationID appId)
 }
