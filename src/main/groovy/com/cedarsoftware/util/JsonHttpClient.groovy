@@ -97,6 +97,7 @@ class JsonHttpClient implements CallableBean
         String jsonArgs = JsonWriter.objectToJson(args.toArray())
 
         LOG.info("${bean}.${method}(${jsonArgs})")
+        println("${bean}.${method}(${jsonArgs})")
         long start = System.nanoTime()
 
         HttpClientContext clientContext = HttpClientContext.create()

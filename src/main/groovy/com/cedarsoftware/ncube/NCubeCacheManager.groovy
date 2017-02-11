@@ -41,11 +41,12 @@ class NCubeCacheManager implements CacheManager
         if (cache == null)
         {
             cache = new GuavaCache(name, CacheBuilder.newBuilder()
-                    .expireAfterAccess(4, TimeUnit.HOURS)
+//                    .expireAfterWrite(5, TimeUnit.MINUTES)
+//                    .expireAfterAccess(4, TimeUnit.HOURS)
                     .concurrencyLevel(16)
                     .removalListener(new NCubeRemovalListener())
 //                    .maximumSize(100000)      // Another option for eviction if # cubes in memory grows too large
-                    .build())
+                    .build() as com.google.common.cache.Cache)
             Cache mapRef = caches.putIfAbsent(name, cache)
             if (mapRef != null)
             {

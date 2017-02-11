@@ -29,5 +29,7 @@ interface NCubeRuntimeClient
 
     String getTestData(ApplicationID appId, String cubeName)
 
+    void clearCache(ApplicationID appId)
+
     // TODO - potentially add getResource
 }

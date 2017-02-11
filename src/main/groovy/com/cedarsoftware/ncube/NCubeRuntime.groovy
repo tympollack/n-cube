@@ -50,9 +50,8 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 @CompileStatic
 class NCubeRuntime implements NCubeEditorClient
 {
-    private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'))
-    private final CacheManager cacheManager = new NCubeCacheManager()
-    private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
+    private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'), new NCubeCacheManager())
+    private final CacheManager cacheManager
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
     private final Logger LOG = LogManager.getLogger(NCubeRuntime.class)
@@ -62,9 +61,10 @@ class NCubeRuntime implements NCubeEditorClient
     // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
     protected CallableBean bean
 
-    NCubeRuntime(CallableBean bean)
+    NCubeRuntime(CallableBean bean, CacheManager cacheManager)
     {
         this.bean = bean
+        this.cacheManager = cacheManager
         self = this
     }
 
@@ -198,19 +198,19 @@ class NCubeRuntime implements NCubeEditorClient
 
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
     {
-        List<NCubeInfoDto> result = bean.call('ncubeController', 'getRevisionHistory', [appId, cubeName, ignoreVersion]) as List<NCubeInfoDto>
+        List<NCubeInfoDto> result = bean.call('ncubeController', 'getRevisionHistory', [appId, cubeName, ignoreVersion]) as List
         return result
     }
 
     List<String> getAppNames(String tenant)
     {
-        List<String> result = bean.call('ncubeController', 'getAppNames', [tenant]) as List<String>
+        List<String> result = bean.call('ncubeController', 'getAppNames', [tenant]) as List
         return result
     }
 
     Map<String, List<String>> getVersions(String tenant, String app)
     {
-        Map<String, List<String>> result = bean.call('ncubeController', 'getVersions', [tenant, app]) as Map<String, List<String>>
+        Map<String, List<String>> result = bean.call('ncubeController', 'getVersions', [tenant, app]) as Map
         return result
     }
 
@@ -222,7 +222,7 @@ class NCubeRuntime implements NCubeEditorClient
 
     Set<String> getBranches(ApplicationID appId)
     {
-        Set<String> result = bean.call('ncubeController', 'getBranches', [appId]) as Set<String>
+        Set<String> result = bean.call('ncubeController', 'getBranches', [appId]) as Set
         return result
     }
 
@@ -274,7 +274,7 @@ class NCubeRuntime implements NCubeEditorClient
 
     List<AxisRef> getReferenceAxes(ApplicationID appId)
     {
-        List<AxisRef> result = bean.call('ncubeController', 'getReferenceAxes', [appId]) as List<AxisRef>
+        List<AxisRef> result = bean.call('ncubeController', 'getReferenceAxes', [appId]) as List
         return result
     }
 
@@ -307,7 +307,7 @@ class NCubeRuntime implements NCubeEditorClient
      */
     void clearCache(ApplicationID appId)
     {
-        synchronized (ncubeCache)
+        synchronized (cacheManager)
         {
             validateAppId(appId)
             
@@ -332,6 +332,7 @@ class NCubeRuntime implements NCubeEditorClient
                 localClassLoaders.remove(appId)
             }
         }
+        bean.call('ncubeController', 'clearCache', [appId])
     }
 
     /**
@@ -408,20 +409,23 @@ class NCubeRuntime implements NCubeEditorClient
             }
         }
 
-        current["${advice.name}/${wildcard}"] = advice
+        current["${advice.name}/${wildcard}".toString()] = advice
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
         String regex = StringUtilities.wildcardToRegexString(wildcard)
         Pattern pattern = Pattern.compile(regex)
 
-        ((NCubeCacheManager)cacheManager).applyToValues(appId.toString(), { Object value ->
-            if (value instanceof NCube)
-            {   // apply advice to hydrated cubes
-                NCube ncube = value as NCube
-                Axis axis = ncube.getAxis('method')
-                addAdviceToMatchedCube(advice, pattern, ncube, axis)
-            }
-        })
+        if (cacheManager instanceof NCubeCacheManager)
+        {
+            ((NCubeCacheManager)cacheManager).applyToValues(appId.toString(), { Object value ->
+                if (value instanceof NCube)
+                {   // apply advice to hydrated cubes
+                    NCube ncube = value as NCube
+                    Axis axis = ncube.getAxis('method')
+                    addAdviceToMatchedCube(advice, pattern, ncube, axis)
+                }
+            })
+        }
     }
 
     private void addAdviceToMatchedCube(Advice advice, Pattern pattern, NCube ncube, Axis axis)

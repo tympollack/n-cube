@@ -628,6 +628,11 @@ class NCubeManagerImpl implements NCubeEditorClient
         return persister.getTestData(appId, cubeName)
     }
 
+    void clearCache(ApplicationID appId)
+    {
+        // No cache used in NCubeManagerImpl
+    }
+
     boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
         ApplicationID.validateAppId(appId)
