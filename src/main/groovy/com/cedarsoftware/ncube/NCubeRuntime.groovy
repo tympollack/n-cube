@@ -4,7 +4,6 @@ import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.JsonHttpClient
-import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.TrackingMap
@@ -50,9 +49,12 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 @CompileStatic
 class NCubeRuntime implements NCubeEditorClient
 {
-    private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'), new NCubeCacheManager())
-    private final CacheManager cacheManager
-    private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
+    private static NCubeRuntime self = new NCubeRuntime(
+            new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'),
+            new NCubeCacheManager(),
+            new NCubeCacheManager())
+    private final CacheManager ncubeCacheManager
+    private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
     private final Logger LOG = LogManager.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
@@ -61,10 +63,11 @@ class NCubeRuntime implements NCubeEditorClient
     // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
     protected CallableBean bean
 
-    NCubeRuntime(CallableBean bean, CacheManager cacheManager)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager)
     {
         this.bean = bean
-        this.cacheManager = cacheManager
+        this.ncubeCacheManager = ncubeCacheManager
+        this.adviceCacheManager = adviceCacheManager
         self = this
     }
 
@@ -307,22 +310,20 @@ class NCubeRuntime implements NCubeEditorClient
      */
     void clearCache(ApplicationID appId)
     {
-        synchronized (cacheManager)
+        synchronized (ncubeCacheManager)
         {
             validateAppId(appId)
-            
-            Cache cubeCache = cacheManager.getCache(appId.toString())
+
+            // Clear NCube cache
+            Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
             cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
 
             GroovyBase.clearCache(appId)
             NCubeGroovyController.clearCache(appId)
 
             // Clear Advice cache
-            Map<String, Advice> adviceCache = advices[appId]
-            if (adviceCache != null)
-            {
-                adviceCache.clear()
-            }
+            Cache adviceCache = adviceCacheManager.getCache(appId.toString())
+            adviceCache.clear()
 
             // Clear ClassLoader cache
             GroovyClassLoader classLoader = localClassLoaders[appId]
@@ -353,14 +354,14 @@ class NCubeRuntime implements NCubeEditorClient
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
-            Cache cubeCache = cacheManager.getCache(appId.toString())
+            Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
             cubeCache.put(ncube.name.toLowerCase(), ncube)
         }
     }
 
     private NCube getCubeInternal(ApplicationID appId, String cubeName)
     {
-        Cache cubeCache = cacheManager.getCache(appId.toString())
+        Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
         final String lowerCubeName = cubeName.toLowerCase()
 
         Cache.ValueWrapper item = cubeCache.get(lowerCubeName)
@@ -398,26 +399,16 @@ class NCubeRuntime implements NCubeEditorClient
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
     {
         validateAppId(appId)
-        ConcurrentMap<String, Advice> current = advices[appId]
-        if (current == null)
-        {
-            current = new ConcurrentHashMap<>()
-            ConcurrentMap<String, Advice> mapRef = advices.putIfAbsent(appId, current)
-            if (mapRef != null)
-            {
-                current = mapRef
-            }
-        }
-
-        current["${advice.name}/${wildcard}".toString()] = advice
+        Cache current = adviceCacheManager.getCache(appId.toString())
+        current.put("${advice.name}/${wildcard}".toString(), advice)
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
         String regex = StringUtilities.wildcardToRegexString(wildcard)
         Pattern pattern = Pattern.compile(regex)
 
-        if (cacheManager instanceof NCubeCacheManager)
+        if (ncubeCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)cacheManager).applyToValues(appId.toString(), { Object value ->
+            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.toString(), { String key, Object value ->
                 if (value instanceof NCube)
                 {   // apply advice to hydrated cubes
                     NCube ncube = value as NCube
@@ -460,19 +451,15 @@ class NCubeRuntime implements NCubeEditorClient
      */
     private void applyAdvices(ApplicationID appId, NCube ncube)
     {
-        final Map<String, Advice> appAdvices = advices[appId]
-
-        if (MapUtilities.isEmpty(appAdvices))
+        if (adviceCacheManager instanceof NCubeCacheManager)
         {
-            return
-        }
-        for (Map.Entry<String, Advice> entry : appAdvices.entrySet())
-        {
-            final Advice advice = entry.value
-            final String wildcard = entry.key.replace(advice.name + '/', "")
-            final String regex = StringUtilities.wildcardToRegexString(wildcard)
-            final Axis axis = ncube.getAxis('method')
-            addAdviceToMatchedCube(advice, Pattern.compile(regex), ncube, axis)
+            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.toString(), { String key, Object value ->
+                final Advice advice = value as Advice
+                final String wildcard = key.replace(advice.name + '/', "")
+                final String regex = StringUtilities.wildcardToRegexString(wildcard)
+                final Axis axis = ncube.getAxis('method')
+                addAdviceToMatchedCube(advice, Pattern.compile(regex), ncube, axis)
+            })
         }
     }
 

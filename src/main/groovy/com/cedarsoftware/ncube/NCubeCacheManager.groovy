@@ -32,8 +32,12 @@ import java.util.concurrent.TimeUnit
 @CompileStatic
 class NCubeCacheManager implements CacheManager
 {
-    private ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>()
+    private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>()
 
+    NCubeCacheManager()
+    {
+    }
+    
     Cache getCache(String name)
     {
         Cache cache = caches[name]  // name = ApplicationID.toString()
@@ -64,9 +68,9 @@ class NCubeCacheManager implements CacheManager
     /**
      * Apply the passed in Closure to all values in the cache.
      * @param name String name of the Cache
-     * @param closure Closure to apply to each value
+     * @param closure Closure to apply to each key-value pair
      */
-    void applyToValues(String name, Closure closure)
+    void applyToEntries(String name, Closure closure)
     {
         Cache cache = caches[name]
         if (cache == null)
@@ -75,11 +79,13 @@ class NCubeCacheManager implements CacheManager
         }
         GuavaCache gCache = cache as GuavaCache
         com.google.common.cache.Cache googleCache = gCache.nativeCache
-        Iterator i = googleCache.asMap().values().iterator()
+        Iterator i = googleCache.asMap().entrySet().iterator()
         while (i.hasNext())
         {
-            Object value = i.next()
-            closure(value)
+            Map.Entry entry = i.next()
+            String key = entry.key as String
+            Object value = entry.value
+            closure(key, value)
         }
     }
 
