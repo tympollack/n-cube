@@ -17,7 +17,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
-import org.springframework.cache.support.SimpleCacheManager
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -52,7 +51,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 class NCubeRuntime implements NCubeEditorClient
 {
     private static NCubeRuntime self = new NCubeRuntime(new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'))
-    private final CacheManager cacheManager = new SimpleCacheManager()
+    private final CacheManager cacheManager = new NCubeCacheManager()
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Object>> ncubeCache = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, ConcurrentMap<String, Advice>> advices = new ConcurrentHashMap<>()
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -69,7 +68,7 @@ class NCubeRuntime implements NCubeEditorClient
         self = this
     }
 
-    public static NCubeRuntime getInstance()
+    static NCubeRuntime getInstance()
     {
         return self
     }
@@ -311,28 +310,10 @@ class NCubeRuntime implements NCubeEditorClient
         synchronized (ncubeCache)
         {
             validateAppId(appId)
+            
+            Cache cubeCache = cacheManager.getCache(appId.toString())
+            cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
 
-            // TODO - call server clear permissions cache
-
-            Map<String, Object> appCache = getCacheForApp(appId)
-            for (Object cube : appCache.values())
-            {
-                if (cube instanceof NCube)
-                {
-                    NCube ncube = cube as NCube
-                    for (Object value : ncube.cellMap.values())
-                    {
-                        if (value instanceof UrlCommandCell)
-                        {
-                            UrlCommandCell cell = value as UrlCommandCell
-                            cell.clearClassLoaderCache()
-                        }
-                    }
-                }
-            }
-            clearGroovyClassLoaderCache(appCache)
-
-            appCache.clear()
             GroovyBase.clearCache(appId)
             NCubeGroovyController.clearCache(appId)
 
@@ -367,44 +348,25 @@ class NCubeRuntime implements NCubeEditorClient
         cacheCube(appId, ncube)
     }
 
-    /**
-     * Fetch the Map of n-cubes for the given ApplicationID.  If no
-     * cache yet exists, a new empty cache is added.
-     */
-    protected Map<String, Object> getCacheForApp(ApplicationID appId)
-    {
-        ConcurrentMap<String, Object> ncubes = ncubeCache[appId]
-
-        if (ncubes == null)
-        {
-            ncubes = new ConcurrentHashMap<>()
-            ConcurrentMap<String, Object> mapRef = ncubeCache.putIfAbsent(appId, ncubes)
-            if (mapRef != null)
-            {
-                ncubes = mapRef
-            }
-        }
-        return ncubes
-    }
-
     private void cacheCube(ApplicationID appId, NCube ncube)
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
-            Map<String, Object> cache = getCacheForApp(appId)
-            cache[ncube.name.toLowerCase()] = ncube
+            Cache cubeCache = cacheManager.getCache(appId.toString())
+            cubeCache.put(ncube.name.toLowerCase(), ncube)
         }
     }
 
     private NCube getCubeInternal(ApplicationID appId, String cubeName)
     {
-        Map<String, Object> cubes = getCacheForApp(appId)
+        Cache cubeCache = cacheManager.getCache(appId.toString())
         final String lowerCubeName = cubeName.toLowerCase()
 
-        if (cubes.containsKey(lowerCubeName))
+        Cache.ValueWrapper item = cubeCache.get(lowerCubeName)
+        if (item != null)
         {   // pull from cache
-            final Object cube = cubes[lowerCubeName]
-            return Boolean.FALSE == cube ? null : cube as NCube
+            Object value = item.get()
+            return Boolean.FALSE == value ? null : value as NCube
         }
 
         // now even items with metaProperties(cache = 'false') can be retrieved
@@ -414,7 +376,7 @@ class NCubeRuntime implements NCubeEditorClient
         NCube ncube = bean.call('ncubeController', 'getCube', [appId, cubeName]) as NCube
         if (ncube == null)
         {
-            cubes[lowerCubeName] = Boolean.FALSE
+            cubeCache.put(lowerCubeName, false)
             return null
         }
         return prepareCube(ncube)
@@ -446,22 +408,20 @@ class NCubeRuntime implements NCubeEditorClient
             }
         }
 
-        current[advice.name + '/' + wildcard] = advice
+        current["${advice.name}/${wildcard}"] = advice
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
         String regex = StringUtilities.wildcardToRegexString(wildcard)
         Pattern pattern = Pattern.compile(regex)
-        Map<String, Object> cubes = getCacheForApp(appId)
 
-        for (Object value : cubes.values())
-        {
+        ((NCubeCacheManager)cacheManager).applyToValues(appId.toString(), { Object value ->
             if (value instanceof NCube)
             {   // apply advice to hydrated cubes
                 NCube ncube = value as NCube
                 Axis axis = ncube.getAxis('method')
                 addAdviceToMatchedCube(advice, pattern, ncube, axis)
             }
-        }
+        })
     }
 
     private void addAdviceToMatchedCube(Advice advice, Pattern pattern, NCube ncube, Axis axis)
@@ -471,7 +431,7 @@ class NCubeRuntime implements NCubeEditorClient
             for (Column column : axis.columnsWithoutDefault)
             {
                 String method = column.value.toString()
-                String classMethod = ncube.name + '.' + method + '()'
+                String classMethod = "${ncube.name}.${method}()"
                 if (pattern.matcher(classMethod).matches())
                 {
                     ncube.addAdvice(advice, method)
@@ -622,22 +582,6 @@ class NCubeRuntime implements NCubeEditorClient
             return wrappedMap.containsKey(key)
         }
         return map.containsKey(key)
-    }
-
-    private void clearGroovyClassLoaderCache(Map<String, Object> appCache)
-    {
-        Object cube = appCache[CLASSPATH_CUBE]
-        if (cube instanceof NCube)
-        {
-            NCube cpCube = cube as NCube
-            for (Object content : cpCube.cellMap.values())
-            {
-                if (content instanceof UrlCommandCell)
-                {
-                    ((UrlCommandCell)content).clearClassLoaderCache()
-                }
-            }
-        }
     }
 
     //-- Environment Variables -----------------------------------------------------------------------------------------
