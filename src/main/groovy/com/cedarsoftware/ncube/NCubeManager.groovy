@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
 
 /**
  * This class manages a list of NCubes.  This class is referenced
@@ -1153,7 +1154,7 @@ class NCubeManager
         assertPermissions(appId, null)
 
         // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
-        List<NCubeInfoDto> list = persister.search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> list = persister.search(appId, null, "*${REF_APP}*", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         List<AxisRef> refAxes = []
 
         for (NCubeInfoDto dto : list)
