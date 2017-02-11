@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.io.JsonReader
@@ -10,6 +11,7 @@ import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.springframework.cache.CacheManager
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -44,7 +46,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeManagerImpl implements NCubeEditorClient
+class NCubeManagerImpl extends NCubeRuntime
 {
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
@@ -69,8 +71,9 @@ class NCubeManagerImpl implements NCubeEditorClient
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    NCubeManagerImpl(NCubePersister persister)
+    NCubeManagerImpl(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, NCubePersister persister)
     {
+        super(bean, ncubeCacheManager, adviceCacheManager)
         nCubePersister = persister
     }
 
