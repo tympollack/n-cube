@@ -453,7 +453,7 @@ class NCubeRuntime implements NCubeEditorClient
     {
         if (adviceCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.toString(), { String key, Object value ->
+            ((NCubeCacheManager)adviceCacheManager).applyToEntries(appId.toString(), { String key, Object value ->
                 final Advice advice = value as Advice
                 final String wildcard = key.replace(advice.name + '/', "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)
