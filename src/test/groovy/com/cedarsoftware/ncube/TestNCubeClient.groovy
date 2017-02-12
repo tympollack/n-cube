@@ -1,34 +1,24 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.JsonHttpClient
 import groovy.transform.CompileStatic
-import org.junit.Ignore
 import org.junit.Test
+
+import static org.junit.Assert.fail
 
 @CompileStatic
 class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')
-    private static NCubeRuntime runtimeClient = NCubeRuntime.instance
+    private static NCubeRuntime runtimeClient = new NCubeRuntime(
+            new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'),
+            new NCubeCacheManager(),
+            new NCubeCacheManager(),
+            true)
 
-    @Ignore
-    @Test
-    void testHttpProxy()
+    static NCubeRuntime getNcubeRuntime()
     {
-//        def names = NCubeManagerFull.appNames
-//        println names
-    }
-
-    @Ignore
-    @Test
-    void testDirectProxy()
-    {
-//        NCubeManagerImpl impl = new NCubeManagerImpl()
-//        NCubeClientDirectProxy.manager = impl
-//        NCubeClient client = NCubeClientDirectProxy.ncubeClient
-//
-//        NCubeManagerFull.client = client
-//        def names = NCubeManagerFull.appNames
-//        println names
+        return runtimeClient
     }
 
     @Test
@@ -71,13 +61,23 @@ class TestNCubeClient
     void testRefAxis()
     {
         NCube ncube = runtimeClient.getCube(TEST_APP, '0RefAxisAndOrder')
-        def result = ncube.getCell([test: 'test1', letter: 'a', ref: 'USAddress'])
+        def result = ncube.getCell([test: 'test1', letter: 'a', place: 'USAddress'])
         assert 'foo' == result
     }
 
     @Test
     void testUpdateCube()
     {
-
+        NCube ncube = runtimeClient.getCube(TEST_APP, '0RefAxisAndOrder')
+        ncube.deleteAxis('test')
+        try
+        {
+            runtimeClient.updateCube(ncube)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assert e.message.toLowerCase().contains('non-runtime')
+        }
     }
 }
