@@ -27,9 +27,11 @@ interface NCubeRuntimeClient
 
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
 
+    Map<String, Object> getSystemParams()
+
     String getTestData(ApplicationID appId, String cubeName)
 
     void clearCache(ApplicationID appId)
 
-    // TODO - potentially add getResource
+    URL getActualUrl(ApplicationID appId, String url, Map input)
 }

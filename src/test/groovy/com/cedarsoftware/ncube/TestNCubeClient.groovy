@@ -8,7 +8,7 @@ import org.junit.Test
 class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')
-    private NCubeRuntimeClient runtimeClient = NCubeRuntime.instance
+    private static NCubeRuntime runtimeClient = NCubeRuntime.instance
 
     @Ignore
     @Test

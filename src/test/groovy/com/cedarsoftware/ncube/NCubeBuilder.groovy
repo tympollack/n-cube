@@ -322,7 +322,7 @@ class NCubeBuilder
 
     static NCube getSysClassPathCube()
     {
-        return NCubeManager.getNCubeFromResource("sys.classpath.tests.json")
+        return NCubeRuntime.getNCubeFromResource("sys.classpath.tests.json")
     }
 
     static NCube getMetaPropWithFormula()

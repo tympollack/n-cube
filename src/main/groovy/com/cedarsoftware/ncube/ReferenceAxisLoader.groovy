@@ -34,7 +34,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ReferenceAxisLoader implements Axis.AxisRefProvider
 {
-    private NCubeRuntimeClient ncubeClient = NCubeRuntime.instance
+    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
     public static final String REF_TENANT = 'referenceTenant'
     public static final String REF_APP = 'referenceApp'
     public static final String REF_VERSION = 'referenceVersion'
@@ -183,7 +183,7 @@ n-cube: ${refCube.name}, referenced app: ${axis.referencedApp}""")
         return refAxis
     }
 
-    private NCube getTransformCube(Axis axis, String transformCubeName, String transformMethodName)
+    private static NCube getTransformCube(Axis axis, String transformCubeName, String transformMethodName)
     {
         NCube transformCube = ncubeClient.getCube(axis.transformApp, axis.getMetaProperty(TRANSFORM_CUBE_NAME) as String)
         if (transformCube == null)
@@ -195,7 +195,7 @@ Failed to load transform n-cube: ${transformCubeName}, method: ${transformMethod
         return transformCube
     }
 
-    private NCube getReferencedCube(Axis axis, String refCubeName, String refAxisName)
+    private static NCube getReferencedCube(Axis axis, String refCubeName, String refAxisName)
     {
         NCube refCube = ncubeClient.getCube(axis.referencedApp, axis.getMetaProperty(REF_CUBE_NAME) as String)
         if (refCube == null)

@@ -48,7 +48,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class GroovyExpression extends GroovyBase
 {
-    private NCubeRuntimeClient ncubeClient = NCubeRuntime.instance
+    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
     public static final String EXP_IMPORTS = "exp.imports"
     public static final String EXP_CLASS = "exp.class"
     public static final String SYS_PROPERTY = "sys.property"
@@ -131,7 +131,7 @@ class N_${L2CacheKey} extends ${expClassName}
         return groovy.toString()
     }
 
-    NCube getSysPrototype(ApplicationID appId)
+    static NCube getSysPrototype(ApplicationID appId)
     {
         try
         {

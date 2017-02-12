@@ -377,8 +377,7 @@ class NCube<T>
     }
 
     /**
-     * @return String version of this n-cube.  The version is set when the n-cube is loaded by
-     * the NCubeManager.
+     * @return String version of this n-cube as it was loaded.
      */
     String getVersion()
     {

@@ -49,25 +49,23 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 @CompileStatic
 class NCubeRuntime implements NCubeEditorClient
 {
-    private static NCubeRuntime self = new NCubeRuntime(
-            new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'),
-            new NCubeCacheManager(),
-            new NCubeCacheManager())
+    private static final String RUNTIME_ERROR = 'Non-runtime method called:'
+    private static NCubeRuntime self
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
     private final Logger LOG = LogManager.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
-    // cache key = userId + '/' + appId + '/' + resource + '/' + Action
-    // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
     protected CallableBean bean
+    private boolean runtime
 
-    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean runtime)
     {
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = adviceCacheManager
+        this.runtime = runtime
         self = this
     }
 
@@ -123,8 +121,17 @@ class NCubeRuntime implements NCubeEditorClient
         return result
     }
 
+    void setUserId(String user)
+    {
+        // Only the Editor (READ WRITE) implementation should implement this
+    }
+
     boolean updateCube(NCube ncube)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} updateCube")
+        }
         boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
         return result
     }
@@ -137,12 +144,26 @@ class NCubeRuntime implements NCubeEditorClient
 
     void createCube(NCube ncube)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} createCube")
+        }
         bean.call('ncubeController', 'createCube', [ncube])
     }
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} duplicate")
+        }
         Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
+        return result
+    }
+
+    Boolean assertPermissions(ApplicationID appId, String resource, Action action)
+    {
+        Boolean result = bean.call('ncubeController', 'assertPermissions', [appId, resource, action]) as Boolean
         return result
     }
 
@@ -166,35 +187,59 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean lockApp(ApplicationID appId)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} lockApp")
+        }
         Boolean result = bean.call('ncubeController', 'lockApp', [appId, true]) as Boolean
         return result
     }
 
     void unlockApp(ApplicationID appId)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} unlockApp")
+        }
         bean.call('ncubeController', 'unlockApp', [appId, false])
     }
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} moveBranch")
+        }
         Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
         return result
     }
 
     Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
-        Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} moveBranch")
+        }
+        Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
         return result
     }
 
     Integer releaseCubes(ApplicationID appId, String newSnapVer)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} releaseVersion")
+        }
         Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
         return result
     }
 
     Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} restoreCubes")
+        }
         Boolean result = bean.call('ncubeController', 'restoreCubes', [appId, cubeNames]) as Boolean
         return result
     }
@@ -219,6 +264,10 @@ class NCubeRuntime implements NCubeEditorClient
 
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} copyBranch")
+        }
         Integer result = bean.call('ncubeController', 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
         return result
     }
@@ -237,35 +286,59 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean deleteBranch(ApplicationID appId)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} deleteBranch")
+        }
         Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
         return result
     }
 
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} mergeDeltas")
+        }
         NCube result = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
         return result
     }
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} deleteCubes")
+        }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
         return result
     }
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} deleteCubes")
+        }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames, allowDelete]) as Boolean
         return result
     }
 
     void changeVersionValue(ApplicationID appId, String newVersion)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} changeVersionValue")
+        }
         bean.call('ncubeController', 'changeVersionValue', [appId, newVersion])
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} renameCube")
+        }
         Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
         return result
     }
@@ -283,16 +356,28 @@ class NCubeRuntime implements NCubeEditorClient
 
     void updateReferenceAxes(List<AxisRef> axisRefs)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} getReferenceAxes")
+        }
         bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} updateAxisMetaProperties")
+        }
         bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
     {
+        if (runtime)
+        {
+            throw new IllegalStateException("${RUNTIME_ERROR} saveTests")
+        }
         Boolean result = bean.call('ncubeController', 'saveTests', [appId, cubeName, tests]) as Boolean
         return result
     }
@@ -333,7 +418,6 @@ class NCubeRuntime implements NCubeEditorClient
                 localClassLoaders.remove(appId)
             }
         }
-        bean.call('ncubeController', 'clearCache', [appId])
     }
 
     /**
@@ -517,7 +601,7 @@ class NCubeRuntime implements NCubeEditorClient
     /**
      * Fetch the classloader for the given ApplicationID.
      */
-    protected URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
+    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
     {
         NCube cpCube = getCube(appId, CLASSPATH_CUBE)
 
@@ -550,7 +634,7 @@ class NCubeRuntime implements NCubeEditorClient
         throw new IllegalStateException('If the sys.classpath cube exists, it must return a URLClassLoader.')
     }
 
-    protected URLClassLoader getLocalClassloader(ApplicationID appId)
+    URLClassLoader getLocalClassloader(ApplicationID appId)
     {
         GroovyClassLoader gcl = localClassLoaders[appId]
         if (gcl == null)
@@ -619,12 +703,12 @@ class NCubeRuntime implements NCubeEditorClient
         return new String(Files.readAllBytes(resPath), "UTF-8")
     }
 
-    protected NCube getNCubeFromResource(String name)
+    static NCube getNCubeFromResource(String name)
     {
         return getNCubeFromResource(ApplicationID.testAppId, name)
     }
 
-    NCube getNCubeFromResource(ApplicationID id, String name)
+    static NCube getNCubeFromResource(ApplicationID id, String name)
     {
         try
         {
@@ -632,7 +716,7 @@ class NCubeRuntime implements NCubeEditorClient
             NCube ncube = NCube.fromSimpleJson(json)
             ncube.applicationID = id
             ncube.sha1()
-            addCube(id, ncube)
+            self.addCube(id, ncube)
             return ncube
         }
         catch (NullPointerException e)

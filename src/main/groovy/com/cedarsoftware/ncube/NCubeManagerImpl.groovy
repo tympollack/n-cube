@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CallableBean
+import com.cedarsoftware.util.JsonHttpClient
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.io.JsonReader
@@ -52,6 +53,7 @@ class NCubeManagerImpl extends NCubeRuntime
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManagerImpl.class)
+    private static NCubeManagerImpl self
 
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
@@ -73,8 +75,14 @@ class NCubeManagerImpl extends NCubeRuntime
 
     NCubeManagerImpl(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, NCubePersister persister)
     {
-        super(bean, ncubeCacheManager, adviceCacheManager)
+        super(bean, ncubeCacheManager, adviceCacheManager, false)
         nCubePersister = persister
+        self = this
+    }
+
+    static NCubeManagerImpl getInstance()
+    {
+        return self
     }
 
     NCubePersister getPersister()
@@ -86,42 +94,9 @@ class NCubeManagerImpl extends NCubeRuntime
         return nCubePersister
     }
 
-    Map<String, Object> getSystemParams()
-    {
-        final ConcurrentMap<String, Object> params = systemParams
-
-        if (params != null)
-        {
-            return params
-        }
-
-        synchronized (NCubeManagerImpl.class)
-        {
-            if (systemParams == null)
-            {
-                String jsonParams = SystemUtilities.getExternalVariable(NCUBE_PARAMS)
-                ConcurrentMap sysParamMap = new ConcurrentHashMap<>()
-
-                if (StringUtilities.hasContent(jsonParams))
-                {
-                    try
-                    {
-                        sysParamMap = new ConcurrentHashMap<>((Map) JsonReader.jsonToJava(jsonParams, [(JsonReader.USE_MAPS): true] as Map))
-                    }
-                    catch (Exception ignored)
-                    {
-                        LOG.warn("Parsing of NCUBE_PARAMS failed: ${jsonParams}")
-                    }
-                }
-                systemParams = sysParamMap
-            }
-        }
-        return systemParams
-    }
-
     protected void clearSysParams()
     {
-        systemParams = null;
+        systemParams = null
     }
 
     NCube getCube(ApplicationID appId, String cubeName)
@@ -935,7 +910,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     /**
      * Assert that the requested permission is allowed.  Throw a SecurityException if not.
      */
-    boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
+    Boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
     {
         if (checkPermissions(appId, resource, action))
         {

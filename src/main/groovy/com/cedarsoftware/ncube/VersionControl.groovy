@@ -31,6 +31,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class VersionControl
 {
+    private static NCubeManagerImpl manager = NCubeManagerImpl.instance
     public static final String BRANCH_ADDS = 'adds'
     public static final String BRANCH_DELETES = 'deletes'
     public static final String BRANCH_UPDATES = 'updates'
@@ -45,14 +46,14 @@ class VersionControl
      */
     static List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
     {
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
-        NCubeManager.assertPermissions(appId, null, Action.READ)
+        manager.assertNotLockBlocked(appId)
+        manager.assertPermissions(appId, null, Action.READ)
 
         ApplicationID headAppId = appId.asHead()
-        List<NCubeInfoDto> records = NCubeManager.search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> records = manager.search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
 
         for (NCubeInfoDto info : records)
@@ -60,7 +61,7 @@ class VersionControl
             branchRecordMap[info.name] = info
         }
 
-        List<NCubeInfoDto> headRecords = NCubeManager.search(headAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> headRecords = manager.search(headAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
         List<NCubeInfoDto> cubeDiffs = []
 
         for (NCubeInfoDto head : headRecords)
@@ -184,17 +185,17 @@ class VersionControl
      */
     static List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
     {
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
-        NCubeManager.assertPermissions(appId, null, Action.READ)
+        manager.assertNotLockBlocked(appId)
+        manager.assertPermissions(appId, null, Action.READ)
 
         ApplicationID headAppId = appId.asHead()
         Map<String, NCubeInfoDto> headMap = new CaseInsensitiveMap<>()
 
-        List<NCubeInfoDto> branchList = NCubeManager.search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
-        List<NCubeInfoDto> headList = NCubeManager.search(headAppId, null, null, null)   // active and deleted
+        List<NCubeInfoDto> branchList = manager.search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
+        List<NCubeInfoDto> headList = manager.search(headAppId, null, null, null)   // active and deleted
         List<NCubeInfoDto> list = []
 
         //  build map of head objects for reference.
@@ -288,15 +289,15 @@ class VersionControl
     static List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
     {
         ApplicationID branchAppId = appId.asBranch(branch)
-        NCubeManager.validateAppId(appId)
-        NCubeManager.validateAppId(branchAppId)
+        ApplicationID.validateAppId(appId)
+        ApplicationID.validateAppId(branchAppId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
-        NCubeManager.assertPermissions(appId, null, Action.READ)
-        NCubeManager.assertPermissions(branchAppId, null, Action.READ)
+        manager.assertNotLockBlocked(appId)
+        manager.assertPermissions(appId, null, Action.READ)
+        manager.assertPermissions(branchAppId, null, Action.READ)
 
-        List<NCubeInfoDto> records = NCubeManager.search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> records = manager.search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
         Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
 
         for (NCubeInfoDto info : records)
@@ -304,7 +305,7 @@ class VersionControl
             branchRecordMap[info.name] = info
         }
 
-        List<NCubeInfoDto> otherBranchRecords = NCubeManager.search(branchAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> otherBranchRecords = manager.search(branchAppId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
         if (otherBranchRecords.empty)
         {
             return []
@@ -406,11 +407,11 @@ class VersionControl
         {
             throw new IllegalArgumentException('Nothing selected for update.')
         }
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
-        NCubeManager.assertPermissions(appId, null, Action.UPDATE)
+        manager.assertNotLockBlocked(appId)
+        manager.assertPermissions(appId, null, Action.UPDATE)
 
         List<NCubeInfoDto> adds = []
         List<NCubeInfoDto> deletes = []
@@ -465,7 +466,7 @@ class VersionControl
                         NCube cube1 = mergeCubesIfPossible(branchCube, updateCube, true)
                         if (cube1 != null)
                         {
-                            NCubeInfoDto mergedDto = persister.commitMergedCubeToBranch(appId, cube1, updateCube.sha1, NCubeManager.userId, txId)
+                            NCubeInfoDto mergedDto = persister.commitMergedCubeToBranch(appId, cube1, updateCube.sha1, manager.userId, txId)
                             merges.add(mergedDto)
                         }
                     }
@@ -491,14 +492,13 @@ class VersionControl
                     throw new IllegalArgumentException('No change type on passed in cube to update.')
             }
         }
-        NCubeManager.clearCache(appId)
-        finalUpdates = persister.pullToBranch(appId, buildIdList(updates), NCubeManager.userId, txId)
+        finalUpdates = persister.pullToBranch(appId, buildIdList(updates), manager.userId, txId)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
-        ret[BRANCH_ADDS] = persister.pullToBranch(appId, buildIdList(adds), NCubeManager.userId, txId)
-        ret[BRANCH_DELETES] = persister.pullToBranch(appId, buildIdList(deletes), NCubeManager.userId, txId)
+        ret[BRANCH_ADDS] = persister.pullToBranch(appId, buildIdList(adds), manager.userId, txId)
+        ret[BRANCH_DELETES] = persister.pullToBranch(appId, buildIdList(deletes), manager.userId, txId)
         ret[BRANCH_UPDATES] = finalUpdates
-        ret[BRANCH_RESTORES] = persister.pullToBranch(appId, buildIdList(restores), NCubeManager.userId, txId)
+        ret[BRANCH_RESTORES] = persister.pullToBranch(appId, buildIdList(restores), manager.userId, txId)
         ret[BRANCH_FASTFORWARDS] = fastforwards
         ret[BRANCH_REJECTS] = rejects
         return ret
@@ -510,11 +510,11 @@ class VersionControl
      */
     static Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
     {
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
-        NCubeManager.assertPermissions(appId, null, Action.COMMIT)
+        manager.assertNotLockBlocked(appId)
+        manager.assertPermissions(appId, null, Action.COMMIT)
 
         List<NCubeInfoDto> adds = []
         List<NCubeInfoDto> deletes = []
@@ -552,7 +552,7 @@ class VersionControl
 
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!NCubeManager.checkPermissions(appId, updateCube.name, Action.COMMIT))
+            if (!manager.checkPermissions(appId, updateCube.name, Action.COMMIT))
             {
                 rejects.add(updateCube)
                 continue
@@ -600,10 +600,7 @@ class VersionControl
                     throw new IllegalArgumentException('No change type on passed in cube to commit.')
             }
         }
-
-        NCubeManager.clearCache(appId)
-        NCubeManager.clearCache(appId.asHead())
-
+        
         finalUpdates = persister.commitCubes(appId, buildIdList(updates), userId, txId)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
@@ -628,18 +625,17 @@ class VersionControl
      */
     static int rollbackCubes(ApplicationID appId, Object[] names)
     {
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
+        manager.assertNotLockBlocked(appId)
 
         for (Object name : names)
         {
             String cubeName = name as String
-            NCubeManager.assertPermissions(appId, cubeName, Action.UPDATE)
+            manager.assertPermissions(appId, cubeName, Action.UPDATE)
         }
         int count = persister.rollbackCubes(appId, names, userId)
-        NCubeManager.clearCache(appId)
         return count
     }
 
@@ -654,18 +650,17 @@ class VersionControl
      */
     static int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
     {
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
         int count = 0
 
-        NCubeManager.assertNotLockBlocked(appId)
+        manager.assertNotLockBlocked(appId)
         for (Object cubeName : cubeNames)
         {
             String cubeNameStr = cubeName as String
-            NCubeManager.assertPermissions(appId, cubeNameStr, Action.UPDATE)
+            manager.assertPermissions(appId, cubeNameStr, Action.UPDATE)
             persister.mergeAcceptMine(appId, cubeNameStr, userId)
-            NCubeManager.removeCachedCube(appId, cubeNameStr)
             count++
         }
         return count
@@ -683,19 +678,18 @@ class VersionControl
      */
     static int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
-        NCubeManager.validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
-        NCubeManager.assertNotLockBlocked(appId)
+        manager.assertNotLockBlocked(appId)
         int count = 0
 
         for (int i = 0; i < cubeNames.length; i++)
         {
             String cubeNameStr = cubeNames[i] as String
-            NCubeManager.assertPermissions(appId, cubeNameStr, Action.UPDATE)
-            NCubeManager.assertPermissions(appId.asBranch(sourceBranch), cubeNameStr, Action.READ)
+            manager.assertPermissions(appId, cubeNameStr, Action.UPDATE)
+            manager.assertPermissions(appId.asBranch(sourceBranch), cubeNameStr, Action.READ)
             persister.mergeAcceptTheirs(appId, cubeNameStr, sourceBranch, userId)
-            NCubeManager.removeCachedCube(appId, cubeNameStr)
             count++
         }
 
@@ -764,7 +758,7 @@ class VersionControl
 
     private static NCubeInfoDto getCubeInfo(ApplicationID appId, NCubeInfoDto dto)
     {
-        List<NCubeInfoDto> cubeDtos = NCubeManager.search(appId, dto.name, null, [(SEARCH_EXACT_MATCH_NAME):true, (SEARCH_ACTIVE_RECORDS_ONLY):false])
+        List<NCubeInfoDto> cubeDtos = manager.search(appId, dto.name, null, [(SEARCH_EXACT_MATCH_NAME):true, (SEARCH_ACTIVE_RECORDS_ONLY):false])
         if (cubeDtos.empty)
         {
             throw new IllegalStateException('Cube ' + dto.name + ' does not exist (' + dto + ')')
@@ -788,11 +782,11 @@ class VersionControl
 
     private static String getUserId()
     {
-        return NCubeManager.userId
+        return manager.userId
     }
 
     private static NCubePersister getPersister()
     {
-        return NCubeManager.persister
+        return manager.persister
     }
 }

@@ -23,6 +23,8 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeEditorClient extends NCubeReleaseClient
 {
+    void setUserId(String user)
+
     boolean updateCube(NCube ncube)
 
     NCube loadCubeById(long id)
@@ -30,6 +32,8 @@ interface NCubeEditorClient extends NCubeReleaseClient
     void createCube(NCube ncube)
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
+
+    Boolean assertPermissions(ApplicationID appId, String resource, Action action)
 
     Boolean checkPermissions(ApplicationID appId, String resource, Action action)
 

@@ -6,6 +6,7 @@ import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeRuntime
+import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -38,7 +39,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class NCubeGroovyExpression
 {
-    private NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
     public Map input
     public Map output
     public NCube ncube
