@@ -397,7 +397,7 @@ class NCubeRuntime implements NCubeEditorClient
     {
         synchronized (ncubeCacheManager)
         {
-            validateAppId(appId)
+            ApplicationID.validateAppId(appId)
 
             // Clear NCube cache
             Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
@@ -424,14 +424,12 @@ class NCubeRuntime implements NCubeEditorClient
      * Add a cube to the internal cache of available cubes.
      * @param ncube NCube to add to the list.
      */
-    void addCube(ApplicationID appId, NCube ncube)
+    void addCube(NCube ncube)
     {
-        validateAppId(appId)
+        ApplicationID appId = ncube.applicationID
+        ApplicationID.validateAppId(appId)
         validateCube(ncube)
-
-        // Apply any matching advices to it
-        applyAdvices(appId, ncube)
-        cacheCube(appId, ncube)
+        prepareCube(ncube)
     }
 
     private void cacheCube(ApplicationID appId, NCube ncube)
@@ -482,7 +480,7 @@ class NCubeRuntime implements NCubeEditorClient
      */
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
     {
-        validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         Cache current = adviceCacheManager.getCache(appId.toString())
         current.put("${advice.name}/${wildcard}".toString(), advice)
 
@@ -560,7 +558,7 @@ class NCubeRuntime implements NCubeEditorClient
      */
     URL getActualUrl(ApplicationID appId, String url, Map input)
     {
-        validateAppId(appId)
+        ApplicationID.validateAppId(appId)
         if (StringUtilities.isEmpty(url))
         {
             throw new IllegalArgumentException("URL cannot be null or empty, attempting to resolve relative to absolute url for app: ${appId}")
@@ -708,20 +706,20 @@ class NCubeRuntime implements NCubeEditorClient
         return getNCubeFromResource(ApplicationID.testAppId, name)
     }
 
-    static NCube getNCubeFromResource(ApplicationID id, String name)
+    static NCube getNCubeFromResource(ApplicationID appId, String name)
     {
         try
         {
             String json = getResourceAsString(name)
             NCube ncube = NCube.fromSimpleJson(json)
-            ncube.applicationID = id
+            ncube.applicationID = appId
             ncube.sha1()
-            self.addCube(id, ncube)
+            self.addCube(ncube)
             return ncube
         }
         catch (NullPointerException e)
         {
-            throw new IllegalArgumentException("Could not find the file [n-cube]: ${name}, app: ${id}", e)
+            throw new IllegalArgumentException("Could not find the file [n-cube]: ${name}, app: ${appId}", e)
         }
         catch (Exception e)
         {
@@ -767,7 +765,7 @@ class NCubeRuntime implements NCubeEditorClient
                 String json = JsonWriter.objectToJson(ncube)
                 NCube nCube = NCube.fromSimpleJson(json)
                 nCube.sha1()
-                addCube(nCube.applicationID, nCube)
+                addCube(nCube)
                 lastSuccessful = nCube.name
                 cubeList.add(nCube)
             }
@@ -783,15 +781,6 @@ class NCubeRuntime implements NCubeEditorClient
     }
 
     //-- Validation ----------------------------------------------------------------------------------------------------
-
-    protected void validateAppId(ApplicationID appId)
-    {
-        if (appId == null)
-        {
-            throw new IllegalArgumentException('ApplicationID cannot be null')
-        }
-        appId.validate()
-    }
 
     protected void validateCube(NCube cube)
     {
