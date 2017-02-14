@@ -47,7 +47,7 @@ import org.apache.logging.log4j.Logger
 class JsonHttpClient implements CallableBean
 {
     private final CloseableHttpClient httpClient
-    CredentialsProvider credsProvider
+    private final CredentialsProvider credsProvider
     private final AuthCache authCache
     private final HttpHost httpHost
     private final String context
