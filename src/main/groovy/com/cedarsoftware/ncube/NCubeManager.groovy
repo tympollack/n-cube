@@ -1816,7 +1816,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             return
         }
 
-        String impliedId = com.cedarsoftware.ncube.NCubeManager.impliedId
+        String impliedId = impliedId
         NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
         branchPermCube.applicationID = permAppId
         branchPermCube.defaultCellValue = false
