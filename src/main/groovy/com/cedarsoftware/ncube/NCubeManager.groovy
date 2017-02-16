@@ -1700,8 +1700,9 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     private static boolean checkBranchPermission(NCube branchPermissions, String resource)
     {
+        String impId = impliedId
         final List<Column> resourceColumns = getResourcesToMatch(branchPermissions, resource)
-        final Column column = resourceColumns.find { branchPermissions.getCell([resource: it.value, user: getImpliedId()])}
+        final Column column = resourceColumns.find { branchPermissions.getCell([resource: it.value, user: impId])}
         return column != null
     }
 
@@ -1716,10 +1717,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     {
         Axis role = userGroups.getAxis(AXIS_ROLE)
         Set<String> groups = new HashSet()
-        String impliedId = getImpliedId()
+        String impId = impliedId
         for (Column column : role.columns)
         {
-            if (userGroups.getCell([(AXIS_ROLE): column.value, (AXIS_USER): impliedId]))
+            if (userGroups.getCell([(AXIS_ROLE): column.value, (AXIS_USER): impId]))
             {
                 groups.add(column.value as String)
             }
@@ -1780,14 +1781,14 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return p.matcher(text).matches()
     }
 
-    static boolean isAdmin(ApplicationID appId, String userName = impliedId)
+    static boolean isAdmin(ApplicationID appId, boolean useRealId = false)
     {
         NCube userCube = getCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
         if (userCube == null)
         {   // Allow everything if no permissions are set up.
             return true
         }
-        return isUserInGroup(userCube, ROLE_ADMIN, userName)
+        return isUserInGroup(userCube, ROLE_ADMIN, useRealId ? getUserId() : impliedId)
     }
 
     private static boolean isUserInGroup(NCube userCube, String groupName, String userName)
@@ -1815,7 +1816,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             return
         }
 
-        String userId = getImpliedId()
+        String impId = impliedId
         NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
         branchPermCube.applicationID = permAppId
         branchPermCube.defaultCellValue = false
@@ -1825,13 +1826,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         branchPermCube.addAxis(resourceAxis)
 
         Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
-        userAxis.addColumn(userId)
+        userAxis.addColumn(impId)
         branchPermCube.addAxis(userAxis)
 
-        branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
-        branchPermCube.setCell(true, [(AXIS_USER):userId, (AXIS_RESOURCE):null])
+        branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
+        branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):null])
 
-        persister.updateCube(permAppId, branchPermCube, userId)
+        persister.updateCube(permAppId, branchPermCube, getUserId())
         VersionControl.updateBranch(permAppId)
     }
 
@@ -1878,11 +1879,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     static boolean lockApp(ApplicationID appId)
     {
         assertPermissions(appId, null, Action.RELEASE)
-        String impliedId = getUserId()
+        String impId = impliedId
         ApplicationID bootAppId = getBootAppId(appId)
 
         String lockOwner = getAppLockedBy(appId)
-        if (impliedId == lockOwner)
+        if (impId == lockOwner)
         {
             return false
         }
@@ -1896,7 +1897,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         {
             return false
         }
-        sysLockCube.setCell(impliedId, [(AXIS_SYSTEM):null])
+        sysLockCube.setCell(impId, [(AXIS_SYSTEM):null])
         persister.updateCube(bootAppId, sysLockCube, getUserId())
         return true
     }
@@ -1931,13 +1932,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             return
         }
 
-        String impliedId = impliedId
+        String impId = impliedId
         NCube userGroupsCube = new NCube(SYS_USERGROUPS)
         userGroupsCube.applicationID = appId
         userGroupsCube.defaultCellValue = false
 
         Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
-        userAxis.addColumn(impliedId)
+        userAxis.addColumn(impId)
         userGroupsCube.addAxis(userAxis)
 
         Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
@@ -1946,8 +1947,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         roleAxis.addColumn(ROLE_USER)
         userGroupsCube.addAxis(roleAxis)
 
-        userGroupsCube.setCell(true, [(AXIS_USER):impliedId, (AXIS_ROLE):ROLE_ADMIN])
-        userGroupsCube.setCell(true, [(AXIS_USER):impliedId, (AXIS_ROLE):ROLE_USER])
+        userGroupsCube.setCell(true, [(AXIS_USER):impId, (AXIS_ROLE):ROLE_ADMIN])
+        userGroupsCube.setCell(true, [(AXIS_USER):impId, (AXIS_ROLE):ROLE_USER])
         userGroupsCube.setCell(true, [(AXIS_USER):null, (AXIS_ROLE):ROLE_USER])
 
         persister.updateCube(appId, userGroupsCube, getUserId())
