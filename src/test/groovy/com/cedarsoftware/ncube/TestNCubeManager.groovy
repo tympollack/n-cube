@@ -2016,6 +2016,28 @@ class TestNCubeManager
     }
 
     @Test
+    void testImpersonation()
+    {
+        String fake = 'fakeUserId'
+        String cubeName = 'test.cube'
+        assertNotNull(NCubeManager.loadCube(defaultBootApp, SYS_USERGROUPS))
+        assert NCubeManager.isAdmin(defaultSnapshotApp)
+        NCubeManager.fakeId = fake
+        assert NCubeManager.userId != fake
+        assert NCubeManager.fakeId == fake
+        assert NCubeManager.impliedId == fake
+        assert !NCubeManager.isAdmin(defaultSnapshotApp)
+
+        NCube cube = new NCube(cubeName)
+        cube.addAxis(new Axis('axis', AxisType.DISCRETE, AxisValueType.STRING, true))
+        cube.setCell('test', [axis: null])
+        NCubeManager.updateCube(defaultSnapshotApp, cube)
+        List<NCubeInfoDto> revs = NCubeManager.getRevisionHistory(defaultSnapshotApp, cubeName)
+        assert NCubeManager.userId == revs.first().createHid
+        NCubeManager.fakeId = ''
+    }
+
+    @Test
     void testAppPermissionsFail()
     {
         String origUser = NCubeManager.userId
@@ -2032,7 +2054,7 @@ class TestNCubeManager
         NCube branchPermCube = NCubeManager.loadCube(branchBootApp, SYS_BRANCH_PERMISSIONS)
         branchPermCube.getAxis(AXIS_USER).addColumn(otherUser)
         branchPermCube.setCell(true, [(AXIS_USER):otherUser, (AXIS_RESOURCE):null])
-        NCubeManager.updateCube(branchBootApp, branchPermCube, true)
+        NCubeManager.updateCube(branchBootApp, branchPermCube)
 
         //set otheruser as no app permissions
         NCube userCube = NCubeManager.loadCube(defaultBootApp, SYS_USERGROUPS)
@@ -2045,14 +2067,14 @@ class TestNCubeManager
         NCube testCube = new NCube('test')
         testCube.setApplicationID(defaultSnapshotApp)
         testCube.addAxis(new Axis(testAxisName, AxisType.DISCRETE, AxisValueType.STRING, true))
-        NCubeManager.updateCube(defaultSnapshotApp, testCube, true)
+        NCubeManager.updateCube(defaultSnapshotApp, testCube)
 
         //try to update a cube from bad user
         try
         {
             NCubeManager.setUserId(otherUser)
             testCube.setCell('testval', [(testAxisName):null])
-            NCubeManager.updateCube(defaultSnapshotApp, testCube, true)
+            NCubeManager.updateCube(defaultSnapshotApp, testCube)
             fail()
         }
         catch (SecurityException e)
