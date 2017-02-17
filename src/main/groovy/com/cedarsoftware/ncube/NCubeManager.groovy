@@ -1838,7 +1838,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
         branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):null])
 
-        persister.updateCube(branchPermCube, userId)
+        persister.updateCube(branchPermCube, getUserId())
         VersionControl.updateBranch(permAppId)
     }
 
@@ -1904,7 +1904,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             return false
         }
         sysLockCube.setCell(impId, [(AXIS_SYSTEM):null])
-        persister.updateCube(sysLockCube, userId)
+        persister.updateCube(sysLockCube, getUserId())
         return true
     }
 
@@ -1957,7 +1957,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         userGroupsCube.setCell(true, [(AXIS_USER):impId, (AXIS_ROLE):ROLE_USER])
         userGroupsCube.setCell(true, [(AXIS_USER):null, (AXIS_ROLE):ROLE_USER])
 
-        persister.updateCube(userGroupsCube, userId)
+        persister.updateCube(userGroupsCube, getUserId())
     }
 
     private static void addAppPermissionsCube(ApplicationID appId)
