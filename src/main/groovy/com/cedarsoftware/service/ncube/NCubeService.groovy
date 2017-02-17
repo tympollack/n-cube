@@ -452,9 +452,19 @@ class NCubeService
         manager.clearCache(appId)
     }
 
-    boolean isAdmin(ApplicationID appId)
+    void setFakeId(String fake)
     {
-        manager.isAdmin(appId)
+        manager.fakeId = fake
+    }
+
+    String getImpliedId()
+    {
+        manager.impliedId
+    }
+
+    boolean isAdmin(ApplicationID appId, boolean useRealId = false)
+    {
+        manager.isAdmin(appId, useRealId)
     }
 
     List<AxisRef> getReferenceAxes(ApplicationID appId)

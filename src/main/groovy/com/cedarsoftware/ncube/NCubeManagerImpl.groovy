@@ -1471,7 +1471,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * Retrieve the user ID from the current thread
      * @return String user ID of the user associated to the requesting thread
      */
-    String getFakeId()
+    private String getFakeId()
     {
         return fakeId.get()
     }

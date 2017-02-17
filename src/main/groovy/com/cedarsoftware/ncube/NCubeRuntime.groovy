@@ -178,9 +178,21 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         return result
     }
 
-    Boolean isAdmin(ApplicationID appId)
+    void setFakeId(String fake)
     {
-        Boolean result = bean.call('ncubeController', 'isAppAdmin', [appId]) as Boolean
+        // TODO - does this need forwarding check?
+        bean.call('ncubeController', 'setFakeId', [fake])
+    }
+
+    String getImpliedId()
+    {
+        // TODO - does this need forwarding check?
+        bean.call('ncubeController', 'getImpliedId', [])
+    }
+
+    Boolean isAdmin(ApplicationID appId, boolean useRealId)
+    {
+        Boolean result = bean.call('ncubeController', 'isAppAdmin', [appId, useRealId]) as Boolean
         return result
     }
 

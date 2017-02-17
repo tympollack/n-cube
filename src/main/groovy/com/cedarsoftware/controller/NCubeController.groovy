@@ -113,26 +113,45 @@ class NCubeController extends BaseController
 
     protected String getUserForDatabase()
     {
-        String user = null
+        Map<String, String> headers = [:]
+        String[] headerList = ['smuser','fakeuser','appid']
         HttpServletRequest request = JsonCommandServlet.servletRequest.get()
         Enumeration e = request.headerNames
         while (e.hasMoreElements())
         {
-            String headerName = (String) e.nextElement()
-            if ('smuser'.equalsIgnoreCase(headerName))
+            String headerName = (e.nextElement() as String).toLowerCase()
+            if (headerList.contains(headerName))
             {
-                user = request.getHeader(headerName)
-                break
+                headers[headerName] = request.getHeader(headerName)
+                if (headers.containsKey('smuser') && headers.containsKey('fakeuser') && headers.containsKey('appid'))
+                {
+                    break
+                }
             }
         }
 
-        if (StringUtilities.isEmpty(user))
+        String realId = headers.containsKey('smuser') && !StringUtilities.isEmpty(headers['smuser']) ? headers['smuser'] : System.getProperty('user.name')
+        nCubeService.userId = realId
+
+        if (headers.containsKey('fakeuser') && !StringUtilities.isEmpty(headers['fakeuser'])
+                && headers.containsKey('appid') && !StringUtilities.isEmpty(headers['appid']))
         {
-            user = System.getProperty('user.name')
+            String[] appIdParts = headers['appid'].split('~')
+            if (appIdParts.length > 1)
+            {
+                ApplicationID appId = new ApplicationID(tenant, appIdParts[0], appIdParts[1], appIdParts[2], appIdParts[3])
+                if (isAppAdmin(appId, true))
+                {
+                    nCubeService.fakeId = headers['fakeuser']
+                }
+            }
+        }
+        else
+        {
+            nCubeService.fakeId = ''
         }
 
-        nCubeService.userId = user
-        return user
+        return realId
     }
 
     protected void setUser(String userId)
@@ -148,10 +167,10 @@ class NCubeController extends BaseController
         return nCubeService.checkPermissions(appId, resource, action == null ? Action.READ : Action.valueOf(action.toUpperCase()))
     }
 
-    Boolean isAppAdmin(ApplicationID appId)
+    Boolean isAppAdmin(ApplicationID appId, boolean useRealId = false)
     {
         appId = addTenant(appId)
-        return nCubeService.isAdmin(appId)
+        return nCubeService.isAdmin(appId, useRealId)
     }
 
     String getAppLockedBy(ApplicationID appId)
@@ -1627,6 +1646,7 @@ class NCubeController extends BaseController
 
         // App server name and version
         Map serverStats = [:]
+        putIfNotNull(serverStats, 'User ID', nCubeService.impliedId)
         putIfNotNull(serverStats, 'Server Info', getAttribute(mbs, 'Catalina:type=Server', 'serverInfo'))
         putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
         putIfNotNull(serverStats, 'JVM Route', getAttribute(mbs, 'Catalina:type=Engine', 'jvmRoute'))

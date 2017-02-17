@@ -37,7 +37,11 @@ interface NCubeEditorClient extends NCubeReleaseClient
 
     Boolean checkPermissions(ApplicationID appId, String resource, Action action)
 
-    Boolean isAdmin(ApplicationID appId)
+    void setFakeId(String fake)
+
+    String getImpliedId()
+
+    Boolean isAdmin(ApplicationID appId, boolean useRealId)
 
     String getAppLockedBy(ApplicationID appId)
 
