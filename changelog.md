@@ -1,8 +1,10 @@
 ### Revision History
 * 3.6.8
   * Bug fix: Contains search now searches column values for reference axes.
-  * Bug fix: Contains search now does not return a result from cube name.
+  * Bug fix: Contains search now does not return a result when the text matches only the cube name.
   * Enhancement: Greatly improved speed of getting all reference axes.
+  * Enhancement: Added ability for admins of an app to impersonate users to debug user- or group-specific issues.
+    * Note: All database transactions use real user for a proper audit trail.
 * 3.6.7
   * Enhancement: Easily remove a transform from a reference axis
   * Enhancement: NCube serialized through json-io now brings along ApplicationID
