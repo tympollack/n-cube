@@ -34,7 +34,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ReferenceAxisLoader implements Axis.AxisRefProvider
 {
-    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     public static final String REF_TENANT = 'referenceTenant'
     public static final String REF_APP = 'referenceApp'
     public static final String REF_VERSION = 'referenceVersion'

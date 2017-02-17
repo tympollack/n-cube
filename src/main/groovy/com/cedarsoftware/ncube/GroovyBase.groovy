@@ -44,7 +44,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERS
 @CompileStatic
 abstract class GroovyBase extends UrlCommandCell
 {
-    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     private volatile transient Class runnableCode = null
@@ -414,7 +414,7 @@ abstract class GroovyBase extends UrlCommandCell
         L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
     }
 
-    private static GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
+    private GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx)
         ApplicationID appId = cube.applicationID
@@ -422,12 +422,12 @@ abstract class GroovyBase extends UrlCommandCell
         return gcLoader
     }
 
-    private static String getTargetByteCodeVersion()
+    private String getTargetByteCodeVersion()
     {
         return ncubeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
     }
 
-    private static boolean isNCubeCodeGenDebug()
+    private boolean isNCubeCodeGenDebug()
     {
         return 'true'.equalsIgnoreCase(ncubeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
     }

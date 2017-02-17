@@ -31,7 +31,6 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
 @CompileStatic
 class ApplicationID
 {
-    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
     public static final String DEFAULT_TENANT = 'NONE'
     public static final String DEFAULT_APP = 'DEFAULT_APP'
     public static final String DEFAULT_VERSION = '999.99.9'
@@ -339,12 +338,6 @@ class ApplicationID
         {
             throw new IllegalArgumentException("Status cannot be 'RELEASE'")
         }
-    }
-
-    static ApplicationID getBootVersion(String tenant, String app)
-    {
-        String branch = ncubeClient.systemParams[NCUBE_PARAMS_BRANCH]
-        return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? HEAD : branch)
     }
 
     boolean equalsNotIncludingBranch(ApplicationID that)

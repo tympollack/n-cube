@@ -23,5 +23,5 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface CallableBean
 {
-    Object call(String bean, String method, List args)
+    Object call(String beanName, String method, List args)
 }

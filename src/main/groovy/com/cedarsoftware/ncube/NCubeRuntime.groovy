@@ -3,7 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.JsonHttpClient
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
 import com.cedarsoftware.util.TrackingMap
@@ -14,8 +13,11 @@ import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.springframework.beans.BeansException
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -47,10 +49,12 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeEditorClient
+class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 {
-    private static final String RUNTIME_ERROR = 'Non-runtime method called:'
+    // TODO - remove self asap, figure out how to do spring injection in tests (already doing it on tomcat)
     private static NCubeRuntime self
+    private static ApplicationContext ctx
+    private static final String FORWARDING_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -58,20 +62,21 @@ class NCubeRuntime implements NCubeEditorClient
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
     protected CallableBean bean
-    private boolean runtime
+    private boolean forwarding
 
-    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean runtime)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean forwarding)
     {
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = adviceCacheManager
-        this.runtime = runtime
+        this.forwarding = forwarding
         self = this
     }
 
     static NCubeRuntime getInstance()
     {
-        return self
+        NCubeRuntime bean = ctx.getBean('ncubeRuntime') as NCubeRuntime
+        return bean ?: self
     }
 
     /**
@@ -128,9 +133,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     boolean updateCube(NCube ncube)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} updateCube")
+            throw new IllegalStateException("${FORWARDING_ERROR} updateCube")
         }
         boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
         return result
@@ -144,18 +149,18 @@ class NCubeRuntime implements NCubeEditorClient
 
     void createCube(NCube ncube)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} createCube")
+            throw new IllegalStateException("${FORWARDING_ERROR} createCube")
         }
         bean.call('ncubeController', 'createCube', [ncube])
     }
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} duplicate")
+            throw new IllegalStateException("${FORWARDING_ERROR} duplicate")
         }
         Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
         return result
@@ -187,9 +192,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean lockApp(ApplicationID appId)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} lockApp")
+            throw new IllegalStateException("${FORWARDING_ERROR} lockApp")
         }
         Boolean result = bean.call('ncubeController', 'lockApp', [appId, true]) as Boolean
         return result
@@ -197,18 +202,18 @@ class NCubeRuntime implements NCubeEditorClient
 
     void unlockApp(ApplicationID appId)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} unlockApp")
+            throw new IllegalStateException("${FORWARDING_ERROR} unlockApp")
         }
         bean.call('ncubeController', 'unlockApp', [appId, false])
     }
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} moveBranch")
+            throw new IllegalStateException("${FORWARDING_ERROR} moveBranch")
         }
         Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
         return result
@@ -216,9 +221,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} moveBranch")
+            throw new IllegalStateException("${FORWARDING_ERROR} moveBranch")
         }
         Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
         return result
@@ -226,9 +231,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Integer releaseCubes(ApplicationID appId, String newSnapVer)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} releaseVersion")
+            throw new IllegalStateException("${FORWARDING_ERROR} releaseVersion")
         }
         Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
         return result
@@ -236,9 +241,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} restoreCubes")
+            throw new IllegalStateException("${FORWARDING_ERROR} restoreCubes")
         }
         Boolean result = bean.call('ncubeController', 'restoreCubes', [appId, cubeNames]) as Boolean
         return result
@@ -264,9 +269,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} copyBranch")
+            throw new IllegalStateException("${FORWARDING_ERROR} copyBranch")
         }
         Integer result = bean.call('ncubeController', 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
         return result
@@ -286,9 +291,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean deleteBranch(ApplicationID appId)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} deleteBranch")
+            throw new IllegalStateException("${FORWARDING_ERROR} deleteBranch")
         }
         Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
         return result
@@ -296,9 +301,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} mergeDeltas")
+            throw new IllegalStateException("${FORWARDING_ERROR} mergeDeltas")
         }
         NCube result = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
         return result
@@ -306,9 +311,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} deleteCubes")
+            throw new IllegalStateException("${FORWARDING_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
         return result
@@ -316,9 +321,9 @@ class NCubeRuntime implements NCubeEditorClient
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} deleteCubes")
+            throw new IllegalStateException("${FORWARDING_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames, allowDelete]) as Boolean
         return result
@@ -326,18 +331,18 @@ class NCubeRuntime implements NCubeEditorClient
 
     void changeVersionValue(ApplicationID appId, String newVersion)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} changeVersionValue")
+            throw new IllegalStateException("${FORWARDING_ERROR} changeVersionValue")
         }
         bean.call('ncubeController', 'changeVersionValue', [appId, newVersion])
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} renameCube")
+            throw new IllegalStateException("${FORWARDING_ERROR} renameCube")
         }
         Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
         return result
@@ -356,27 +361,27 @@ class NCubeRuntime implements NCubeEditorClient
 
     void updateReferenceAxes(List<AxisRef> axisRefs)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} getReferenceAxes")
+            throw new IllegalStateException("${FORWARDING_ERROR} getReferenceAxes")
         }
         bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} updateAxisMetaProperties")
+            throw new IllegalStateException("${FORWARDING_ERROR} updateAxisMetaProperties")
         }
         bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
     {
-        if (runtime)
+        if (!forwarding)
         {
-            throw new IllegalStateException("${RUNTIME_ERROR} saveTests")
+            throw new IllegalStateException("${FORWARDING_ERROR} saveTests")
         }
         Boolean result = bean.call('ncubeController', 'saveTests', [appId, cubeName, tests]) as Boolean
         return result
@@ -714,7 +719,7 @@ class NCubeRuntime implements NCubeEditorClient
             NCube ncube = NCube.fromSimpleJson(json)
             ncube.applicationID = appId
             ncube.sha1()
-            self.addCube(ncube)
+            instance.addCube(ncube)
             return ncube
         }
         catch (NullPointerException e)
@@ -789,5 +794,10 @@ class NCubeRuntime implements NCubeEditorClient
             throw new IllegalArgumentException('NCube cannot be null')
         }
         NCube.validateCubeName(cube.name)
+    }
+
+    void setApplicationContext(ApplicationContext applicationContext)
+    {
+        ctx = applicationContext
     }
 }

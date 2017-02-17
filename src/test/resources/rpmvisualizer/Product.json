@@ -1,0 +1,32 @@
+{
+  "ncube":"Product",
+  "axes":[
+    {
+      "id":1,
+      "name":"product",
+      "hasDefault":false,
+      "type":"DISCRETE",
+      "valueType":"STRING",
+      "preferredOrder":0,
+      "fireAll":true,
+      "columns":[
+        {
+          "id":1000859883503,
+          "type":"string",
+          "value":"GProduct"
+        },
+        {
+          "id":1000000000003,
+          "type":"string",
+          "value":"UProduct"
+        },
+        {
+          "id":1000000000001,
+          "type":"string",
+          "value":"WProduct"
+        }
+      ]
+    }
+  ],
+  "cells":[]
+}

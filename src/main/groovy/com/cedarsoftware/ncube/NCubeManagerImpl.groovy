@@ -651,6 +651,12 @@ class NCubeManagerImpl extends NCubeRuntime
         return branches.size()
     }
 
+    ApplicationID getBootVersion(String tenant, String app)
+    {
+        String branch = getSystemParams()[NCUBE_PARAMS_BRANCH]
+        return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? ApplicationID.HEAD : branch)
+    }
+
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
         ApplicationID.validateTenant(tenant)
@@ -661,7 +667,7 @@ class NCubeManagerImpl extends NCubeRuntime
             coord = [:]
         }
 
-        NCube bootCube = loadCube(ApplicationID.getBootVersion(tenant, app), SYS_BOOTSTRAP)
+        NCube bootCube = loadCube(getBootVersion(tenant, app), SYS_BOOTSTRAP)
 
         if (bootCube == null)
         {

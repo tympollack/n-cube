@@ -4,7 +4,7 @@
     <name>n-cube</name>
     <groupId>com.cedarsoftware</groupId>
 	<artifactId>n-cube</artifactId>
-    <packaging>jar</packaging>
+    <packaging>war</packaging>
 	<version>3.6.8-SNAPSHOT</version>
 	<description>n-cube Engine</description>
     <url>https://github.com/jdereg/n-cube</url>
@@ -68,6 +68,8 @@
     <properties>
         <version.json-io>4.9.7</version.json-io>
         <version.java-util>1.26.0</version.java-util>
+        <version.json-command-servlet>1.4.0</version.json-command-servlet>
+        <version.tuckey>4.0.4</version.tuckey>
         <version.log4j>2.5</version.log4j>
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.8</version.groovy>
@@ -83,6 +85,7 @@
         <version.tomcat.jdbc>8.0.39</version.tomcat.jdbc>
         <version.hsqldb>2.3.4</version.hsqldb>
         <version.net.sf.trove4j>3.0.3</version.net.sf.trove4j>
+        <version.apache.ivy>2.4.0</version.apache.ivy>
         <version.plugin.assembly>2.6</version.plugin.assembly>
         <version.plugin.compiler>3.5.1</version.plugin.compiler>
         <version.plugin.gmavenplus>1.5</version.plugin.gmavenplus>
@@ -94,6 +97,12 @@
         <version.plugin.release>2.5.3</version.plugin.release>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
         <version.servlet.api>2.5</version.servlet.api>
+        <version.servlet>3.1.0</version.servlet>
+        <version.plugin.war>2.6</version.plugin.war>
+        <!--<version.jetty>9.3.7.v20160115</version.jetty>-->
+        <!--<jetty.httpPort>9000</jetty.httpPort>-->
+        <!--<jetty.stopPort>9100</jetty.stopPort>-->
+        <!--<jetty.stopKey>n-cube</jetty.stopKey>-->
         <version.java>1.8</version.java>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -216,13 +225,136 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${version.plugin.surefire}</version>
                 <configuration>
+                    <excludes>
+                        <exclude>**/*TestNCubeClient*</exclude>
+                    </excludes>
                     <forkCount>2</forkCount>
+                    <failIfNoTests>false</failIfNoTests>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${version.plugin.surefire}</version>
+                <configuration>
+                    <includes>
+                        <include>**/*TestNCubeClient*</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.0</version>
+                <configuration>
+                    <port>9000</port>
+                    <path>/nce</path>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>start-tomcat</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <fork>true</fork>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>stop-tomcat</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>shutdown</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>oracle</groupId>
+                        <artifactId>ojdbc6</artifactId>
+                        <version>11.2.0.3</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>${version.plugin.war}</version>
+                <configuration>
+                    <archiveClasses>false</archiveClasses>
+                    <attachClasses>true</attachClasses>
+                    <webXml>src\main\webapp\WEB-INF\web.xml</webXml>
+                    <warName>n-cube</warName>
+                </configuration>
+            </plugin>
+
+            <!--<plugin>-->
+                <!--<groupId>org.eclipse.jetty</groupId>-->
+                <!--<artifactId>jetty-maven-plugin</artifactId>-->
+                <!--<version>${version.jetty}</version>-->
+                <!--<configuration>-->
+                    <!--<scanIntervalSeconds>0</scanIntervalSeconds>-->
+                    <!--<stopKey>${jetty.stopKey}</stopKey>-->
+                    <!--<stopPort>${jetty.stopPort}</stopPort>-->
+                    <!--<webAppSourceDirectory>${project.basedir}/src/main/webapp</webAppSourceDirectory>-->
+                    <!--<webApp>-->
+                        <!--<contextPath>/nce</contextPath>-->
+                        <!--<baseResource implementation="org.eclipse.jetty.util.resource.ResourceCollection">-->
+                            <!--<resourcesAsCSV>${project.basedir}/src/main/webapp</resourcesAsCSV>-->
+                        <!--</baseResource>-->
+                    <!--</webApp>-->
+                    <!--<useTestClasspath>true</useTestClasspath>-->
+                    <!--<waitForChild>false</waitForChild>-->
+                    <!--<systemProperties>-->
+                        <!--<systemProperty>-->
+                            <!--<name>jetty.httpPort</name>-->
+                            <!--<value>${jetty.httpPort}</value>-->
+                        <!--</systemProperty>-->
+                    <!--</systemProperties>-->
+                    <!--<jvmArgs>-Djetty.httpPort=${jetty.httpPort}</jvmArgs>-->
+                    <!--<jettyXml>${project.basedir}/jetty.xml</jettyXml>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>start-jetty</id>-->
+                        <!--<phase>test</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>start</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<daemon>true</daemon>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
         </plugins>
     </build>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.tuckey</groupId>
+            <artifactId>urlrewritefilter</artifactId>
+            <version>${version.tuckey}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.cedarsoftware</groupId>
+            <artifactId>json-command-servlet</artifactId>
+            <version>${version.json-command-servlet}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -244,6 +376,18 @@
 
         <dependency>
             <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
             <artifactId>spring-aspects</artifactId>
             <version>${version.spring}</version>
         </dependency>
@@ -251,6 +395,12 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aop</artifactId>
+            <version>${version.spring}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
             <version>${version.spring}</version>
         </dependency>
 
@@ -299,6 +449,21 @@
             <version>${version.servlet.api}</version>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>${version.servlet}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!--<dependency>-->
+            <!--<groupId>org.eclipse.jetty</groupId>-->
+            <!--<artifactId>jetty-servlets</artifactId>-->
+            <!--<version>${version.jetty}</version>-->
+            <!--<scope>test</scope>-->
+        <!--</dependency>-->
 
         <dependency>
             <groupId>mysql</groupId>
@@ -355,7 +520,6 @@
           <groupId>org.apache.tomcat</groupId>
           <artifactId>tomcat-jdbc</artifactId>
           <version>${version.tomcat.jdbc}</version>
-          <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -367,7 +531,7 @@
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
-            <version>2.4.0</version>
+            <version>${version.apache.ivy}</version>
         </dependency>
 
         <!--<dependency>-->

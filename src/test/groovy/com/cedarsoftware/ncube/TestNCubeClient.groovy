@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.util.JsonHttpClient
 import groovy.transform.CompileStatic
 import org.junit.Test
+import org.springframework.cache.support.NoOpCacheManager
 
 import static org.junit.Assert.fail
 
@@ -11,10 +12,11 @@ class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')
     private static NCubeRuntime runtimeClient = new NCubeRuntime(
-            new JsonHttpClient('nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'),
+//            new JsonHttpClient('https', 'nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'),
+            new JsonHttpClient('http', 'localhost', 9000, 'nce', 'jsnyder4', 'Winter2016'),
             new NCubeCacheManager(),
             new NCubeCacheManager(),
-            true)
+            false)
 
     static NCubeRuntime getNcubeRuntime()
     {
@@ -68,8 +70,8 @@ class TestNCubeClient
     @Test
     void testUpdateCube()
     {
-        NCube ncube = runtimeClient.getCube(TEST_APP, '0RefAxisAndOrder')
-        ncube.deleteAxis('test')
+        NCube ncube = runtimeClient.getCube(TEST_APP, '0output')
+        ncube.deleteAxis('Row')
         try
         {
             runtimeClient.updateCube(ncube)

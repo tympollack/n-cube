@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 abstract class UrlCommandCell implements CommandCell
 {
-    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private static final Logger LOG = LogManager.getLogger(UrlCommandCell.class)
     private String cmd
     private volatile transient String errorMsg = null

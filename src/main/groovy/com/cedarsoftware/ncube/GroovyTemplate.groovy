@@ -34,7 +34,7 @@ import java.util.regex.Pattern
 @CompileStatic
 class GroovyTemplate extends ContentCmdCell
 {
-    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private Template resolvedTemplate
 
     //  Private constructor only for serialization.

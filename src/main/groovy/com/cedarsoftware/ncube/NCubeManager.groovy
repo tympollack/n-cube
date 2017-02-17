@@ -1066,6 +1066,12 @@ class NCubeManager
         return branches.size()
     }
 
+    static ApplicationID getBootVersion(String tenant, String app)
+    {
+        String branch = systemParams[NCUBE_PARAMS_BRANCH]
+        return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? ApplicationID.HEAD : branch)
+    }
+
     static ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
         ApplicationID.validateTenant(tenant)
@@ -1076,7 +1082,7 @@ class NCubeManager
             coord = [:]
         }
 
-        NCube bootCube = getCube(ApplicationID.getBootVersion(tenant, app), SYS_BOOTSTRAP)
+        NCube bootCube = getCube(getBootVersion(tenant, app), SYS_BOOTSTRAP)
 
         if (bootCube == null)
         {

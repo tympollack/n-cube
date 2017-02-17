@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+  	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+  	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <context:annotation-config />
+    <aop:aspectj-autoproxy/>
+
+    <bean name="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
+        <constructor-arg ref="ncubeController" />
+    </bean>
+
+    <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
+        <constructor-arg ref="ncubeService" />
+    </bean>
+
+    <bean name="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
+        <constructor-arg ref="#{systemEnvironment['NCUBE_SERVICE_TARGET'] ?: systemProperties['NCUBE_SERVICE_TARGET'] ?: 'ncubeManager'}" />
+    </bean>
+
+    <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
+        <!--<constructor-arg ref="jsonHttpClient"/>-->
+        <constructor-arg ref="#{systemEnvironment['NCUBE_RUNTIME_TARGET'] ?: systemProperties['NCUBE_RUNTIME_TARGET'] ?: 'reflectiveClient'}" />
+        <constructor-arg ref="cacheManager" />
+        <constructor-arg ref="adviceManager" />
+        <constructor-arg value="#{systemEnvironment['NCUBE_FORWARDING'] ?: systemProperties['NCUBE_FORWARDING'] ?: false}" />
+    </bean>
+
+    <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
+        <constructor-arg><null/></constructor-arg>
+        <constructor-arg ref="noOpCacheManager" />
+        <constructor-arg ref="noOpAdviceManager" />
+        <constructor-arg ref="persister" />
+    </bean>
+
+    <bean id="jsonHttpClient" class="com.cedarsoftware.util.JsonHttpClient">
+        <constructor-arg value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_HOST'] ?: 'https'}" />
+        <constructor-arg value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: ''}" />
+        <constructor-arg value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 443}" />
+        <constructor-arg value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: ''}" />
+        <constructor-arg value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ''}" />
+        <constructor-arg value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ''}" />
+    </bean>
+
+    <bean id="reflectiveClient" class="com.cedarsoftware.util.ReflectiveClient">
+    </bean>
+
+    <bean id="cacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+    </bean>
+
+    <bean id="noOpCacheManager" class="org.springframework.cache.support.NoOpCacheManager">
+    </bean>
+
+    <bean id="adviceManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+    </bean>
+
+    <bean id="noOpAdviceManager" class="org.springframework.cache.support.NoOpCacheManager">
+    </bean>
+
+    <bean id="persister" class="com.cedarsoftware.ncube.NCubeJdbcPersisterAdapter">
+        <constructor-arg ref="connectionProvider" />
+    </bean>
+
+    <bean id="connectionProvider" class="com.cedarsoftware.util.SpringConnectionProvider">
+        <constructor-arg ref="ncubeDataSource" />
+    </bean>
+
+    <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="ncubeDataSource" />
+    </bean>
+
+    <tx:advice id="ncubeTxAdvice" transaction-manager="ncubeTransactionManager">
+        <tx:attributes>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="is*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="has*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="does*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="search*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="load*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="resolveRelativeUrl" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="assert*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="check*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" propagation="REQUIRED"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <aop:config>
+
+        <aop:pointcut id="ncubeServiceMethods" expression="execution(* com.cedarsoftware.service.ncube.NCubeService.*(..))"/>
+        <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeServiceMethods"/>
+
+    </aop:config>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod" value="com.cedarsoftware.ncube.NCubeManager.setNCubePersister"/>
+        <property name="arguments">
+            <list>
+                <ref bean="persister"/>
+            </list>
+        </property>
+    </bean>
+
+    <!--
+        Set NCE_JDBC_DRIVER, NCE_JDBC_URL, NCE_JDBC_USER, NCE_JDBC_PWD, and NCE_POOL_QUERY as environment
+        variables or system properties.
+    -->
+
+    <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
+          p:driverClassName="#{systemEnvironment['NCE_JDBC_DRIVER'] ?: systemProperties['NCE_JDBC_DRIVER'] ?: 'oracle.jdbc.driver.OracleDriver'}"
+          p:url="#{systemEnvironment['NCE_JDBC_URL'] ?: systemProperties['NCE_JDBC_URL'] ?: 'jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com'}"
+          p:username="#{systemEnvironment['NCE_JDBC_USER'] ?: systemProperties['NCE_JDBC_USER'] ?: 'nce'}"
+          p:password="#{systemEnvironment['NCE_JDBC_PWD'] ?: systemProperties['NCE_JDBC_PWD'] ?: 'quality'}"
+          p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
+          p:initialSize="5"
+          p:minIdle="5"
+          p:maxIdle="10"
+          p:maxActive="100"
+          p:maxWait="120000"
+          p:jmxEnabled="true"
+          p:removeAbandoned="true"
+          p:removeAbandonedTimeout="180"
+          p:testOnBorrow="true"
+          p:testOnReturn="false"
+          p:testWhileIdle="false"
+          p:timeBetweenEvictionRunsMillis="30000"
+          p:minEvictableIdleTimeMillis="30000"
+          p:validationInterval="60000"
+          p:validationQuery="#{systemEnvironment['NCE_POOL_QUERY'] ?: systemProperties['NCE_POOL_QUERY'] ?: 'select 1 from dual'}">
+    </bean>
+
+</beans>

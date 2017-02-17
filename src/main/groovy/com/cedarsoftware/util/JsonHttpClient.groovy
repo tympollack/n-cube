@@ -56,9 +56,9 @@ class JsonHttpClient implements CallableBean
     private final int numConnections
     private static final Logger LOG = LogManager.getLogger(JsonHttpClient.class)
 
-    JsonHttpClient(String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
+    JsonHttpClient(String scheme, String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
     {
-        httpHost = new HttpHost(hostname, port, 'https')
+        httpHost = new HttpHost(hostname, port, scheme)
         this.context = context
         this.username = username
         this.password = password
@@ -81,9 +81,9 @@ class JsonHttpClient implements CallableBean
     protected CloseableHttpClient createClient()
     {
         PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager()
-        cm.maxTotal = numConnections // Increase max total connection to 200
-        cm.defaultMaxPerRoute = numConnections // Increase default max connection per route to 20
-        cm.setMaxPerRoute(new HttpRoute(httpHost), numConnections) // Increase max connections for localhost:80 to 50
+        cm.maxTotal = numConnections // Max total connection
+        cm.defaultMaxPerRoute = numConnections // Default max connection per route
+        cm.setMaxPerRoute(new HttpRoute(httpHost), numConnections) // Max connections per route
 
         HttpClientBuilder builder = HttpClientBuilder.create()
         builder.connectionManager = cm
@@ -114,7 +114,8 @@ class JsonHttpClient implements CallableBean
         LOG.info("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
         println("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
 
-        Map envelope = JsonReader.jsonToJava(json) as Map
+        // TODO - fix this
+        Map envelope = JsonReader.jsonToMaps(json)
         if (envelope.status == false)
         {
             if (envelope.data instanceof String)

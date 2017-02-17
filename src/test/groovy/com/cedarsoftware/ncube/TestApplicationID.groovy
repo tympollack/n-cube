@@ -576,7 +576,7 @@ class TestApplicationID
         System.setProperty("NCUBE_PARAMS", '{}')
         NCubeManager.systemParams = null
 
-        ApplicationID id = ApplicationID.getBootVersion('foo', 'bar')
+        ApplicationID id = NCubeManager.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant
         assertEquals 'bar', id.app
         assertEquals '0.0.0', id.version
@@ -586,7 +586,7 @@ class TestApplicationID
         System.setProperty("NCUBE_PARAMS", '{"branch":"qux"}')
         NCubeManager.systemParams = null;
 
-        id = ApplicationID.getBootVersion('foo', 'bar')
+        id = NCubeManager.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant
         assertEquals 'bar', id.app
         assertEquals '0.0.0', id.version

@@ -5780,7 +5780,7 @@ class TestWithPreloadedDatabase
     @Test
     void testBootstrapWithOverrides()
 	{
-        ApplicationID id = ApplicationID.getBootVersion('none', 'example')
+        ApplicationID id = NCubeManager.getBootVersion('none', 'example')
         assertEquals(new ApplicationID('NONE', 'EXAMPLE', '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD), id)
 
         preloadCubes(id, "sys.bootstrap.user.overloaded.json")
