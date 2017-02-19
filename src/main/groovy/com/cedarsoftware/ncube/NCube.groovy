@@ -3163,14 +3163,26 @@ class NCube<T>
             }
         }
 
-        columnReorders.each { Delta delta ->
+        for (Delta delta : columnReorders)
+        {
             String axisName = delta.locId as String
             if (axisName)
             {
                 Axis axis = getAxis(delta.locId as String)
                 if (axis)
                 {
-                    updateColumns(axisName, delta.destVal as Collection, true)
+                    Set<Column> updatedCols = []
+                    Set<Column> oldCols = delta.destVal as Set<Column>
+                    for (Column oldCol : oldCols)
+                    {
+                        Column newCol = axis.getColumnById(oldCol.id)
+                        if (newCol)
+                        {
+                            newCol.displayOrder = oldCol.displayOrder
+                            updatedCols.add(newCol)
+                        }
+                    }
+                    updateColumns(axisName, updatedCols, true)
                 }
             }
         }
