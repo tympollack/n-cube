@@ -67,7 +67,7 @@
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeManagerImpl">
-            <constructor-arg ref="reflectiveClient" />
+            <constructor-arg ref="reflectiveProxy" />
             <constructor-arg ref="noOpCacheManager" />
             <constructor-arg ref="noOpAdviceManager" />
             <constructor-arg ref="persister" />
