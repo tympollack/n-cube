@@ -1,12 +1,8 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
-import com.cedarsoftware.service.ServiceProperties
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
-import org.springframework.beans.BeansException
-import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationContextAware
 
 /**
  * This class loads an reference axis.  This entails loading the cube containing

@@ -3,7 +3,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="serviceProperties" class="com.cedarsoftware.service.ServiceProperties">
+    <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
         <property name="NCUBE_MUTABLE" value="false"/>
         <property name="NCUBE_PROTOCOL" value="http"/>
         <property name="NCUBE_HOST" value="localhost"/>
@@ -11,11 +11,6 @@
         <property name="NCUBE_CONTEXT" value="nce"/>
         <property name="NCUBE_USERNAME" value=""/>
         <property name="NCUBE_PASSWORD" value=""/>
-        <property name="NCUBE_JDBC_DRIVER" value=""/>
-        <property name="NCUBE_JDBC_URL" value=""/>
-        <property name="NCUBE_JDBC_USER" value=""/>
-        <property name="NCUBE_JDBC_PWD" value=""/>
-        <property name="NCUBE_POOL_QUERY" value=""/>
     </bean>
 
 </beans>

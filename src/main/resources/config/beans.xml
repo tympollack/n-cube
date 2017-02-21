@@ -13,37 +13,32 @@
     <context:annotation-config />
     <aop:aspectj-autoproxy/>
 
-    <bean id="serviceProperties" class="com.cedarsoftware.service.ServiceProperties">
-        <property name="NCUBE_MUTABLE" value="#{systemEnvironment['NCUBE_MUTABLE'] ?: systemProperties['NCUBE_MUTABLE'] ?: false}"/>
-        <property name="NCUBE_PROTOCOL" value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: 'https'}"/>
-        <property name="NCUBE_HOST" value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: ''}"/>
-        <property name="NCUBE_PORT" value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 443}"/>
-        <property name="NCUBE_CONTEXT" value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: ''}"/>
-        <property name="NCUBE_USERNAME" value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ''}"/>
-        <property name="NCUBE_PASSWORD" value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ''}"/>
-        <property name="NCUBE_JDBC_DRIVER" value="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'oracle.jdbc.driver.OracleDriver'}"/>
-        <property name="NCUBE_JDBC_URL" value="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com'}"/>
-        <property name="NCUBE_JDBC_USER" value="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'nce'}"/>
-        <property name="NCUBE_JDBC_PWD" value="#{systemEnvironment['NCUBE_JDBC_PWD'] ?: systemProperties['NCUBE_JDBC_PWD'] ?: 'quality'}"/>
-        <property name="NCUBE_POOL_QUERY" value="#{systemEnvironment['NCUBE_POOL_QUERY'] ?: systemProperties['NCUBE_POOL_QUERY'] ?: 'select 1 from dual'}"/>
-    </bean>
-
     <beans profile="runtime">
+
+        <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
+            <property name="NCUBE_MUTABLE" value="#{systemEnvironment['NCUBE_MUTABLE'] ?: systemProperties['NCUBE_MUTABLE'] ?: false}"/>
+            <property name="NCUBE_PROTOCOL" value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: 'https'}"/>
+            <property name="NCUBE_HOST" value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: ''}"/>
+            <property name="NCUBE_PORT" value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 443}"/>
+            <property name="NCUBE_CONTEXT" value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: ''}"/>
+            <property name="NCUBE_USERNAME" value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ''}"/>
+            <property name="NCUBE_PASSWORD" value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ''}"/>
+        </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="jsonHttpProxy" />
             <constructor-arg ref="cacheManager" />
             <constructor-arg ref="adviceManager" />
-            <constructor-arg value="#{serviceProperties.NCUBE_MUTABLE}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_MUTABLE}" />
         </bean>
 
         <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
-            <constructor-arg value="#{serviceProperties.NCUBE_PROTOCOL}" />
-            <constructor-arg value="#{serviceProperties.NCUBE_HOST}" />
-            <constructor-arg value="#{serviceProperties.NCUBE_PORT}" />
-            <constructor-arg value="#{serviceProperties.NCUBE_CONTEXT}" />
-            <constructor-arg value="#{serviceProperties.NCUBE_USERNAME}" />
-            <constructor-arg value="#{serviceProperties.NCUBE_PASSWORD}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_PROTOCOL}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_HOST}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_PORT}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_CONTEXT}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_USERNAME}" />
+            <constructor-arg value="#{runtimeProperties.NCUBE_PASSWORD}" />
         </bean>
 
         <bean id="cacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager" />
@@ -54,8 +49,18 @@
 
     <beans profile="server">
 
+        <bean id="serverProperties" class="com.cedarsoftware.service.ServerProperties">
+            <property name="NCUBE_PREVENT_RUNTIME" value="#{systemEnvironment['NCUBE_PREVENT_RUNTIME'] ?: systemProperties['NCUBE_PREVENT_RUNTIME'] ?: true}"/>
+            <property name="NCUBE_JDBC_DRIVER" value="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbc.JDBCDriver'}"/>
+            <property name="NCUBE_JDBC_URL" value="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:hsqldb:mem:testdb'}"/>
+            <property name="NCUBE_JDBC_USER" value="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'sa'}"/>
+            <property name="NCUBE_JDBC_PWD" value="#{systemEnvironment['NCUBE_JDBC_PWD'] ?: systemProperties['NCUBE_JDBC_PWD'] ?: ''}"/>
+            <property name="NCUBE_POOL_QUERY" value="#{systemEnvironment['NCUBE_POOL_QUERY'] ?: systemProperties['NCUBE_POOL_QUERY'] ?: 'select 1 from INFORMATION_SCHEMA.SYSTEM_USERS'}"/>
+        </bean>
+
         <bean name="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
             <constructor-arg ref="ncubeController" />
+            <constructor-arg value="#{serverProperties.NCUBE_PREVENT_RUNTIME}" />
         </bean>
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
@@ -128,10 +133,10 @@
         -->
 
         <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
-              p:driverClassName="#{serviceProperties.NCUBE_JDBC_DRIVER}"
-              p:url="#{serviceProperties.NCUBE_JDBC_URL}"
-              p:username="#{serviceProperties.NCUBE_JDBC_USER}"
-              p:password="#{serviceProperties.NCUBE_JDBC_PWD}"
+              p:driverClassName="#{serverProperties.NCUBE_JDBC_DRIVER}"
+              p:url="#{serverProperties.NCUBE_JDBC_URL}"
+              p:username="#{serverProperties.NCUBE_JDBC_USER}"
+              p:password="#{serverProperties.NCUBE_JDBC_PWD}"
               p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
               p:initialSize="5"
               p:minIdle="5"
@@ -147,7 +152,7 @@
               p:timeBetweenEvictionRunsMillis="30000"
               p:minEvictableIdleTimeMillis="30000"
               p:validationInterval="60000"
-              p:validationQuery="#{serviceProperties.NCUBE_POOL_QUERY}">
+              p:validationQuery="#{serverProperties.NCUBE_POOL_QUERY}">
         </bean>
 
     </beans>

@@ -1,6 +1,6 @@
 package com.cedarsoftware.service
 
-class ServiceProperties
+class RuntimeProperties
 {
     boolean NCUBE_MUTABLE
     String NCUBE_PROTOCOL
@@ -9,9 +9,4 @@ class ServiceProperties
     String NCUBE_CONTEXT
     String NCUBE_USERNAME
     String NCUBE_PASSWORD
-    String NCUBE_JDBC_DRIVER
-    String NCUBE_JDBC_URL
-    String NCUBE_JDBC_USER
-    String NCUBE_JDBC_PWD
-    String NCUBE_POOL_QUERY
 }
