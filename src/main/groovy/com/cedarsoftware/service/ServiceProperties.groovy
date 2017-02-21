@@ -2,7 +2,7 @@ package com.cedarsoftware.service
 
 class ServiceProperties
 {
-    boolean NCUBE_FORWARDING
+    boolean NCUBE_MUTABLE
     String NCUBE_PROTOCOL
     String NCUBE_HOST
     int NCUBE_PORT

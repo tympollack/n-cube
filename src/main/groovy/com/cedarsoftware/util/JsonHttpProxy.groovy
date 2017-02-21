@@ -44,7 +44,7 @@ import org.apache.logging.log4j.Logger
  */
 
 @CompileStatic
-class JsonHttpClient implements CallableBean
+class JsonHttpProxy implements CallableBean
 {
     private final CloseableHttpClient httpClient
     private final CredentialsProvider credsProvider
@@ -54,9 +54,9 @@ class JsonHttpClient implements CallableBean
     private final String username
     private final String password
     private final int numConnections
-    private static final Logger LOG = LogManager.getLogger(JsonHttpClient.class)
+    private static final Logger LOG = LogManager.getLogger(JsonHttpProxy.class)
 
-    JsonHttpClient(String scheme, String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
+    JsonHttpProxy(String scheme, String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
     {
         httpHost = new HttpHost(hostname, port, scheme)
         this.context = context

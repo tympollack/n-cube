@@ -14,7 +14,7 @@
     <aop:aspectj-autoproxy/>
 
     <bean id="serviceProperties" class="com.cedarsoftware.service.ServiceProperties">
-        <property name="NCUBE_FORWARDING" value="#{systemEnvironment['NCUBE_FORWARDING'] ?: systemProperties['NCUBE_FORWARDING'] ?: false}"/>
+        <property name="NCUBE_MUTABLE" value="#{systemEnvironment['NCUBE_MUTABLE'] ?: systemProperties['NCUBE_MUTABLE'] ?: false}"/>
         <property name="NCUBE_PROTOCOL" value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: 'https'}"/>
         <property name="NCUBE_HOST" value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: ''}"/>
         <property name="NCUBE_PORT" value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 443}"/>
@@ -31,13 +31,13 @@
     <beans profile="runtime">
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
-            <constructor-arg ref="jsonHttpClient" />
+            <constructor-arg ref="jsonHttpProxy" />
             <constructor-arg ref="cacheManager" />
             <constructor-arg ref="adviceManager" />
-            <constructor-arg value="#{serviceProperties.NCUBE_FORWARDING}" />
+            <constructor-arg value="#{serviceProperties.NCUBE_MUTABLE}" />
         </bean>
 
-        <bean id="jsonHttpClient" class="com.cedarsoftware.util.JsonHttpClient">
+        <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
             <constructor-arg value="#{serviceProperties.NCUBE_PROTOCOL}" />
             <constructor-arg value="#{serviceProperties.NCUBE_HOST}" />
             <constructor-arg value="#{serviceProperties.NCUBE_PORT}" />
@@ -73,7 +73,7 @@
             <constructor-arg ref="persister" />
         </bean>
 
-        <bean id="reflectiveClient" class="com.cedarsoftware.util.ReflectiveClient" />
+        <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy" />
 
         <bean id="noOpCacheManager" class="org.springframework.cache.support.NoOpCacheManager" />
 

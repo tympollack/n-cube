@@ -13,7 +13,6 @@ import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.springframework.beans.BeansException
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 import org.springframework.context.ApplicationContext
@@ -52,7 +51,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 {
     protected static ApplicationContext ctx
-    private static final String FORWARDING_ERROR = 'Non-runtime method called:'
+    private static final String MUTABLE_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
@@ -60,14 +59,14 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
     protected CallableBean bean
-    private boolean forwarding
+    private boolean mutable
 
-    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean forwarding)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean mutable)
     {
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = adviceCacheManager
-        this.forwarding = forwarding
+        this.mutable = mutable
     }
 
     static NCubeRuntime getInstance()
@@ -130,9 +129,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     boolean updateCube(NCube ncube)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} updateCube")
+            throw new IllegalStateException("${MUTABLE_ERROR} updateCube")
         }
         boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
         return result
@@ -146,18 +145,18 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     void createCube(NCube ncube)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} createCube")
+            throw new IllegalStateException("${MUTABLE_ERROR} createCube")
         }
         bean.call('ncubeController', 'createCube', [ncube])
     }
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} duplicate")
+            throw new IllegalStateException("${MUTABLE_ERROR} duplicate")
         }
         Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
         return result
@@ -177,13 +176,13 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     void setFakeId(String fake)
     {
-        // TODO - does this need forwarding check?
+        // TODO - does this need mutable check?
         bean.call('ncubeController', 'setFakeId', [fake])
     }
 
     String getImpliedId()
     {
-        // TODO - does this need forwarding check?
+        // TODO - does this need mutable check?
         bean.call('ncubeController', 'getImpliedId', [])
     }
 
@@ -201,9 +200,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Boolean lockApp(ApplicationID appId)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} lockApp")
+            throw new IllegalStateException("${MUTABLE_ERROR} lockApp")
         }
         Boolean result = bean.call('ncubeController', 'lockApp', [appId, true]) as Boolean
         return result
@@ -211,18 +210,18 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     void unlockApp(ApplicationID appId)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} unlockApp")
+            throw new IllegalStateException("${MUTABLE_ERROR} unlockApp")
         }
         bean.call('ncubeController', 'unlockApp', [appId, false])
     }
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} moveBranch")
+            throw new IllegalStateException("${MUTABLE_ERROR} moveBranch")
         }
         Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
         return result
@@ -230,9 +229,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} moveBranch")
+            throw new IllegalStateException("${MUTABLE_ERROR} moveBranch")
         }
         Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
         return result
@@ -240,9 +239,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Integer releaseCubes(ApplicationID appId, String newSnapVer)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} releaseVersion")
+            throw new IllegalStateException("${MUTABLE_ERROR} releaseVersion")
         }
         Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
         return result
@@ -250,9 +249,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} restoreCubes")
+            throw new IllegalStateException("${MUTABLE_ERROR} restoreCubes")
         }
         Boolean result = bean.call('ncubeController', 'restoreCubes', [appId, cubeNames]) as Boolean
         return result
@@ -278,9 +277,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} copyBranch")
+            throw new IllegalStateException("${MUTABLE_ERROR} copyBranch")
         }
         Integer result = bean.call('ncubeController', 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
         return result
@@ -300,9 +299,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Boolean deleteBranch(ApplicationID appId)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} deleteBranch")
+            throw new IllegalStateException("${MUTABLE_ERROR} deleteBranch")
         }
         Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
         return result
@@ -310,9 +309,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} mergeDeltas")
+            throw new IllegalStateException("${MUTABLE_ERROR} mergeDeltas")
         }
         NCube result = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
         return result
@@ -320,9 +319,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} deleteCubes")
+            throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
         return result
@@ -330,9 +329,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} deleteCubes")
+            throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames, allowDelete]) as Boolean
         return result
@@ -340,18 +339,18 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     void changeVersionValue(ApplicationID appId, String newVersion)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} changeVersionValue")
+            throw new IllegalStateException("${MUTABLE_ERROR} changeVersionValue")
         }
         bean.call('ncubeController', 'changeVersionValue', [appId, newVersion])
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} renameCube")
+            throw new IllegalStateException("${MUTABLE_ERROR} renameCube")
         }
         Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
         return result
@@ -370,27 +369,27 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     void updateReferenceAxes(List<AxisRef> axisRefs)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} getReferenceAxes")
+            throw new IllegalStateException("${MUTABLE_ERROR} getReferenceAxes")
         }
         bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} updateAxisMetaProperties")
+            throw new IllegalStateException("${MUTABLE_ERROR} updateAxisMetaProperties")
         }
         bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
     {
-        if (!forwarding)
+        if (!mutable)
         {
-            throw new IllegalStateException("${FORWARDING_ERROR} saveTests")
+            throw new IllegalStateException("${MUTABLE_ERROR} saveTests")
         }
         Boolean result = bean.call('ncubeController', 'saveTests', [appId, cubeName, tests]) as Boolean
         return result

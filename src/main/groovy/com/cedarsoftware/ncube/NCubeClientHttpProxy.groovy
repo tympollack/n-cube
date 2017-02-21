@@ -1,6 +1,6 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.JsonHttpClient
+import com.cedarsoftware.util.JsonHttpProxy
 import groovy.transform.CompileStatic
 import org.aopalliance.aop.Advice
 
@@ -29,12 +29,12 @@ import java.lang.reflect.Proxy
 @CompileStatic
 class NCubeClientHttpProxy implements Advice
 {
-    private JsonHttpClient jsonHttpClient
+    private JsonHttpProxy jsonHttpProxy
     private NCubeRuntimeClient ncubeClient
 
-    NCubeClientHttpProxy(JsonHttpClient httpClient)
+    NCubeClientHttpProxy(JsonHttpProxy httpClient)
     {
-        jsonHttpClient = httpClient
+        jsonHttpProxy = httpClient
         ncubeClient = (NCubeRuntimeClient) Proxy.newProxyInstance(NCubeClientHttpProxy.class.classLoader, [NCubeRuntimeClient.class] as Class[], new ClientAdvice())
     }
 
@@ -51,7 +51,7 @@ class NCubeClientHttpProxy implements Advice
             {
                 args = []
             }
-            Object ret = jsonHttpClient.call('ncubeController', method.name, Arrays.asList(args))
+            Object ret = jsonHttpProxy.call('ncubeController', method.name, Arrays.asList(args))
             return ret
         }
     }

@@ -4,7 +4,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="serviceProperties" class="com.cedarsoftware.service.ServiceProperties">
-        <property name="NCUBE_FORWARDING" value="false"/>
+        <property name="NCUBE_MUTABLE" value="false"/>
         <property name="NCUBE_PROTOCOL" value="http"/>
         <property name="NCUBE_HOST" value="localhost"/>
         <property name="NCUBE_PORT" value="9000"/>

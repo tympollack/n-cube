@@ -25,7 +25,7 @@ import java.lang.reflect.Method
  */
 
 @CompileStatic
-class ReflectiveClient implements CallableBean, ApplicationContextAware
+class ReflectiveProxy implements CallableBean, ApplicationContextAware
 {
     private static ApplicationContext ctx
 
