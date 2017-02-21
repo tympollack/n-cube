@@ -39,10 +39,15 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class NCubeGroovyExpression
 {
-    private static NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private static NCubeRuntime ncubeClient
     public Map input
     public Map output
     public NCube ncube
+
+    NCubeGroovyExpression()
+    {
+        ncubeClient = NCubeRuntime.instance
+    }
 
     /**
      * Fetch the named n-cube from the NCubeRuntime.  It looks at the same

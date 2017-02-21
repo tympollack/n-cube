@@ -20,7 +20,7 @@ class Visualizer
 	protected Deque<VisualizerRelInfo> stack = new ArrayDeque<>()
 	protected Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(": ")
 	VisualizerHelper helper
-	protected NCubeRuntimeClient manager
+	protected static NCubeRuntimeClient manager
 
     Visualizer(NCubeRuntimeClient manager)
     {

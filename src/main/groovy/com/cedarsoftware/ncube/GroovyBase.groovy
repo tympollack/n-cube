@@ -44,7 +44,6 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERS
 @CompileStatic
 abstract class GroovyBase extends UrlCommandCell
 {
-    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     private volatile transient Class runnableCode = null

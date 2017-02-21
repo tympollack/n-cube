@@ -51,9 +51,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 @CompileStatic
 class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 {
-    // TODO - remove self asap, figure out how to do spring injection in tests (already doing it on tomcat)
-    private static NCubeRuntime self
-    private static ApplicationContext ctx
+    protected static ApplicationContext ctx
     private static final String FORWARDING_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
@@ -70,13 +68,12 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = adviceCacheManager
         this.forwarding = forwarding
-        self = this
     }
 
     static NCubeRuntime getInstance()
     {
         NCubeRuntime bean = ctx.getBean('ncubeRuntime') as NCubeRuntime
-        return bean ?: self
+        return bean
     }
 
     /**

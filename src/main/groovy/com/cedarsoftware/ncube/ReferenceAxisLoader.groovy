@@ -1,8 +1,12 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
+import com.cedarsoftware.service.ServiceProperties
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
+import org.springframework.beans.BeansException
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
 
 /**
  * This class loads an reference axis.  This entails loading the cube containing
@@ -34,7 +38,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ReferenceAxisLoader implements Axis.AxisRefProvider
 {
-    private NCubeRuntime ncubeClient = NCubeRuntime.instance
+    private static NCubeRuntime ncubeClient
     public static final String REF_TENANT = 'referenceTenant'
     public static final String REF_APP = 'referenceApp'
     public static final String REF_VERSION = 'referenceVersion'
@@ -67,6 +71,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         cubeName = containingCubeName
         axisName = sourceAxisName
         this.args = args
+        ncubeClient = NCubeRuntime.instance
     }
 
     /**

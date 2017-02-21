@@ -3,10 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CallableBean
-import com.cedarsoftware.util.JsonHttpClient
 import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
-import com.cedarsoftware.util.io.JsonReader
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
@@ -53,7 +50,6 @@ class NCubeManagerImpl extends NCubeRuntime
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManagerImpl.class)
-    private static NCubeManagerImpl self
 
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
@@ -85,12 +81,12 @@ class NCubeManagerImpl extends NCubeRuntime
     {
         super(bean, ncubeCacheManager, adviceCacheManager, false)
         nCubePersister = persister
-        self = this
     }
 
-    static NCubeManagerImpl getInstance()
+    static NCubeManagerImpl getManager()
     {
-        return self
+        NCubeManagerImpl bean = ctx.getBean('ncubeRuntime') as NCubeManagerImpl
+        return bean
     }
 
     NCubePersister getPersister()

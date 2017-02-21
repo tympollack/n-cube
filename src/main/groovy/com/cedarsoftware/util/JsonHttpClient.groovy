@@ -114,8 +114,7 @@ class JsonHttpClient implements CallableBean
         LOG.info("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
         println("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
 
-        // TODO - fix this
-        Map envelope = JsonReader.jsonToMaps(json)
+        Map envelope = JsonReader.jsonToJava(json) as Map
         if (envelope.status == false)
         {
             if (envelope.data instanceof String)

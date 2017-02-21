@@ -48,7 +48,6 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class GroovyExpression extends GroovyBase
 {
-    private NCubeRuntime ncubeClient = NCubeRuntime.instance
     public static final String EXP_IMPORTS = "exp.imports"
     public static final String EXP_CLASS = "exp.class"
     public static final String SYS_PROPERTY = "sys.property"

@@ -1,26 +1,25 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.JsonHttpClient
 import groovy.transform.CompileStatic
 import org.junit.Test
-import org.springframework.cache.support.NoOpCacheManager
+import org.junit.runner.RunWith
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.junit4.SpringRunner
 
 import static org.junit.Assert.fail
 
 @CompileStatic
+@RunWith(SpringRunner.class)
+@ContextConfiguration(locations = ['/config/beans.xml', '/test.xml'])
+@ActiveProfiles(profiles = ['runtime'])
 class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')
-    private static NCubeRuntime runtimeClient = new NCubeRuntime(
-//            new JsonHttpClient('https', 'nce-sb.td.afg', 443, 'n-cube-editor', 'jsnyder4', 'Winter2016'),
-            new JsonHttpClient('http', 'localhost', 9000, 'nce', 'jsnyder4', 'Winter2016'),
-            new NCubeCacheManager(),
-            new NCubeCacheManager(),
-            false)
 
-    static NCubeRuntime getNcubeRuntime()
+    private NCubeRuntime getRuntimeClient()
     {
-        return runtimeClient
+        return NCubeRuntime.instance
     }
 
     @Test
