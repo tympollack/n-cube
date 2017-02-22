@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.9
+  * Bug fix: Merge column order delta would overwrite all column changes on the axis.
 * 3.6.8
   * Bug fix: Contains search now searches column values for reference axes.
   * Bug fix: Contains search now does not return a result when the text matches only the cube name.
