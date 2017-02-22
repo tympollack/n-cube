@@ -68,7 +68,7 @@
     <properties>
         <version.json-io>4.9.8</version.json-io>
         <version.java-util>1.26.0</version.java-util>
-        <version.json-command-servlet>1.4.0</version.json-command-servlet>
+        <version.json-command-servlet>1.4.1</version.json-command-servlet>
         <version.tuckey>4.0.4</version.tuckey>
         <version.log4j>2.5</version.log4j>
         <version.junit>4.12</version.junit>
