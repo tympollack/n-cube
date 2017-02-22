@@ -60,11 +60,11 @@
 
         <bean name="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
             <constructor-arg ref="ncubeController" />
-            <constructor-arg value="#{serverProperties.NCUBE_PREVENT_RUNTIME}" />
         </bean>
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeService" />
+            <constructor-arg value="#{serverProperties.NCUBE_PREVENT_RUNTIME}" />
         </bean>
 
         <bean name="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
