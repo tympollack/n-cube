@@ -1043,6 +1043,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         Long sourceRevision = null
         byte[] sourceTestData = null
         String sourceSha1 = null
+        String sourceHeadSha1 = null
         boolean sourceChanged = false
 
         Map<String, Object> options = [
@@ -1056,6 +1057,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             sourceTestData = row.getBytes(TEST_DATA_BIN)
             sourceRevision = row.getLong('revision_number')
             sourceSha1 = row.getString('sha1')
+            sourceHeadSha1 = row.getString('head_sha1')
             sourceChanged = (boolean)row.getBoolean(CHANGED)
         })
 
@@ -1075,11 +1077,40 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             targetHeadSha1 = row.getString('head_sha1')
         })
 
+        String actualHeadSha1 = null
+
+        // Do not use cube_value_bin, test data, or notes to speed up search
+        Map<String, Object> options2 = [(SEARCH_EXACT_MATCH_NAME):true,
+                                        (METHOD_NAME) : 'mergeAcceptTheirs'] as Map
+        runSelectCubesStatement(c, appId.asHead(), cubeName, options2, 1, { ResultSet row ->
+            actualHeadSha1 = row.getString('sha1')
+        })
+
         String notes = "merge: ${sourceBranch} accepted over branch"
         long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
         rev = sourceRevision < 0 ? -rev : rev
-        String headSha1 = sourceBranch == ApplicationID.HEAD ? sourceSha1 : targetHeadSha1
-        insertCube(c, appId, cubeName, rev, sourceBytes, sourceTestData, notes, sourceChanged, sourceSha1, headSha1, username, 'mergeAcceptTheirs')
+
+        String headSha1
+        boolean changed = false
+        if (sourceBranch == ApplicationID.HEAD)
+        {
+            headSha1 = sourceSha1
+        }
+        else if (sourceSha1 == actualHeadSha1)
+        {
+            headSha1 = actualHeadSha1
+        }
+        else
+        {
+            headSha1 = targetHeadSha1
+            changed = true
+        }
+
+        if (sourceSha1 == sourceHeadSha1 && (sourceRevision < 0 != newRevision < 0)) {
+            changed = true
+        }
+
+        insertCube(c, appId, cubeName, rev, sourceBytes, sourceTestData, notes, changed, sourceSha1, headSha1, username, 'mergeAcceptTheirs')
         return true
     }
 
