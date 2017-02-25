@@ -1628,6 +1628,11 @@ class NCubeController extends BaseController
         ncubeService.updateReferenceAxes(axisRefList)
     }
 
+    void clearTestDatabase()
+    {
+        ncubeService.clearTestDatabase()
+    }
+
     Map heartBeat(Map openCubes)
     {
         // If remotely accessing server, use the following to get the MBeanServerConnection...

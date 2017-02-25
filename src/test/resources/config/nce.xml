@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
+        <property name="NCUBE_MUTABLE" value="true"/>
+        <property name="NCUBE_PROTOCOL" value="http"/>
+        <property name="NCUBE_HOST" value="localhost"/>
+        <property name="NCUBE_PORT" value="9000"/>
+        <property name="NCUBE_CONTEXT" value="nce"/>
+        <property name="NCUBE_USERNAME" value=""/>
+        <property name="NCUBE_PASSWORD" value=""/>
+    </bean>
+
+</beans>

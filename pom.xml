@@ -226,7 +226,7 @@
                 <version>${version.plugin.surefire}</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/*TestNCubeClient*</exclude>
+                        <exclude>**/*TestStuff*</exclude>
                     </excludes>
                     <forkCount>2</forkCount>
                     <failIfNoTests>false</failIfNoTests>
@@ -239,7 +239,7 @@
                 <version>${version.plugin.surefire}</version>
                 <configuration>
                     <includes>
-                        <include>**/*TestNCubeClient*</include>
+                        <include>**/*TestStuff*</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -433,7 +433,7 @@
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>${version.hsqldb}</version>
-            <scope>test</scope>
+            <!--<scope>test</scope>-->
         </dependency>
 
         <!--<dependency>-->

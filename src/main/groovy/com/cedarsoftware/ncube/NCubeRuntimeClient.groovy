@@ -34,4 +34,8 @@ interface NCubeRuntimeClient
     void clearCache(ApplicationID appId)
 
     URL getActualUrl(ApplicationID appId, String url, Map input)
+
+    URLClassLoader getLocalClassloader(ApplicationID appId)
+
+    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
 }

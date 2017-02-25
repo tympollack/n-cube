@@ -36,7 +36,7 @@ import java.util.regex.Matcher
 @CompileStatic
 class CdnRouter
 {
-    private static NCubeRuntime ncubeClient
+    private static NCubeRuntimeClient ncubeClient
     private static CdnRoutingProvider provider
     private static final Logger LOG = LogManager.getLogger(CdnRouter.class)
     public static final String TENANT = 'router.tenant'

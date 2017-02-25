@@ -117,12 +117,14 @@ class JsonHttpProxy implements CallableBean
         Map envelope = JsonReader.jsonToJava(json) as Map
         if (envelope.status == false)
         {
+            String errorMessage = 'REST call indicated failure'
             if (envelope.data instanceof String)
             {
                 String message = envelope.data as String
                 envelope.data = message.replaceAll('<hr.+?>', '\n')
+                errorMessage += " - ${envelope.data}"
             }
-            throw new EnvelopeException('REST call indicated failure', envelope)
+            throw new EnvelopeException(errorMessage, envelope)
         }
         return envelope.data
     }

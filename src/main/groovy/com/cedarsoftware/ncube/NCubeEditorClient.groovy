@@ -90,4 +90,6 @@ interface NCubeEditorClient extends NCubeReleaseClient
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
 
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
+
+    void clearTestDatabase()
 }

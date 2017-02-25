@@ -1751,6 +1751,11 @@ ORDER BY abs(revision_number) DESC"""
         list.add(dto)
     }
 
+    static void clearTestDatabase(Connection c)
+    {
+        println 'clearTestDatabase'
+    }
+
     protected static NCube buildCube(ApplicationID appId, ResultSet row)
     {
         NCube ncube = NCube.createCubeFromStream(row.getBinaryStream(CUBE_VALUE_BIN))

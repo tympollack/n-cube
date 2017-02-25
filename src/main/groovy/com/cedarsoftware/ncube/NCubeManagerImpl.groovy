@@ -906,6 +906,15 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         updateCube(ncube)
     }
 
+    void clearTestDatabase()
+    {
+        if (ctx.getBean('hsqlSetup'))
+        {
+            persister.clearTestDatabase()
+        }
+        throw new IllegalStateException('clearTestDatabase() is only available during testing.')
+    }
+
     // ---------------------- Broadcast APIs for notifying other services in cluster of cache changes ------------------
     protected void broadcast(ApplicationID appId)
     {
@@ -1263,7 +1272,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
         branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):null])
 
-        persister.updateCube(branchPermCube, getUserId())
+        persister.createCube(branchPermCube, getUserId())
         VersionControl.updateBranch(permAppId)
     }
 
@@ -1286,7 +1295,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         sysLockCube.applicationID = appId
         sysLockCube.setMetaProperty(PROPERTY_CACHE, false)
         sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.STRING, true))
-        persister.updateCube(sysLockCube, getUserId())
+        persister.createCube(sysLockCube, getUserId())
     }
 
     /**
@@ -1383,7 +1392,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         userGroupsCube.setCell(true, [(AXIS_USER):impId, (AXIS_ROLE):ROLE_USER])
         userGroupsCube.setCell(true, [(AXIS_USER):null, (AXIS_ROLE):ROLE_USER])
 
-        persister.updateCube(userGroupsCube, getUserId())
+        persister.createCube(userGroupsCube, getUserId())
     }
 
     private void addAppPermissionsCube(ApplicationID appId)
@@ -1433,7 +1442,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.COMMIT.lower()])
         appPermCube.setCell(false, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
 
-        persister.updateCube(appPermCube, getUserId())
+        persister.createCube(appPermCube, getUserId())
     }
 
     /**

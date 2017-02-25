@@ -395,7 +395,16 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         return result
     }
 
-    //-- NCube Caching -------------------------------------------------------------------------------------------------
+    void clearTestDatabase()
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} clearTestDatabase")
+        }
+        bean.call('ncubeController', 'clearTestDatabase', []) as Boolean
+    }
+
+//-- NCube Caching -------------------------------------------------------------------------------------------------
 
     /**
      * Clear the cube (and other internal caches) for a given ApplicationID.

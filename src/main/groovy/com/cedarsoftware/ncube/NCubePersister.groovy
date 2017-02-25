@@ -55,4 +55,5 @@ interface NCubePersister extends NCubeReadOnlyPersister
     // Testing
     boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     boolean updateTestData(ApplicationID appId, String cubeName, String testData)
+    void clearTestDatabase()
 }

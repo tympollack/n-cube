@@ -539,6 +539,11 @@ class NCubeService
         return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
     }
 
+    void clearTestDatabase()
+    {
+        manager.clearTestDatabase()
+    }
+
     // =========================================== Helper methods ======================================================
 
     static List getCubes(String json)

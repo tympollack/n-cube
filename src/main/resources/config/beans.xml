@@ -51,7 +51,7 @@
 
         <bean id="serverProperties" class="com.cedarsoftware.service.ServerProperties">
             <property name="NCUBE_PREVENT_RUNTIME" value="#{systemEnvironment['NCUBE_PREVENT_RUNTIME'] ?: systemProperties['NCUBE_PREVENT_RUNTIME'] ?: true}"/>
-            <property name="NCUBE_JDBC_DRIVER" value="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbc.JDBCDriver'}"/>
+            <property name="NCUBE_JDBC_DRIVER" value="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbcDriver'}"/>
             <property name="NCUBE_JDBC_URL" value="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:hsqldb:mem:testdb'}"/>
             <property name="NCUBE_JDBC_USER" value="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'sa'}"/>
             <property name="NCUBE_JDBC_PWD" value="#{systemEnvironment['NCUBE_JDBC_PWD'] ?: systemProperties['NCUBE_JDBC_PWD'] ?: ''}"/>
@@ -153,6 +153,17 @@
               p:minEvictableIdleTimeMillis="30000"
               p:validationInterval="60000"
               p:validationQuery="#{serverProperties.NCUBE_POOL_QUERY}">
+        </bean>
+
+    </beans>
+
+    <beans profile="test">
+
+        <bean id="hsqlSetup" class="com.cedarsoftware.util.HypersonicSchemaCreator">
+            <constructor-arg value="jdbc:hsqldb:mem:testdb" />
+            <constructor-arg value="sa" />
+            <constructor-arg value="" />
+            <constructor-arg value="/ddl/hsqldb-schema.sql" />
         </bean>
 
     </beans>

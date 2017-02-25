@@ -39,7 +39,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class NCubeGroovyExpression
 {
-    private static NCubeRuntime ncubeClient
+    private static NCubeRuntimeClient ncubeClient
     public Map input
     public Map output
     public NCube ncube

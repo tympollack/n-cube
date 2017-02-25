@@ -5,7 +5,6 @@ import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import java.lang.reflect.Method
@@ -37,13 +36,13 @@ import static org.junit.Assert.fail
 class TestAdvice
 {
     @Before
-    public void setUp()
+    void setUp()
     {
         TestingDatabaseHelper.setupDatabase()
     }
 
     @After
-    public void tearDown()
+    void tearDown()
     {
         TestingDatabaseHelper.tearDownDatabase()
     }
@@ -215,9 +214,9 @@ class TestAdvice
         }
         catch (Throwable t)
         {
-            while (t.getCause() != null)
+            while (t.cause != null)
             {
-                t = t.getCause()
+                t = t.cause
             }
             assert output.before == 'yes'
             assert output.after == 'yes'
@@ -244,19 +243,19 @@ class TestAdvice
 
                 assert input.size() == 2 || input.size() == 3 || input.size() == 4
                 boolean ret = true
-                if ("foo".equals(method.name))
+                if ("foo" == method.name)
                 {
                     assertEquals("foo", input.method)
                 }
-                else if ("bar".equals(method.name))
+                else if ('bar' == method.name)
                 {
                     assertEquals("bar", input.method)
                 }
-                else if ("qux".equals(method.name))
+                else if ("qux" == method.name)
                 {
                     assertEquals("qux", input.method)
                 }
-                else if ("qaz".equals(method.name))
+                else if ("qaz" == method.name)
                 {
                     ret = false
                 }
@@ -266,15 +265,15 @@ class TestAdvice
             void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)
             {
                 output.after = true
-                if ("foo".equals(method.name) && "OH".equals(input.state))
+                if ("foo" == method.name && "OH" == input.state)
                 {
                     assertEquals(2, returnValue)
                 }
-                else if ("bar".equals(method.name) && "OH".equals(input.state))
+                else if ("bar" == method.name && "OH" == input.state)
                 {
                     assertEquals(4, returnValue)
                 }
-                else if ("qux".equals(method.name) && "TX".equals(input.state))
+                else if ("qux" == method.name && "TX" == input.state)
                 {
                     assertEquals(81, returnValue)
                 }
@@ -309,7 +308,7 @@ class TestAdvice
     @Test
     void testAdviceSubsetMatching()
     {
-        NCube ncube = NCubeManager.getNCubeFromResource("testGroovyMethods.json")
+        NCube ncube = NCubeManager.getNCubeFromResource('testGroovyMethods.json')
 
         Advice advice1 = new Advice() {
             String getName()
@@ -322,24 +321,24 @@ class TestAdvice
                 output.before = true
 
                 boolean ret = true
-                if ("foo".equals(method.name))
+                if ('foo' == method.name)
                 {
-                    assertEquals("foo", input.method)
+                    assertEquals('foo', input.method)
                 }
-                else if ("bar".equals(method.name))
+                else if ('bar' == method.name)
                 {
                     output.bar = true
                     assertEquals("bar", input.method)
                 }
-                else if ("baz".equals(method.name))
+                else if ('baz' == method.name)
                 {
                     output.baz = true
                 }
-                else if ("qux".equals(method.name))
+                else if ('qux' == method.name)
                 {
-                    assertEquals("qux", input.method)
+                    assertEquals('qux', input.method)
                 }
-                else if ("qaz".equals(method.name))
+                else if ('qaz' == method.name)
                 {
                     ret = false
                 }
@@ -349,15 +348,15 @@ class TestAdvice
             void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)
             {
                 output.after = true
-                if ("foo".equals(method.name) && "OH".equals(input.state))
+                if ('foo' == method.name && 'OH' == input.state)
                 {
                     assertEquals(2, returnValue)
                 }
-                else if ("bar".equals(method.name) && "OH".equals(input.state))
+                else if ('bar' == method.name && 'OH' == input.state)
                 {
                     assertEquals(4, returnValue)
                 }
-                else if ("qux".equals(method.name) && "TX".equals(input.state))
+                else if ('qux' == method.name && 'TX' == input.state)
                 {
                     assertEquals(81, returnValue)
                 }
@@ -423,24 +422,24 @@ class TestAdvice
                 output.before = true
 
                 boolean ret = true
-                if ("foo".equals(method.name))
+                if ("foo" == method.name)
                 {
                     assertEquals("foo", input.method)
                 }
-                else if ("bar".equals(method.name))
+                else if ("bar" == method.name)
                 {
                     output.bar = true
                     assertEquals("bar", input.method)
                 }
-                else if ("baz".equals(method.name))
+                else if ("baz" == method.name)
                 {
                     output.baz = true
                 }
-                else if ("qux".equals(method.name))
+                else if ("qux" == method.name)
                 {
                     assertEquals("qux", input.method)
                 }
-                else if ("qaz".equals(method.name))
+                else if ("qaz" == method.name)
                 {
                     ret = false
                 }
@@ -450,15 +449,15 @@ class TestAdvice
             void after(Method method, NCube ncube, Map input, Map output, Object returnValue, Throwable t)
             {
                 output.after = true
-                if ("foo".equals(method.name) && "OH".equals(input.state))
+                if ("foo" == method.name && "OH" == input.state)
                 {
                     assertEquals(2, returnValue)
                 }
-                else if ("bar".equals(method.name) && "OH".equals(input.state))
+                else if ("bar" == method.name && "OH" == input.state)
                 {
                     assertEquals(4, returnValue)
                 }
-                else if ("qux".equals(method.name) && "TX".equals(input.state))
+                else if ("qux" == method.name && "TX" == input.state)
                 {
                     assertEquals(81, returnValue)
                 }

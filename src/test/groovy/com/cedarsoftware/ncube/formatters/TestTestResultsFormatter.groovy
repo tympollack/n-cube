@@ -4,7 +4,7 @@ import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.NCubeTest
 import com.cedarsoftware.ncube.RuleInfo
 import com.cedarsoftware.ncube.TestingDatabaseHelper
@@ -47,7 +47,7 @@ class TestTestResultsFormatter
     @Test
     void testResultsFromNCube()
     {
-        NCube<String> ncube = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
+        NCube<String> ncube = NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
         def coord = [age:18, state:'OH']
         def output = [:]
         ncube.getCell(coord, output)
@@ -60,7 +60,7 @@ class TestTestResultsFormatter
     @Test
     void testResultsWithOutputAndError()
     {
-        NCube<String> ncube = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
+        NCube<String> ncube = NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
         def coord = [age:18, state:'OH']
         def output = ['foo.age':'56', 'foo.name':'John']
         ncube.getCell coord, output
@@ -68,7 +68,7 @@ class TestTestResultsFormatter
         Set<String> assertionFailures = new HashSet<>()
         assertionFailures.add '[some assertion happened]'
 
-        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        RuleInfo ruleInfo = output.get(NCube.RULE_EXEC_INFO) as RuleInfo
         ruleInfo.setAssertionFailures(assertionFailures)
 
         String s = new TestResultsFormatter(output).format()
