@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.10
+  * Bug fix: Merge accept theirs incorrectly setting head_sha1 and changed flag.
 * 3.6.9
   * Bug fix: Merge column order delta would overwrite all column changes on the axis.
 * 3.6.8

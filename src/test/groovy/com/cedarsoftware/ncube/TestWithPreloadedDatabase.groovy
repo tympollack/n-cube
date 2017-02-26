@@ -5039,6 +5039,385 @@ class TestWithPreloadedDatabase
     }
 
     @Test
+    void testMergeAcceptTheirsTheirSha1IsHeadsSha1OursIsBehindHeadsSha1AndNotChanged()
+    {
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+
+        NCube branch1Cube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
+        branch1Cube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(BRANCH1, branch1Cube)
+        VersionControl.commitBranch(BRANCH1)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = A, HEAD_SHA1 = A
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = B
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert !branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = A, HEAD_SHA1 = A
+        // BRANCH2 SHA1 = A, HEAD_SHA1 = A
+        assert branch1Dto.headSha1 == branch1Dto.sha1
+        assert branch1Dto.headSha1 == headDto.sha1
+        assert branch2Dto.sha1 == headDto.sha1
+        assert !branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirSha1IsHeadsSha1OursIsBehindHeadsSha1AndChanged()
+    {
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+
+        NCube branch1Cube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
+        branch1Cube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(BRANCH1, branch1Cube)
+        VersionControl.commitBranch(BRANCH1)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = A, HEAD_SHA1 = A
+
+        NCube branch2Cube = NCubeManager.loadCube(BRANCH2, 'TestBranch')
+        branch2Cube.setCell('AAA', [Code:-15])
+        NCubeManager.updateCube(BRANCH2, branch2Cube)
+        // BRANCH2 SHA1 = X, HEAD_SHA1 = B
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = A, HEAD_SHA1 = A
+        // BRANCH2 SHA1 = A, HEAD_SHA1 = A
+        assert branch1Dto.headSha1 == branch1Dto.sha1
+        assert branch1Dto.headSha1 == headDto.sha1
+        assert branch2Dto.sha1 == headDto.sha1
+        assert !branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirSha1MatchesHeadSha1ButBehindHeadsSha1OursIsNotChanged()
+    {
+        ApplicationID producer = BRANCH1.asBranch('producer')
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+        NCubeManager.copyBranch(HEAD, producer)
+
+        NCube producerCube = NCubeManager.loadCube(producer, 'TestBranch')
+        producerCube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = B
+
+        VersionControl.updateBranch(BRANCH1)
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        producerCube.setCell('GGG', [Code:-10])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+        // BRANCH2 SHA1 = C, HEAD_SHA1 = C
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert !branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = C
+        assert branch1Dto.headSha1 == branch1Dto.sha1
+        assert branch1Dto.headSha1 != headDto.sha1
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.headSha1 != branch2Dto.sha1
+        assert branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirSha1MatchesHeadSha1ButBehindHeadsSha1OursIsChanged()
+    {
+        ApplicationID producer = BRANCH1.asBranch('producer')
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+        NCubeManager.copyBranch(HEAD, producer)
+
+        NCube producerCube = NCubeManager.loadCube(producer, 'TestBranch')
+        producerCube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = B
+
+        VersionControl.updateBranch(BRANCH1)
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        producerCube.setCell('GGG', [Code:-10])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        NCube branch2Cube = NCubeManager.loadCube(BRANCH2, 'TestBranch')
+        branch2Cube.setCell('AAA', [Code:-15])
+        NCubeManager.updateCube(BRANCH2, branch2Cube)
+        // BRANCH2 SHA1 = X, HEAD_SHA1 = C
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = C
+        assert branch1Dto.headSha1 == branch1Dto.sha1
+        assert branch1Dto.headSha1 != headDto.sha1
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.headSha1 != branch2Dto.sha1
+        assert branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirHeadSha1BehindHeadsSha1OurHeadSha1MatchesHeadsSha1AndIsNotChanged()
+    {
+        ApplicationID producer = BRANCH1.asBranch('producer')
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+        NCubeManager.copyBranch(HEAD, producer)
+
+        NCube producerCube = NCubeManager.loadCube(producer, 'TestBranch')
+        producerCube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = B
+
+        VersionControl.updateBranch(BRANCH1)
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        producerCube.setCell('GGG', [Code:-10])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        VersionControl.updateBranch(BRANCH2)
+        // BRANCH2 SHA1 = A, HEAD_SHA1 = A
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert !branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = A
+        assert branch1Dto.headSha1 == branch1Dto.sha1
+        assert branch1Dto.headSha1 != headDto.sha1
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.headSha1 != branch2Dto.sha1
+        assert branch2Dto.headSha1 == headDto.sha1
+        assert branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirHeadSha1BehindHeadsSha1OurHeadSha1MatchesHeadsSha1AndIsChanged()
+    {
+        ApplicationID producer = BRANCH1.asBranch('producer')
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+        NCubeManager.copyBranch(HEAD, producer)
+
+        NCube producerCube = NCubeManager.loadCube(producer, 'TestBranch')
+        producerCube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = B
+
+        VersionControl.updateBranch(BRANCH1)
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        producerCube.setCell('GGG', [Code:-10])
+        NCubeManager.updateCube(producer, producerCube)
+        VersionControl.commitBranch(producer)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+
+        VersionControl.updateBranch(BRANCH2)
+        // BRANCH2 SHA1 = A, HEAD_SHA1 = A
+
+        NCube branch2Cube = NCubeManager.loadCube(BRANCH2, 'TestBranch')
+        branch2Cube.setCell('AAA', [Code:-15])
+        NCubeManager.updateCube(BRANCH2, branch2Cube)
+        // BRANCH2 SHA1 = X, HEAD_SHA1 = A
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = B
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = A
+        assert branch1Dto.headSha1 == branch1Dto.sha1
+        assert branch1Dto.headSha1 != headDto.sha1
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.headSha1 != branch2Dto.sha1
+        assert branch2Dto.headSha1 == headDto.sha1
+        assert branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirsIsChangeAndOursIsNotChanged()
+    {
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+
+        NCube branch1Cube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
+        branch1Cube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(BRANCH1, branch1Cube)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = A
+        // BRANCH2 SHA1 = A, HEAD_SHA1 = A
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert !branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = A
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = A
+        assert branch1Dto.headSha1 != branch1Dto.sha1
+        assert branch1Dto.headSha1 == headDto.sha1
+        assert branch2Dto.headSha1 == headDto.sha1
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirsIsChangeAndOursIsChanged()
+    {
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+
+        NCube branch1Cube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
+        branch1Cube.setCell('DDD', [Code:0])
+        NCubeManager.updateCube(BRANCH1, branch1Cube)
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = A
+
+        NCube branch2Cube = NCubeManager.loadCube(BRANCH2, 'TestBranch')
+        branch2Cube.setCell('AAA', [Code:-15])
+        NCubeManager.updateCube(BRANCH2, branch2Cube)
+        // BRANCH2 SHA1 = X, HEAD_SHA1 = A
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        NCubeInfoDto headDto = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        // HEAD SHA1 = A
+        // BRANCH1 SHA1 = B, HEAD_SHA1 = A
+        // BRANCH2 SHA1 = B, HEAD_SHA1 = A
+        assert branch1Dto.headSha1 != branch1Dto.sha1
+        assert branch1Dto.headSha1 == headDto.sha1
+        assert branch2Dto.headSha1 == headDto.sha1
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.changed
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirsIsDeleted()
+    {
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+
+        NCubeManager.deleteCubes(BRANCH1, ['TestBranch'] as Object[])
+        VersionControl.commitBranch(BRANCH1)
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert !branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.changed
+        assert Integer.parseInt(branch2Dto.revision) < 0
+    }
+
+    @Test
+    void testMergeAcceptTheirsTheirsIsRestored()
+    {
+        preloadCubes(BRANCH1, 'test.branch.1.json')
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.deleteCubes(BRANCH1, ['TestBranch'] as Object[])
+        VersionControl.commitBranch(BRANCH1)
+        NCubeManager.copyBranch(HEAD, BRANCH2)
+
+        NCubeManager.restoreCubes(BRANCH1, ['TestBranch'] as Object[])
+        VersionControl.commitBranch(BRANCH1)
+
+        NCubeInfoDto branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+        assert !branch2Dto.changed
+
+        assert 1 == VersionControl.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+
+        NCubeInfoDto branch1Dto = NCubeManager.search(BRANCH1, 'TestBranch', null, null).first()
+        branch2Dto = NCubeManager.search(BRANCH2, 'TestBranch', null, null).first()
+
+        assert branch2Dto.sha1 == branch1Dto.sha1
+        assert branch2Dto.changed
+        assert Integer.parseInt(branch2Dto.revision) > 0
+    }
+
+    @Test
     void testConflictAcceptMine()
     {
         NCube cube = NCubeManager.getNCubeFromResource("test.branch.2.json")
