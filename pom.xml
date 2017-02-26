@@ -66,11 +66,12 @@
     </developers>
 
     <properties>
-        <version.json-io>4.9.8</version.json-io>
+        <version.json-io>4.9.9</version.json-io>
         <version.java-util>1.26.0</version.java-util>
         <version.json-command-servlet>1.4.1</version.json-command-servlet>
         <version.tuckey>4.0.4</version.tuckey>
-        <version.log4j>2.5</version.log4j>
+        <version.log4j>2.8</version.log4j>
+        <version.log4j-web>2.8</version.log4j-web>
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.8</version.groovy>
         <version.guava>21.0</version.guava>
@@ -81,20 +82,17 @@
         <version.spring>4.3.5.RELEASE</version.spring>
         <version.mongo>2.12.3</version.mongo>
         <version.mysql.connector.java>5.1.40</version.mysql.connector.java>
-        <version.nosqlunit>0.7.9</version.nosqlunit>
-        <version.tomcat.jdbc>8.0.39</version.tomcat.jdbc>
+        <version.tomcat.jdbc>8.0.41</version.tomcat.jdbc>
         <version.hsqldb>2.3.4</version.hsqldb>
         <version.net.sf.trove4j>3.0.3</version.net.sf.trove4j>
         <version.apache.ivy>2.4.0</version.apache.ivy>
         <version.plugin.assembly>2.6</version.plugin.assembly>
-        <version.plugin.compiler>3.5.1</version.plugin.compiler>
+        <version.plugin.maven-compiler>3.6.1</version.plugin.maven-compiler>
         <version.plugin.gmavenplus>1.5</version.plugin.gmavenplus>
-        <version.plugin.deploy>2.8.2</version.plugin.deploy>
         <version.plugin.nexus>1.6.7</version.plugin.nexus>
         <version.plugin.source>3.0.1</version.plugin.source>
         <version.plugin.javadoc>2.10.3</version.plugin.javadoc>
         <version.plugin.gpg>1.6</version.plugin.gpg>
-        <version.plugin.release>2.5.3</version.plugin.release>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
         <version.plugin.tomcat7>2.0</version.plugin.tomcat7>
         <version.servlet.api>2.5</version.servlet.api>
@@ -137,6 +135,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${version.plugin.maven-compiler}</version>
                 <executions>
                     <execution>
                         <id>default-compile</id>
@@ -431,6 +430,13 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>${version.log4j}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-web</artifactId>
+            <version>${version.log4j-web}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
