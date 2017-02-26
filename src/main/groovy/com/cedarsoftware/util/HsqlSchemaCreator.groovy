@@ -27,9 +27,9 @@ import java.sql.Statement
  */
 
 @CompileStatic
-class HypersonicSchemaCreator
+class HsqlSchemaCreator
 {
-    HypersonicSchemaCreator(String databaseUrl, String username, String password, String schema)
+    HsqlSchemaCreator(String databaseUrl, String username, String password, String schema)
     {
         NCube.isTrue(null) // force NCube class to load for custom json reader and writer
         TestingConnectionProvider provider = new TestingConnectionProvider(null, databaseUrl, username, password)

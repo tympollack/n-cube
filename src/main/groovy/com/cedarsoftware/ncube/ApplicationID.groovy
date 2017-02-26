@@ -106,6 +106,15 @@ class ApplicationID
         return (tenant + ' / ' + app + ' / ' + version + ' / ' + branch + ' / ' + name).toLowerCase()
     }
 
+    /**
+     * Convert "tenant / app / version / branch / ..." into Snapshot Application ID
+     */
+    static ApplicationID convert(String appIdString)
+    {
+        List<String> pieces = appIdString.tokenize('/')
+        return new ApplicationID(pieces[0].trim(), pieces[1].trim(), pieces[2].trim(), ReleaseStatus.SNAPSHOT.name(), pieces[3].trim())
+    }
+
     String branchAgnosticCacheKey()
     {
         return (tenant + ' / ' + app + ' / ' + version + ' / ').toLowerCase()

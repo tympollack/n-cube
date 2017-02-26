@@ -11,33 +11,30 @@ import org.springframework.test.context.junit4.SpringRunner
 
 @CompileStatic
 @RunWith(SpringRunner.class)
-@ContextConfiguration(locations = ['/config/beans.xml', '/config/nce.xml'])
-@ActiveProfiles(profiles = ['runtime'])
+@ContextConfiguration(locations = ['/config/beans.xml'])
+@ActiveProfiles(profiles = ['runtime', 'test-mutable'])
 class TestStuff
 {
-
-    private static NCubeRuntime getRuntimeClient()
-    {
-        return NCubeRuntime.instance
-    }
-
     @Before
     void setUp()
     {
-        NCube cp = NCubeManager.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-        runtimeClient.createCube(cp)
-        cp = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-        runtimeClient.createCube(cp)
+        TestingDatabaseHelper.initDatabase()
     }
 
     @After
     void tearDown()
     {
-
+        TestingDatabaseHelper.clearDatabase()
     }
 
     @Test
     void testStuff()
+    {
+        println 'test'
+    }
+
+    @Test
+    void testStuff2()
     {
         println 'test'
     }

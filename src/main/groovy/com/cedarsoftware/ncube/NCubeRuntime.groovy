@@ -134,12 +134,14 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateCube")
         }
         boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
+        cacheCube(ncube)
         return result
     }
 
     NCube loadCubeById(long id)
     {
         NCube ncube = bean.call('ncubeController', 'loadCubeById', [id]) as NCube
+        cacheCube(ncube)
         return ncube
     }
 
@@ -150,6 +152,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} createCube")
         }
         bean.call('ncubeController', 'createCube', [ncube])
+        prepareCube(ncube)
     }
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
@@ -304,6 +307,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} deleteBranch")
         }
         Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
+        // TODO: Remove branches cubes from cache
         return result
     }
 
@@ -313,8 +317,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         {
             throw new IllegalStateException("${MUTABLE_ERROR} mergeDeltas")
         }
-        NCube result = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
-        return result
+        NCube ncube = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
+        cacheCube(ncube)
+        return ncube
     }
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
@@ -324,6 +329,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
+        // TODO: Remove deleted cubes from cache
         return result
     }
 
@@ -334,6 +340,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames, allowDelete]) as Boolean
+        // TODO: Remove deleted cubes from cache
         return result
     }
 
@@ -353,6 +360,8 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} renameCube")
         }
         Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
+        // TODO: remove cube that was renamed
+        // TODO: cache cube with new name
         return result
     }
 
@@ -374,6 +383,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} getReferenceAxes")
         }
         bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
+        // TODO: All n-cubes touched have to be updated in the Cache
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
@@ -383,6 +393,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateAxisMetaProperties")
         }
         bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
+        // TODO: Drop affected cubes from cache
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
@@ -442,6 +453,15 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         }
     }
 
+    protected void clearCache()
+    {
+        ncubeCacheManager.cacheNames.each { String appIdString ->
+            ApplicationID appId = ApplicationID.convert(appIdString)
+            clearCache(appId)
+            clearCache(appId.asRelease())
+        }
+    }
+    
     /**
      * Add a cube to the internal cache of available cubes.
      * @param ncube NCube to add to the list.
@@ -454,11 +474,11 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         prepareCube(ncube)
     }
 
-    private void cacheCube(ApplicationID appId, NCube ncube)
+    private void cacheCube(NCube ncube)
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
-            Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
+            Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.toString())
             cubeCache.put(ncube.name.toLowerCase(), ncube)
         }
     }
@@ -490,8 +510,8 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
 
     private NCube prepareCube(NCube cube)
     {
-        applyAdvices(cube.applicationID, cube)
-        cacheCube(cube.applicationID, cube)
+        applyAdvices(cube)
+        cacheCube(cube)
         return cube
     }
 
@@ -553,11 +573,11 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
      * @param appId ApplicationID
      * @param ncube NCube to which all matching advices will be applied.
      */
-    private void applyAdvices(ApplicationID appId, NCube ncube)
+    private void applyAdvices(NCube ncube)
     {
         if (adviceCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)adviceCacheManager).applyToEntries(appId.toString(), { String key, Object value ->
+            ((NCubeCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.toString(), { String key, Object value ->
                 final Advice advice = value as Advice
                 final String wildcard = key.replace(advice.name + '/', "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)
@@ -722,12 +742,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         Path resPath = Paths.get(url.toURI())
         return new String(Files.readAllBytes(resPath), "UTF-8")
     }
-
-    static NCube getNCubeFromResource(String name)
-    {
-        return getNCubeFromResource(ApplicationID.testAppId, name)
-    }
-
+    
     static NCube getNCubeFromResource(ApplicationID appId, String name)
     {
         try

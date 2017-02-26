@@ -5,7 +5,7 @@
     <groupId>com.cedarsoftware</groupId>
 	<artifactId>n-cube</artifactId>
     <packaging>war</packaging>
-	<version>3.6.9-SNAPSHOT</version>
+	<version>3.6.10-SNAPSHOT</version>
 	<description>n-cube Engine</description>
     <url>https://github.com/jdereg/n-cube</url>
     <profiles>
@@ -96,13 +96,10 @@
         <version.plugin.gpg>1.6</version.plugin.gpg>
         <version.plugin.release>2.5.3</version.plugin.release>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
+        <version.plugin.tomcat7>2.0</version.plugin.tomcat7>
         <version.servlet.api>2.5</version.servlet.api>
         <version.servlet>3.1.0</version.servlet>
         <version.plugin.war>2.6</version.plugin.war>
-        <!--<version.jetty>9.3.7.v20160115</version.jetty>-->
-        <!--<jetty.httpPort>9000</jetty.httpPort>-->
-        <!--<jetty.stopPort>9100</jetty.stopPort>-->
-        <!--<jetty.stopKey>n-cube</jetty.stopKey>-->
         <version.java>1.8</version.java>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -226,7 +223,7 @@
                 <version>${version.plugin.surefire}</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/*TestStuff*</exclude>
+                        <exclude>**/**</exclude>
                     </excludes>
                     <forkCount>2</forkCount>
                     <failIfNoTests>false</failIfNoTests>
@@ -239,7 +236,7 @@
                 <version>${version.plugin.surefire}</version>
                 <configuration>
                     <includes>
-                        <include>**/*TestStuff*</include>
+                        <include>**/*TestAdvice*</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -255,7 +252,7 @@
             <plugin>
                 <groupId>org.apache.tomcat.maven</groupId>
                 <artifactId>tomcat7-maven-plugin</artifactId>
-                <version>2.0</version>
+                <version>${version.plugin.tomcat7}</version>
                 <configuration>
                     <port>9000</port>
                     <path>/nce</path>
@@ -279,13 +276,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>oracle</groupId>
-                        <artifactId>ojdbc6</artifactId>
-                        <version>11.2.0.3</version>
-                    </dependency>
-                </dependencies>
             </plugin>
 
             <plugin>
@@ -300,45 +290,6 @@
                 </configuration>
             </plugin>
 
-            <!--<plugin>-->
-                <!--<groupId>org.eclipse.jetty</groupId>-->
-                <!--<artifactId>jetty-maven-plugin</artifactId>-->
-                <!--<version>${version.jetty}</version>-->
-                <!--<configuration>-->
-                    <!--<scanIntervalSeconds>0</scanIntervalSeconds>-->
-                    <!--<stopKey>${jetty.stopKey}</stopKey>-->
-                    <!--<stopPort>${jetty.stopPort}</stopPort>-->
-                    <!--<webAppSourceDirectory>${project.basedir}/src/main/webapp</webAppSourceDirectory>-->
-                    <!--<webApp>-->
-                        <!--<contextPath>/nce</contextPath>-->
-                        <!--<baseResource implementation="org.eclipse.jetty.util.resource.ResourceCollection">-->
-                            <!--<resourcesAsCSV>${project.basedir}/src/main/webapp</resourcesAsCSV>-->
-                        <!--</baseResource>-->
-                    <!--</webApp>-->
-                    <!--<useTestClasspath>true</useTestClasspath>-->
-                    <!--<waitForChild>false</waitForChild>-->
-                    <!--<systemProperties>-->
-                        <!--<systemProperty>-->
-                            <!--<name>jetty.httpPort</name>-->
-                            <!--<value>${jetty.httpPort}</value>-->
-                        <!--</systemProperty>-->
-                    <!--</systemProperties>-->
-                    <!--<jvmArgs>-Djetty.httpPort=${jetty.httpPort}</jvmArgs>-->
-                    <!--<jettyXml>${project.basedir}/jetty.xml</jettyXml>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>start-jetty</id>-->
-                        <!--<phase>test</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>start</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<daemon>true</daemon>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
         </plugins>
     </build>
 
@@ -433,21 +384,7 @@
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>${version.hsqldb}</version>
-            <!--<scope>test</scope>-->
         </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>com.lordofthejars</groupId>-->
-            <!--<artifactId>nosqlunit-mongodb</artifactId>-->
-            <!--<version>${version.nosqlunit}</version>-->
-            <!--<scope>test</scope>-->
-        <!--</dependency>-->
-
-        <!--<dependency>-->
-            <!--<groupId>org.mongodb</groupId>-->
-            <!--<artifactId>mongo-java-driver</artifactId>-->
-            <!--<version>${version.mongo}</version>-->
-        <!--</dependency>-->
 
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -463,13 +400,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>org.eclipse.jetty</groupId>-->
-            <!--<artifactId>jetty-servlets</artifactId>-->
-            <!--<version>${version.jetty}</version>-->
-            <!--<scope>test</scope>-->
-        <!--</dependency>-->
 
         <dependency>
             <groupId>mysql</groupId>

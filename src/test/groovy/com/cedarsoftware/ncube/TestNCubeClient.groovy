@@ -11,8 +11,8 @@ import static org.junit.Assert.fail
 
 @CompileStatic
 @RunWith(SpringRunner.class)
-@ContextConfiguration(locations = ['/config/beans.xml', '/config/test.xml'])
-@ActiveProfiles(profiles = ['runtime'])
+@ContextConfiguration(locations = ['/config/beans.xml'])
+@ActiveProfiles(profiles = ['runtime','test-immutable'])
 class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')

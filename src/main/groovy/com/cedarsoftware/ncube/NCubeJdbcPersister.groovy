@@ -24,7 +24,6 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.regex.Matcher
 import java.util.regex.Pattern
 import java.util.zip.GZIPOutputStream
 
@@ -1753,7 +1752,11 @@ ORDER BY abs(revision_number) DESC"""
 
     static void clearTestDatabase(Connection c)
     {
-        println 'clearTestDatabase'
+        if (isHSQLDB(c))
+        {
+            Sql sql = getSql(c)
+            sql.execute('/* Clear HSQLDB */ DELETE FROM n_cube')
+        }
     }
 
     protected static NCube buildCube(ApplicationID appId, ResultSet row)
@@ -1827,6 +1830,16 @@ ORDER BY abs(revision_number) DESC"""
             LOG.info('Oracle JDBC driver: ' + isOracle.get())
         }
         return isOracle.get()
+    }
+
+    static boolean isHSQLDB(Connection c)
+    {
+        if (c == null)
+        {
+            return false
+        }
+
+        return Regexes.isHSQLDBPattern.matcher(c.metaData.driverName).matches()
     }
 
     /**

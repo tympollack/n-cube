@@ -47,10 +47,22 @@
 
     </beans>
 
+    <beans profile="controller">
+        
+        <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
+            <constructor-arg ref="ncubeService" />
+            <constructor-arg value="false" />
+        </bean>
+        
+        <bean name="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
+            <constructor-arg ref="ncubeRuntime" />
+        </bean>
+        
+    </beans>
+
     <beans profile="server">
 
         <bean id="serverProperties" class="com.cedarsoftware.service.ServerProperties">
-            <property name="NCUBE_PREVENT_RUNTIME" value="#{systemEnvironment['NCUBE_PREVENT_RUNTIME'] ?: systemProperties['NCUBE_PREVENT_RUNTIME'] ?: true}"/>
             <property name="NCUBE_JDBC_DRIVER" value="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbcDriver'}"/>
             <property name="NCUBE_JDBC_URL" value="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:hsqldb:mem:testdb'}"/>
             <property name="NCUBE_JDBC_USER" value="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'sa'}"/>
@@ -64,7 +76,7 @@
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeService" />
-            <constructor-arg value="#{serverProperties.NCUBE_PREVENT_RUNTIME}" />
+            <constructor-arg value="true" />
         </bean>
 
         <bean name="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
@@ -157,9 +169,9 @@
 
     </beans>
 
-    <beans profile="test">
+    <beans profile="test-database">
 
-        <bean id="hsqlSetup" class="com.cedarsoftware.util.HypersonicSchemaCreator">
+        <bean id="hsqlSetup" class="com.cedarsoftware.util.HsqlSchemaCreator">
             <constructor-arg value="jdbc:hsqldb:mem:testdb" />
             <constructor-arg value="sa" />
             <constructor-arg value="" />
@@ -168,6 +180,20 @@
 
     </beans>
 
+    <beans profile="test-mutable">
+
+        <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
+            <property name="NCUBE_MUTABLE" value="true"/>
+            <property name="NCUBE_PROTOCOL" value="http"/>
+            <property name="NCUBE_HOST" value="localhost"/>
+            <property name="NCUBE_PORT" value="9000"/>
+            <property name="NCUBE_CONTEXT" value="nce"/>
+            <property name="NCUBE_USERNAME" value=""/>
+            <property name="NCUBE_PASSWORD" value=""/>
+        </bean>
+
+    </beans>
+    
     <!--TODO-->
     <beans profile="combined">
 

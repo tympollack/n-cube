@@ -27,6 +27,11 @@ class TestingDatabaseHelper
     public static int HSQL = 2
     public static int test_db = HSQL
 
+    private static NCubeRuntime getRuntimeClient()
+    {
+        return NCubeRuntime.instance
+    }
+
     static NCube[] getCubesFromDisk(String ...names) throws IOException
     {
         List<NCube> list = new ArrayList<NCube>(names.length)
@@ -120,6 +125,14 @@ class TestingDatabaseHelper
         }
     }
 
+    static void initDatabase()
+    {
+        NCube cp = NCubeRuntime.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
+        runtimeClient.createCube(cp)
+        cp = NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
+        runtimeClient.createCube(cp)
+    }
+
     static void setupDatabase()
     {
         testingDatabaseManager.setUp()
@@ -133,6 +146,12 @@ class TestingDatabaseHelper
         NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, cp, true)
         cp = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
         NCubeManager.updateCube(ApplicationID.testAppId, cp, true)
+    }
+
+    static void clearDatabase()
+    {
+        runtimeClient.clearTestDatabase()
+        runtimeClient.clearCache()
     }
 
     static void tearDownDatabase()

@@ -151,6 +151,10 @@ class NCubeResourcePersister implements NCubePersister
         return false
     }
 
+    void clearTestDatabase()
+    {
+    }
+
     @Override
     NCube loadCube(ApplicationID appId, String name)
     {

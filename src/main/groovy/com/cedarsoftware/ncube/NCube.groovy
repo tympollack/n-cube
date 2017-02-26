@@ -357,6 +357,13 @@ class NCube<T>
             }
         }
 
+        Collections.sort(result, new Comparator<Advice>() {
+            int compare(Advice a1, Advice a2)
+            {
+                return a1.name.compareToIgnoreCase(a2.name)
+            }
+        })
+
         return result
     }
 

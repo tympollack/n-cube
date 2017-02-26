@@ -912,7 +912,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         {
             persister.clearTestDatabase()
         }
-        throw new IllegalStateException('clearTestDatabase() is only available during testing.')
+        else
+        {
+            throw new IllegalStateException('clearTestDatabase() is only available during testing.')
+        }
     }
 
     // ---------------------- Broadcast APIs for notifying other services in cluster of cache changes ------------------
