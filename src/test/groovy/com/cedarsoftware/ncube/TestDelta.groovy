@@ -1261,8 +1261,6 @@ class TestDelta extends NCubeBaseTest
         }
         catch (EnvelopeException e)
         {
-            e.printStackTrace()
-
             Map data = e.envelopeData as Map
             assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
             assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
