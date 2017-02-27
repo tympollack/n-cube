@@ -17,7 +17,6 @@ import gnu.trove.map.hash.TLongObjectHashMap
 import groovy.transform.CompileStatic
 
 import java.security.SecureRandom
-import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
@@ -71,7 +70,6 @@ class Axis
     public static final String DONT_CARE = '_︿_ψ_☼'
     public static final int SORTED = 0
     public static final int DISPLAY = 1
-    private static final AtomicLong BASE_AXIS_ID_FOR_TESTING = new AtomicLong(1)
     protected static final long BASE_AXIS_ID = 1000000000000L
     protected static final long MAX_COLUMN_ID = 2000000000L
 
@@ -80,7 +78,7 @@ class Axis
     private AxisValueType valueType
     protected Map<String, Object> metaProps = null
     private Column defaultCol
-    protected final long id
+    protected long id
     private int preferredOrder = SORTED
     protected boolean fireAll = true
     private boolean isRef
@@ -101,6 +99,19 @@ class Axis
         }
     }
 
+    void reindex(long newId = getId())
+    {
+        id = newId
+        List<Column> columns = columns
+        clearIndexes()
+        long axisIdPart = BASE_AXIS_ID * id
+        for (Column column : columns)
+        {
+            column.id = axisIdPart + column.id % BASE_AXIS_ID
+            indexColumn(column)
+        }
+    }
+
     /**
      * Implement to provide data for this Axis
      */
@@ -115,7 +126,7 @@ class Axis
     // for testing
     protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order = SORTED)
     {
-        this(name, type, valueType, hasDefault, order, BASE_AXIS_ID_FOR_TESTING.getAndIncrement())
+        this(name, type, valueType, hasDefault, order, 1)
     }
 
     /**
@@ -554,6 +565,14 @@ class Axis
     long getId()
     {
         return id
+    }
+
+    /**
+     * Set long id of this Axis
+     */
+    void setId(long id)
+    {
+        this.id = id
     }
 
     /**

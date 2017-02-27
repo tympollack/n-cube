@@ -328,11 +328,10 @@ class NCubeController extends BaseController
         return valuesToCellInfo(ncube.metaProperties)
     }
 
-    Boolean updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
+    void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
     {
         appId = addTenant(appId)
         ncubeService.updateAxisMetaProperties(appId, cubeName, axisName, newMetaProperties)
-        return true
     }
 
     Map getAxisMetaProperties(ApplicationID appId, String cubeName, String axisName)

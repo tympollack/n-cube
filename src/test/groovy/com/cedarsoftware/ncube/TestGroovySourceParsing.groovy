@@ -1,12 +1,9 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.CaseInsensitiveMap
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
 
 /**
  * Test Groovy Source code parsing, including finding n-cube names within source (used with @, $, or APIs
@@ -28,24 +25,12 @@ import static org.junit.Assert.assertTrue
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TestGroovySourceParsing
+class TestGroovySourceParsing extends NCubeBaseTest
 {
-    @Before
-    public void setUp()
-    {
-        TestingDatabaseHelper.setupDatabase()
-    }
-
-    @After
-    public void tearDown()
-    {
-        TestingDatabaseHelper.tearDownDatabase()
-    }
-
     @Test
     void testFindCubeName()
     {
-        NCube cube = NCubeManager.getNCubeFromResource 'inlineExpression.json'
+        NCube cube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'inlineExpression.json')
         Map<CaseInsensitiveMap, Set<String>> names = cube.referencedCubeNames
 
         assertEquals(['RockRiverArms'] as Set, names[[Age:'jump2'] as CaseInsensitiveMap])

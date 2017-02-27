@@ -1807,6 +1807,17 @@ class NCube<T>
     void addAxis(final Axis axis)
     {
         String axisName = axis.name
+        long startId = 1
+        long originalId = axis.id
+        while (idToAxis.containsKey(originalId))
+        {
+            originalId = startId++
+        }
+        if (originalId != axis.id)
+        {
+            axis.reindex(originalId)
+        }
+
         if (axisList.containsKey(axisName))
         {
             throw new IllegalArgumentException("An axis with the name '${axisName}' already exists on cube: ${name}")

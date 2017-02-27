@@ -41,6 +41,8 @@ interface NCubeRuntimeClient
 
     NCube getNCubeFromResource(ApplicationID appId, String name)
 
+    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
+
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
 
     void addCube(NCube ncube)

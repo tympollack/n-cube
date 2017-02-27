@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.util.EnvelopeException
@@ -1068,13 +1067,14 @@ class TestDelta extends NCubeCleanupBaseTest
             mutableClient.commitBranch(appIdKpartlow)
             fail()
         }
-        catch (BranchMergeException e)
+        catch (EnvelopeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            Map data = e.envelopeData as Map
+            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         // Update branch 1.0.1 -> 1.0.2
@@ -1110,6 +1110,7 @@ class TestDelta extends NCubeCleanupBaseTest
         // Update meta-properties on a non-reference axis
         property.addMetaProperties([hip: 'hop'] as Map)
         mutableClient.updateAxisMetaProperties(appId, 'States', 'property', property.metaProperties)
+        cube = mutableClient.getCube(appId, 'States')
 
         // Add default column
         cube.addColumn(axisName, null)
@@ -1147,8 +1148,8 @@ class TestDelta extends NCubeCleanupBaseTest
 
         // Update reference axis via meta properties
         axis.addMetaProperties([referenceVersion: '1.0.1'] as Map)
-        mutableClient.updateAxisMetaProperties(appId, 'States', axisName, axis.metaProperties)
 
+        mutableClient.updateAxisMetaProperties(appId, 'States', axisName, axis.metaProperties)
         cube = mutableClient.getCube(appId, 'States')
         axis = cube.getAxis(axisName)
         ga = axis.findColumn('GA')
@@ -1185,8 +1186,8 @@ class TestDelta extends NCubeCleanupBaseTest
 
         // Update reference axis via meta properties to previous version
         axis.addMetaProperties([referenceVersion: '1.0.2'] as Map)
-        mutableClient.updateAxisMetaProperties(appId, 'States', axisName, axis.metaProperties)
 
+        mutableClient.updateAxisMetaProperties(appId, 'States', axisName, axis.metaProperties)
         cube = mutableClient.getCube(appId, 'States')
         axis = cube.getAxis(axisName)
         al = axis.findColumn('AL')
@@ -1229,13 +1230,14 @@ class TestDelta extends NCubeCleanupBaseTest
             mutableClient.commitBranch(appIdjdereg)
             fail()
         }
-        catch (BranchMergeException e)
+        catch (EnvelopeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            Map data = e.envelopeData as Map
+            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 

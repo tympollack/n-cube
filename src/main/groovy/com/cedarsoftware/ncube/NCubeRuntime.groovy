@@ -394,6 +394,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateAxisMetaProperties")
         }
         bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
+        clearCache(appId)
         // TODO: Drop affected cubes from cache
     }
 
@@ -441,6 +442,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateBranch")
         }
         Map<String, Object> map = bean.call('ncubeController', 'updateBranch', [appId, cubeDtos]) as Map<String, Object>
+        clearCache(appId)
         return map
     }
 
@@ -451,6 +453,8 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} commitBranch")
         }
         Map<String, Object> map = bean.call('ncubeController', 'commitBranch', [appId, inputCubes]) as Map<String, Object>
+        clearCache(appId)
+        clearCache(appId.asHead())
         return map
     }
 
@@ -461,6 +465,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} rollbackCubes")
         }
         int result = bean.call('ncubeController', 'rollbackCubes', [appId, names]) as int
+        clearCache(appId)
         return result
     }
 
@@ -831,7 +836,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             NCube ncube = NCube.fromSimpleJson(json)
             ncube.applicationID = appId
             ncube.sha1()
-            instance.addCube(ncube)
+            prepareCube(ncube)
             return ncube
         }
         catch (NullPointerException e)
@@ -868,7 +873,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         }
     }
 
-    List<NCube> getNCubesFromResource(String name)
+    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
     {
         String lastSuccessful = ''
         try
@@ -881,8 +886,9 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
                 JsonObject ncube = (JsonObject) cube
                 String json = JsonWriter.objectToJson(ncube)
                 NCube nCube = NCube.fromSimpleJson(json)
+                nCube.applicationID = appId
                 nCube.sha1()
-                addCube(nCube)
+                prepareCube(nCube)
                 lastSuccessful = nCube.name
                 cubeList.add(nCube)
             }
