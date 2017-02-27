@@ -46,24 +46,8 @@ class EnvelopeException extends RuntimeException
         if (envelope.data instanceof String)
         {
             String data = envelope.data as String
-            try
-            {
-                Object obj = JsonReader.jsonToJava(data)
-                if (obj instanceof Exception)
-                {
-                    throw obj as Exception
-                }
-                else
-                {
-                    envelope.data = data.replaceAll('<hr.+?>', '\n')
-                    body = envelope.data
-                }
-            }
-            catch (Exception e)
-            {
-                envelope.data = data.replaceAll('<hr.+?>', '\n')
-                body = envelope.data
-            }
+            envelope.data = data.replaceAll('<hr.+?>', '\n')
+            body = envelope.data
         }
         else if (envelope.data instanceof Map)
         {
@@ -82,7 +66,7 @@ class EnvelopeException extends RuntimeException
             Object obj = envelope.data
             if (obj != null)
             {
-                body = "${obj.class.name} - ${obj.toString()}"
+                body = "Data included: ${obj.class.name} - ${obj.toString()}"
             }
         }
 

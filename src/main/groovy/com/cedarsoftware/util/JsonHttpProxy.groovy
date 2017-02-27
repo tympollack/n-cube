@@ -127,16 +127,9 @@ class JsonHttpProxy implements CallableBean
                     {
                         throw obj as Exception
                     }
-                    else
-                    {
-                        envelope.data = data.replaceAll('<hr.+?>', '\n')
-                        body = envelope.data
-                    }
                 }
-                catch (Exception e)
+                catch (Exception ignored)
                 {
-                    envelope.data = data.replaceAll('<hr.+?>', '\n')
-                    body = envelope.data
                 }
             }
             throw new EnvelopeException('REST call indicated failure', envelope)
