@@ -23,6 +23,13 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeEditorClient extends NCubeReleaseClient
 {
+    public static final String BRANCH_ADDS = 'adds'
+    public static final String BRANCH_DELETES = 'deletes'
+    public static final String BRANCH_UPDATES = 'updates'
+    public static final String BRANCH_FASTFORWARDS = 'fastforwards'
+    public static final String BRANCH_REJECTS = 'rejects'
+    public static final String BRANCH_RESTORES = 'restores'
+
     void setUserId(String user)
 
     boolean updateCube(NCube ncube)
@@ -92,4 +99,26 @@ interface NCubeEditorClient extends NCubeReleaseClient
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
 
     void clearTestDatabase()
+
+    List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
+
+    List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
+
+    List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
+
+    Map<String, Object> updateBranch(ApplicationID appId)
+
+    Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
+
+    Map<String, Object> commitBranch(ApplicationID appId)
+
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes)
+
+    int rollbackCubes(ApplicationID appId, Object[] names)
+
+    int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+
+    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames)
+
+    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
 }

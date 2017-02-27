@@ -320,11 +320,6 @@ class NCubeBuilder
         return ncube
     }
 
-    static NCube getSysClassPathCube()
-    {
-        return NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, "sys.classpath.tests.json")
-    }
-
     static NCube getMetaPropWithFormula()
     {
         return NCube.fromSimpleJson('''\

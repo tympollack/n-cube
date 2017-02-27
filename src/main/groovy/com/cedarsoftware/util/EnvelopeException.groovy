@@ -40,6 +40,11 @@ class EnvelopeException extends RuntimeException
         return envelope
     }
 
+    Object getEnvelopeData()
+    {
+        return envelope.data
+    }
+
     String toString()
     {
         String body = 'Error returned no data'

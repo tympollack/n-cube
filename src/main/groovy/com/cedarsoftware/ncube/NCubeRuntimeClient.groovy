@@ -38,4 +38,10 @@ interface NCubeRuntimeClient
     URLClassLoader getLocalClassloader(ApplicationID appId)
 
     URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
+
+    NCube getNCubeFromResource(ApplicationID appId, String name)
+
+    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
+
+    void addCube(NCube ncube)
 }

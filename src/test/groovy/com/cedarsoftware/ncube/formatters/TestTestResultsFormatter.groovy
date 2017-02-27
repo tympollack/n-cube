@@ -4,13 +4,10 @@ import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeRuntime
+import com.cedarsoftware.ncube.NCubeBaseTest2
 import com.cedarsoftware.ncube.NCubeTest
 import com.cedarsoftware.ncube.RuleInfo
-import com.cedarsoftware.ncube.TestingDatabaseHelper
 import com.cedarsoftware.util.CaseInsensitiveMap
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -30,24 +27,12 @@ import org.junit.Test
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TestTestResultsFormatter
+class TestTestResultsFormatter extends NCubeBaseTest2
 {
-    @Before
-    public void init()
-    {
-        TestingDatabaseHelper.setupDatabase()
-    }
-
-    @After
-    public void tearDown()
-    {
-        TestingDatabaseHelper.tearDownDatabase()
-    }
-
     @Test
     void testResultsFromNCube()
     {
-        NCube<String> ncube = NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
+        NCube<String> ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
         def coord = [age:18, state:'OH']
         def output = [:]
         ncube.getCell(coord, output)
@@ -60,7 +45,7 @@ class TestTestResultsFormatter
     @Test
     void testResultsWithOutputAndError()
     {
-        NCube<String> ncube = NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
+        NCube<String> ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'idNoValue.json')
         def coord = [age:18, state:'OH']
         def output = ['foo.age':'56', 'foo.name':'John']
         ncube.getCell coord, output

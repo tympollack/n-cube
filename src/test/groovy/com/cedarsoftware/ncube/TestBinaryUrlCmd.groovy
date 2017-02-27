@@ -30,20 +30,8 @@ import static org.junit.Assert.fail
  *         limitations under the License.
  */
 @CompileStatic
-class TestBinaryUrlCmd
+class TestBinaryUrlCmd extends NCubeBaseTest2
 {
-    @Before
-    public void setUp()
-    {
-        TestingDatabaseHelper.setupDatabase()
-    }
-
-    @After
-    public void tearDown()
-    {
-        TestingDatabaseHelper.tearDownDatabase()
-    }
-
     @Test
     void testDefaultConstructorIsPrivateForSerialization()
     {

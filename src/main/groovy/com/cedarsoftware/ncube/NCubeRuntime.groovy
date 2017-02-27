@@ -27,6 +27,7 @@ import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS
+import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
 import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
 
 /**
@@ -234,9 +235,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
     {
         if (!mutable)
         {
-            throw new IllegalStateException("${MUTABLE_ERROR} moveBranch")
+            throw new IllegalStateException("${MUTABLE_ERROR} releaseVersion")
         }
-        Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
+        Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
         return result
     }
 
@@ -244,9 +245,9 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
     {
         if (!mutable)
         {
-            throw new IllegalStateException("${MUTABLE_ERROR} releaseVersion")
+            throw new IllegalStateException("${MUTABLE_ERROR} releaseCubes")
         }
-        Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
+        Integer result = bean.call('ncubeController', 'releaseCubes', [appId, newSnapVer]) as Integer
         return result
     }
 
@@ -415,7 +416,81 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         bean.call('ncubeController', 'clearTestDatabase', []) as Boolean
     }
 
-//-- NCube Caching -------------------------------------------------------------------------------------------------
+    List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
+    {
+        List<NCubeInfoDto> changes = bean.call('ncubeController', 'getHeadChangesForBranch', [appId]) as List<NCubeInfoDto>
+        return changes
+    }
+
+    List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
+    {
+        List<NCubeInfoDto> changes = bean.call('ncubeController', 'getBranchChangesForHead', [appId]) as List<NCubeInfoDto>
+        return changes
+    }
+
+    List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
+    {
+        List<NCubeInfoDto> changes = bean.call('ncubeController', 'getBranchChangesForMyBranch', [appId, branch]) as List<NCubeInfoDto>
+        return changes
+    }
+
+    Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos = null)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} updateBranch")
+        }
+        Map<String, Object> map = bean.call('ncubeController', 'updateBranch', [appId, cubeDtos]) as Map<String, Object>
+        return map
+    }
+
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} commitBranch")
+        }
+        Map<String, Object> map = bean.call('ncubeController', 'commitBranch', [appId, inputCubes]) as Map<String, Object>
+        return map
+    }
+
+    int rollbackCubes(ApplicationID appId, Object[] names)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} rollbackCubes")
+        }
+        int result = bean.call('ncubeController', 'rollbackCubes', [appId, names]) as int
+        return result
+    }
+
+    int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptMine")
+        }
+        int result = bean.call('ncubeController', 'mergeAcceptMine', [appId, cubeNames]) as int
+        return result
+    }
+
+    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptTheirs")
+        }
+        int result = bean.call('ncubeController', 'mergeAcceptTheirs', [appId, cubeNames, sourceBranch]) as int
+        return result
+    }
+
+    ApplicationID getBootVersion(String tenant, String app)
+    {
+        String branch = getSystemParams()[NCUBE_PARAMS_BRANCH]
+        return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? ApplicationID.HEAD : branch)
+    }
+
+    //-- NCube Caching -------------------------------------------------------------------------------------------------
 
     /**
      * Clear the cube (and other internal caches) for a given ApplicationID.
@@ -734,6 +809,11 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         return systemParams
     }
 
+    protected void clearSysParams()
+    {
+        systemParams = null
+    }
+
     //-- Resource APIs -------------------------------------------------------------------------------------------------
 
     static String getResourceAsString(String name) throws Exception
@@ -743,7 +823,7 @@ class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
         return new String(Files.readAllBytes(resPath), "UTF-8")
     }
     
-    static NCube getNCubeFromResource(ApplicationID appId, String name)
+    NCube getNCubeFromResource(ApplicationID appId, String name)
     {
         try
         {

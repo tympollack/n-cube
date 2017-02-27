@@ -3,8 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import groovy.transform.TypeChecked
-import groovy.transform.TypeCheckingMode
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
@@ -565,33 +563,8 @@ class TestApplicationID
     {
         ApplicationID appId = new ApplicationID('Sears', 'Inventory', '1.0.0', ReleaseStatus.RELEASE.name(), 'JIRA-555')
         appId.validate()
-        assert appId.getBranch() == 'JIRA-555'
+        assert appId.branch == 'JIRA-555'
         assert appId.cacheKey().contains('jira-555')
-    }
-
-    @Test
-    @TypeChecked(TypeCheckingMode.SKIP)
-    void testGetBootstrapVersion()
-    {
-        System.setProperty("NCUBE_PARAMS", '{}')
-        NCubeManager.systemParams = null
-
-        ApplicationID id = NCubeManager.getBootVersion('foo', 'bar')
-        assertEquals 'foo', id.tenant
-        assertEquals 'bar', id.app
-        assertEquals '0.0.0', id.version
-        assertEquals 'SNAPSHOT', id.status
-        assertEquals 'HEAD', id.branch
-
-        System.setProperty("NCUBE_PARAMS", '{"branch":"qux"}')
-        NCubeManager.systemParams = null;
-
-        id = NCubeManager.getBootVersion('foo', 'bar')
-        assertEquals 'foo', id.tenant
-        assertEquals 'bar', id.app
-        assertEquals '0.0.0', id.version
-        assertEquals 'SNAPSHOT', id.status
-        assertEquals 'qux', id.branch
     }
 
     @Test
@@ -603,7 +576,7 @@ class TestApplicationID
         try {
             rel.validateStatusIsNotRelease()
         } catch (IllegalArgumentException e) {
-            assertEquals("Status cannot be 'RELEASE'", e.getMessage());
+            assertEquals("Status cannot be 'RELEASE'", e.message);
         }
     }
 
@@ -616,7 +589,7 @@ class TestApplicationID
         try {
             rel.validateBranchIsNotHead()
         } catch (IllegalArgumentException e) {
-            assertEquals("Branch cannot be 'HEAD'", e.getMessage());
+            assertEquals("Branch cannot be 'HEAD'", e.message);
         }
     }
 

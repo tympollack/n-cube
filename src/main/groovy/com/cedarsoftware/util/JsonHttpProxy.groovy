@@ -120,16 +120,17 @@ class JsonHttpProxy implements CallableBean
             if (envelope.data instanceof String)
             {
                 String data = envelope.data as String
+                Object obj = null
                 try
                 {
-                    Object obj = JsonReader.jsonToJava(data)
-                    if (obj instanceof Exception)
-                    {
-                        throw obj as Exception
-                    }
+                    obj = JsonReader.jsonToJava(data)
                 }
                 catch (Exception ignored)
                 {
+                }
+                if (obj instanceof Exception)
+                {
+                    throw obj as Exception
                 }
             }
             throw new EnvelopeException('REST call indicated failure', envelope)

@@ -3,8 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.util.CdnRouter
 import com.cedarsoftware.ncube.util.CdnRoutingProvider
 import groovy.transform.CompileStatic
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
 
@@ -36,20 +34,8 @@ import static org.mockito.Mockito.when
  *         limitations under the License.
  */
 @CompileStatic
-class TestCdnRouter
+class TestCdnRouter extends NCubeBaseTest
 {
-    @Before
-    public void setUp()
-    {
-        TestingDatabaseHelper.setupDatabase()
-    }
-
-    @After
-    public void tearDown()
-    {
-        TestingDatabaseHelper.tearDownDatabase()
-    }
-
     @Test
     void testRoute()
     {
@@ -68,7 +54,7 @@ class TestCdnRouter
 
         setDefaultCdnRoutingProvider()
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         byte[] bytes = ((DumboOutputStream) out).bytes
@@ -94,7 +80,7 @@ class TestCdnRouter
 
         setDefaultCdnRoutingProvider()
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
 
@@ -147,7 +133,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), "TEST", 'foo', true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         new CdnRouter().route request, response
 
         verify(response, times(1)).sendError 500, 'CdnRouter - Error occurred: Could not load routing cube using app: none / default_app / 999.99.9 / test /, cube name: foo'
@@ -171,8 +157,8 @@ class TestCdnRouter
         setDefaultCdnRoutingProvider()
 
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        NCubeManager.getUrlClassLoader(appId, [:])
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getUrlClassLoader(appId, [:])
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
 
         CdnRouter router = new CdnRouter()
         router.route(request, response)
@@ -198,7 +184,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), "TEST", null, true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         verify(response, times(1)).sendError HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 'CdnRouter - CdnRoutingProvider did not set up \'router.cubeName\' in the Map coordinate.'
@@ -222,7 +208,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider null, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), "TEST", 'foo', true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         verify(response, times(1)).sendError HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 'CdnRouter - CdnRoutingProvider did not set up \'router.tenant\' in the Map coordinate.'
@@ -246,7 +232,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider ApplicationID.DEFAULT_TENANT, null, ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), "TEST", 'foo', true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         verify(response, times(1)).sendError HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 'CdnRouter - CdnRoutingProvider did not set up \'router.app\' in the Map coordinate.'
@@ -270,7 +256,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, null, ReleaseStatus.SNAPSHOT.name(), "TEST", 'foo', true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         verify(response, times(1)).sendError HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 'CdnRouter - CdnRoutingProvider did not set up \'router.version\' in the Map coordinate.'
@@ -294,7 +280,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, null, "TEST", 'foo', true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         verify(response, times(1)).sendError HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 'CdnRouter - CdnRoutingProvider did not set up \'router.status\' in the Map coordinate.'
@@ -318,7 +304,7 @@ class TestCdnRouter
 
         setCdnRoutingProvider ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), null, 'foo', true
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
         router.route request, response
         verify(response, times(1)).sendError HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 'CdnRouter - CdnRoutingProvider did not set up \'router.branch\' in the Map coordinate.'
@@ -404,7 +390,7 @@ class TestCdnRouter
 
         setDefaultCdnRoutingProvider()
 
-        NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
 
         CdnRouter router = new CdnRouter()
         router.route(request, response)
@@ -485,7 +471,7 @@ class TestCdnRouter
 
         setDefaultCdnRoutingProvider()
 
-        NCube cube = NCubeManager.getNCubeFromResource 'cdnRouterTest.json'
+        NCube cube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
 
         new CdnRouter().route request, response
         byte[] bytes = ((DumboOutputStream) out).bytes
@@ -511,7 +497,7 @@ class TestCdnRouter
     @Test
     void testDefaultRoute()
     {
-        NCube router = NCubeManager.getNCubeFromResource('cdnRouter.json')
+        NCube router = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouter.json')
 
         Axis axis = router.getAxis('content.name')
         assert 5 == axis.columns.size()

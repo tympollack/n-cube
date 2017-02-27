@@ -27,7 +27,7 @@ class TestingDatabaseHelper
     public static int HSQL = 2
     public static int test_db = HSQL
 
-    private static NCubeRuntime getRuntimeClient()
+    private static NCubeEditorClient getMutableClient()
     {
         return NCubeRuntime.instance
     }
@@ -127,10 +127,10 @@ class TestingDatabaseHelper
 
     static void initDatabase()
     {
-        NCube cp = NCubeRuntime.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-        runtimeClient.createCube(cp)
-        cp = NCubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-        runtimeClient.createCube(cp)
+        NCube cp = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
+        mutableClient.createCube(cp)
+        cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
+        mutableClient.createCube(cp)
     }
 
     static void setupDatabase()
@@ -150,8 +150,9 @@ class TestingDatabaseHelper
 
     static void clearDatabase()
     {
-        runtimeClient.clearTestDatabase()
-        runtimeClient.clearCache()
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        runtime.clearTestDatabase()
+        runtime.clearCache()
     }
 
     static void tearDownDatabase()

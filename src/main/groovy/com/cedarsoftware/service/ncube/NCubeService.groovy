@@ -108,32 +108,32 @@ class NCubeService
 
     List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
     {
-        return VersionControl.getBranchChangesForHead(appId)
+        return manager.getBranchChangesForHead(appId)
     }
 
     List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
     {
-        return VersionControl.getHeadChangesForBranch(appId)
+        return manager.getHeadChangesForBranch(appId)
     }
 
     List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
     {
-        return VersionControl.getBranchChangesForMyBranch(appId, branch)
+        return manager.getBranchChangesForMyBranch(appId, branch)
     }
 
     Map<String, Object> commitBranch(ApplicationID appId, Object[] infoDtos)
     {
-        return VersionControl.commitBranch(appId, infoDtos)
+        return manager.commitBranch(appId, infoDtos)
     }
 
     int rollbackCubes(ApplicationID appId, Object[] cubeNames)
     {
-        VersionControl.rollbackCubes(appId, cubeNames)
+        manager.rollbackCubes(appId, cubeNames)
     }
 
     Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
     {
-        return VersionControl.updateBranch(appId, cubeDtos)
+        return manager.updateBranch(appId, cubeDtos)
     }
 
     void deleteBranch(ApplicationID appId)
@@ -148,12 +148,12 @@ class NCubeService
 
     int acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
     {
-        VersionControl.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
+        manager.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     int acceptMine(ApplicationID appId, Object[] cubeNames)
     {
-        VersionControl.mergeAcceptMine(appId, cubeNames)
+        manager.mergeAcceptMine(appId, cubeNames)
     }
 
     void createCube(NCube ncube)
