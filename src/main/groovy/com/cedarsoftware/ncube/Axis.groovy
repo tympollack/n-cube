@@ -123,12 +123,6 @@ class Axis
     // for construction during serialization
     private Axis() { id=0 }
 
-    // for testing
-    protected Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order = SORTED)
-    {
-        this(name, type, valueType, hasDefault, order, 1)
-    }
-
     /**
      * Use this constructor for non-rule Axes.
      * @param name String Axis name
@@ -141,7 +135,7 @@ class Axis
      * statements executed.  If set to false, the first condition that evaluates to true will be executed, but
      * then no conditions on the RULE axis will be evaluated.
      */
-    Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order, long id, boolean fireAll = true)
+    Axis(String name, AxisType type, AxisValueType valueType, boolean hasDefault, int order = SORTED, long id = 1, boolean fireAll = true)
     {
         isRef = false
         this.id = id
