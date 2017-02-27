@@ -1,9 +1,7 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.junit.After
 import org.junit.Assert
-import org.junit.Before
 import org.junit.Test
 
 import java.lang.reflect.Constructor
@@ -30,7 +28,7 @@ import static org.junit.Assert.fail
  *         limitations under the License.
  */
 @CompileStatic
-class TestBinaryUrlCmd extends NCubeBaseTest2
+class TestBinaryUrlCmd extends NCubeBaseTest
 {
     @Test
     void testDefaultConstructorIsPrivateForSerialization()

@@ -49,7 +49,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeEditorClient, ApplicationContextAware
+class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
 {
     protected static ApplicationContext ctx
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'

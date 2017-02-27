@@ -21,7 +21,7 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-interface NCubeEditorClient extends NCubeReleaseClient
+interface NCubeMutableClient extends NCubeReleaseClient
 {
     public static final String BRANCH_ADDS = 'adds'
     public static final String BRANCH_DELETES = 'deletes'

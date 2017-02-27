@@ -125,9 +125,8 @@ class JsonHttpProxy implements CallableBean
                 {
                     obj = JsonReader.jsonToJava(data)
                 }
-                catch (Exception ignored)
-                {
-                }
+                catch (Exception ignored)  { }
+                
                 if (obj instanceof Exception)
                 {
                     throw obj as Exception

@@ -42,7 +42,7 @@ import static org.junit.Assert.fail
  *         limitations under the License.
  */
 @CompileStatic
-class TestAxis extends NCubeBaseTest2
+class TestAxis extends NCubeBaseTest
 {
     private static boolean isValidPoint(Axis axis, Comparable value)
     {

@@ -23,7 +23,7 @@ import org.junit.Test;
  *         limitations under the License.
  */
 @CompileStatic
-class TestBadJsonFormats extends NCubeBaseTest2
+class TestBadJsonFormats extends NCubeBaseTest
 {
     @Test(expected=RuntimeException.class)
     void testNCubeMissingColumnParserError()

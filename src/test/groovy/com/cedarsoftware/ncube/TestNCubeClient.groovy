@@ -17,7 +17,7 @@ class TestNCubeClient
 {
     private static final ApplicationID TEST_APP = new ApplicationID('NONE', 'test.app.1', '2.0.4', 'SNAPSHOT', 'jsnyder4')
 
-    private NCubeEditorClient getClient()
+    private NCubeMutableClient getClient()
     {
         return NCubeRuntime.instance
     }

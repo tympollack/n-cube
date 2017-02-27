@@ -27,7 +27,7 @@ class TestingDatabaseHelper
     public static int HSQL = 2
     public static int test_db = HSQL
 
-    private static NCubeEditorClient getMutableClient()
+    private static NCubeMutableClient getMutableClient()
     {
         return NCubeRuntime.instance
     }

@@ -8,10 +8,9 @@ import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.Delta
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeEditorClient
+import com.cedarsoftware.ncube.NCubeMutableClient
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.ReferenceAxisLoader
-import com.cedarsoftware.ncube.VersionControl
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
@@ -47,16 +46,16 @@ import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
 @Service
 class NCubeService
 {
-    private NCubeEditorClient manager
+    private NCubeMutableClient manager
 
-    NCubeService(NCubeEditorClient manager)
+    NCubeService(NCubeMutableClient manager)
     {
         this.manager = manager
     }
 
     private static final Logger LOG = LogManager.getLogger(NCubeService.class)
 
-    NCubeEditorClient getManager()
+    NCubeMutableClient getManager()
     {
         return manager
     }

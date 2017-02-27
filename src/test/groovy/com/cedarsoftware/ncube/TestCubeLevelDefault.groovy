@@ -21,7 +21,7 @@ import org.junit.Test
  *         limitations under the License.
  */
 @CompileStatic
-class TestCubeLevelDefault extends NCubeBaseTest2
+class TestCubeLevelDefault extends NCubeBaseTest
 {
     @Test
     void testDefaultExpression()

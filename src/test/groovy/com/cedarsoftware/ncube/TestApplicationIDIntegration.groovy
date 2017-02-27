@@ -26,7 +26,7 @@ import static org.junit.Assert.assertEquals
  */
 
 @CompileStatic
-class TestApplicationIDIntegration extends NCubeBaseTest2
+class TestApplicationIDIntegration extends NCubeBaseTest
 {
     @Test
     void testGetBootstrapVersion()

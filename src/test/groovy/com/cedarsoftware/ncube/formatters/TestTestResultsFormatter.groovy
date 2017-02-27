@@ -4,7 +4,7 @@ import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeBaseTest2
+import com.cedarsoftware.ncube.NCubeBaseTest
 import com.cedarsoftware.ncube.NCubeTest
 import com.cedarsoftware.ncube.RuleInfo
 import com.cedarsoftware.util.CaseInsensitiveMap
@@ -27,7 +27,7 @@ import org.junit.Test
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TestTestResultsFormatter extends NCubeBaseTest2
+class TestTestResultsFormatter extends NCubeBaseTest
 {
     @Test
     void testResultsFromNCube()

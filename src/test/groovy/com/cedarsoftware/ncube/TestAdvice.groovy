@@ -30,7 +30,7 @@ import static org.junit.Assert.fail
  *         limitations under the License.
  */
 @CompileStatic
-class TestAdvice extends NCubeBaseTest
+class TestAdvice extends NCubeCleanupBaseTest
 {
     @Test
     void testExpression()

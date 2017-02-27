@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when
  *         limitations under the License.
  */
 @CompileStatic
-class TestCdnRouter extends NCubeBaseTest
+class TestCdnRouter extends NCubeCleanupBaseTest
 {
     @Test
     void testRoute()
@@ -454,7 +454,7 @@ class TestCdnRouter extends NCubeBaseTest
         cdnRouteFile 'cachedFile', true
     }
 
-    private static void cdnRouteFile(String logicalFileName, boolean mustMatch) throws IOException
+    private void cdnRouteFile(String logicalFileName, boolean mustMatch) throws IOException
     {
         HttpServletRequest request = Mockito.mock HttpServletRequest.class
         HttpServletResponse response = Mockito.mock HttpServletResponse.class
