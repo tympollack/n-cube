@@ -1,5 +1,7 @@
 package com.cedarsoftware.util
 
+import com.cedarsoftware.util.io.JsonReader
+import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 
 /**
@@ -22,19 +24,70 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-public class EnvelopeException extends RuntimeException
+class EnvelopeException extends RuntimeException
 {
     private final Map<String, Object> envelope
 
     // placeholder later for change log or something like that.
-    public EnvelopeException(String message, Map<String, Object> envelope)
+    EnvelopeException(String message, Map<String, Object> envelope)
     {
         super(message)
         this.envelope = envelope
     }
 
-    public Map<String, Object> getEnvelope()
+    Map<String, Object> getEnvelope()
     {
         return envelope
+    }
+
+    String toString()
+    {
+        String body = 'Error returned no data'
+        if (envelope.data instanceof String)
+        {
+            String data = envelope.data as String
+            try
+            {
+                Object obj = JsonReader.jsonToJava(data)
+                if (obj instanceof Exception)
+                {
+                    throw obj as Exception
+                }
+                else
+                {
+                    envelope.data = data.replaceAll('<hr.+?>', '\n')
+                    body = envelope.data
+                }
+            }
+            catch (Exception e)
+            {
+                envelope.data = data.replaceAll('<hr.+?>', '\n')
+                body = envelope.data
+            }
+        }
+        else if (envelope.data instanceof Map)
+        {
+            Map data = envelope.data as Map
+            if (data.containsKey('_message'))
+            {
+                body = data['_message']
+            }
+            else
+            {
+                body = "Data map contained no _message key. Map keys: ${data.keySet().toString()}"
+            }
+        }
+        else
+        {
+            Object obj = envelope.data
+            if (obj != null)
+            {
+                body = "${obj.class.name} - ${obj.toString()}"
+            }
+        }
+
+        String ret = """${message}
+${body}"""
+        return ret
     }
 }
