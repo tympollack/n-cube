@@ -87,13 +87,11 @@ class TestAdvice extends NCubeCleanupBaseTest
         assert (output._btime2 as long) < (output._atime1 as long)
         assert (output._btime1 as long) < (output._atime1 as long)
     }
-/*
+
     @Test
     void testExpressionStopExpressionWithBeforeAdvice()
     {
-        final NCube ncube = NCubeRuntime.getNCubeFromResource("simpleJsonExpression.json")
-        ncube.applicationID = TestNCubeManager.defaultSnapshotApp
-        runtimeClient.createCube(ncube)
+        final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -110,10 +108,13 @@ class TestAdvice extends NCubeCleanupBaseTest
                 return false
             }
 
-            void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)  { }
+            void after(Method method, NCube cube, Map input, Map output, Object returnValue, Throwable t)
+            {
+                fail()
+            }
         }
 
-        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         assertNull ncube.getCell([code:'simpleExp'] as Map, [:])
     }
@@ -121,8 +122,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testExpressionAfterAdviceThrows()
     {
-        final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
+        final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -147,7 +147,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         // Proves that after exception does not kill n-cube execution, and output is logged.
 
@@ -160,8 +160,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testExpressionThatThrows()
     {
-        final NCube ncube = NCubeManager.getNCubeFromResource("simpleJsonExpression.json")
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, ncube, true)
+        final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -184,7 +183,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        NCubeManager.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         // Proves that after exception does not kill n-cube execution, and output is logged.
 
@@ -205,7 +204,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             assert t.message == 'have fun with this'
         }
     }
-*/
+
     @Test
     void testAdvice()
     {
