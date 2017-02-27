@@ -160,6 +160,11 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testExpressionThatThrows()
     {
+        // TODO: Remove once the URL-Encoding is removed (currently using this as a test)
+//        final String json = NCubeRuntime.getResourceAsString("simpleJsonExpression.json")
+//        NCube ncube = NCube.fromSimpleJson(json)
+//        ncube.applicationID = TestNCubeManager.defaultSnapshotApp
+//        mutableClient.createCube(ncube)
         final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         // These methods are called more than you think.  Internally, these cube call

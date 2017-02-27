@@ -95,6 +95,7 @@ class JsonHttpProxy implements CallableBean
     Object call(String bean, String method, List args)
     {
         String jsonArgs = JsonWriter.objectToJson(args.toArray())
+        String uriArgs = URLEncoder.encode(jsonArgs, "UTF-8") // URI Encode the post data
 
         LOG.info("${bean}.${method}(${jsonArgs})")
         println("${bean}.${method}(${jsonArgs})")
@@ -105,7 +106,7 @@ class JsonHttpProxy implements CallableBean
         clientContext.authCache = authCache
 
         HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${method}")
-        request.entity = new StringEntity(jsonArgs, ContentType.APPLICATION_JSON)
+        request.entity = new StringEntity(uriArgs, ContentType.APPLICATION_JSON)
         HttpResponse response = httpClient.execute(request, clientContext)
         String json = EntityUtils.toString(response.entity)
         EntityUtils.consume(response.entity)
@@ -132,7 +133,7 @@ class JsonHttpProxy implements CallableBean
                     throw obj as Exception
                 }
             }
-            throw new EnvelopeException('REST call indicated failure', envelope)
+            throw new EnvelopeException("REST call [${bean}.${method}] indicated failure:", envelope)
         }
         return envelope.data
     }
