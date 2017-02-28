@@ -603,11 +603,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             throw new IllegalArgumentException("Unable to duplicate cube, cube already exists with the new name, app:  " + newAppId + ", name: " + newName)
         }
 
-        boolean changed = !StringUtilities.equalsIgnoreCase(oldName, newName)
+        boolean nameChanged = !StringUtilities.equalsIgnoreCase(oldName, newName)
         boolean sameExceptBranch = oldAppId.equalsNotIncludingBranch(newAppId)
 
         // If names are different we need to recalculate the sha-1
-        if (changed)
+        if (nameChanged)
         {
             NCube ncube = NCube.createCubeFromBytes(jsonBytes)
             ncube.name = newName
@@ -618,7 +618,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
         String notes = 'Cube duplicated from app: ' + oldAppId + ', name: ' + oldName
         Long rev = newRevision == null ? 0L : Math.abs(newRevision as long) + 1L
-        insertCube(c, newAppId, newName, rev, jsonBytes, oldTestData, notes, changed, sha1, sameExceptBranch ? headSha1 : null, username, 'duplicateCube')
+        insertCube(c, newAppId, newName, rev, jsonBytes, oldTestData, notes, true, sha1, sameExceptBranch ? headSha1 : null, username, 'duplicateCube')
         return true
     }
 
