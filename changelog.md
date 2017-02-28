@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.11
+  * Bug fix: Duplicate cube was not setting changed flag correctly.
 * 3.6.10
   * Bug fix: Merge accept theirs incorrectly setting head_sha1 and changed flag.
 * 3.6.9
