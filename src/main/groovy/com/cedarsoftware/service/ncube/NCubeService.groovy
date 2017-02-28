@@ -100,7 +100,7 @@ class NCubeService
         return manager.getBranches(appId)
     }
 
-    int getBranchCount(ApplicationID appId)
+    Integer getBranchCount(ApplicationID appId)
     {
         return manager.getBranchCount(appId)
     }
@@ -125,7 +125,7 @@ class NCubeService
         return manager.commitBranch(appId, infoDtos)
     }
 
-    int rollbackCubes(ApplicationID appId, Object[] cubeNames)
+    Integer rollbackCubes(ApplicationID appId, Object[] cubeNames)
     {
         manager.rollbackCubes(appId, cubeNames)
     }
@@ -145,12 +145,12 @@ class NCubeService
         manager.mergeDeltas(appId, cubeName, deltas)
     }
 
-    int acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
     {
         manager.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
-    int acceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer acceptMine(ApplicationID appId, Object[] cubeNames)
     {
         manager.mergeAcceptMine(appId, cubeNames)
     }
@@ -501,14 +501,14 @@ class NCubeService
         manager.unlockApp(appId)
     }
 
-    int moveBranch(ApplicationID appId, String newSnapVer)
+    Integer moveBranch(ApplicationID appId, String newSnapVer)
     {
-        manager.moveBranch(appId, newSnapVer)
+        return manager.moveBranch(appId, newSnapVer)
     }
 
-    int releaseVersion(ApplicationID appId, String newSnapVer)
+    Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
-        manager.releaseVersion(appId, newSnapVer)
+        return manager.releaseVersion(appId, newSnapVer)
     }
 
     boolean isCubeUpToDate(ApplicationID appId, String cubeName)

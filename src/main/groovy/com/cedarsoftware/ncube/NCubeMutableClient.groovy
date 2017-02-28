@@ -82,8 +82,6 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
 
-    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
-
     void changeVersionValue(ApplicationID appId, String newVersion)
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
@@ -114,11 +112,11 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes)
 
-    int rollbackCubes(ApplicationID appId, Object[] names)
+    Integer rollbackCubes(ApplicationID appId, Object[] names)
 
-    int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
 
-    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames)
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames)
 
-    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
 }

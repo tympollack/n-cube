@@ -334,17 +334,6 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         return result
     }
 
-    Boolean deleteCubes(ApplicationID appId, Object[] cubeNames, boolean allowDelete)
-    {
-        if (!mutable)
-        {
-            throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
-        }
-        Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames, allowDelete]) as Boolean
-        // TODO: Remove deleted cubes from cache
-        return result
-    }
-
     void changeVersionValue(ApplicationID appId, String newVersion)
     {
         if (!mutable)
@@ -458,34 +447,34 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         return map
     }
 
-    int rollbackCubes(ApplicationID appId, Object[] names)
+    Integer rollbackCubes(ApplicationID appId, Object[] names)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} rollbackCubes")
         }
-        int result = bean.call('ncubeController', 'rollbackCubes', [appId, names]) as int
+        Integer result = bean.call('ncubeController', 'rollbackCubes', [appId, names]) as Integer
         clearCache(appId)
         return result
     }
 
-    int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptMine")
         }
-        int result = bean.call('ncubeController', 'mergeAcceptMine', [appId, cubeNames]) as int
+        Integer result = bean.call('ncubeController', 'mergeAcceptMine', [appId, cubeNames]) as Integer
         return result
     }
 
-    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptTheirs")
         }
-        int result = bean.call('ncubeController', 'mergeAcceptTheirs', [appId, cubeNames, sourceBranch]) as int
+        Integer result = bean.call('ncubeController', 'mergeAcceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
         return result
     }
 

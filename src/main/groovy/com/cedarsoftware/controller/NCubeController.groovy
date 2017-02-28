@@ -205,11 +205,12 @@ class NCubeController extends BaseController
         ncubeService.moveBranch(appId, newSnapVer)
     }
 
-    void releaseVersion(ApplicationID appId, String newSnapVer)
+    Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        ncubeService.releaseVersion(appId, newSnapVer)
+        int rowCount = ncubeService.releaseVersion(appId, newSnapVer)
         clearVersionCache(appId.app)
+        return rowCount
     }
 
     Object[] search(ApplicationID appId, String cubeNamePattern = null, String content = null, Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true])
@@ -764,11 +765,12 @@ class NCubeController extends BaseController
      * duplicate all the n-cubes in the release, creating new ones in SNAPSHOT status with
      * the version number set to the newSnapVer.
      */
-    void releaseCubes(ApplicationID appId, String newSnapVer)
+    Integer releaseCubes(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        ncubeService.releaseCubes(appId, newSnapVer)
+        int rowCount = ncubeService.releaseCubes(appId, newSnapVer)
         clearVersionCache(appId.app)
+        return rowCount
     }
 
     /**

@@ -2092,7 +2092,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * when the branch was created.  This is an insert cube (maintaining revision history) for
      * each cube passed in.
      */
-    int rollbackCubes(ApplicationID appId, Object[] names)
+    Integer rollbackCubes(ApplicationID appId, Object[] names)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2117,7 +2117,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @param cubeNames Object[] of String names of n-cube
      * @return int the number of n-cubes merged.
      */
-    int mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2145,7 +2145,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @param Object[] of String SHA-1's for each of the cube names in the branch.
      * @return int the number of n-cubes merged.
      */
-    int mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
