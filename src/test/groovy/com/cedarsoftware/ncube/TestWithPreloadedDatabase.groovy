@@ -2276,6 +2276,10 @@ class TestWithPreloadedDatabase
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, null).size())
         assertEquals(0, getDeletedCubesFromDatabase(BRANCH1, null).size())
         assertEquals(0, getDeletedCubesFromDatabase(BRANCH2, null).size())
+
+        ApplicationID newAppAppId = new ApplicationID('NONE', 'test2', '1.0.0', ReleaseStatus.SNAPSHOT.toString(), 'foo')
+        NCubeManager.duplicate(BRANCH1, newAppAppId, 'TestBranch', 'TestBranch')
+        assert 1 == VersionControl.getBranchChangesForHead(newAppAppId).size()
     }
 
     @Test
