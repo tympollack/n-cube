@@ -99,19 +99,6 @@ class Axis
         }
     }
 
-    void reindex(long newId = getId())
-    {
-        id = newId
-        List<Column> columns = columns
-        clearIndexes()
-        long axisIdPart = BASE_AXIS_ID * id
-        for (Column column : columns)
-        {
-            column.id = axisIdPart + column.id % BASE_AXIS_ID
-            indexColumn(column)
-        }
-    }
-
     /**
      * Implement to provide data for this Axis
      */
@@ -202,6 +189,23 @@ class Axis
         if (preferredOrder != DISPLAY && preferredOrder != SORTED)
         {
             throw new IllegalStateException("preferred order not set, axis: ${name}")
+        }
+    }
+
+    /**
+     * Re-index the axis (optionally assign new ID to the axis).
+     * @param newId long optional new axis id
+     */
+    protected void reindex(long newId = getId())
+    {
+        id = newId
+        List<Column> columns = columns
+        clearIndexes()
+        long axisIdPart = BASE_AXIS_ID * id
+        for (Column column : columns)
+        {
+            column.id = axisIdPart + column.id % BASE_AXIS_ID
+            indexColumn(column)
         }
     }
 
