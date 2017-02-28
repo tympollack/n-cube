@@ -1855,7 +1855,7 @@ class NCube<T>
         }
 
         axisList[axisName] = axis
-        idToAxis.put(axis.id, axis)
+        idToAxis[axis.id] = axis
         clearSha1()
     }
 

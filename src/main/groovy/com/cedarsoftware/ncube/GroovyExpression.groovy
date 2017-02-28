@@ -134,7 +134,7 @@ class N_${L2CacheKey} extends ${expClassName}
     {
         try
         {
-            return ncubeClient.getCube(appId, SYS_PROTOTYPE)
+            return runtimeClient.getCube(appId, SYS_PROTOTYPE)
         }
         catch (Exception e)
         {

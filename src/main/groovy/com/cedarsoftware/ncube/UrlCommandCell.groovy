@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 abstract class UrlCommandCell implements CommandCell
 {
-    protected NCubeRuntimeClient ncubeClient
+    protected static NCubeRuntimeClient runtimeClient
     private static final Logger LOG = LogManager.getLogger(UrlCommandCell.class)
     private String cmd
     private volatile transient String errorMsg = null
@@ -42,7 +42,7 @@ abstract class UrlCommandCell implements CommandCell
     protected UrlCommandCell()
     {
         this.url = null
-        ncubeClient = NCubeRuntime.instance
+        runtimeClient = NCubeRuntime.instance
     }
 
     UrlCommandCell(String cmd, String url, boolean cacheable)
@@ -61,7 +61,7 @@ abstract class UrlCommandCell implements CommandCell
         this.cmd = cmd
         this.cacheable = cacheable
         this.hash = cmd == null ? url.hashCode() : cmd.hashCode()
-        ncubeClient = NCubeRuntime.instance
+        runtimeClient = NCubeRuntime.instance
     }
 
     String getUrl()
@@ -117,7 +117,7 @@ abstract class UrlCommandCell implements CommandCell
         {   // Try URL resolution twice (HTTP HEAD called for connecting relative URLs to sys.classpath)
             try
             {
-                return ncubeClient.getActualUrl(getNCube(ctx).applicationID, url, getInput(ctx))
+                return runtimeClient.getActualUrl(getNCube(ctx).applicationID, url, getInput(ctx))
             }
             catch(Exception e)
             {

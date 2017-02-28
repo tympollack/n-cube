@@ -36,7 +36,7 @@ import java.util.regex.Matcher
 @CompileStatic
 class CdnRouter
 {
-    private static NCubeRuntimeClient ncubeClient
+    private static NCubeRuntimeClient runtimeClient
     private static CdnRoutingProvider provider
     private static final Logger LOG = LogManager.getLogger(CdnRouter.class)
     public static final String TENANT = 'router.tenant'
@@ -52,7 +52,7 @@ class CdnRouter
 
     CdnRouter()
     {
-        ncubeClient = NCubeRuntime.instance
+        runtimeClient = NCubeRuntime.instance
     }
 
     static void setCdnRoutingProvider(CdnRoutingProvider p)
@@ -144,7 +144,7 @@ class CdnRouter
             coord[HTTP_RESPONSE] = response
 
             ApplicationID appId = new ApplicationID(tenant, app, version, status, branch)
-            NCube routingCube = ncubeClient.getCube(appId, cubeName)
+            NCube routingCube = runtimeClient.getCube(appId, cubeName)
             if (routingCube == null)
             {
                 throw new IllegalStateException("Could not load routing cube using app: " + appId + ", cube name: " + cubeName)

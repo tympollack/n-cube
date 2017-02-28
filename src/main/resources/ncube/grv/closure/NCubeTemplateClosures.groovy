@@ -1,15 +1,8 @@
 import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.exception.*
-import com.cedarsoftware.ncube.formatters.*
-import com.cedarsoftware.ncube.proximity.*
-import com.cedarsoftware.ncube.util.*
 import com.cedarsoftware.util.*
-import com.cedarsoftware.util.io.*
-import com.google.common.base.*
-import com.google.common.collect.*
-import com.google.common.net.*
 
-NCubeRuntimeClient getRuntime()
+NCubeRuntimeClient getRuntimeClient()
 {
     return NCubeRuntime.instance
 }
@@ -20,7 +13,7 @@ NCube getCube(String name = ncube.name, boolean quiet = false)
     {
         return ncube
     }
-    NCube cube = runtime.getCube(ncube.applicationID, name)
+    NCube cube = runtimeClient.getCube(ncube.applicationID, name)
     if (cube == null && !quiet)
     {
         throw new IllegalArgumentException('n-cube: ' + name + ' not found.')
@@ -57,7 +50,7 @@ def at(Map coord, NCube cube, def defaultValue = null)
 
 def at(Map coord, String cubeName, def defaultValue, ApplicationID appId)
 {
-    NCube target = runtime.getCube(appId, cubeName)
+    NCube target = runtimeClient.getCube(appId, cubeName)
     input.putAll(coord)
     return target.getCell(input, output, defaultValue)
 }
@@ -74,7 +67,7 @@ def go(Map coord, NCube cube, def defaultValue = null)
 
 def go(Map coord, String cubeName, def defaultValue, ApplicationID appId)
 {
-    NCube target = runtime.getCube(appId, cubeName)
+    NCube target = runtimeClient.getCube(appId, cubeName)
     return target.getCell(coord, output, defaultValue)
 }
 

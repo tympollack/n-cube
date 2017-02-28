@@ -348,7 +348,7 @@ abstract class GroovyBase extends UrlCommandCell
 
         if (cube.name.toLowerCase().startsWith("sys."))
         {   // No URLs allowed, nor code from sys.classpath when executing these cubes
-            output.loader = (GroovyClassLoader)ncubeClient.getLocalClassloader(cube.applicationID)
+            output.loader = (GroovyClassLoader)runtimeClient.getLocalClassloader(cube.applicationID)
             output.source = cmd
         }
         else if (isUrlUsed)
@@ -417,18 +417,18 @@ abstract class GroovyBase extends UrlCommandCell
     {
         NCube cube = getNCube(ctx)
         ApplicationID appId = cube.applicationID
-        GroovyClassLoader gcLoader = (GroovyClassLoader) ncubeClient.getUrlClassLoader(appId, getInput(ctx))
+        GroovyClassLoader gcLoader = (GroovyClassLoader) runtimeClient.getUrlClassLoader(appId, getInput(ctx))
         return gcLoader
     }
 
     private String getTargetByteCodeVersion()
     {
-        return ncubeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
+        return runtimeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
     }
 
     private boolean isNCubeCodeGenDebug()
     {
-        return 'true'.equalsIgnoreCase(ncubeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
+        return 'true'.equalsIgnoreCase(runtimeClient.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
     }
 
     protected static String expandNCubeShortCuts(String groovy)
