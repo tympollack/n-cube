@@ -254,7 +254,7 @@
                 <version>${version.plugin.tomcat7}</version>
                 <configuration>
                     <port>9000</port>
-                    <path>/nce</path>
+                    <path>/ncube</path>
                 </configuration>
                 <executions>
                     <execution>

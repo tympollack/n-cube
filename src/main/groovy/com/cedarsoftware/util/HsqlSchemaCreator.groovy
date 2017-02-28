@@ -29,10 +29,10 @@ import java.sql.Statement
 @CompileStatic
 class HsqlSchemaCreator
 {
-    HsqlSchemaCreator(String databaseUrl, String username, String password, String schema)
+    HsqlSchemaCreator(String driverClassName, String databaseUrl, String username, String password, String schema)
     {
         NCube.isTrue(null) // force NCube class to load for custom json reader and writer
-        TestingConnectionProvider provider = new TestingConnectionProvider(null, databaseUrl, username, password)
+        TestingConnectionProvider provider = new TestingConnectionProvider(driverClassName, databaseUrl, username, password)
 
         URL url = getClass().getResource(schema)
         String fileContents = new File(url.file).text
@@ -59,17 +59,17 @@ class HsqlSchemaCreator
         private String user
         private String password
 
-        public TestingConnectionProvider(String driverClass, String databaseUrl, String user, String password)
+        TestingConnectionProvider(String driverClassName, String databaseUrl, String user, String password)
         {
-            if (driverClass != null)
+            if (driverClassName != null)
             {
                 try
                 {
-                    Class.forName(driverClass)
+                    Class.forName(driverClassName)
                 }
                 catch (Exception e)
                 {
-                    throw new IllegalArgumentException('Could not load:  ' + driverClass, e)
+                    throw new IllegalArgumentException("Could not load: ${driverClassName}", e)
                 }
             }
 
@@ -78,7 +78,7 @@ class HsqlSchemaCreator
             this.password = password
         }
 
-        public Connection getConnection()
+        Connection getConnection()
         {
             try
             {
@@ -86,11 +86,11 @@ class HsqlSchemaCreator
             }
             catch (Exception e)
             {
-                throw new IllegalStateException('Could not crete connection: ' + databaseUrl, e)
+                throw new IllegalStateException("Could not create connection: ${databaseUrl}", e)
             }
         }
 
-        public void releaseConnection(Connection c)
+        void releaseConnection(Connection c)
         {
             try
             {

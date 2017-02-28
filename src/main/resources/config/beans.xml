@@ -172,9 +172,10 @@
     <beans profile="test-database">
 
         <bean id="hsqlSetup" class="com.cedarsoftware.util.HsqlSchemaCreator">
-            <constructor-arg value="jdbc:hsqldb:mem:testdb" />
-            <constructor-arg value="sa" />
-            <constructor-arg value="" />
+            <constructor-arg value="#{serverProperties.NCUBE_JDBC_DRIVER}" />
+            <constructor-arg value="#{serverProperties.NCUBE_JDBC_URL}" />
+            <constructor-arg value="#{serverProperties.NCUBE_JDBC_USER}" />
+            <constructor-arg value="#{serverProperties.NCUBE_JDBC_PWD}" />
             <constructor-arg value="/ddl/hsqldb-schema.sql" />
         </bean>
 
@@ -187,7 +188,7 @@
             <property name="NCUBE_PROTOCOL" value="http"/>
             <property name="NCUBE_HOST" value="localhost"/>
             <property name="NCUBE_PORT" value="9000"/>
-            <property name="NCUBE_CONTEXT" value="nce"/>
+            <property name="NCUBE_CONTEXT" value="ncube"/>
             <property name="NCUBE_USERNAME" value=""/>
             <property name="NCUBE_PASSWORD" value=""/>
         </bean>
