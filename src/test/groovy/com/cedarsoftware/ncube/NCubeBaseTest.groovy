@@ -1,10 +1,13 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.EnvelopeException
 import groovy.transform.CompileStatic
 import org.junit.runner.RunWith
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit4.SpringRunner
+
+import static org.junit.Assert.assertTrue
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -32,5 +35,21 @@ class NCubeBaseTest
     static NCubeMutableClient getMutableClient()
     {
         return NCubeRuntime.instance
+    }
+
+    static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)
+    {
+        assertContainsIgnoreCase(e.envelopeData as String, contains)
+    }
+
+    static void assertContainsIgnoreCase(String source, String... contains)
+    {
+        String lowerSource = source.toLowerCase()
+        for (String contain : contains)
+        {
+            int idx = lowerSource.indexOf(contain.toLowerCase())
+            assertTrue("'${contain}' not found in '${lowerSource}'", idx >= 0)
+            lowerSource = lowerSource.substring(idx)
+        }
     }
 }

@@ -4,19 +4,18 @@ import com.cedarsoftware.util.StringUtilities
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.codehaus.groovy.runtime.StackTraceUtils
-import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.springframework.test.context.TestContextManager
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 
-@RunWith(value = Parameterized.class)
 /**
  * @author Greg Morefield (morefigs@hotmail.com)
  *         <br/>
@@ -34,8 +33,12 @@ import static org.junit.Assert.assertNotNull
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TestThreading
+
+@RunWith(Parameterized.class)
+class TestThreading extends NCubeCleanupBaseTest
 {
+    // TestContextManager is used because @RunWith(Parameterized.class) is overriding @RunWith(SpringRunner.class)
+    private TestContextManager testContextManager
     private Map testArgs
     private NCube cp
 
@@ -86,17 +89,12 @@ class TestThreading
     @Before
     void setUp()
     {
-        TestingDatabaseHelper.setupDatabase()
-        NCubeManager.getNCubeFromResource('sys.classpath.threading.json')
-        cp = NCubeManager.getCube(ApplicationID.testAppId, 'sys.classpath')
-        NCubeManager.clearCache()
-        NCubeManager.addCube(ApplicationID.testAppId,cp)
-    }
-
-    @After
-    void tearDown()
-    {
-        TestingDatabaseHelper.tearDownDatabase()
+        testContextManager = new TestContextManager(getClass())
+        testContextManager.prepareTestInstance(this)
+        super.setUp()
+        cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.threading.json')
+        mutableClient.clearCache(ApplicationID.testAppId)
+        mutableClient.addCube(cp)
     }
 
 //    @Ignore
@@ -164,8 +162,8 @@ class TestThreading
 
         LOG.info "Running test with load=${load}, threads=${maxThreads}, count=${count}, loopCount=${loopCount}, clearCache=${clearCache}, loopTest=${loopTest}, preCache=${preCache}, sleep=${sleepTime}, sync=${sync}, remove=${remove}, warm=${warm}"
         buildAccessCube(maxThreads,count,warm)
-        NCube cube = NCubeManager.getCube(ApplicationID.testAppId,"thread")
-        NCube supportingCube = NCubeManager.getCube(ApplicationID.testAppId,"threadCount")
+        NCube cube = mutableClient.getCube(ApplicationID.testAppId, 'thread')
+        NCube supportingCube = mutableClient.getCube(ApplicationID.testAppId, 'threadCount')
 
         def allFailures = new ConcurrentLinkedQueue<Exception>()
         long totalDuration = 0
@@ -174,10 +172,17 @@ class TestThreading
             if (i>0) LOG.debug "->loop: ${i}"
             if (clearCache) {
                 LOG.debug '==>clear cache'
-                NCubeManager.clearCache()
-                NCubeManager.addCube(ApplicationID.testAppId,NCube.createCubeFromStream(new ByteArrayInputStream(cp.toFormattedJson().bytes)))
-                NCubeManager.addCube(ApplicationID.testAppId,NCube.createCubeFromStream(new ByteArrayInputStream(supportingCube.toFormattedJson().bytes)))
-                NCubeManager.addCube(ApplicationID.testAppId,NCube.createCubeFromStream(new ByteArrayInputStream(cube.toFormattedJson().bytes)))
+                mutableClient.clearCache(ApplicationID.testAppId)
+
+                NCube ncube1 = NCube.fromSimpleJson(cp.toFormattedJson())
+                NCube ncube2 = NCube.fromSimpleJson(supportingCube.toFormattedJson())
+                NCube ncube3 = NCube.fromSimpleJson(cube.toFormattedJson())
+                ncube1.applicationID = ApplicationID.testAppId
+                ncube2.applicationID = ApplicationID.testAppId
+                ncube2.applicationID = ApplicationID.testAppId
+                mutableClient.addCube(ncube1)
+                mutableClient.addCube(ncube2)
+                mutableClient.addCube(ncube3)
             }
 
             if (preCache) {
@@ -286,9 +291,9 @@ class TestThreading
 
     private NCube buildAccessCube(int maxThreads, int maxCount, boolean warm) {
         LOG.info '==>Creating cube...'
-        NCube threadCube = NCube.createCubeFromStream(new ByteArrayInputStream(threadDef.bytes))
+        NCube threadCube = NCube.fromSimpleJson(threadDef)
         assertNotNull(threadCube)
-        NCube cube = NCube.createCubeFromStream(new ByteArrayInputStream(threadCountDef.bytes))
+        NCube cube = NCube.fromSimpleJson(threadCountDef)
         Axis axisTid = cube.getAxis("tid")
         Axis axisCnt = cube.getAxis("cnt")
         assertNotNull(cube)
@@ -323,10 +328,12 @@ class TestThreading
         }
 
         LOG.debug 'recreating...'
-        cube = NCube.createCubeFromStream(new ByteArrayInputStream(cube.toFormattedJson().bytes))
-        threadCube = NCube.createCubeFromStream(new ByteArrayInputStream(threadCube.toFormattedJson().bytes))
-        NCubeManager.addCube(ApplicationID.testAppId,threadCube)
-        NCubeManager.addCube(ApplicationID.testAppId,cube)
+        cube = NCube.fromSimpleJson(cube.toFormattedJson())
+        threadCube = NCube.fromSimpleJson(threadCube.toFormattedJson())
+        cube.applicationID = ApplicationID.testAppId
+        threadCube.applicationID = ApplicationID.testAppId
+        mutableClient.addCube(threadCube)
+        mutableClient.addCube(cube)
 
         if (warm) {
             LOG.info 'warming...'
