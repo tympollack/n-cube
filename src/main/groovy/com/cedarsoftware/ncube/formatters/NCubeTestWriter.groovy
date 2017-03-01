@@ -49,10 +49,10 @@ class NCubeTestWriter extends BaseJsonFormatter
         startObject()
         writeObjectKeyValue("name", test.name, true)
         writeObjectKey("coord")
-        writeCoord(test.getCoord())
+        writeCoord(test.coord)
         comma()
         writeObjectKey("assertions")
-        writeAssertions(test.getAssertions())
+        writeAssertions(test.assertions)
         endObject()
     }
 

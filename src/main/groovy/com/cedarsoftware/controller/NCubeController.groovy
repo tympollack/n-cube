@@ -113,36 +113,22 @@ class NCubeController extends BaseController
 
     protected String getUserForDatabase()
     {
-        Map<String, String> headers = new CaseInsensitiveMap<String, String>()
-        String[] headerList = ['smuser','fakeuser','appid']
         HttpServletRequest request = JsonCommandServlet.servletRequest.get()
-        Enumeration e = request.headerNames
-        while (e.hasMoreElements())
-        {
-            String headerName = (e.nextElement() as String)
-            if (headerList.contains(headerName))
-            {
-                headers[headerName] = request.getHeader(headerName)
-                if (headers.containsKey('smuser') && headers.containsKey('fakeuser') && headers.containsKey('appid'))
-                {
-                    break
-                }
-            }
-        }
-
-        String realId = headers.containsKey('smuser') && StringUtilities.hasContent(headers['smuser']) ? headers['smuser'] : System.getProperty('user.name')
+        String smuser = request.getHeader('smuser')
+        String realId = smuser && StringUtilities.hasContent(smuser) ? smuser : System.getProperty('user.name')
         ncubeService.userId = realId
 
-        if (headers.containsKey('fakeuser') && StringUtilities.hasContent(headers['fakeuser'])
-                && headers.containsKey('appid') && StringUtilities.hasContent(headers['appid']))
+        String fakeuser = request.getHeader('fakeuser')
+        String appid = request.getHeader('appid')
+        if (fakeuser && appid && StringUtilities.hasContent('fakeuser') && StringUtilities.hasContent('appid'))
         {
-            String[] appIdParts = headers['appid'].split('~')
+            String[] appIdParts = appid.split('~')
             if (appIdParts.length > 1)
             {
                 ApplicationID appId = new ApplicationID(tenant, appIdParts[0], appIdParts[1], appIdParts[2], appIdParts[3])
                 if (isAppAdmin(appId, true))
                 {
-                    ncubeService.fakeId = headers['fakeuser']
+                    ncubeService.fakeId = fakeuser
                 }
             }
         }
@@ -223,7 +209,7 @@ class NCubeController extends BaseController
         List<NCubeInfoDto> cubeInfos = ncubeService.search(appId, cubeNamePattern, content, options)
 
         Collections.sort(cubeInfos, new Comparator<NCubeInfoDto>() {
-            public int compare(NCubeInfoDto info1, NCubeInfoDto info2)
+            int compare(NCubeInfoDto info1, NCubeInfoDto info2)
             {
                 return info1.name.compareToIgnoreCase(info2.name)
             }
@@ -390,13 +376,6 @@ class NCubeController extends BaseController
             }
         }
         return map
-    }
-
-    // @Deprecated
-    // TODO: Remove
-    Object[] getAppNames(String unused1, String unused2)
-    {
-        return appNames
     }
 
     // TODO: Filter APP names by Access Control List data
@@ -689,9 +668,9 @@ class NCubeController extends BaseController
         ncubeService.createCube(ncube)
     }
 
-    void updateCube(NCube ncube)
+    Boolean updateCube(NCube ncube)
     {
-        ncubeService.updateNCube(ncube)
+        return ncubeService.updateNCube(ncube)
     }
 
     /**
@@ -747,7 +726,7 @@ class NCubeController extends BaseController
      * Duplicate the passed in cube, but change the name to newName AND the status of the new
      * n-cube will be SNAPSHOT.
      */
-    void duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
+    Boolean duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
     {
         appId = addTenant(appId)
         destAppId = addTenant(destAppId)
@@ -757,7 +736,7 @@ class NCubeController extends BaseController
         addToVersionsCache(appId)
         addToVersionsCache(destAppId)
 
-        ncubeService.duplicateCube(appId, destAppId, cubeName, newName)
+        return ncubeService.duplicateCube(appId, destAppId, cubeName, newName)
     }
 
     /**
@@ -992,17 +971,13 @@ class NCubeController extends BaseController
         return tests.toArray()
     }
 
-    void saveTests(ApplicationID appId, String cubeName, Object[] tests)
+    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
         appId = addTenant(appId)
         String data = new NCubeTestWriter().format(tests)
-        ncubeService.saveTests(appId, cubeName, data)
+        return ncubeService.saveTests(appId, cubeName, data)
     }
 
-    /**
-     * In-place update of a cell.  'Value' is the final (converted) object type to be stored
-     * in the indicated (by colIds) cell.
-     */
     NCubeTest createNewTest(ApplicationID appId, String cubeName, String testName)
     {
         appId = addTenant(appId)
@@ -1028,6 +1003,12 @@ class NCubeController extends BaseController
         CellInfo[] assertions = [ new CellInfo("exp", "output.return", false, false) ] as CellInfo[]
         NCubeTest test = new NCubeTest(testName, coords, assertions)
         return test
+    }
+
+    Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
+    {
+        appId = addTenant(appId)
+        return ncubeService.updateNotes(appId, cubeName, notes)
     }
 
     /**
@@ -1397,6 +1378,8 @@ class NCubeController extends BaseController
         return branchChanges.toArray()
     }
 
+    // TODO get generateCommitLink(), honorCommit() and getCommits() from https://github.com/jdereg/n-cube-editor/pull/427
+
     Object commitCube(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
@@ -1517,7 +1500,7 @@ class NCubeController extends BaseController
     Map execute(ApplicationID appId, Map args, String command)
     {
         appId = addTenant(appId)
-        int dot = command.indexOf('.')
+        int dot = command.lastIndexOf('.')
         String controller = command.substring(0, dot)
         String method = command.substring(dot + 1i)
         Map coordinate = ['method' : method, 'service': ncubeService]

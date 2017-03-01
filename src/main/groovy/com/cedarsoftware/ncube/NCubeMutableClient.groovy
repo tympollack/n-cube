@@ -32,7 +32,7 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     void setUserId(String user)
 
-    boolean updateCube(NCube ncube)
+    Boolean updateCube(NCube ncube)
 
     NCube loadCubeById(long id)
 
@@ -95,6 +95,8 @@ interface NCubeMutableClient extends NCubeReleaseClient
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
 
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
+
+    Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
 
     void clearTestDatabase()
 

@@ -175,9 +175,9 @@ class NCubeService
         return manager.releaseCubes(appId, newSnapVer)
     }
 
-    void changeVersionValue(ApplicationID appId, String newSnapVer)
+    Boolean changeVersionValue(ApplicationID appId, String newSnapVer)
     {
-        manager.changeVersionValue(appId, newSnapVer)
+        return manager.changeVersionValue(appId, newSnapVer)
     }
 
     void addAxis(ApplicationID appId, String cubeName, String axisName, String type, String valueType)
@@ -338,9 +338,9 @@ class NCubeService
      * In-place update of a cell.  'Value' is the final (converted) object type to be stored
      * in the indicated (by colIds) cell.
      */
-    void updateNCube(NCube ncube)
+    Boolean updateNCube(NCube ncube)
     {
-        manager.updateCube(ncube)
+        return manager.updateCube(ncube)
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
@@ -388,22 +388,19 @@ class NCubeService
         }
     }
 
-    /**
-     * In-place update of a cell.  'Value' is the final (converted) object type to be stored
-     * in the indicated (by colIds) cell.
-     */
     String getTestData(ApplicationID appId, String cubeName)
     {
         return manager.getTestData(appId, cubeName)
     }
 
-    /**
-     * In-place update of a cell.  'Value' is the final (converted) object type to be stored
-     * in the indicated (by colIds) cell.
-     */
     Boolean saveTests(ApplicationID appId, String cubeName, String tests)
     {
         return manager.saveTests(appId, cubeName, tests)
+    }
+
+    Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
+    {
+        return manager.updateNotes(appId, cubeName, notes)
     }
 
     NCube getCube(ApplicationID appId, String name, boolean quiet = false)

@@ -1,9 +1,10 @@
 package com.cedarsoftware.ncube
 
-import groovy.transform.CompileStatic
 import org.junit.Test
 
 /**
+ * NCube RuleEngine Tests
+ *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
  *         Copyright (c) Cedar Software LLC
@@ -20,16 +21,23 @@ import org.junit.Test
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-@CompileStatic
-class TestOptionalScope extends NCubeBaseTest
+
+class TestRuleEngineIntegration extends NCubeCleanupBaseTest
 {
     @Test
-    void testOptionalScopeInDefaultCell()
+    void testNCubeGroovyExpressionAPIs()
     {
-        NCube n1 = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'optionalScope.json')
-        Set<String> optionalScope = n1.getOptionalScope([:], [:])
-        assert optionalScope.contains('teST')
-        assert optionalScope.size() == 1
-        assert n1.getRequiredScope([:], [:]).empty
+        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionTests.json')
+        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'months.json')
+
+        Map input = ['Age': 10]
+        Map output = [:]
+        ncube.getCell input, output
+        assert output.isAxis
+        assert output.isColumn
+        assert output.isRange
+        assert output.colId > 0
+        assert output.containsKey(0)
+        assert 'sys.classpath' == output[0]
     }
 }

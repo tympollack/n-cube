@@ -21,7 +21,7 @@ import org.junit.Test
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TestSha1
+class TestSha1 extends NCubeBaseTest
 {
     @Test
     void testSha1CellColumnMattersSorted()

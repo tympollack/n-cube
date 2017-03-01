@@ -119,7 +119,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
 
     String getTestData(ApplicationID appId, String cubeName)
     {
-        String result = bean.call('ncubeController', 'updateCube', [appId, cubeName]) as String
+        String result = bean.call('ncubeController', 'getTests', [appId, cubeName]) as String
         return result
     }
 
@@ -128,13 +128,13 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         // Only the Editor (READ WRITE) implementation should implement this
     }
 
-    boolean updateCube(NCube ncube)
+    Boolean updateCube(NCube ncube)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateCube")
         }
-        boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as boolean
+        Boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as Boolean
         cacheCube(ncube)
         return result
     }
@@ -162,7 +162,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         {
             throw new IllegalStateException("${MUTABLE_ERROR} duplicate")
         }
-        Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
+        Boolean result = bean.call('ncubeController', 'duplicateCube', [oldAppId, newAppId, oldName, newName]) as Boolean
         return result
     }
 
@@ -394,6 +394,16 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} saveTests")
         }
         Boolean result = bean.call('ncubeController', 'saveTests', [appId, cubeName, tests]) as Boolean
+        return result
+    }
+
+    Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} updateNotes")
+        }
+        Boolean result = bean.call('ncubeController', 'updateNotes', [appId, cubeName, notes]) as Boolean
         return result
     }
 

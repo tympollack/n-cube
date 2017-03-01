@@ -300,7 +300,7 @@ class NCubeManagerImpl extends NCubeRuntime
      * @param ncube      NCube to be updated.
      * @return boolean true on success, false otherwise
      */
-    boolean updateCube(NCube ncube)
+    Boolean updateCube(NCube ncube)
     {
         ApplicationID appId = ncube.applicationID
         ApplicationID.validateAppId(appId)
@@ -610,7 +610,7 @@ class NCubeManagerImpl extends NCubeRuntime
         // No cache used in NCubeManagerImpl
     }
 
-    boolean updateNotes(ApplicationID appId, String cubeName, String notes)
+    Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
