@@ -137,7 +137,7 @@ class NCubeService
 
     void deleteBranch(ApplicationID appId)
     {
-        manager.deleteBranch(appId);
+        manager.deleteBranch(appId)
     }
 
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
@@ -388,12 +388,12 @@ class NCubeService
         }
     }
 
-    String getTestData(ApplicationID appId, String cubeName)
+    Object[] getTestData(ApplicationID appId, String cubeName)
     {
         return manager.getTestData(appId, cubeName)
     }
 
-    Boolean saveTests(ApplicationID appId, String cubeName, String tests)
+    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
         return manager.saveTests(appId, cubeName, tests)
     }
@@ -401,6 +401,11 @@ class NCubeService
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
         return manager.updateNotes(appId, cubeName, notes)
+    }
+
+    String getNotes(ApplicationID appId, String cubeName)
+    {
+        return manager.getNotes(appId, cubeName)
     }
 
     NCube getCube(ApplicationID appId, String name, boolean quiet = false)
@@ -433,9 +438,9 @@ class NCubeService
         return cube
     }
 
-    void getReferencedCubeNames(ApplicationID appId, String cubeName, Set<String> references)
+    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
     {
-        manager.getReferencedCubeNames(appId, cubeName, references)
+        return manager.getReferencedCubeNames(appId, cubeName)
     }
 
     URL resolveRelativeUrl(ApplicationID appId, String relativeUrl)

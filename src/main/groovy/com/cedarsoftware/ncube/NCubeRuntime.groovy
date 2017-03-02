@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.CallableBean
+import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.SystemUtilities
@@ -117,9 +118,9 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         return getCubeInternal(appId, cubeName)
     }
 
-    String getTestData(ApplicationID appId, String cubeName)
+    Object[] getTestData(ApplicationID appId, String cubeName)
     {
-        String result = bean.call('ncubeController', 'getTests', [appId, cubeName]) as String
+        Object[] result = bean.call('ncubeController', 'getTests', [appId, cubeName]) as Object[]
         return result
     }
 
@@ -218,7 +219,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         {
             throw new IllegalStateException("${MUTABLE_ERROR} unlockApp")
         }
-        bean.call('ncubeController', 'unlockApp', [appId, false])
+        bean.call('ncubeController', 'lockApp', [appId, false])
     }
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
@@ -261,7 +262,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         return result
     }
 
-    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
+    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion = false)
     {
         List<NCubeInfoDto> result = bean.call('ncubeController', 'getRevisionHistory', [appId, cubeName, ignoreVersion]) as List
         return result
@@ -355,9 +356,12 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         return result
     }
 
-    void getReferencedCubeNames(ApplicationID appId, String cubeName, Set<String> references)
+    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
     {
-        // TODO - no controller method
+        Object[] results = bean.call('ncubeController', 'getReferencesFrom', [appId, cubeName]) as Object[]
+        Set<String> refs = new CaseInsensitiveSet()
+        results.each { String result -> refs.add(result) }
+        return refs
     }
 
     List<AxisRef> getReferenceAxes(ApplicationID appId)
@@ -387,7 +391,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         // TODO: Drop affected cubes from cache
     }
 
-    Boolean saveTests(ApplicationID appId, String cubeName, String tests)
+    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
         if (!mutable)
         {
@@ -404,6 +408,12 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateNotes")
         }
         Boolean result = bean.call('ncubeController', 'updateNotes', [appId, cubeName, notes]) as Boolean
+        return result
+    }
+
+    String getNotes(ApplicationID appId, String cubeName)
+    {
+        String result = bean.call('ncubeController', 'getNotes', [appId, cubeName]) as String
         return result
     }
 
@@ -463,7 +473,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         {
             throw new IllegalStateException("${MUTABLE_ERROR} rollbackCubes")
         }
-        Integer result = bean.call('ncubeController', 'rollbackCubes', [appId, names]) as Integer
+        Integer result = bean.call('ncubeController', 'rollbackBranch', [appId, names]) as Integer
         clearCache(appId)
         return result
     }

@@ -700,8 +700,7 @@ class NCubeController extends BaseController
     Object[] getReferencesFrom(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        Set<String> references = new CaseInsensitiveSet<>()
-        ncubeService.getReferencedCubeNames(appId, cubeName, references)
+        Set<String> references = ncubeService.getReferencedCubeNames(appId, cubeName)
         Object[] refs = references.toArray()
         caseInsensitiveSort(refs)
         return refs
@@ -962,20 +961,13 @@ class NCubeController extends BaseController
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        String s = ncubeService.getTestData(appId, cubeName)
-        if (StringUtilities.isEmpty(s))
-        {
-            return null
-        }
-        List<NCubeTest> tests = NCubeTestReader.convert(s)
-        return tests.toArray()
+        return ncubeService.getTestData(appId, cubeName)
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
         appId = addTenant(appId)
-        String data = new NCubeTestWriter().format(tests)
-        return ncubeService.saveTests(appId, cubeName, data)
+        return ncubeService.saveTests(appId, cubeName, tests)
     }
 
     NCubeTest createNewTest(ApplicationID appId, String cubeName, String testName)
@@ -1009,6 +1001,12 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         return ncubeService.updateNotes(appId, cubeName, notes)
+    }
+
+    String getNotes(ApplicationID appId, String cubeName)
+    {
+        appId = addTenant(appId)
+        return ncubeService.getNotes(appId, cubeName)
     }
 
     /**
@@ -1477,6 +1475,14 @@ class NCubeController extends BaseController
         NCube ncube = ncubeService.loadCubeById(id)
         ncubeService.assertPermissions(appId, ncube.name, Action.READ)
         return formatCube(ncube, [mode: mode])
+    }
+
+    NCube loadCubeById(long id)
+    {
+        NCube ncube = ncubeService.loadCubeById(id)
+        ApplicationID appId = ncube.applicationID
+        ncubeService.assertPermissions(appId, ncube.name, Action.READ)
+        return ncube
     }
 
     /**
@@ -2086,6 +2092,10 @@ class NCubeController extends BaseController
 
     private ApplicationID addTenant(ApplicationID appId)
     {
+        if (appId == null)
+        {
+            throw new IllegalArgumentException('ApplicationID cannot be null')
+        }
         String tenant = tenant
         return new ApplicationID(tenant, appId.app, appId.version, appId.status, appId.branch)
     }
@@ -2098,7 +2108,7 @@ class NCubeController extends BaseController
     private static Object[] caseInsensitiveSort(Object[] items)
     {
         Arrays.sort(items, new Comparator<Object>() {
-            public int compare(Object o1, Object o2)
+            int compare(Object o1, Object o2)
             {
                 ((String) o1)?.toLowerCase() <=> ((String) o2)?.toLowerCase()
             }

@@ -29,7 +29,7 @@ interface NCubeRuntimeClient
 
     Map<String, Object> getSystemParams()
 
-    String getTestData(ApplicationID appId, String cubeName)
+    Object[] getTestData(ApplicationID appId, String cubeName)
 
     void clearCache(ApplicationID appId)
 
@@ -46,4 +46,10 @@ interface NCubeRuntimeClient
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
 
     void addCube(NCube ncube)
+
+    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
+
+    String getNotes(ApplicationID appId, String cubeName)
 }

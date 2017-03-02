@@ -64,6 +64,8 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
 
+    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
+
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
 
     List<String> getAppNames(String tenant)
@@ -86,15 +88,11 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
 
-    void getReferencedCubeNames(ApplicationID appId, String cubeName, Set<String> references)
-
-    List<AxisRef> getReferenceAxes(ApplicationID appId)
-
     void updateReferenceAxes(List<AxisRef> axisRefs)
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
 
-    Boolean saveTests(ApplicationID appId, String cubeName, String tests)
+    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
 

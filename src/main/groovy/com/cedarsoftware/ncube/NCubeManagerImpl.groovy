@@ -1,10 +1,13 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.BranchMergeException
+import com.cedarsoftware.ncube.formatters.NCubeTestReader
+import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
@@ -160,12 +163,8 @@ class NCubeManagerImpl extends NCubeRuntime
     /**
      * Retrieve all cube names that are deeply referenced by ApplicationID + n-cube name.
      */
-    void getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs)
+    Set<String> getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs = new CaseInsensitiveSet<>())
     {
-        if (refs == null)
-        {
-            throw new IllegalArgumentException("Could not get referenced cube names, null passed in for Set to hold referenced n-cube names, app: ${appId}, n-cube: ${name}")
-        }
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(name)
         NCube ncube = loadCube(appId, name)
@@ -187,6 +186,7 @@ class NCubeManagerImpl extends NCubeRuntime
                 }
             }
         }
+        return refs
     }
 
     /**
@@ -302,12 +302,12 @@ class NCubeManagerImpl extends NCubeRuntime
      */
     Boolean updateCube(NCube ncube)
     {
-        ApplicationID appId = ncube.applicationID
-        ApplicationID.validateAppId(appId)
         if (ncube == null)
         {
             throw new IllegalArgumentException('NCube cannot be null')
         }
+        ApplicationID appId = ncube.applicationID
+        ApplicationID.validateAppId(appId)
         NCube.validateCubeName(ncube.name)
 
         if (appId.release)
@@ -588,8 +588,9 @@ class NCubeManagerImpl extends NCubeRuntime
         return false
     }
 
-    Boolean saveTests(ApplicationID appId, String cubeName, String testData)
+    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
+        String testData = new NCubeTestWriter().format(tests)
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName, Action.UPDATE)
@@ -597,12 +598,18 @@ class NCubeManagerImpl extends NCubeRuntime
         return persister.updateTestData(appId, cubeName, testData)
     }
 
-    String getTestData(ApplicationID appId, String cubeName)
+    Object[] getTestData(ApplicationID appId, String cubeName)
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName)
-        return persister.getTestData(appId, cubeName)
+        String s = persister.getTestData(appId, cubeName)
+        if (StringUtilities.isEmpty(s))
+        {
+            return null
+        }
+        List<NCubeTest> tests = NCubeTestReader.convert(s)
+        return tests.toArray()
     }
 
     void clearCache(ApplicationID appId)
