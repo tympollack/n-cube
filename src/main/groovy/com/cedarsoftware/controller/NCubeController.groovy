@@ -436,7 +436,10 @@ class NCubeController extends BaseController
             return appVers
         }
 
-        Map<String, List<String>> versionMap = ncubeService.getVersions(tenant, app)
+        ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, app, ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+        appId = addTenant(appId)
+
+        Map<String, List<String>> versionMap = ncubeService.getVersions(appId.tenant, appId.app)
         addAllToVersionCache(app, versionMap.RELEASE, '-RELEASE')
         addAllToVersionCache(app, versionMap.SNAPSHOT, '-SNAPSHOT')
         return getCachedVersions(app)
@@ -860,10 +863,10 @@ class NCubeController extends BaseController
         ncubeService.breakAxisReference(appId, cubeName, axisName)
     }
 
-    void renameCube(ApplicationID appId, String oldName, String newName)
+    Boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
         appId = addTenant(appId)
-        ncubeService.renameCube(appId, oldName, newName)
+        return ncubeService.renameCube(appId, oldName, newName)
     }
 
     void promoteRevision(ApplicationID appId, long cubeId)
@@ -1336,7 +1339,7 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         Object[] branches = getBranchesFromCache(appId)
-        if (branches.length > 0)
+        if (branches.length > 0 && branches.find { it == ApplicationID.HEAD })
         {
             return branches
         }
@@ -1620,6 +1623,11 @@ class NCubeController extends BaseController
     {
         List<AxisRef> axisRefList = axisRefs as List<AxisRef>
         ncubeService.updateReferenceAxes(axisRefList)
+    }
+
+    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    {
+        return ncubeService.getApplicationID(tenant, app, coord)
     }
 
     void clearTestDatabase()

@@ -88,6 +88,7 @@ abstract class UrlCommandCell implements CommandCell
     // When no L3, use this (also see GroovyBase)
     void clearClassLoaderCache()
     {
+        hasBeenCached.set(false)
         if (cache == null)
         {
             return

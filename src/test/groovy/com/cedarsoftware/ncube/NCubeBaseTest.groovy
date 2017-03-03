@@ -34,7 +34,7 @@ class NCubeBaseTest
 {
     static NCubeMutableClient getMutableClient()
     {
-        return NCubeRuntime.instance
+        return NCubeRuntime.instance as NCubeMutableClient
     }
 
     static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)
@@ -51,5 +51,20 @@ class NCubeBaseTest
             assertTrue("'${contain}' not found in '${lowerSource}'", idx >= 0)
             lowerSource = lowerSource.substring(idx)
         }
+    }
+
+    static boolean checkContainsIgnoreCase(String source, String... contains)
+    {
+        String lowerSource = source.toLowerCase()
+        for (String contain : contains)
+        {
+            int idx = lowerSource.indexOf(contain.toLowerCase())
+            if (idx == -1)
+            {
+                return false
+            }
+            lowerSource = lowerSource.substring(idx)
+        }
+        return true
     }
 }

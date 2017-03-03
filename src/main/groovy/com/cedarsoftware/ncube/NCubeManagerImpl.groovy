@@ -90,12 +90,6 @@ class NCubeManagerImpl extends NCubeRuntime
         nCubePersister = persister
     }
 
-    static NCubeManagerImpl getManager()
-    {
-        NCubeManagerImpl bean = ctx.getBean('ncubeRuntime') as NCubeManagerImpl
-        return bean
-    }
-
     NCubePersister getPersister()
     {
         if (nCubePersister == null)
@@ -229,12 +223,22 @@ class NCubeManagerImpl extends NCubeRuntime
         return revisions
     }
 
+    List<String> getAppNames()
+    {
+        throw new IllegalStateException("getAppNames() should not be called on ${getClass().name} without tenant. Please check Spring bean configuration.")
+    }
+
     /**
      * Return a List of Strings containing all unique App names for the given tenant.
      */
     List<String> getAppNames(String tenant)
     {
         return persister.getAppNames(tenant)
+    }
+
+    Object[] getVersions(String app)
+    {
+        throw new IllegalStateException("getVersions() should not be called on ${getClass().name} without tenant. Please check Spring bean configuration.")
     }
 
     /**
@@ -331,7 +335,7 @@ class NCubeManagerImpl extends NCubeRuntime
      * @param targetAppId Branch copied to (must not exist)
      * @return int number of n-cubes in branch (number copied - revision depth is not copied)
      */
-    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
         assertPermissions(srcAppId, null, Action.READ)
         assertPermissions(targetAppId, null, Action.UPDATE)
@@ -656,8 +660,6 @@ class NCubeManagerImpl extends NCubeRuntime
         Set<String> branches = getBranches(appId)
         return branches.size()
     }
-
-
 
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
@@ -1274,7 +1276,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):null])
 
         persister.createCube(branchPermCube, getUserId())
-        VersionControl.updateBranch(permAppId)
+        updateBranch(permAppId)
     }
 
     private void addAppPermissionsCubes(ApplicationID appId)

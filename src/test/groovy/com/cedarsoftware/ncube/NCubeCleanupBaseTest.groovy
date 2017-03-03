@@ -37,11 +37,12 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
         TestingDatabaseHelper.clearDatabase()
     }
 
-    void createCubeFromResource(String fileName, ApplicationID appId = ApplicationID.testAppId)
+    NCube createCubeFromResource(String fileName, ApplicationID appId = ApplicationID.testAppId)
     {
         String json = NCubeRuntime.getResourceAsString(fileName)
         NCube ncube = NCube.fromSimpleJson(json)
         ncube.applicationID = appId
         mutableClient.createCube(ncube)
+        return ncube
     }
 }

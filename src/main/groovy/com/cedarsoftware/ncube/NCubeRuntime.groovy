@@ -71,9 +71,9 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         this.mutable = mutable
     }
 
-    static NCubeRuntime getInstance()
+    static NCubeRuntimeClient getInstance()
     {
-        NCubeRuntime bean = ctx.getBean('ncubeRuntime') as NCubeRuntime
+        NCubeRuntimeClient bean = ctx.getBean('ncubeRuntime') as NCubeRuntimeClient
         return bean
     }
 
@@ -136,14 +136,19 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateCube")
         }
         Boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as Boolean
-        cacheCube(ncube)
+
+        if (CLASSPATH_CUBE.equalsIgnoreCase(ncube.name))
+        {   // If the sys.classpath cube is changed, then the entire class loader must be dropped.  It will be lazily rebuilt.
+            clearCache(ncube.applicationID)
+        }
+        clearCubeFromCache(ncube.applicationID, ncube.name)
         return result
     }
 
     NCube loadCubeById(long id)
     {
         NCube ncube = bean.call('ncubeController', 'loadCubeById', [id]) as NCube
-        cacheCube(ncube)
+        prepareCube(ncube)
         return ncube
     }
 
@@ -229,6 +234,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} moveBranch")
         }
         Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
+        clearCache(appId)
         return result
     }
 
@@ -239,6 +245,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} releaseVersion")
         }
         Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
+        clearCache()
         return result
     }
 
@@ -249,6 +256,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} releaseCubes")
         }
         Integer result = bean.call('ncubeController', 'releaseCubes', [appId, newSnapVer]) as Integer
+        clearCache()
         return result
     }
 
@@ -268,25 +276,37 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         return result
     }
 
+    List<String> getAppNames()
+    {
+        List<String> result = bean.call('ncubeController', 'getAppNames', []) as List
+        return result
+    }
+
     List<String> getAppNames(String tenant)
     {
-        List<String> result = bean.call('ncubeController', 'getAppNames', [tenant]) as List
+        ApplicationID.validateTenant(tenant)
+        return appNames
+    }
+
+    Object[] getVersions(String app)
+    {
+        Object[] result = bean.call('ncubeController', 'getVersions', [app]) as Object[]
         return result
     }
 
     Map<String, List<String>> getVersions(String tenant, String app)
     {
-        Map<String, List<String>> result = bean.call('ncubeController', 'getVersions', [tenant, app]) as Map
-        return result
+        throw new IllegalStateException('Please use getVersions() that returns Object[].')
     }
 
-    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} copyBranch")
         }
         Integer result = bean.call('ncubeController', 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
+        clearCache(targetAppId)
         return result
     }
 
@@ -309,7 +329,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} deleteBranch")
         }
         Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
-        // TODO: Remove branches cubes from cache
+        clearCache(appId)
         return result
     }
 
@@ -331,7 +351,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
         }
         Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
-        // TODO: Remove deleted cubes from cache
+        clearCache(appId)
         return result
     }
 
@@ -342,6 +362,8 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} changeVersionValue")
         }
         bean.call('ncubeController', 'changeVersionValue', [appId, newVersion])
+        clearCache(appId)
+        clearCache(appId.asVersion(newVersion))
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
@@ -351,8 +373,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} renameCube")
         }
         Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
-        // TODO: remove cube that was renamed
-        // TODO: cache cube with new name
+        clearCubeFromCache(appId, oldName)
         return result
     }
 
@@ -377,7 +398,13 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} getReferenceAxes")
         }
         bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
-        // TODO: All n-cubes touched have to be updated in the Cache
+        clearCache()
+    }
+
+    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    {
+        ApplicationID appId = bean.call('ncubeController', 'getApplicationID', [tenant, app, coord]) as ApplicationID
+        return appId
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
@@ -387,8 +414,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} updateAxisMetaProperties")
         }
         bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
-        clearCache(appId)
-        // TODO: Drop affected cubes from cache
+        clearCubeFromCache(appId, cubeName)
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
@@ -495,6 +521,7 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptTheirs")
         }
         Integer result = bean.call('ncubeController', 'mergeAcceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
+        clearCache(appId)
         return result
     }
 
@@ -542,6 +569,12 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
         }
     }
 
+    void clearCubeFromCache(ApplicationID appId, String cubeName)
+    {
+        Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
+        cubeCache.evict(cubeName.toLowerCase())
+    }
+
     protected void clearCache()
     {
         ncubeCacheManager.cacheNames.each { String appIdString ->
@@ -549,6 +582,12 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             clearCache(appId)
             clearCache(appId.asRelease())
         }
+    }
+
+    protected Cache getCacheForApp(ApplicationID appId)
+    {
+        Cache cache = ncubeCacheManager.getCache(appId.toString())
+        return cache
     }
     
     /**

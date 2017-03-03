@@ -131,6 +131,27 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testUpdateBranchCubeHeadSha1BadArgs()
+    {
+        try
+        {
+            new NCubeJdbcPersister().updateBranchCubeHeadSha1(null, null, 'badSha1')
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('id cannot be empty')
+        }
+        try
+        {
+            new NCubeJdbcPersister().updateBranchCubeHeadSha1(null, 75, '')
+        }
+        catch (IllegalArgumentException e)
+        {
+            assert e.message.toLowerCase().contains('sha-1 cannot be empty')
+        }
+    }
+
+    @Test
     void testUpdateBranchThatIsNotFound()
     {
         Connection c = mock(Connection.class)

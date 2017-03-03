@@ -478,6 +478,11 @@ class NCubeService
         manager.updateReferenceAxes(axisRefs)
     }
 
+    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    {
+        manager.getApplicationID(tenant, app, coord)
+    }
+
     boolean assertPermissions(ApplicationID appId, String resource, Action action)
     {
         manager.assertPermissions(appId, resource, action ?: Action.READ)

@@ -29,7 +29,7 @@ class TestingDatabaseHelper
 
     private static NCubeMutableClient getMutableClient()
     {
-        return NCubeRuntime.instance
+        return NCubeRuntime.instance as NCubeMutableClient
     }
 
     static NCube[] getCubesFromDisk(String ...names) throws IOException

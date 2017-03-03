@@ -32,7 +32,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 class VersionControl
 {
     // TODO - should this be changed to NCubeRuntime? it was missing assertNotLockBlocked() method
-    private static NCubeManagerImpl manager = NCubeManagerImpl.manager
+    private static NCubeManagerImpl manager
     public static final String BRANCH_ADDS = 'adds'
     public static final String BRANCH_DELETES = 'deletes'
     public static final String BRANCH_UPDATES = 'updates'

@@ -25,6 +25,8 @@ interface NCubeRuntimeClient
 {
     NCube getCube(ApplicationID appId, String cubeName)
 
+    NCube loadCubeById(long id)
+
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
 
     Map<String, Object> getSystemParams()
@@ -47,9 +49,13 @@ interface NCubeRuntimeClient
 
     void addCube(NCube ncube)
 
-    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
-
-    List<AxisRef> getReferenceAxes(ApplicationID appId)
-
     String getNotes(ApplicationID appId, String cubeName)
+
+    List<String> getAppNames()
+
+    Object[] getVersions(String app)
+
+    Set<String> getBranches(ApplicationID appId)
+
+    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
 }

@@ -34,8 +34,6 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Boolean updateCube(NCube ncube)
 
-    NCube loadCubeById(long id)
-
     void createCube(NCube ncube)
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
@@ -72,9 +70,9 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Map<String, List<String>> getVersions(String tenant, String app)
 
-    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId)
 
-    Set<String> getBranches(ApplicationID appId)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)
 
     Integer getBranchCount(ApplicationID appId)
 
@@ -96,7 +94,9 @@ interface NCubeMutableClient extends NCubeReleaseClient
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
 
-    void clearTestDatabase()
+    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
 
     List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
 
@@ -119,4 +119,6 @@ interface NCubeMutableClient extends NCubeReleaseClient
     Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames)
 
     Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+
+    void clearTestDatabase()
 }
