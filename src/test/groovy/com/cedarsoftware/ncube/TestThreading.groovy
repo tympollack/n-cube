@@ -87,11 +87,11 @@ class TestThreading extends NCubeCleanupBaseTest
     }
 
     @Before
-    void setUp()
+    void setup()
     {
         testContextManager = new TestContextManager(getClass())
         testContextManager.prepareTestInstance(this)
-        super.setUp()
+        super.setup()
         cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.threading.json')
         mutableClient.clearCache(ApplicationID.testAppId)
         mutableClient.addCube(cp)

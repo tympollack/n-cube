@@ -1,9 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.IOUtilities
-
-import java.sql.SQLException
-
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -23,155 +19,23 @@ import java.sql.SQLException
  */
 class TestingDatabaseHelper
 {
-    public static int MYSQL = 1
-    public static int HSQL = 2
-    public static int test_db = HSQL
-
-    private static NCubeMutableClient getMutableClient()
-    {
-        return NCubeRuntime.instance as NCubeMutableClient
-    }
-
     static NCube[] getCubesFromDisk(String ...names) throws IOException
     {
-        List<NCube> list = new ArrayList<NCube>(names.length)
-
-        for (String name : names)
-        {
-            URL url = NCubeManager.class.getResource("/" + name)
-            File jsonFile = new File(url.file)
-
-            InputStream input = null
-            try
-            {
-                input = new FileInputStream(jsonFile)
-                byte[] data = new byte[(int) jsonFile.length()]
-                input.read(data)
-
-                String str = new String(data, "UTF-8")
-                list.add(NCube.fromSimpleJson(str))
-            }
-            finally
-            {
-                IOUtilities.close(input)
-            }
-        }
-
-        return list.toArray(new NCube[list.size()])
+        throw new IllegalStateException('Should not call this')
     }
 
     static NCubePersister getPersister()
     {
-        return new NCubeJdbcPersisterAdapter(createJdbcConnectionProvider())
+        throw new IllegalStateException('Should not call this')
     }
 
     static JdbcConnectionProvider createJdbcConnectionProvider()
     {
-        if (test_db == HSQL)
-        {
-            return new TestingConnectionProvider(null, 'jdbc:hsqldb:mem:testdb', 'sa', '')
-        }
-
-        if (test_db == MYSQL)
-        {
-            return new TestingConnectionProvider(null, 'jdbc:mysql://127.0.0.1:3306/ncube?autoCommit=true', 'ncube', 'ncube')
-        }
-
-        throw new IllegalArgumentException('Unknown Database:  ' + test_db)
+        throw new IllegalStateException('Should not call this')
     }
 
     static TestingDatabaseManager getTestingDatabaseManager()
     {
-        if (test_db == HSQL)
-        {
-            return new JdbcTestingDatabaseManager(createJdbcConnectionProvider(), '/ddl/hsqldb-schema.sql')
-        }
-
-        if (test_db == MYSQL)
-        {
-            return new JdbcTestingDatabaseManager(createJdbcConnectionProvider(), '/ddl/mysql-schema.sql')
-        }
-
-        //  Don't manage tables for other databases
-        return new EmptyTestDatabaseManager()
-    }
-
-    private static class EmptyTestDatabaseManager implements TestingDatabaseManager
-    {
-        void setUp() throws SQLException
-        {
-        }
-
-        void tearDown() throws SQLException
-        {
-        }
-
-        void insertCubeWithNoSha1(ApplicationID appId, String username, NCube cube) {
-
-        }
-
-        void addCubes(ApplicationID appId, String username, NCube[] cubes)
-        {
-
-        }
-
-        void removeBranches(ApplicationID[] appId)
-        {
-        }
-
-        void updateCube(ApplicationID appId, String username, NCube cube)
-        {
-
-        }
-    }
-
-    static void initDatabase()
-    {
-        NCube cp = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-        mutableClient.createCube(cp)
-        cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-        mutableClient.createCube(cp)
-    }
-
-    static void setupDatabase()
-    {
-        testingDatabaseManager.setUp()
-        NCubeManager.NCubePersister = persister
-        setupTestClassPaths()
-    }
-
-    static void setupTestClassPaths()
-    {
-        NCube cp = NCubeManager.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-        NCubeManager.updateCube(TestNCubeManager.defaultSnapshotApp, cp, true)
-        cp = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-        NCubeManager.updateCube(ApplicationID.testAppId, cp, true)
-    }
-
-    static void clearDatabase()
-    {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
-        runtime.clearTestDatabase()
-        runtime.clearCache()
-    }
-
-    static void tearDownDatabase()
-    {
-        try
-        {
-            NCubeManager.deleteCubes TestNCubeManager.defaultSnapshotApp, 'sys.classpath'
-        }
-        catch (Exception ignored)
-        { }
-
-        try
-        {
-            NCubeManager.deleteCubes ApplicationID.testAppId, 'sys.classpath'
-        }
-        catch (Exception ignored)
-        { }
-
-        testingDatabaseManager.tearDown()
-        NCubeManager.clearCache()
+        throw new IllegalStateException('Should not call this')
     }
 }

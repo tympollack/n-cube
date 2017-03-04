@@ -26,15 +26,20 @@ import org.junit.Before
 class NCubeCleanupBaseTest extends NCubeBaseTest
 {
     @Before
-    void setUp()
+    void setup()
     {
-        TestingDatabaseHelper.initDatabase()
+        NCube cp = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
+        mutableClient.createCube(cp)
+        cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
+        mutableClient.createCube(cp)
     }
 
     @After
-    void tearDown()
+    void teardown()
     {
-        TestingDatabaseHelper.clearDatabase()
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        runtime.clearTestDatabase()
+        runtime.clearCache()
     }
 
     NCube createCubeFromResource(String fileName, ApplicationID appId = ApplicationID.testAppId)
@@ -44,5 +49,14 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
         ncube.applicationID = appId
         mutableClient.createCube(ncube)
         return ncube
+    }
+
+    void preloadCubes(ApplicationID id, String ...names)
+    {
+        for (String name : names)
+        {
+            createCubeFromResource(name, id)
+        }
+        mutableClient.clearCache(id)
     }
 }

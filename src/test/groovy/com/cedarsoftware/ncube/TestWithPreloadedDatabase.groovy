@@ -44,16 +44,16 @@ import static org.junit.Assert.fail
  *         limitations under the License.
  */
 @CompileStatic
-class TestWithPreloadedDatabase
+class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 {
     public static String USER_ID = TestNCubeManager.USER_ID
 
-    public static ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, "preloaded", ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-    private static final ApplicationID HEAD = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", ApplicationID.HEAD)
-    private static final ApplicationID BRANCH1 = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", "FOO")
-    private static final ApplicationID BRANCH2 = new ApplicationID('NONE', "test", "1.28.0", "SNAPSHOT", "BAR")
-    private static final ApplicationID BRANCH3 = new ApplicationID('NONE', "test", "1.29.0", "SNAPSHOT", "FOO")
-    private static final ApplicationID BOOT = new ApplicationID('NONE', "test", "0.0.0", "SNAPSHOT", ApplicationID.HEAD)
+    public static ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'preloaded', ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+    private static final ApplicationID HEAD = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+    private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
+    private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
+    private static final ApplicationID BRANCH3 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
+    private static final ApplicationID BOOT = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
 
     ApplicationID[] branches = [HEAD, BRANCH1, BRANCH2, BRANCH3, appId, BOOT] as ApplicationID[]
 
@@ -62,86 +62,31 @@ class TestWithPreloadedDatabase
     @Before
     void setup()
     {
-        manager = testingDatabaseManager
-        manager.setUp()
-
-        NCubeManager.NCubePersister = getNCubePersister()
+//        manager = testingDatabaseManager
+//        manager.setUp()
+//
+//        NCubeManager.NCubePersister = getNCubePersister()
     }
+//
+//    @After
+//    void tearDown()
+//    {
+//        manager.removeBranches(branches)
+//        manager.tearDown()
+//        manager = null
+//
+//        NCubeManager.clearCache()
+//    }
 
-    @After
-    void tearDown()
-    {
-        manager.removeBranches(branches)
-        manager.tearDown()
-        manager = null
-
-        NCubeManager.clearCache()
-    }
-
-    static TestingDatabaseManager getTestingDatabaseManager()
-    {
-        return TestingDatabaseHelper.testingDatabaseManager
-    }
-
-    static NCubePersister getNCubePersister()
-    {
-        return TestingDatabaseHelper.persister
-    }
-
-    private preloadCubes(ApplicationID id, String ...names)
-    {
-        manager.addCubes(id, USER_ID, TestingDatabaseHelper.getCubesFromDisk(names))
-    }
-
-    @Test
-    void testToMakeSureOldStyleSysClasspathThrowsException()
-	{
-        preloadCubes(appId, "sys.classpath.old.style.json")
-
-        // nothing in cache until we try and get the classloader or load a cube.
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
-
-        //  url classloader has 1 item
-        try
-		{
-            NCubeManager.getUrlClassLoader(appId, [:])
-        }
-        catch (IllegalStateException e)
-        {
-            assertTrue(e.message.contains('sys.classpath cube'))
-            assertTrue(e.message.contains('exists'))
-            assertTrue(e.message.toLowerCase().contains('urlclassloader'))
-        }
-    }
-
-    @Test
-    void testUrlClassLoader()
-	{
-        preloadCubes(appId, "sys.classpath.cp1.json")
-
-        // nothing in cache until we try and get the classloader or load a cube.
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
-
-        //  url classloader has 1 item
-        Map input = [:]
-        URLClassLoader loader = NCubeManager.getUrlClassLoader(appId, input)
-        assertEquals(1, loader.URLs.length)
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
-        assertEquals(new URL("http://files.cedarsoftware.com/tests/ncube/cp1/"), loader.URLs[0])
-
-        Map<String, Object> cache = NCubeManager.getCacheForApp(appId)
-        assertEquals(2, cache.size())
-
-        assertNotNull(NCubeManager.getUrlClassLoader(appId, input))
-        assertEquals(2, NCubeManager.getCacheForApp(appId).size())
-
-        NCubeManager.clearCache()
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
-
-        cache = NCubeManager.getCacheForApp(appId)
-        assertEquals(1, NCubeManager.getUrlClassLoader(appId, input).URLs.length)
-        assertEquals(2, cache.size())
-    }
+//    static TestingDatabaseManager getTestingDatabaseManager()
+//    {
+//        return TestingDatabaseHelper.testingDatabaseManager
+//    }
+//
+//    static NCubePersister getNCubePersister()
+//    {
+//        return TestingDatabaseHelper.persister
+//    }
 
     @Test
     void testCoordinateNotFoundExceptionThrown()
@@ -6322,128 +6267,6 @@ class TestWithPreloadedDatabase
         assertEquals('http://files.cedarsoftware.com/foo/1.28.0/public/', loader.URLs[0].toString())
         assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/', loader.URLs[1].toString())
         assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/groovy/', loader.URLs[2].toString())
-    }
-
-    @Test
-    void testClearCacheWithClassLoaderLoadedByCubeRequest()
-	{
-
-        preloadCubes(appId, "sys.classpath.cp1.json", "GroovyMethodClassPath1.json")
-
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
-        NCube cube = NCubeManager.getCube(appId, "GroovyMethodClassPath1")
-        assertEquals(1, NCubeManager.getCacheForApp(appId).size())
-
-        Map input = new HashMap()
-        input.put("method", "foo")
-        Object x = cube.getCell(input)
-        assertEquals("foo", x)
-
-        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
-
-        input.put("method", "foo2")
-        x = cube.getCell(input)
-        assertEquals("foo2", x)
-
-        input.put("method", "bar")
-        x = cube.getCell(input)
-        assertEquals("Bar", x)
-
-        // change classpath in database only
-        NCube[] cp2 = TestingDatabaseHelper.getCubesFromDisk("sys.classpath.cp2.json")
-        manager.updateCube(appId, USER_ID, cp2[0])
-        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
-
-        // reload hasn't happened in cache so we get same answers as above
-        input = new HashMap()
-        input.put("method", "foo")
-        x = cube.getCell(input)
-        assertEquals("foo", x)
-
-        input.put("method", "foo2")
-        x = cube.getCell(input)
-        assertEquals("foo2", x)
-
-        input.put("method", "bar")
-        x = cube.getCell(input)
-        assertEquals("Bar", x)
-
-        //  clear cache so we get different answers this time.  classpath 2 has already been loaded in database.
-        NCubeManager.clearCache(appId)
-
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
-
-        cube = NCubeManager.getCube(appId, "GroovyMethodClassPath1")
-        assertEquals(1, NCubeManager.getCacheForApp(appId).size())
-
-        input = new HashMap()
-        input.put("method", "foo")
-        x = cube.getCell(input)
-        assertEquals("boo", x)
-
-        assertEquals(3, NCubeManager.getCacheForApp(appId).size())
-
-        input.put("method", "foo2")
-        x = cube.getCell(input)
-        assertEquals("boo2", x)
-
-        input.put("method", "bar")
-        x = cube.getCell(input)
-        assertEquals("far", x)
-    }
-
-    @Test
-    void testMultiCubeClassPath()
-	{
-        preloadCubes(appId, "sys.classpath.base.json", "sys.classpath.json", "sys.status.json", "sys.versions.json", "sys.version.json", "GroovyMethodClassPath1.json")
-
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
-        NCube cube = NCubeManager.getCube(appId, "GroovyMethodClassPath1")
-
-        // classpath isn't loaded at this point.
-        assertEquals(1, NCubeManager.getCacheForApp(appId).size())
-
-        def input = [:]
-        input.env = "DEV"
-        input.put("method", "foo")
-        Object x = cube.getCell(input)
-        assertEquals("foo", x)
-
-        assertEquals(5, NCubeManager.getCacheForApp(appId).size())
-
-        // cache hasn't been cleared yet.
-        input.put("method", "foo2")
-        x = cube.getCell(input)
-        assertEquals("foo2", x)
-
-        input.put("method", "bar")
-        x = cube.getCell(input)
-        assertEquals("Bar", x)
-
-        NCubeManager.clearCache(appId)
-
-        // Had to reget cube so I had a new classpath
-        cube = NCubeManager.getCube(appId, "GroovyMethodClassPath1")
-
-        input.env = 'UAT'
-        input.put("method", "foo")
-        x = cube.getCell(input)
-
-        assertEquals("boo", x)
-
-        assertEquals(5, NCubeManager.getCacheForApp(appId).size())
-
-        input.put("method", "foo2")
-        x = cube.getCell(input)
-        assertEquals("boo2", x)
-
-        input.put("method", "bar")
-        x = cube.getCell(input)
-        assertEquals("far", x)
-
-        //  clear cache so we get different answers this time.  classpath 2 has already been loaded in database.
-        NCubeManager.clearCache(appId)
-        assertEquals(0, NCubeManager.getCacheForApp(appId).size())
     }
 
     @Test
