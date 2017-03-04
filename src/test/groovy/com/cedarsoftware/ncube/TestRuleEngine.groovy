@@ -5,10 +5,7 @@ import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.util.CaseInsensitiveMap
 import org.junit.Test
 
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 
 /**
  * NCube RuleEngine Tests
@@ -29,13 +26,14 @@ import static org.junit.Assert.fail
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+
 class TestRuleEngine extends NCubeBaseTest
 {
     // This test also tests ID-based ncube's specified in simple JSON format
     @Test
     void testRuleCube()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionAxis.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionAxis.json')
         Axis cond = ncube.getAxis 'condition'
         assert cond.columns[0].id != 1
         Axis state = ncube.getAxis 'state'
@@ -68,7 +66,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testExpressionValue()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionAxis.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionAxis.json')
         Axis cond = ncube.getAxis 'condition'
         assert cond.columns[0].id != 1
         Axis state = ncube.getAxis 'state'
@@ -80,7 +78,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testDuplicateExpression()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId,  'duplicateExpression.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId,  'duplicateExpression.json')
         Map output = [:]
         def out = ncube.getCell([vehiclePrice: 5000.0, driveAge: 22, gender: 'male', vehicleCylinders: 8], output)
         assert out == 10
@@ -90,7 +88,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRequiredScopeRuleAxis()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionAxis.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionAxis.json')
 
         Set<String> reqScope = ncube.getRequiredScope([:], [:])
         assert 1 == reqScope.size()
@@ -103,14 +101,14 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testCubeRefFromRuleAxis()
     {
-        NCube ncube1 = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'testCube5.json')
+        NCube ncube1 = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'testCube5.json')
         Set reqScope = ncube1.getRequiredScope([:], [:])
         Set optScope = ncube1.getOptionalScope([:], [:])
         assert optScope.size() == 1
         assert optScope.contains('Age')
         assert 0 == reqScope.size()
 
-        NCube ncube2 = mutableClient.getNCubeFromResource(ApplicationID.testAppId,  'expressionAxis2.json')
+        NCube ncube2 = runtimeClient.getNCubeFromResource(ApplicationID.testAppId,  'expressionAxis2.json')
         reqScope = ncube2.getRequiredScope([:], [:])
         assert reqScope.size() == 1
         assert reqScope.contains('state')
@@ -135,7 +133,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testMultipleRuleAxisBindings()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId,  'multiRule.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId,  'multiRule.json')
         Map output = [:]
         ncube.getCell([age: 10, weight: 50], output)
 
@@ -169,7 +167,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testMultipleRuleAxisBindingsOKInMultiDim()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId,  'multiRule2.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId,  'multiRule2.json')
         Map output = [:]
         ncube.getCell([age: 10, weight: 60], output)
         assert output.weight == 'light-weight'
@@ -183,7 +181,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleStopCondition()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId,  'multiRuleHalt.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId,  'multiRuleHalt.json')
         Map output = [:]
         ncube.getCell([age: 10, weight: 60], output)
         assert output.age == 'young'
@@ -210,7 +208,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testDefaultColumnOnRuleAxis()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleWithDefault.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleWithDefault.json')
 
         Map output = [:]
         def coord = [:]
@@ -303,7 +301,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleAxisWithNoMatchAndNoDefault()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleNoMatch.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleNoMatch.json')
 
         def coord = [age: 85]
         Map output = [:]
@@ -343,7 +341,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testContainsCellValueRule()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'containsCellRule.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'containsCellRule.json')
 
         def coord = [condition: 'Male']
         assert ncube.containsCell(coord, true)
@@ -393,8 +391,8 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testOneRuleSetCallsAnotherRuleSet()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSet2.json')
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSet1.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSet2.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSet1.json')
         Map input = [age: 10]
         Map output = [:]
         ncube.getCell input, output
@@ -412,7 +410,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testBasicJump()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJump.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJump.json')
         Map input = [age: 10]
         Map output = [:]
         ncube.getCell(input, output)
@@ -436,14 +434,14 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testMultipleRuleAxesWithMoreThanOneRuleFiring()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'multiRule.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'multiRule.json')
         assert 'medium-weight' == ncube.getCell([age: 35, weight: 99])
     }
 
     @Test
     void testRuleFalseValues()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleFalseValues.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleFalseValues.json')
         Map input = [state: 'OH']
         Map output = [:]
         ncube.getCell input, output
@@ -499,7 +497,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testJumpStart()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJumpStart.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJumpStart.json')
         Map input = [letter: 'e']
         Map output = [:] as CaseInsensitiveMap
         ncube.getCell input, output
@@ -530,7 +528,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testJumpStart2D()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJumpStart2D.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJumpStart2D.json')
         Map input = [letter: 'f', column: 'y', condition: 'f', condition2: 'y']
         Map output = [:] as CaseInsensitiveMap
         ncube.getCell input, output
@@ -556,7 +554,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testJumpRestart()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJumpRestart.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'basicJumpRestart.json')
         Map input = [letter: 'e']
         Map output = [:] as CaseInsensitiveMap
         output.a = 0
@@ -593,7 +591,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testNoRuleBinding()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSet2.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSet2.json')
         Map output = [:]
 
         try
@@ -615,7 +613,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleStop()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleStop.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleStop.json')
         Map output = [:]
         ncube.getCell([:], output)
         assert 200 == output.price
@@ -650,7 +648,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleInfoRuleName()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'multiRule.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'multiRule.json')
         Map input = [age: 18, weight: 125]
         Map output = [:]
         def ret = ncube.getCell input, output
@@ -671,7 +669,7 @@ class TestRuleEngine extends NCubeBaseTest
     {
         NCube cube = NCubeBuilder.ruleCubeWithDefaultColumn
         cube.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(cube)
+        runtimeClient.addCube(cube)
 
         //No unbound axes
         Map input = [RuleAxis1: "${'(Condition1): true'}",
@@ -688,7 +686,7 @@ class TestRuleEngine extends NCubeBaseTest
     {
         NCube cube = NCubeBuilder.ruleCubeWithDefaultColumn
         cube.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(cube)
+        runtimeClient.addCube(cube)
 
         //Non-rule axis is unbound
         Map input = [RuleAxis1: "${'(Condition1): true'}",
@@ -712,7 +710,7 @@ class TestRuleEngine extends NCubeBaseTest
     {
         NCube cube = NCubeBuilder.ruleCubeWithDefaultColumn
         cube.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(cube)
+        runtimeClient.addCube(cube)
 
         //Rule axis is unbound
         Map input = [Axis2 : 'Axis2Col2']
@@ -736,8 +734,8 @@ class TestRuleEngine extends NCubeBaseTest
         NCube secondary = NCubeBuilder.cubeWithDefaultColumn
         primary.applicationID = ApplicationID.testAppId
         secondary.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(primary)
-        mutableClient.addCube(secondary)
+        runtimeClient.addCube(primary)
+        runtimeClient.addCube(secondary)
 
         //Primary cube calls secondary cube.
         //No unbound axes
@@ -760,8 +758,8 @@ class TestRuleEngine extends NCubeBaseTest
         NCube secondary = NCubeBuilder.cubeWithDefaultColumn
         primary.applicationID = ApplicationID.testAppId
         secondary.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(primary)
-        mutableClient.addCube(secondary)
+        runtimeClient.addCube(primary)
+        runtimeClient.addCube(secondary)
 
         //Primary cube calls secondary cube.
         //One unbound column with a value provided, but not found.
@@ -790,8 +788,8 @@ class TestRuleEngine extends NCubeBaseTest
         NCube secondary = NCubeBuilder.cubeWithDefaultColumn
         primary.applicationID = ApplicationID.testAppId
         secondary.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(primary)
-        mutableClient.addCube(secondary)
+        runtimeClient.addCube(primary)
+        runtimeClient.addCube(secondary)
 
         //Primary cube calls secondary cube.
         //One unbound column with a value provided, but not found.
@@ -823,8 +821,8 @@ class TestRuleEngine extends NCubeBaseTest
         NCube secondary = NCubeBuilder.cubeWithDefaultColumn
         primary.applicationID = ApplicationID.testAppId
         secondary.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(primary)
-        mutableClient.addCube(secondary)
+        runtimeClient.addCube(primary)
+        runtimeClient.addCube(secondary)
 
         //Primary cube calls secondary cube and secondary cube calls back to different cell on primary.
         Map input = [Axis1Primary  : 'Axis1Col2',
@@ -856,7 +854,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleSimpleWithDefault()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSimpleWithDefault.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSimpleWithDefault.json')
         Map input = [state: 'OH']
         Map output = [:]
         def ret = ncube.getCell(input, output)
@@ -923,7 +921,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleSimpleWithNoDefault()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSimpleWithNoDefault.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleSimpleWithNoDefault.json')
         Map input = [state: 'OH']
         Map output = [:]
         def ret = ncube.getCell(input, output)
@@ -984,7 +982,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testFireOne()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleFireOneVer1D.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleFireOneVer1D.json')
 
         // Start at 1st rule
         Map input = [:]
@@ -1016,7 +1014,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testFireOne2D()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleFireOneVer2D.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleFireOneVer2D.json')
         Map input = [:]
         Map output = [:]
         def ret = ncube.getCell(input, output)
@@ -1071,7 +1069,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testRuleFire()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'rule-test-1.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'rule-test-1.json')
         Map input = [bu: 'R', item: new Date()]
         Map output = [:]
         ncube.getCell(input, output)
@@ -1083,7 +1081,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testNamedOrchestration()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
         Map input = [rule: ['init', 'add1', 'add5', 'add10', 'add1']]
         Map output = [:]
         ncube.getCell(input, output)
@@ -1118,7 +1116,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testNamedOrchestrationWithDefault()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
         ncube.addColumn('rule', null)
         Map input = [rule: ['none-ya']]
         Map output = [total: 'qux']
@@ -1129,7 +1127,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testOrchestrationMap()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
         Map required = [foo: true]
         Map input = [rule: required]
         Map output = [:]
@@ -1167,7 +1165,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testOrchestrationMapWithDefault()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
         ncube.addColumn('rule', null)
         Map required = [foo: false]
         Map input = [rule: required]
@@ -1179,7 +1177,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testOrchestrationClosure()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
         Map input = [state: 'OH', rule: { Axis axis ->
             List<Column> columns = []
             axis.columns.each { Column column ->
@@ -1201,7 +1199,7 @@ class TestRuleEngine extends NCubeBaseTest
     @Test
     void testOrchestrationClosureWithDefault()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ruleOrchestration.json')
         ncube.addColumn('rule', null)
         Map input = [state: 'OH', rule: { Axis axis -> return [] }]
         Map output = [total: 'garply']

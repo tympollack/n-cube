@@ -1,46 +1,11 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.Action
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisRef
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.CellInfo
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.CommandCell
-import com.cedarsoftware.ncube.Delta
-import com.cedarsoftware.ncube.DeltaProcessor
-import com.cedarsoftware.ncube.GroovyExpression
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.ReleaseStatus
-import com.cedarsoftware.ncube.RuleInfo
-import com.cedarsoftware.ncube.exception.AxisOverlapException
-import com.cedarsoftware.ncube.exception.BranchMergeException
-import com.cedarsoftware.ncube.exception.CommandCellException
-import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
-import com.cedarsoftware.ncube.exception.RuleJump
-import com.cedarsoftware.ncube.exception.RuleStop
-import com.cedarsoftware.ncube.formatters.NCubeTestReader
-import com.cedarsoftware.ncube.formatters.NCubeTestWriter
+import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.service.ncube.NCubeService
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.InetAddressUtilities
-import com.cedarsoftware.util.PoolInterceptor
-import com.cedarsoftware.util.RpmVisualizer
-import com.cedarsoftware.util.RpmVisualizerConstants
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
-import com.cedarsoftware.util.ThreadAwarePrintStream
-import com.cedarsoftware.util.ThreadAwarePrintStreamErr
-import com.cedarsoftware.util.Visualizer
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import com.google.common.util.concurrent.AtomicDouble
@@ -57,7 +22,8 @@ import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
+import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
 
 /**
  * NCubeController API.
@@ -280,7 +246,7 @@ class NCubeController extends BaseController
             throw new IllegalStateException("""The visualizer is currently available <a href="#" onclick="window.open('https://nce.dockerdev.td.afg/n-cube-editor/#');return false;">here</a>""")
         }
         String cubeName = options.startCubeName
-        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.manager) : new Visualizer(ncubeService.manager)
+        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.mutableClient) : new Visualizer(ncubeService.mutableClient)
         appId = addTenant(appId)
         return vis.buildGraph(appId, options)
     }
@@ -293,7 +259,7 @@ class NCubeController extends BaseController
             throw new IllegalStateException("${HOSTED_ERROR} getVisualizerCellValues")
         }
         String cubeName = options.startCubeName
-        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.manager) : new Visualizer(ncubeService.manager)
+        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.mutableClient) : new Visualizer(ncubeService.mutableClient)
         appId = addTenant(appId)
         return vis.getCellValues(appId, options)
     }

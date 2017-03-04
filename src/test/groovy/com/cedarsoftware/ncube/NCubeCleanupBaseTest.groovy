@@ -28,9 +28,9 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     @Before
     void setup()
     {
-        NCube cp = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
+        NCube cp = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
         mutableClient.createCube(cp)
-        cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
+        cp = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
         mutableClient.createCube(cp)
     }
 
@@ -57,6 +57,6 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
         {
             createCubeFromResource(name, id)
         }
-        mutableClient.clearCache(id)
+        runtimeClient.clearCache(id)
     }
 }

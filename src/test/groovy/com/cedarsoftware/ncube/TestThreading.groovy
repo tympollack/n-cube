@@ -5,7 +5,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -92,9 +91,9 @@ class TestThreading extends NCubeCleanupBaseTest
         testContextManager = new TestContextManager(getClass())
         testContextManager.prepareTestInstance(this)
         super.setup()
-        cp = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.threading.json')
-        mutableClient.clearCache(ApplicationID.testAppId)
-        mutableClient.addCube(cp)
+        cp = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.threading.json')
+        runtimeClient.clearCache(ApplicationID.testAppId)
+        runtimeClient.addCube(cp)
     }
 
 //    @Ignore
@@ -172,7 +171,7 @@ class TestThreading extends NCubeCleanupBaseTest
             if (i>0) LOG.debug "->loop: ${i}"
             if (clearCache) {
                 LOG.debug '==>clear cache'
-                mutableClient.clearCache(ApplicationID.testAppId)
+                runtimeClient.clearCache(ApplicationID.testAppId)
 
                 NCube ncube1 = NCube.fromSimpleJson(cp.toFormattedJson())
                 NCube ncube2 = NCube.fromSimpleJson(supportingCube.toFormattedJson())
@@ -180,9 +179,9 @@ class TestThreading extends NCubeCleanupBaseTest
                 ncube1.applicationID = ApplicationID.testAppId
                 ncube2.applicationID = ApplicationID.testAppId
                 ncube2.applicationID = ApplicationID.testAppId
-                mutableClient.addCube(ncube1)
-                mutableClient.addCube(ncube2)
-                mutableClient.addCube(ncube3)
+                runtimeClient.addCube(ncube1)
+                runtimeClient.addCube(ncube2)
+                runtimeClient.addCube(ncube3)
             }
 
             if (preCache) {
@@ -332,8 +331,8 @@ class TestThreading extends NCubeCleanupBaseTest
         threadCube = NCube.fromSimpleJson(threadCube.toFormattedJson())
         cube.applicationID = ApplicationID.testAppId
         threadCube.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(threadCube)
-        mutableClient.addCube(cube)
+        runtimeClient.addCube(threadCube)
+        runtimeClient.addCube(cube)
 
         if (warm) {
             LOG.info 'warming...'

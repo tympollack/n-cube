@@ -36,7 +36,7 @@ class TestDynamicProperties extends NCubeBaseTest
     @Test
     void testCprStyleProperties()
     {
-        NCube cpr = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'cpr.json')
+        NCube cpr = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'cpr.json')
 
         assert 'CPR' == cpr.name
 

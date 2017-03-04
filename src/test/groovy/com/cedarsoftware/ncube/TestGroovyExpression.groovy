@@ -42,7 +42,7 @@ class TestGroovyExpression extends NCubeBaseTest
     @Test
     void testCompilerErrorOutput()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'GroovyExpCompileError.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'GroovyExpCompileError.json')
         Map coord = [state: 'OH'] as Map
         Object x = ncube.getCell(coord)
         assert 'Hello, Ohio' == x
@@ -65,7 +65,7 @@ class TestGroovyExpression extends NCubeBaseTest
     {
         NCube ncube = new NCube('test')
         ncube.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(ncube)
+        runtimeClient.addCube(ncube)
         Axis axis = new Axis('day', AxisType.DISCRETE, AxisValueType.STRING, false)
         axis.addColumn('mon')
         axis.addColumn('tue')
@@ -188,7 +188,7 @@ return ret
     {
         NCube ncube = new NCube('test')
         ncube.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(ncube)
+        runtimeClient.addCube(ncube)
         Axis axis = new Axis('day', AxisType.DISCRETE, AxisValueType.STRING, false)
         axis.addColumn('mon')
         axis.addColumn('tue')

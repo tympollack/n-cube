@@ -28,55 +28,55 @@ class TestBadJsonFormats extends NCubeBaseTest
     @Test(expected=RuntimeException.class)
     void testNCubeMissingColumnParserError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-missing-column-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-missing-column-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testNCubeEmptyColumnsError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-column-not-array-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-column-not-array-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testNCubeEmptyAxesParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-empty-axes-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-empty-axes-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testNCubeMissingAxesParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-missing-axes-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-missing-axes-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testNCubeMissingNameParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-missing-name-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-missing-name-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testLatLongParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'lat-lon-parse-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'lat-lon-parse-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testDateParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'date-parse-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'date-parse-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testPoint2dParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'point2d-parse-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'point2d-parse-error.json')
     }
 
     @Test(expected=RuntimeException.class)
     void testPoint3dParseError()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'point3d-parse-error.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'point3d-parse-error.json')
     }
 
     @Test
@@ -84,7 +84,7 @@ class TestBadJsonFormats extends NCubeBaseTest
     {
         try
         {
-            mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'badJsonNoNcubeRoot.json')
+            runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'badJsonNoNcubeRoot.json')
         }
         catch (IllegalArgumentException e)
         {
@@ -112,7 +112,7 @@ class TestBadJsonFormats extends NCubeBaseTest
     @Test
     void testNoCells()
     {
-        NCube cube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'no-cells.json')
+        NCube cube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'no-cells.json')
         assert cube.sha1().length() == 40
         assert cube.toFormattedJson().contains('cells')
     }

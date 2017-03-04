@@ -1,10 +1,9 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
 import org.junit.Test
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotEquals
-import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.*
 
 /**
  * NCube tests with database.
@@ -25,14 +24,14 @@ import static org.junit.Assert.assertNotNull
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-
+@CompileStatic
 class TestNCubeIntegration extends NCubeCleanupBaseTest
 {
     @Test
     void testTemplateFromUrl()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlPieces.json')
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlWithNcubeRefs.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlPieces.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlWithNcubeRefs.json')
 
         def coord = [:]
         coord.put("env_level", "local")
@@ -55,7 +54,7 @@ class TestNCubeIntegration extends NCubeCleanupBaseTest
     @Test
     void testClassLoader()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-class-loader-test.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'ncube-class-loader-test.json')
         def coord = [:]
 
         coord.put("code", "local")
@@ -68,8 +67,8 @@ class TestNCubeIntegration extends NCubeCleanupBaseTest
     @Test
     void testExpressionFromUrl()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlPieces.json')
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlWithNcubeRefs.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlPieces.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlWithNcubeRefs.json')
 
         def coord = [:]
         coord["env_level"] = "local"
@@ -98,8 +97,8 @@ class TestNCubeIntegration extends NCubeCleanupBaseTest
     @Test
     void testExpandableUrlRef()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlPieces.json')
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlWithNcubeRefs.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlPieces.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlWithNcubeRefs.json')
 
         def coord = [:]
         coord.put("env_level", "local")
@@ -136,8 +135,8 @@ class TestNCubeIntegration extends NCubeCleanupBaseTest
         fo.write(code.bytes)
         fo.close()
 
-        mutableClient.getNCubeFromResource(appId, 'testReloadGroovyClass.json')
-        NCube ncube = mutableClient.getCube(appId, 'testReloadGroovy')
+        runtimeClient.getNCubeFromResource(appId, 'testReloadGroovyClass.json')
+        NCube ncube = runtimeClient.getCube(appId, 'testReloadGroovy')
 
         def coord = [:]
         coord.put("state", "OH")
@@ -145,7 +144,7 @@ class TestNCubeIntegration extends NCubeCleanupBaseTest
         Object out = ncube.getCell(coord, output)
         assertEquals(10, out)
 
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
 
         fo = new FileOutputStream(base + File.separator + "Abc.groovy")
         code = "import ncube.grv.exp.NCubeGroovyExpression; class Abc extends NCubeGroovyExpression { def run() { return 20 } }"
@@ -153,7 +152,7 @@ class TestNCubeIntegration extends NCubeCleanupBaseTest
         fo.close()
         fo.flush()
 
-        ncube = mutableClient.getNCubeFromResource(appId, 'testReloadGroovyClass.json')
+        ncube = runtimeClient.getNCubeFromResource(appId, 'testReloadGroovyClass.json')
         out = ncube.getCell(coord, output)
         assertEquals(20, out)
 

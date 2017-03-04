@@ -15,12 +15,7 @@ import org.junit.Test
 import java.security.SecureRandom
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotEquals
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 
 /**
  * NCube Axis Tests
@@ -820,7 +815,7 @@ class TestAxis extends NCubeBaseTest
     @Test
     void testDeleteColumnFromRangeSetAxis()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'testCube4.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'testCube4.json')
         ncube.deleteColumn('code', 'b')
         Axis axis = ncube['code'] as Axis
         assert axis.id != 0
@@ -836,7 +831,7 @@ class TestAxis extends NCubeBaseTest
     {
         try
         {
-            mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'idBasedCubeError2.json')
+            runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'idBasedCubeError2.json')
             fail('should not make it here')
         }
         catch (AxisOverlapException e)
@@ -2631,7 +2626,7 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DAlt
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('state').size() == 2
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         Map<String, Object> args = [:]
 
@@ -2676,7 +2671,7 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DAlt
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('state').size() == 2
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         Map<String, Object> args = [:]
 
@@ -2698,7 +2693,7 @@ class TestAxis extends NCubeBaseTest
 
         two.setCell('a', [stateSource:'OH'] as Map)
         two.setCell('b', [stateSource:'TX'] as Map)
-        mutableClient.addCube(two)
+        runtimeClient.addCube(two)
 
         String json = two.toFormattedJson()
         NCube reload = NCube.fromSimpleJson(json)
@@ -2737,7 +2732,7 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DAlt
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('state').size() == 2
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         Map<String, Object> args = [:]
 
@@ -2774,7 +2769,7 @@ class TestAxis extends NCubeBaseTest
     {
         NCube one = NCubeBuilder.discrete1DEmptyWithDefault
         one.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         Map<String, Object> args = [:]
 
@@ -2811,7 +2806,7 @@ class TestAxis extends NCubeBaseTest
     {
         NCube one = NCubeBuilder.discrete1DEmptyWithDefault
         one.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         Map<String, Object> args = [:]
 
@@ -2876,12 +2871,12 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DLong
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('code').size() == 4
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         NCube transform = NCubeBuilder.transformMultiply
         transform.applicationID = ApplicationID.testAppId
         assert transform.getAxis('method').size() == 2
-        mutableClient.addCube(transform)
+        runtimeClient.addCube(transform)
 
         Map<String, Object> args = [:]
 
@@ -2935,12 +2930,12 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DLong
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('code').size() == 4
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         NCube transform = NCubeBuilder.transformMultiply
         transform.applicationID = ApplicationID.testAppId
         assert transform.getAxis('method').size() == 2
-        mutableClient.addCube(transform)
+        runtimeClient.addCube(transform)
 
         Map<String, Object> args = [:]
 
@@ -3000,7 +2995,7 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DAlt
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('state').size() == 2
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         Map<String, Object> args = [:]
 
@@ -3052,12 +3047,12 @@ class TestAxis extends NCubeBaseTest
         NCube one = NCubeBuilder.discrete1DLong
         one.applicationID = ApplicationID.testAppId
         assert one.getAxis('code').size() == 4
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
 
         NCube transform = NCubeBuilder.transformMultiply
         transform.applicationID = ApplicationID.testAppId
         assert transform.getAxis('method').size() == 2
-        mutableClient.addCube(transform)
+        runtimeClient.addCube(transform)
 
         Map<String, Object> args = [:]
 
@@ -3129,10 +3124,10 @@ class TestAxis extends NCubeBaseTest
     {
         NCube one = NCubeBuilder.discrete1DLong
         one.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
         NCube two = NCubeBuilder.get5DTestCube()
         two.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(two)
+        runtimeClient.addCube(two)
 
         Map args = [:] as Map
         ApplicationID appId = ApplicationID.testAppId
@@ -3210,7 +3205,7 @@ class TestAxis extends NCubeBaseTest
         Column colDef = code.defaultColumn
         colDef.setMetaProperty('foo', 'bar')
         colDef.setMetaProperty('baz', 'qux')
-        mutableClient.addCube(one)
+        runtimeClient.addCube(one)
         NCube two = new NCube('two')
         two.applicationID = ApplicationID.testAppId
 
@@ -3236,7 +3231,7 @@ class TestAxis extends NCubeBaseTest
         colDef.setMetaProperty('foo', 'bart')
         colDef.removeMetaProperty('baz')
         colDef.setMetaProperty('monkey', 'socks')
-        mutableClient.addCube(two)
+        runtimeClient.addCube(two)
 
         String json = two.toFormattedJson()
         NCube reload = NCube.fromSimpleJson(json)

@@ -21,26 +21,8 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-interface NCubeRuntimeClient
+interface NCubeRuntimeClient extends NCubeClient
 {
-    // Read only, Persister methods
-    NCube getCube(ApplicationID appId, String cubeName)
-
-    NCube loadCubeById(long id)
-
-    List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
-
-    Object[] getTestData(ApplicationID appId, String cubeName)
-
-    String getNotes(ApplicationID appId, String cubeName)
-
-    List<String> getAppNames()
-
-    Object[] getVersions(String app)
-
-    Set<String> getBranches(ApplicationID appId)
-    
-    // Runtime methods
     void clearCache(ApplicationID appId)
 
     URL getActualUrl(ApplicationID appId, String url, Map input)

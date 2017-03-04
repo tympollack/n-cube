@@ -7,15 +7,11 @@ import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.EnvelopeException
 import org.junit.Test
-import org.springframework.cache.Cache
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static com.cedarsoftware.ncube.TestUrlClassLoader.getCacheSize
+import static org.junit.Assert.*
+
 /**
  * NCubeManager Tests
  *
@@ -110,7 +106,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         String name2 = ncube.name
         mutableClient.createCube(ncube)
 
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
         mutableClient.search(appId, '', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
 
         NCube ncube1 = mutableClient.getCube(appId, name1)
@@ -119,7 +115,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNotNull(ncube2)
         assertEquals(name1, ncube1.name)
         assertEquals(name2, ncube2.name)
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
 
         mutableClient.deleteCubes(appId, [name1].toArray())
         mutableClient.deleteCubes(appId, [name2].toArray())
@@ -156,7 +152,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertTrue(DeepEquals.deepEquals(expectedTests, data))
 
         // reload from db
-        mutableClient.clearCache(defaultSnapshotApp)
+        runtimeClient.clearCache(defaultSnapshotApp)
         data = mutableClient.getTestData(defaultSnapshotApp, 'test.Age-Gender')
         assertTrue(DeepEquals.deepEquals(expectedTests, data))
 
@@ -202,7 +198,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         NCube<Object> continentCounty = new NCube<>('test.ContinentCountries')
         continentCounty.applicationID = defaultSnapshotApp
-        mutableClient.addCube(continentCounty)
+        runtimeClient.addCube(continentCounty)
         continentCounty.addAxis(NCubeBuilder.continentAxis)
         Axis countries = new Axis('Country', AxisType.DISCRETE, AxisValueType.STRING, true)
         countries.addColumn('Canada')
@@ -212,12 +208,12 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
         NCube<Object> canada = new NCube<>('test.Provinces')
         canada.applicationID = defaultSnapshotApp
-        mutableClient.addCube(canada)
+        runtimeClient.addCube(canada)
         canada.addAxis(NCubeBuilder.provincesAxis)
 
         NCube<Object> usa = new NCube<>('test.States')
         usa.applicationID = defaultSnapshotApp
-        mutableClient.addCube(usa)
+        runtimeClient.addCube(usa)
         usa.addAxis(NCubeBuilder.statesAxis)
 
         Map coord1 = new HashMap()
@@ -256,11 +252,11 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
         // make sure items aren't in cache for next load from db for next getCubeNames call
         // during create they got added to database.
-        mutableClient.clearCache(defaultSnapshotApp)
+        runtimeClient.clearCache(defaultSnapshotApp)
 
         assertEquals(4, mutableClient.search(defaultSnapshotApp, null, null, null).size())
 
-        mutableClient.clearCache(defaultSnapshotApp)
+        runtimeClient.clearCache(defaultSnapshotApp)
 
         mutableClient.search(defaultSnapshotApp, '', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         NCube test = mutableClient.getCube(defaultSnapshotApp, 'test.ContinentCountries')
@@ -325,8 +321,8 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testReferencedCubeCoordinateNotFound()
     {
-        NCube n1 = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'aa.json')
-        mutableClient.getNCubeFromResource(defaultSnapshotApp, 'bb.json')
+        NCube n1 = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'aa.json')
+        runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'bb.json')
 
         try
         {
@@ -348,7 +344,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testDuplicateNCubeWithinSameApp()
     {
-        NCube n1 = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'stringIds.json')
+        NCube n1 = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'stringIds.json')
         mutableClient.createCube(n1)
         ApplicationID newId = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '1.1.2', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
@@ -363,7 +359,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testDuplicateNCubeToNewApp()
     {
-        NCube n1 = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'stringIds.json')
+        NCube n1 = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'stringIds.json')
         mutableClient.createCube(n1)
         ApplicationID newId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'some.new.app', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
@@ -382,7 +378,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testGetAppNames()
     {
-        NCube n1 = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'stringIds.json')
+        NCube n1 = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'stringIds.json')
         mutableClient.createCube(n1)
 
         List<String> names = mutableClient.appNames
@@ -578,7 +574,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testNotAllowedToDeleteReleaseCubesOrRerelease()
     {
-        NCube cube = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'latlon.json')
+        NCube cube = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'latlon.json')
         mutableClient.createCube(cube)
         Object[] cubeInfos = mutableClient.search(defaultSnapshotApp, '*', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertNotNull(cubeInfos)
@@ -678,32 +674,28 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testUpdateCubeWithSysClassPath()
     {
-        // cast mutableClient as Runtime to be able to access individual caches - used for testing
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         //  from setup, assert initial classloader condition (files.cedarsoftware.com)
         ApplicationID customId = new ApplicationID('NONE', 'updateCubeSys', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        assertNotNull(mutableClient.getUrlClassLoader(customId, [:]))
-        assertEquals(1, runtime.getCacheForApp(customId).cache.size())
+        assertNotNull(runtimeClient.getUrlClassLoader(customId, [:]))
+        assertEquals(1, getCacheSize(customId))
 
         NCube testCube = createCubeFromResource('sys.classpath.tests.json', customId)
 
-        assertEquals(1, mutableClient.getUrlClassLoader(customId, [:]).URLs.length)
-        assertEquals(2, runtime.getCacheForApp(customId).cache.size())
+        assertEquals(1, runtimeClient.getUrlClassLoader(customId, [:]).URLs.length)
+        assertEquals(2, getCacheSize(customId))
 
         mutableClient.updateCube(testCube) // reload to clear classLoader inside the cell
 
-        Cache cache = runtime.getCacheForApp(customId)
-        assertEquals(0, cache.cache.size()) // 0 cubes in caches because updateCube() above clears cube from cache
+        assertEquals(0, getCacheSize(customId)) // 0 cubes in caches because updateCube() above clears cube from cache
         assertEquals(testCube, mutableClient.getCube(customId, 'sys.classpath'))
 
         assertTrue(mutableClient.updateCube(testCube))
-        assertNotNull(mutableClient.getUrlClassLoader(customId, [:]))
-        assertEquals(2, runtime.getCacheForApp(customId).cache.size())
+        assertNotNull(runtimeClient.getUrlClassLoader(customId, [:]))
+        assertEquals(2, getCacheSize(customId))
 
         testCube = mutableClient.getCube(customId, 'sys.classpath')
-        cache = runtime.getCacheForApp(customId)
-        assertEquals(2, cache.cache.size())
-        assertEquals(1, mutableClient.getUrlClassLoader(customId, [:]).URLs.length)
+        assertEquals(2, getCacheSize(customId))
+        assertEquals(1, runtimeClient.getUrlClassLoader(customId, [:]).URLs.length)
 
         //  validate item got added to cache.
         assertEquals(testCube, mutableClient.getCube(customId, 'sys.classpath'))
@@ -712,38 +704,35 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testRenameCubeWithSysClassPath()
     {
-        // cast mutableClient as Runtime to be able to access individual caches - used for testing
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         //  from setup, assert initial classloader condition (files.cedarsoftware.com)
         ApplicationID customId = new ApplicationID('NONE', 'renameCubeSys', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        final URLClassLoader urlClassLoader1 = mutableClient.getUrlClassLoader(customId, [:])
+        final URLClassLoader urlClassLoader1 = runtimeClient.getUrlClassLoader(customId, [:])
         assertNotNull(urlClassLoader1)
-        assertEquals(1, runtime.getCacheForApp(customId).cache.size())
+        assertEquals(1, getCacheSize(customId))
 
         createCubeFromResource('sys.classpath.tests.json', customId)
 
-        final URLClassLoader urlClassLoader = mutableClient.getUrlClassLoader(customId, [:])
+        final URLClassLoader urlClassLoader = runtimeClient.getUrlClassLoader(customId, [:])
         assertEquals(1, urlClassLoader.URLs.length)
-        assertEquals(2, runtime.getCacheForApp(customId).cache.size())
+        assertEquals(2, getCacheSize(customId))
 
-        mutableClient.clearCache(customId)
-        NCube testCube = mutableClient.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
+        runtimeClient.clearCache(customId)
+        NCube testCube = runtimeClient.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
         testCube.name = 'sys.mistake'
         mutableClient.createCube(testCube)
 
-        Cache cache = runtime.getCacheForApp(customId)
-        assertEquals(2, cache.cache.size())     // both sys.mistake and sys.classpath are in the cache
+        assertEquals(2, getCacheSize(customId))     // both sys.mistake and sys.classpath are in the cache
 
         //  validate item got added to cache.
         assertEquals(testCube, mutableClient.getCube(customId, 'sys.mistake'))
 
         assertTrue(mutableClient.renameCube(customId, 'sys.mistake', 'sys.classpath'))
-        assertNotNull(mutableClient.getUrlClassLoader(customId, [:]))
-        assertEquals(2, runtime.getCacheForApp(customId).cache.size())
+        assertNotNull(runtimeClient.getUrlClassLoader(customId, [:]))
+        assertEquals(2, getCacheSize(customId))
 
         testCube = mutableClient.getCube(customId, 'sys.classpath')
-        assertEquals(2, runtime.getCacheForApp(customId).cache.size())
-        assertEquals(1, mutableClient.getUrlClassLoader(customId, [:]).URLs.length)
+        assertEquals(2, getCacheSize(customId))
+        assertEquals(1, runtimeClient.getUrlClassLoader(customId, [:]).URLs.length)
 
         //  validate item got added to cache.
         assertEquals(testCube, mutableClient.getCube(customId, 'sys.classpath'))
@@ -752,38 +741,35 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testDuplicateCubeWithSysClassPath()
     {
-        // cast mutableClient as Runtime to be able to access individual caches - used for testing
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         //  from setup, assert initial classloader condition (files.cedarsoftware.com)
         ApplicationID customId = new ApplicationID('NONE', 'renameCubeSys', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        final URLClassLoader urlClassLoader1 = mutableClient.getUrlClassLoader(customId, [:])
+        final URLClassLoader urlClassLoader1 = runtimeClient.getUrlClassLoader(customId, [:])
         assertNotNull(urlClassLoader1)
-        assertEquals(1, runtime.getCacheForApp(customId).cache.size())
+        assertEquals(1, getCacheSize(customId))
 
-        mutableClient.getNCubeFromResource(customId, 'sys.classpath.tests.json')
+        runtimeClient.getNCubeFromResource(customId, 'sys.classpath.tests.json')
 
-        final URLClassLoader urlClassLoader = mutableClient.getUrlClassLoader(customId, [:])
+        final URLClassLoader urlClassLoader = runtimeClient.getUrlClassLoader(customId, [:])
         assertEquals(1, urlClassLoader.URLs.length)
-        assertEquals(2, runtime.getCacheForApp(customId).cache.size())
+        assertEquals(2, getCacheSize(customId))
 
-        mutableClient.clearCache(customId)
-        NCube testCube = mutableClient.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
+        runtimeClient.clearCache(customId)
+        NCube testCube = runtimeClient.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
         testCube.name = 'sys.mistake'
         mutableClient.createCube(testCube)
 
-        Cache cache = runtime.getCacheForApp(customId)
-        assertEquals(2, cache.cache.size())     // both sys.mistake and sys.classpath are in the cache
+        assertEquals(2, getCacheSize(customId))     // both sys.mistake and sys.classpath are in the cache
 
         //  validate item got added to cache.
         assertEquals(testCube, mutableClient.getCube(customId, 'sys.mistake'))
 
         mutableClient.duplicate(customId, customId, 'sys.mistake', 'sys.classpath')
-        assertNotNull(mutableClient.getUrlClassLoader(customId, [:]))
-        assertEquals(3, runtime.getCacheForApp(customId).cache.size())
+        assertNotNull(runtimeClient.getUrlClassLoader(customId, [:]))
+        assertEquals(3, getCacheSize(customId))
 
         testCube = mutableClient.getCube(customId, 'sys.classpath')
-        assertEquals(3, runtime.getCacheForApp(customId).cache.size())
-        assertEquals(1, mutableClient.getUrlClassLoader(customId, [:]).URLs.length)
+        assertEquals(3, getCacheSize(customId))
+        assertEquals(1, runtimeClient.getUrlClassLoader(customId, [:]).URLs.length)
 
         //  validate item got added to cache.
         assertEquals(testCube, mutableClient.getCube(customId, 'sys.classpath'))
@@ -794,7 +780,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         try
         {
-            mutableClient.getApplicationID('foo', 'bar', new HashMap())
+            runtimeClient.getApplicationID('foo', 'bar', new HashMap())
             fail()
         }
         catch (IllegalStateException e)
@@ -975,7 +961,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test(expected = RuntimeException.class)
     void testGetNCubesFromResourceException()
     {
-        mutableClient.getNCubesFromResource(null, null)
+        runtimeClient.getNCubesFromResource(null, null)
     }
 
     @Test
@@ -1272,18 +1258,18 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testResolveClasspathWithInvalidUrl()
     {
-        NCube cube = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'sys.classpath.invalid.url.json')
+        NCube cube = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'sys.classpath.invalid.url.json')
         mutableClient.updateCube(cube)
         createCube()
 
         // force reload from hsql and reget classpath
-        assertNotNull(mutableClient.getUrlClassLoader(defaultSnapshotApp, [:]))
+        assertNotNull(runtimeClient.getUrlClassLoader(defaultSnapshotApp, [:]))
 
-        mutableClient.clearCache(defaultSnapshotApp)
-        assertNotNull(mutableClient.getUrlClassLoader(defaultSnapshotApp, [:]))
+        runtimeClient.clearCache(defaultSnapshotApp)
+        assertNotNull(runtimeClient.getUrlClassLoader(defaultSnapshotApp, [:]))
 
         mutableClient.getCube(defaultSnapshotApp, 'test.AgeGender')
-        GroovyClassLoader loader = (GroovyClassLoader) mutableClient.getUrlClassLoader(defaultSnapshotApp, [:])
+        GroovyClassLoader loader = (GroovyClassLoader) runtimeClient.getUrlClassLoader(defaultSnapshotApp, [:])
         assertEquals(0, loader.URLs.length)
     }
 
@@ -1309,10 +1295,10 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testResolveRelativeUrl()
     {
         // Sets App classpath to http://files.cedarsoftware.com
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.cedar.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.cedar.json')
 
         // Rule cube that expects tests/ncube/hello.groovy to be relative to http://files.cedarsoftware.com
-        NCube hello = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'resolveRelativeHelloGroovy.json')
+        NCube hello = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'resolveRelativeHelloGroovy.json')
 
         // When run, it will set up the classpath (first cube loaded for App), and then
         // it will run the rule cube.  This cube has a relative URL (relative to the classpath above).
@@ -1321,7 +1307,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         String s = (String) hello.getCell([:])
         assertEquals('Hello, world.', s)
 
-        URL absUrl = mutableClient.getActualUrl(ApplicationID.testAppId, 'tests/ncube/hello.groovy', [:])
+        URL absUrl = runtimeClient.getActualUrl(ApplicationID.testAppId, 'tests/ncube/hello.groovy', [:])
         assertEquals('http://files.cedarsoftware.com/tests/ncube/hello.groovy', absUrl.toString())
     }
 
@@ -1330,7 +1316,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         try
         {
-            mutableClient.getActualUrl(ApplicationID.testAppId, null, [:])
+            runtimeClient.getActualUrl(ApplicationID.testAppId, null, [:])
             fail()
         }
         catch (IllegalArgumentException e)
@@ -1343,15 +1329,15 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testResolveUrlFullyQualified()
     {
         String url = 'http://files.cedarsoftware.com'
-        URL ret = mutableClient.getActualUrl(ApplicationID.testAppId, url, [:])
+        URL ret = runtimeClient.getActualUrl(ApplicationID.testAppId, url, [:])
         assertEquals(url, ret.toString())
 
         url = 'https://files.cedarsoftware.com'
-        ret = mutableClient.getActualUrl(ApplicationID.testAppId, url, [:])
+        ret = runtimeClient.getActualUrl(ApplicationID.testAppId, url, [:])
         assertEquals(url, ret.toString())
 
         url = 'file://Users/joe/Development'
-        ret = mutableClient.getActualUrl(ApplicationID.testAppId, url, [:])
+        ret = runtimeClient.getActualUrl(ApplicationID.testAppId, url, [:])
         assertEquals(url, ret.toString())
     }
 
@@ -1360,7 +1346,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         try
         {
-            mutableClient.getActualUrl(new ApplicationID('foo', 'bar', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH), 'tests/ncube/hello.groovy', [:])
+            runtimeClient.getActualUrl(new ApplicationID('foo', 'bar', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH), 'tests/ncube/hello.groovy', [:])
             fail()
         }
         catch (IllegalArgumentException ignored)
@@ -1370,7 +1356,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testMalformedUrl()
     {
-        NCube cube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
+        NCube cube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
         try
         {
             cube.getCell([Sites:'BadUrl'])
@@ -1472,7 +1458,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
         // Stuck this code on the end, to test multiple answers for getVersions()
         johnAppId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'deep.blue', '1.1.0', 'SNAPSHOT', 'jdereg')
-        cube = mutableClient.getNCubeFromResource(johnAppId, 'testCube4.json')
+        cube = runtimeClient.getNCubeFromResource(johnAppId, 'testCube4.json')
         mutableClient.createCube(cube)
 
         Object[] versions = mutableClient.getVersions('deep.blue')
@@ -1656,40 +1642,40 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         NCubeRuntime runtime = mutableClient as NCubeRuntime
         runtime.clearSysParams()
         System.setProperty('NCUBE_PARAMS', '{"branch":"foo"}')
-        assertEquals('foo', mutableClient.systemParams.branch)
-        assertNull(mutableClient.systemParams.status)
-        assertNull(mutableClient.systemParams.app)
-        assertNull(mutableClient.systemParams.tenant)
+        assertEquals('foo', runtimeClient.systemParams.branch)
+        assertNull(runtimeClient.systemParams.status)
+        assertNull(runtimeClient.systemParams.app)
+        assertNull(runtimeClient.systemParams.tenant)
 
         // ensure doesn't reparse second time.
         System.setProperty('NCUBE_PARAMS', '{}')
-        assertEquals('foo', mutableClient.systemParams.branch)
-        assertNull(mutableClient.systemParams.status)
-        assertNull(mutableClient.systemParams.app)
-        assertNull(mutableClient.systemParams.tenant)
+        assertEquals('foo', runtimeClient.systemParams.branch)
+        assertNull(runtimeClient.systemParams.status)
+        assertNull(runtimeClient.systemParams.app)
+        assertNull(runtimeClient.systemParams.tenant)
 
 
         runtime.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":"RELEASE", "app":"UD", "tenant":"foo", "branch":"bar"}')
-        assertEquals('bar', mutableClient.systemParams.branch)
-        assertEquals('RELEASE', mutableClient.systemParams.status)
-        assertEquals('UD', mutableClient.systemParams.app)
-        assertEquals('foo', mutableClient.systemParams.tenant)
+        assertEquals('bar', runtimeClient.systemParams.branch)
+        assertEquals('RELEASE', runtimeClient.systemParams.status)
+        assertEquals('UD', runtimeClient.systemParams.app)
+        assertEquals('foo', runtimeClient.systemParams.tenant)
 
         // ensure doesn't reparse second time.
         System.setProperty('NCUBE_PARAMS', '{}')
-        assertEquals('bar', mutableClient.systemParams.branch)
-        assertEquals('RELEASE', mutableClient.systemParams.status)
-        assertEquals('UD', mutableClient.systemParams.app)
-        assertEquals('foo', mutableClient.systemParams.tenant)
+        assertEquals('bar', runtimeClient.systemParams.branch)
+        assertEquals('RELEASE', runtimeClient.systemParams.status)
+        assertEquals('UD', runtimeClient.systemParams.app)
+        assertEquals('foo', runtimeClient.systemParams.tenant)
 
         // test invalid json, hands back nice empty map.
         runtime.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":}')
-        assertNull(mutableClient.systemParams.branch)
-        assertNull(mutableClient.systemParams.status)
-        assertNull(mutableClient.systemParams.app)
-        assertNull(mutableClient.systemParams.tenant)
+        assertNull(runtimeClient.systemParams.branch)
+        assertNull(runtimeClient.systemParams.status)
+        assertNull(runtimeClient.systemParams.app)
+        assertNull(runtimeClient.systemParams.tenant)
     }
 
     @Test
@@ -1784,9 +1770,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
     private void loadTestClassPathCubes()
     {
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.versions.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.versions.json')
         createCubeFromResource('sys.versions.json', defaultSnapshotApp)
-        NCube ncube = mutableClient.getNCubeFromResource(defaultSnapshotApp, 'sys.classpath.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'sys.classpath.json')
         mutableClient.updateCube(ncube)
         createCubeFromResource('sys.classpath.local.json', defaultSnapshotApp)
         createCubeFromResource('sys.classpath.base.json', defaultSnapshotApp)

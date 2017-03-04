@@ -5,10 +5,7 @@ import org.junit.Test
 
 import java.lang.reflect.Method
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 
 /**
  * NCube Advice Tests (Advice often used for security annotations on Groovy Methods / Expressions)
@@ -35,7 +32,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testExpression()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "urlWithNcubeRefs.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "urlWithNcubeRefs.json")
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -57,7 +54,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         Advice advice2 = new Advice() {
             String getName()
@@ -77,7 +74,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "*", advice2)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "*", advice2)
 
         Map output = [:]
         ncube.getCell([env_level:'local', protocol:'http',content:'95'] as Map, output)
@@ -91,7 +88,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testExpressionStopExpressionWithBeforeAdvice()
     {
-        final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
+        final NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -114,7 +111,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         assertNull ncube.getCell([code:'simpleExp'] as Map, [:])
     }
@@ -122,7 +119,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testExpressionAfterAdviceThrows()
     {
-        final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
+        final NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         assert 6 == ncube.getCell([code:'simpleExp'] as Map, [:])
 
@@ -147,7 +144,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         // Proves that after exception does not kill n-cube execution, and output is logged.
 
@@ -164,8 +161,8 @@ class TestAdvice extends NCubeCleanupBaseTest
 //        final String json = NCubeRuntime.getResourceAsString("simpleJsonExpression.json")
 //        NCube ncube = NCube.fromSimpleJson(json)
 //        ncube.applicationID = TestNCubeManager.defaultSnapshotApp
-//        mutableClient.createCube(ncube)
-        final NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
+//        ncubeClient.createCube(ncube)
+        final NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "simpleJsonExpression.json")
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
@@ -188,7 +185,7 @@ class TestAdvice extends NCubeCleanupBaseTest
             }
         }
 
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, '*', advice1)
 
         // Proves that after exception does not kill n-cube execution, and output is logged.
 
@@ -213,7 +210,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testAdvice()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
 
         Advice advice1 = new Advice() {
             String getName()
@@ -268,7 +265,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(ApplicationID.testAppId, ncube.name + ".*()", advice1)
+        runtimeClient.addAdvice(ApplicationID.testAppId, ncube.name + ".*()", advice1)
 
         Map output = [:]
         Map coord = [method:'foo',state:'OH'] as Map
@@ -294,7 +291,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testAdviceSubsetMatching()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'testGroovyMethods.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'testGroovyMethods.json')
 
         Advice advice1 = new Advice() {
             String getName()
@@ -351,7 +348,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(ApplicationID.testAppId, ncube.name + ".ba*()", advice1)
+        runtimeClient.addAdvice(ApplicationID.testAppId, ncube.name + ".ba*()", advice1)
 
         Map output = [:]
         Map coord = [method:'foo', state:'OH'] as Map
@@ -452,10 +449,10 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(ApplicationID.testAppId, "*.ba*()", advice1)
+        runtimeClient.addAdvice(ApplicationID.testAppId, "*.ba*()", advice1)
 
         // Note: advice is added to the manager *ahead* of any cubes being loaded.
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
 
         Map output = [:]
         Map coord = [method:'foo', state:'OH'] as Map
@@ -519,8 +516,8 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(ApplicationID.testAppId, "*.run()", advice1)
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, "debugExp.json")
+        runtimeClient.addAdvice(ApplicationID.testAppId, "*.run()", advice1)
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, "debugExp.json")
 
         def output = [:]
         ncube.getCell([Age:10] as Map, output)
@@ -534,7 +531,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testAdviceNoCallForward()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
 
         Advice advice1 = new Advice() {
             String getName()
@@ -555,7 +552,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(ApplicationID.testAppId, ncube.name + "*", advice1)
+        runtimeClient.addAdvice(ApplicationID.testAppId, ncube.name + "*", advice1)
         assertNull(ncube.getCell([method:'foo', state:'OH'] as Map))
         ncube.clearAdvices()
     }
@@ -563,7 +560,7 @@ class TestAdvice extends NCubeCleanupBaseTest
     @Test
     void testMultiAdvice()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
 
         Advice advice1 = new Advice() {
             String getName()
@@ -587,7 +584,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, ncube.name + "*()", advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, ncube.name + "*()", advice1)
 
         Advice advice2 = new Advice() {
             String getName()
@@ -611,7 +608,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, ncube.name + "*()", advice2)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, ncube.name + "*()", advice2)
 
         Map output = [:]
         ncube.getCell([method:'foo', state:'OH'] as Map, output)
@@ -654,7 +651,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice1)
 
         Advice advice2 = new Advice() {
             String getName()
@@ -678,9 +675,9 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice2)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice2)
 
-        NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
 
         def output = [:]
         ncube.getCell([method:'foo', state:'OH'] as Map, output)
@@ -724,7 +721,7 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice1)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice1)
 
         Advice advice2 = new Advice() {
             String getName()
@@ -749,9 +746,9 @@ class TestAdvice extends NCubeCleanupBaseTest
 
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
-        mutableClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice2)
+        runtimeClient.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice2)
 
-        NCube ncube = mutableClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
 
         def output = [:]
         try

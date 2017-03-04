@@ -26,7 +26,7 @@ class TestCubeLevelDefault extends NCubeBaseTest
     @Test
     void testDefaultExpression()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'TestCubeLevelDefault.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'TestCubeLevelDefault.json')
         assert 1 == ncube.getCell([age:10, 'state':'OH'] as Map)
         assert 2 == ncube.getCell([age:10, 'state':'NJ'] as Map)
         assert 3 == ncube.getCell([age:10, 'state':'TX'] as Map)
@@ -37,7 +37,7 @@ class TestCubeLevelDefault extends NCubeBaseTest
     @Test
     void testDefaultExpressionWithCaching()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'TestCubeLevelDefaultCache.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'TestCubeLevelDefaultCache.json')
         assert 1 == ncube.getCell([age:10, 'state':'OH'] as Map)
         assert 2 == ncube.getCell([age:10, 'state':'NJ'] as Map)
         assert 3 == ncube.getCell([age:10, 'state':'TX'] as Map)

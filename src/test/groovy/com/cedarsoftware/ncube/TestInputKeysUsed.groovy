@@ -106,8 +106,8 @@ class TestInputKeysUsed extends NCubeBaseTest
         NCube ncube2 = NCubeBuilder.trackingTestCubeSecondary
         ncube.applicationID = ApplicationID.testAppId
         ncube2.applicationID = ApplicationID.testAppId
-        mutableClient.addCube(ncube)
-        mutableClient.addCube(ncube2)
+        runtimeClient.addCube(ncube)
+        runtimeClient.addCube(ncube2)
 
         Map input = [Column: 'B', Row:1, state:'OH']
         Map output = [:]

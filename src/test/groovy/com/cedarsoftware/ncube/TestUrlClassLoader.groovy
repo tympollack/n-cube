@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNotNull
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-
 class TestUrlClassLoader extends NCubeCleanupBaseTest
 {
     @Before
@@ -37,7 +36,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         return mutableClient as NCubeRuntime
     }
     
-    private static int getCacheSize(ApplicationID applicationID)
+    static int getCacheSize(ApplicationID applicationID)
     {
         return runtime.getCacheForApp(applicationID).cache.size()
     }
@@ -53,7 +52,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         //  url classloader has 1 item
         try
         {
-            mutableClient.getUrlClassLoader(appId, [:])
+            runtimeClient.getUrlClassLoader(appId, [:])
         }
         catch (IllegalStateException e)
         {
@@ -71,20 +70,20 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
 
         //  url classloader has 1 item
         Map input = [:]
-        URLClassLoader loader = mutableClient.getUrlClassLoader(appId, input)
+        URLClassLoader loader = runtimeClient.getUrlClassLoader(appId, input)
         assertEquals(1, loader.URLs.length)
         assertEquals(2, getCacheSize(appId))
         assertEquals(new URL('http://files.cedarsoftware.com/tests/ncube/cp1/'), loader.URLs[0])
 
         assertEquals(2, getCacheSize(appId))
 
-        assertNotNull(mutableClient.getUrlClassLoader(appId, input))
+        assertNotNull(runtimeClient.getUrlClassLoader(appId, input))
         assertEquals(2, getCacheSize(appId))
 
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
         assertEquals(0, getCacheSize(appId))
 
-        assertEquals(1, mutableClient.getUrlClassLoader(appId, input).URLs.length)
+        assertEquals(1, runtimeClient.getUrlClassLoader(appId, input).URLs.length)
         assertEquals(2, getCacheSize(appId))
     }
 
@@ -111,11 +110,11 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         x = cube.getCell(input)
         assertEquals('Bar', x)
 
-        NCube sysClassPath2 = mutableClient.getNCubeFromResource(appId, 'sys.classpath.cp2.json')
+        NCube sysClassPath2 = runtimeClient.getNCubeFromResource(appId, 'sys.classpath.cp2.json')
         mutableClient.updateCube(sysClassPath2)
 
         //  clear cache so we get different answers this time.  classpath 2 has already been loaded in database.
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
 
         assertEquals(0, getCacheSize(appId))
 
@@ -165,7 +164,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         x = cube.getCell(input)
         assertEquals('Bar', x)
 
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
 
         // Had to reget cube so I had a new classpath
         cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
@@ -187,7 +186,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         assertEquals('far', x)
 
         //  clear cache so we get different answers this time.  classpath 2 has already been loaded in database.
-        mutableClient.clearCache(appId)
+        runtimeClient.clearCache(appId)
         assertEquals(0, getCacheSize(appId))
     }
 

@@ -1,8 +1,6 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationContextAware
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -23,27 +21,21 @@ import org.springframework.context.ApplicationContextAware
  */
 
 @CompileStatic
-class SpringAppContext implements ApplicationContextAware
+interface NCubeClient
 {
-    private static ApplicationContext ctx
+    NCube getCube(ApplicationID appId, String cubeName)
 
-    static Object getBean(String beanName)
-    {
-        return ctx.getBean(beanName)
-    }
+    NCube loadCubeById(long id)
 
-    static NCubeRuntimeClient getRuntime()
-    {
-        return getBean('ncubeRuntime') as NCubeRuntimeClient
-    }
-    
-    static NCubeMutableClient getMutableClient()
-    {
-        return getBean('ncubeRuntime') as NCubeMutableClient
-    }
+    List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
 
-    void setApplicationContext(ApplicationContext applicationContext)
-    {
-        ctx = applicationContext
-    }
+    Object[] getTestData(ApplicationID appId, String cubeName)
+
+    String getNotes(ApplicationID appId, String cubeName)
+
+    List<String> getAppNames()
+
+    Object[] getVersions(String app)
+
+    Set<String> getBranches(ApplicationID appId)
 }

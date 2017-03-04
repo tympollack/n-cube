@@ -2,10 +2,11 @@ package com.cedarsoftware.util
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.NCubeClient
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.util.RpmVisualizerConstants.*
+import static com.cedarsoftware.util.VisualizerConstants.*
 
 /**
  * Processes an rpm class and all its referenced rpm classes and provides information to
@@ -20,7 +21,7 @@ class RpmVisualizer extends Visualizer
 	protected String defaultScopeEffectiveVersion
 	protected String defaultScopeDate
 
-	RpmVisualizer(NCubeRuntimeClient manager)
+	RpmVisualizer(NCubeClient manager)
 	{
 		super(manager)
 	}

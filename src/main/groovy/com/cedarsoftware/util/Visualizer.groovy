@@ -2,7 +2,7 @@ package com.cedarsoftware.util
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.NCubeClient
 import com.google.common.base.Joiner
 import groovy.transform.CompileStatic
 
@@ -20,9 +20,9 @@ class Visualizer
 	protected Deque<VisualizerRelInfo> stack = new ArrayDeque<>()
 	protected Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(": ")
 	VisualizerHelper helper
-	protected static NCubeRuntimeClient manager
+	protected static NCubeClient manager
 
-    Visualizer(NCubeRuntimeClient manager)
+    Visualizer(NCubeClient manager)
     {
         this.manager = manager
     }

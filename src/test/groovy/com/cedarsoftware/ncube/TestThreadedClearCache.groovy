@@ -65,7 +65,7 @@ class TestThreadedClearCache extends NCubeCleanupBaseTest
                         {
                             if (random.nextInt(100) == 42)
                             {   // 1/100th of the time, clear the cache
-                                mutableClient.clearCache(usedId)
+                                runtimeClient.clearCache(usedId)
                             }
                             else
                             {   // 99/100ths of the time, execute cells

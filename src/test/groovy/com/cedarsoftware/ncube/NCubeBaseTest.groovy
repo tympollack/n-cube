@@ -32,11 +32,16 @@ import static org.junit.Assert.assertTrue
 @ActiveProfiles(profiles = ['runtime', 'test-mutable'])
 class NCubeBaseTest
 {
+    static NCubeRuntimeClient getRuntimeClient()
+    {
+        return SpringAppContext.runtime
+    }
+
     static NCubeMutableClient getMutableClient()
     {
         return SpringAppContext.mutableClient
     }
-
+    
     static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)
     {
         assertContainsIgnoreCase(e.envelopeData as String, contains)

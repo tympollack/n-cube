@@ -77,60 +77,6 @@ class NCubeManagerImpl implements NCubeMutableClient
         nCubePersister = persister
         this.appContext = appContext
     }
-
-    //-------------------------------------- bastard methods -----------------------------------------------------
-
-    void clearCache(ApplicationID appId)
-    {
-        throw new IllegalStateException('Doh! clearCache() on server should never be called.')
-    }
-
-    URL getActualUrl(ApplicationID appId, String url, Map input)
-    {
-        throw new IllegalStateException('Doh! getActualUrl() on server should never be called.')
-    }
-
-    URLClassLoader getLocalClassloader(ApplicationID appId)
-    {
-        throw new IllegalStateException('Doh! getLocalClassloader() on server should never be called.')
-    }
-
-    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
-    {
-        throw new IllegalStateException('Doh! getUrlClassLoader() on server should never be called.')
-    }
-
-    NCube getNCubeFromResource(ApplicationID appId, String name)
-    {
-        throw new IllegalStateException('Doh! getNCubeFromResource() on server should never be called.')
-    }
-
-    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
-    {
-        throw new IllegalStateException('Doh! getNCubesFromResource() on server should never be called.')
-    }
-
-    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
-    {
-        throw new IllegalStateException('Doh! addAdvice() on server should never be called.')
-    }
-
-    void addCube(NCube ncube)
-    {
-        throw new IllegalStateException('Doh! addCube() on server should never be called.')
-    }
-
-    Map<String, Object> getSystemParams()
-    {
-        throw new IllegalStateException('Doh! getSystemParams() on server should never be called.')
-    }
-    
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
-    {
-        throw new IllegalStateException('Doh! getApplicationID() on server should never be called.')
-    }
-
-    //------------------------------------------------------------------------------------------------------------
     
     NCubePersister getPersister()
     {

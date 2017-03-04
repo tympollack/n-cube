@@ -26,7 +26,7 @@ class TestOptionalScope extends NCubeBaseTest
     @Test
     void testOptionalScopeInDefaultCell()
     {
-        NCube n1 = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'optionalScope.json')
+        NCube n1 = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'optionalScope.json')
         Set<String> optionalScope = n1.getOptionalScope([:], [:])
         assert optionalScope.contains('teST')
         assert optionalScope.size() == 1
