@@ -4,12 +4,7 @@ import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.UniqueIdGenerator
+import com.cedarsoftware.util.*
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
@@ -60,17 +55,14 @@ class NCubeManagerImpl implements NCubeMutableClient
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
         String initialValue()
         {
-            Map params = systemParams
-            String userId = params.user instanceof String ? params.user : System.getProperty('user.name')
-            return userId?.trim()
+            return System.getProperty('user.name')
         }
     }
 
     private final ThreadLocal<String> fakeId = new ThreadLocal<String>() {
         String initialValue()
         {
-            Map params = systemParams
-            return params.fakeuser instanceof String ? params.fakeuser.trim() : ''
+            return ''
         }
     }
 
@@ -86,6 +78,60 @@ class NCubeManagerImpl implements NCubeMutableClient
         this.appContext = appContext
     }
 
+    //-------------------------------------- bastard methods -----------------------------------------------------
+
+    void clearCache(ApplicationID appId)
+    {
+        throw new IllegalStateException('Doh! clearCache() on server should never be called.')
+    }
+
+    URL getActualUrl(ApplicationID appId, String url, Map input)
+    {
+        throw new IllegalStateException('Doh! getActualUrl() on server should never be called.')
+    }
+
+    URLClassLoader getLocalClassloader(ApplicationID appId)
+    {
+        throw new IllegalStateException('Doh! getLocalClassloader() on server should never be called.')
+    }
+
+    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
+    {
+        throw new IllegalStateException('Doh! getUrlClassLoader() on server should never be called.')
+    }
+
+    NCube getNCubeFromResource(ApplicationID appId, String name)
+    {
+        throw new IllegalStateException('Doh! getNCubeFromResource() on server should never be called.')
+    }
+
+    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
+    {
+        throw new IllegalStateException('Doh! getNCubesFromResource() on server should never be called.')
+    }
+
+    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
+    {
+        throw new IllegalStateException('Doh! addAdvice() on server should never be called.')
+    }
+
+    void addCube(NCube ncube)
+    {
+        throw new IllegalStateException('Doh! addCube() on server should never be called.')
+    }
+
+    Map<String, Object> getSystemParams()
+    {
+        throw new IllegalStateException('Doh! getSystemParams() on server should never be called.')
+    }
+    
+    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    {
+        throw new IllegalStateException('Doh! getApplicationID() on server should never be called.')
+    }
+
+    //------------------------------------------------------------------------------------------------------------
+    
     NCubePersister getPersister()
     {
         if (nCubePersister == null)
@@ -606,70 +652,6 @@ class NCubeManagerImpl implements NCubeMutableClient
         List<NCubeTest> tests = NCubeTestReader.convert(s)
         return tests.toArray()
     }
-
-    //-------------------------------------- bastard methods -----------------------------------------------------
-
-    protected void clearSysParams()
-    {
-        throw new IllegalStateException('Doh! clearSysParams() on server should never be called.')
-    }
-    
-    void clearCache(ApplicationID appId)
-    {
-        throw new IllegalStateException('Doh! clearCache() on server should never be called.')
-    }
-
-    URL getActualUrl(ApplicationID appId, String url, Map input)
-    {
-        throw new IllegalStateException('Doh! getActualUrl() on server should never be called.')
-    }
-
-    URLClassLoader getLocalClassloader(ApplicationID appId)
-    {
-        throw new IllegalStateException('Doh! getLocalClassloader() on server should never be called.')
-    }
-
-    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
-    {
-        throw new IllegalStateException('Doh! getUrlClassLoader() on server should never be called.')
-    }
-
-    NCube getNCubeFromResource(ApplicationID appId, String name)
-    {
-        throw new IllegalStateException('Doh! getNCubeFromResource() on server should never be called.')
-    }
-
-    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
-    {
-        throw new IllegalStateException('Doh! getNCubesFromResource() on server should never be called.')
-    }
-
-    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
-    {
-        throw new IllegalStateException('Doh! addAdvice() on server should never be called.')
-    }
-
-    void addCube(NCube ncube)
-    {
-        throw new IllegalStateException('Doh! addCube() on server should never be called.')
-    }
-
-    Map<String, Object> getSystemParams()
-    {
-        throw new IllegalStateException('Doh! getSystemParams() on server should never be called.')
-    }
-
-    ApplicationID getBootVersion(String tenant, String app)
-    {
-        throw new IllegalStateException('Doh! getBootVersion() on server should never be called.')
-    }
-
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
-    {
-        throw new IllegalStateException('Doh! getApplicationID() on server should never be called.')
-    }
-    
-    //------------------------------------------------------------------------------------------------------------
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {

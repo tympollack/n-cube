@@ -23,16 +23,24 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeRuntimeClient
 {
+    // Read only, Persister methods
     NCube getCube(ApplicationID appId, String cubeName)
 
     NCube loadCubeById(long id)
 
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
 
-    Map<String, Object> getSystemParams()
-
     Object[] getTestData(ApplicationID appId, String cubeName)
 
+    String getNotes(ApplicationID appId, String cubeName)
+
+    List<String> getAppNames()
+
+    Object[] getVersions(String app)
+
+    Set<String> getBranches(ApplicationID appId)
+    
+    // Runtime methods
     void clearCache(ApplicationID appId)
 
     URL getActualUrl(ApplicationID appId, String url, Map input)
@@ -49,13 +57,7 @@ interface NCubeRuntimeClient
 
     void addCube(NCube ncube)
 
-    String getNotes(ApplicationID appId, String cubeName)
-
-    List<String> getAppNames()
-
-    Object[] getVersions(String app)
-
-    Set<String> getBranches(ApplicationID appId)
+    Map<String, Object> getSystemParams()
 
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
 }
