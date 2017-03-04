@@ -3,7 +3,7 @@ package com.cedarsoftware.ncube
 import org.junit.Before
 import org.junit.Test
 
-import static com.cedarsoftware.ncube.TestWithPreloadedDatabase.*
+import static com.cedarsoftware.ncube.TestWithPreloadedDatabase.appId
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 
@@ -97,20 +97,22 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         NCube cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
         assertEquals(1, getCacheSize(appId))
 
-        Map input = new HashMap()
-        input.put('method', 'foo')
+        Map input = [method: 'foo']
         Object x = cube.getCell(input)
         assertEquals('foo', x)
 
         assertEquals(3, getCacheSize(appId))
 
-        input.put('method', 'foo2')
+        input.method = 'foo2'
         x = cube.getCell(input)
         assertEquals('foo2', x)
 
-        input.put('method', 'bar')
+        input.method = 'bar'
         x = cube.getCell(input)
         assertEquals('Bar', x)
+
+        NCube sysClassPath2 = mutableClient.getNCubeFromResource(appId, 'sys.classpath.cp2.json')
+        mutableClient.updateCube(sysClassPath2)
 
         //  clear cache so we get different answers this time.  classpath 2 has already been loaded in database.
         mutableClient.clearCache(appId)
@@ -120,18 +122,17 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
         assertEquals(1, getCacheSize(appId))
 
-        input = new HashMap()
-        input.put('method', 'foo')
+        input = [method: 'foo']
         x = cube.getCell(input)
         assertEquals('boo', x)
 
         assertEquals(3, getCacheSize(appId))
 
-        input.put('method', 'foo2')
+        input.method = 'foo2'
         x = cube.getCell(input)
         assertEquals('boo2', x)
 
-        input.put('method', 'bar')
+        input.method = 'bar'
         x = cube.getCell(input)
         assertEquals('far', x)
     }

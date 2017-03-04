@@ -13,6 +13,9 @@
     <context:annotation-config />
     <aop:aspectj-autoproxy/>
 
+    <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext">
+    </bean>
+
     <beans profile="runtime">
 
         <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
@@ -26,6 +29,7 @@
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
+            <constructor-arg ref="appContext" />
             <constructor-arg ref="jsonHttpProxy" />
             <constructor-arg ref="cacheManager" />
             <constructor-arg ref="adviceManager" />
@@ -84,17 +88,9 @@
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeManagerImpl">
-            <constructor-arg ref="reflectiveProxy" />
-            <constructor-arg ref="noOpCacheManager" />
-            <constructor-arg ref="noOpAdviceManager" />
+            <constructor-arg ref="appContext" />
             <constructor-arg ref="persister" />
         </bean>
-
-        <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy" />
-
-        <bean id="noOpCacheManager" class="org.springframework.cache.support.NoOpCacheManager" />
-
-        <bean id="noOpAdviceManager" class="org.springframework.cache.support.NoOpCacheManager" />
 
         <bean id="persister" class="com.cedarsoftware.ncube.NCubeJdbcPersisterAdapter">
             <constructor-arg ref="connectionProvider" />
@@ -197,6 +193,12 @@
     
     <!--TODO-->
     <beans profile="combined">
+
+        <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy" />
+
+        <bean id="noOpCacheManager" class="org.springframework.cache.support.NoOpCacheManager" />
+
+        <bean id="noOpAdviceManager" class="org.springframework.cache.support.NoOpCacheManager" />
 
     </beans>
 

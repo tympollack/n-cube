@@ -8,8 +8,8 @@ import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.NCubeResourcePersister
-import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.ReleaseStatus
+import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.RpmVisualizer
 import com.cedarsoftware.util.RpmVisualizerInfo
@@ -18,7 +18,19 @@ import groovy.transform.CompileStatic
 import org.junit.Before
 import org.junit.Test
 
-import static com.cedarsoftware.util.RpmVisualizerConstants.*
+import static com.cedarsoftware.util.RpmVisualizerConstants.AXIS_FIELD
+import static com.cedarsoftware.util.RpmVisualizerConstants.AXIS_NAME
+import static com.cedarsoftware.util.RpmVisualizerConstants.AXIS_TRAIT
+import static com.cedarsoftware.util.RpmVisualizerConstants.CLASS_TRAITS
+import static com.cedarsoftware.util.RpmVisualizerConstants.R_EXISTS
+import static com.cedarsoftware.util.RpmVisualizerConstants.R_RPM_TYPE
+import static com.cedarsoftware.util.RpmVisualizerConstants.V_MAX_CARDINALITY
+import static com.cedarsoftware.util.RpmVisualizerConstants.V_MIN_CARDINALITY
+import static com.cedarsoftware.util.VisualizerConstants.DATE_TIME_FORMAT
+import static com.cedarsoftware.util.VisualizerConstants.STATUS_INVALID_START_CUBE
+import static com.cedarsoftware.util.VisualizerConstants.STATUS_MISSING_START_SCOPE
+import static com.cedarsoftware.util.VisualizerConstants.STATUS_SUCCESS
+import static com.cedarsoftware.util.VisualizerConstants.UNSPECIFIED
 
 @CompileStatic
 class RpmVisualizerTest
@@ -37,7 +49,7 @@ class RpmVisualizerTest
 
     @Before
     void beforeTest(){
-        visualizer = new RpmVisualizer(NCubeRuntime.instance)
+        visualizer = new RpmVisualizer(SpringAppContext.runtime)
         NCubeManager.NCubePersister = new NCubeResourcePersister(PATH_PREFIX)
     }
 
@@ -117,7 +129,7 @@ class RpmVisualizerTest
         firstVisInfo.nodes = []
         firstVisInfo.edges = []
         options = [startCubeName: startCubeName, visInfo: firstVisInfo, scope: new CaseInsensitiveMap(scope)]
-        visualizer = new RpmVisualizer(NCubeRuntime.instance)
+        visualizer = new RpmVisualizer(SpringAppContext.runtime)
         graphInfo = visualizer.buildGraph(appId, options)
         assert STATUS_SUCCESS == graphInfo.status
         assert !(graphInfo.visInfo as RpmVisualizerInfo).messages

@@ -34,7 +34,7 @@ class NCubeBaseTest
 {
     static NCubeMutableClient getMutableClient()
     {
-        return NCubeRuntime.instance as NCubeMutableClient
+        return SpringAppContext.mutableClient
     }
 
     static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)

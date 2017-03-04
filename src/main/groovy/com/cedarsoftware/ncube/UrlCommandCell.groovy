@@ -42,7 +42,7 @@ abstract class UrlCommandCell implements CommandCell
     protected UrlCommandCell()
     {
         this.url = null
-        runtimeClient = NCubeRuntime.instance
+        runtimeClient = SpringAppContext.runtime
     }
 
     UrlCommandCell(String cmd, String url, boolean cacheable)
@@ -61,7 +61,7 @@ abstract class UrlCommandCell implements CommandCell
         this.cmd = cmd
         this.cacheable = cacheable
         this.hash = cmd == null ? url.hashCode() : cmd.hashCode()
-        runtimeClient = NCubeRuntime.instance
+        runtimeClient = SpringAppContext.runtime
     }
 
     String getUrl()

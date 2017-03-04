@@ -5,7 +5,6 @@ import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
@@ -16,7 +15,6 @@ import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.springframework.cache.CacheManager
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -51,15 +49,13 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeManagerImpl extends NCubeRuntime
+class NCubeManagerImpl implements NCubeMutableClient
 {
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManagerImpl.class)
-
-    // not private in case we want to tweak things for testing.
-    protected volatile ConcurrentMap<String, Object> systemParams = null
+    private SpringAppContext appContext
     
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
         String initialValue()
@@ -84,10 +80,10 @@ class NCubeManagerImpl extends NCubeRuntime
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    NCubeManagerImpl(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, NCubePersister persister)
+    NCubeManagerImpl(SpringAppContext appContext, NCubePersister persister)
     {
-        super(bean, ncubeCacheManager, adviceCacheManager, false)
         nCubePersister = persister
+        this.appContext = appContext
     }
 
     NCubePersister getPersister()
@@ -97,11 +93,6 @@ class NCubeManagerImpl extends NCubeRuntime
             throw new IllegalStateException('Persister not set into NCubeManager.')
         }
         return nCubePersister
-    }
-
-    protected void clearSysParams()
-    {
-        systemParams = null
     }
 
     NCube getCube(ApplicationID appId, String cubeName)
@@ -500,7 +491,7 @@ class NCubeManagerImpl extends NCubeRuntime
 
     private boolean isTest()
     {
-        return ctx.getBean('hsqlSetup') as boolean
+        return appContext.getBean('hsqlSetup') as boolean
     }
 
     void changeVersionValue(ApplicationID appId, String newVersion)
@@ -616,10 +607,69 @@ class NCubeManagerImpl extends NCubeRuntime
         return tests.toArray()
     }
 
+    //-------------------------------------- bastard methods -----------------------------------------------------
+
+    protected void clearSysParams()
+    {
+        throw new IllegalStateException('Doh! clearSysParams() on server should never be called.')
+    }
+    
     void clearCache(ApplicationID appId)
     {
-        // No cache used in NCubeManagerImpl
+        throw new IllegalStateException('Doh! clearCache() on server should never be called.')
     }
+
+    URL getActualUrl(ApplicationID appId, String url, Map input)
+    {
+        throw new IllegalStateException('Doh! getActualUrl() on server should never be called.')
+    }
+
+    URLClassLoader getLocalClassloader(ApplicationID appId)
+    {
+        throw new IllegalStateException('Doh! getLocalClassloader() on server should never be called.')
+    }
+
+    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
+    {
+        throw new IllegalStateException('Doh! getUrlClassLoader() on server should never be called.')
+    }
+
+    NCube getNCubeFromResource(ApplicationID appId, String name)
+    {
+        throw new IllegalStateException('Doh! getNCubeFromResource() on server should never be called.')
+    }
+
+    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
+    {
+        throw new IllegalStateException('Doh! getNCubesFromResource() on server should never be called.')
+    }
+
+    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
+    {
+        throw new IllegalStateException('Doh! addAdvice() on server should never be called.')
+    }
+
+    void addCube(NCube ncube)
+    {
+        throw new IllegalStateException('Doh! addCube() on server should never be called.')
+    }
+
+    Map<String, Object> getSystemParams()
+    {
+        throw new IllegalStateException('Doh! getSystemParams() on server should never be called.')
+    }
+
+    ApplicationID getBootVersion(String tenant, String app)
+    {
+        throw new IllegalStateException('Doh! getBootVersion() on server should never be called.')
+    }
+
+    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    {
+        throw new IllegalStateException('Doh! getApplicationID() on server should never be called.')
+    }
+    
+    //------------------------------------------------------------------------------------------------------------
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
@@ -659,42 +709,6 @@ class NCubeManagerImpl extends NCubeRuntime
     {
         Set<String> branches = getBranches(appId)
         return branches.size()
-    }
-
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
-    {
-        ApplicationID.validateTenant(tenant)
-        ApplicationID.validateApp(tenant)
-
-        if (coord == null)
-        {
-            coord = [:]
-        }
-
-        NCube bootCube = loadCube(getBootVersion(tenant, app), SYS_BOOTSTRAP)
-
-        if (bootCube == null)
-        {
-            throw new IllegalStateException("Missing ${SYS_BOOTSTRAP} cube in the 0.0.0 version for the app: ${app}")
-        }
-
-        Map copy = new HashMap(coord)
-        ApplicationID bootAppId = (ApplicationID) bootCube.getCell(copy, [:])
-        String version = bootAppId.version
-        String status = bootAppId.status
-        String branch = bootAppId.branch
-
-        if (!tenant.equalsIgnoreCase(bootAppId.tenant))
-        {
-            LOG.warn("sys.bootstrap cube for tenant: ${tenant}, app: ${app} is returning a different tenant: ${bootAppId.tenant} than requested. Using ${tenant} instead.")
-        }
-
-        if (!app.equalsIgnoreCase(bootAppId.app))
-        {
-            LOG.warn("sys.bootstrap cube for tenant: ${tenant}, app: ${app} is returning a different app: ${bootAppId.app} than requested. Using ${app} instead.")
-        }
-
-        return new ApplicationID(tenant, app, version, status, branch)
     }
 
     /**

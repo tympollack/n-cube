@@ -2,9 +2,9 @@ package com.cedarsoftware.ncube.util
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.Regexes
+import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
@@ -52,7 +52,7 @@ class CdnRouter
 
     CdnRouter()
     {
-        runtimeClient = NCubeRuntime.instance
+        runtimeClient = SpringAppContext.runtime
     }
 
     static void setCdnRoutingProvider(CdnRoutingProvider p)

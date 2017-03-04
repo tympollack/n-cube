@@ -797,9 +797,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getApplicationID('foo', 'bar', new HashMap())
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalStateException e)
         {
-            assertEnvelopeExceptionContains(e, 'Missing sys.bootstrap cube', '0.0.0 version')
+            assertContainsIgnoreCase(e.message, 'Missing', 'bootstrap', '0.0.0')
         }
     }
 

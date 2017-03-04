@@ -44,7 +44,7 @@ class TestNCubeManagerImpl
 {
     private static NCubeManagerImpl getManager()
     {
-        return NCubeRuntime.instance as NCubeManagerImpl
+        return SpringAppContext.mutableClient as NCubeManagerImpl
     }
 
     @Before

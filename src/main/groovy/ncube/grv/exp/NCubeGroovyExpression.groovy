@@ -5,8 +5,8 @@ import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -14,7 +14,7 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
 
 /**
  * Base class for all GroovyExpression and GroovyMethod's within n-cube CommandCells.
@@ -46,7 +46,7 @@ class NCubeGroovyExpression
 
     NCubeGroovyExpression()
     {
-        runtimeClient = NCubeRuntime.instance
+        runtimeClient = SpringAppContext.runtime
     }
 
     /**

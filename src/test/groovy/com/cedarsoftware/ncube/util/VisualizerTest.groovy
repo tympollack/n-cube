@@ -4,8 +4,8 @@ import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.NCubeResourcePersister
-import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.ReleaseStatus
+import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.util.CaseInsensitiveMap
@@ -29,7 +29,7 @@ class VisualizerTest{
 
     @Before
     void beforeTest(){
-        visualizer = new Visualizer(NCubeRuntime.instance)
+        visualizer = new Visualizer(SpringAppContext.runtime)
         NCubeManager.NCubePersister = new NCubeResourcePersister(PATH_PREFIX)
     }
 

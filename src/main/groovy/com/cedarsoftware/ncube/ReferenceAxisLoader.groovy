@@ -67,7 +67,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         cubeName = containingCubeName
         axisName = sourceAxisName
         this.args = args
-        runtimeClient = NCubeRuntime.instance
+        runtimeClient = SpringAppContext.runtime
     }
 
     /**

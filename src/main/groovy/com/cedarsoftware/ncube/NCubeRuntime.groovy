@@ -16,8 +16,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
-import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationContextAware
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -30,6 +28,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
 import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
+import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -50,9 +49,9 @@ import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
+class NCubeRuntime implements NCubeMutableClient
 {
-    protected static ApplicationContext ctx
+    private static SpringAppContext appContext
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
@@ -63,18 +62,13 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
     protected CallableBean bean
     private boolean mutable
 
-    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean mutable)
+    NCubeRuntime(SpringAppContext appContext, CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean mutable)
     {
+        this.appContext = appContext
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = adviceCacheManager
         this.mutable = mutable
-    }
-
-    static NCubeRuntimeClient getInstance()
-    {
-        NCubeRuntimeClient bean = ctx.getBean('ncubeRuntime') as NCubeRuntimeClient
-        return bean
     }
 
     /**
@@ -403,8 +397,38 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
 
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
-        ApplicationID appId = bean.call('ncubeController', 'getApplicationID', [tenant, app, coord]) as ApplicationID
-        return appId
+        ApplicationID.validateTenant(tenant)
+        ApplicationID.validateApp(tenant)
+
+        if (coord == null)
+        {
+            coord = [:]
+        }
+
+        NCube bootCube = getCube(getBootVersion(tenant, app), SYS_BOOTSTRAP)
+
+        if (bootCube == null)
+        {
+            throw new IllegalStateException("Missing ${SYS_BOOTSTRAP} cube in the 0.0.0 version for the app: ${app}")
+        }
+
+        Map copy = new HashMap(coord)
+        ApplicationID bootAppId = (ApplicationID) bootCube.getCell(copy, [:])
+        String version = bootAppId.version
+        String status = bootAppId.status
+        String branch = bootAppId.branch
+
+        if (!tenant.equalsIgnoreCase(bootAppId.tenant))
+        {
+            LOG.warn("sys.bootstrap cube for tenant: ${tenant}, app: ${app} is returning a different tenant: ${bootAppId.tenant} than requested. Using ${tenant} instead.")
+        }
+
+        if (!app.equalsIgnoreCase(bootAppId.app))
+        {
+            LOG.warn("sys.bootstrap cube for tenant: ${tenant}, app: ${app} is returning a different app: ${bootAppId.app} than requested. Using ${app} instead.")
+        }
+
+        return new ApplicationID(tenant, app, version, status, branch)
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
@@ -960,10 +984,5 @@ class NCubeRuntime implements NCubeMutableClient, ApplicationContextAware
             throw new IllegalArgumentException('NCube cannot be null')
         }
         NCube.validateCubeName(cube.name)
-    }
-
-    void setApplicationContext(ApplicationContext applicationContext)
-    {
-        ctx = applicationContext
     }
 }
