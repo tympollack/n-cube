@@ -1,22 +1,15 @@
 package com.cedarsoftware.ncube
 
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit4.SpringRunner
 
-import static com.cedarsoftware.ncube.NCubeBaseTest.getMutableClient
 import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.ncube.TestNCubeManager.defaultBootApp
 import static com.cedarsoftware.ncube.TestNCubeManager.defaultSnapshotApp
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 
 /**
  * NCubeManager Tests
@@ -40,24 +33,11 @@ import static org.junit.Assert.fail
 @RunWith(SpringRunner.class)
 @ContextConfiguration(locations = ['/config/beans.xml'])
 @ActiveProfiles(profiles = ['server', 'test-database'])
-class TestNCubeManagerImpl
+class TestNCubeManagerImpl extends NCubeBaseTest
 {
     private static NCubeManagerImpl getManager()
     {
         return SpringAppContext.mutableClient as NCubeManagerImpl
-    }
-
-    @Before
-    void setup()
-    {
-        TestingDatabaseHelper.initDatabase()
-    }
-
-    @After
-    void teardown()
-    {
-        TestingDatabaseHelper.clearDatabase()
-        manager.fakeId = null
     }
 
     @Test
