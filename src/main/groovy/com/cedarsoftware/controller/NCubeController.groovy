@@ -359,7 +359,7 @@ class NCubeController extends BaseController
 
         List<String> appNames = ncubeService.getAppNames(tenant)
         if (appNames.size() == 0) {
-            ApplicationID defaultAppId = new ApplicationID(tenant, ApplicationID.DEFAULT_APP, '1.0.0', ReleaseStatus.SNAPSHOT.toString(), 'DEFAULT_BRANCH')
+            ApplicationID defaultAppId = new ApplicationID(tenant, ApplicationID.DEFAULT_APP, '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'DEFAULT_BRANCH')
             createCube(defaultAppId, 'defaultNewAppCube')
             clearVersionCache(defaultAppId.app)
         }
@@ -1394,18 +1394,6 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         return ncubeService.rollbackCubes(appId, cubeNames)
-    }
-
-    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
-    {
-        appId = addTenant(appId)
-        return ncubeService.mergeAcceptMine(appId, cubeNames)
-    }
-
-    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
-    {
-        appId = addTenant(appId)
-        return ncubeService.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     Object updateCubeFromHead(ApplicationID appId, String cubeName)

@@ -144,7 +144,7 @@ class TestUrlCommandCell extends NCubeBaseTest
         assert !cell.equals('String')
 
         Map coord = ['content.type':'view','content.name':'badProtocol'] as Map
-        NCube cube = NCubeManager.getNCubeFromResource('cdnRouterTest.json')
+        NCube cube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         try
         {
             cube.getCell(coord)

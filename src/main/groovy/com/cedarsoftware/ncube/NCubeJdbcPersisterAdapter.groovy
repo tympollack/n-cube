@@ -67,7 +67,7 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
     void createCube(NCube cube, final String username)
     {
         jdbcOperation({ Connection c -> persister.createCube(c, cube, username) },
-                "createCube${cube.applicationID.cacheKey(cube.name)})", username)
+                "createCube(${cube.applicationID.cacheKey(cube.name)})", username)
     }
 
     NCube loadCubeById(long cubeId)

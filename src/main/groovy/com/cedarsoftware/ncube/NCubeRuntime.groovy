@@ -49,7 +49,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeMutableClient
+class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
 {
     private static SpringAppContext appContext
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'
@@ -163,6 +163,7 @@ class NCubeRuntime implements NCubeMutableClient
             throw new IllegalStateException("${MUTABLE_ERROR} duplicate")
         }
         Boolean result = bean.call('ncubeController', 'duplicateCube', [oldAppId, newAppId, oldName, newName]) as Boolean
+        clearCubeFromCache(newAppId, newName)
         return result
     }
 
@@ -368,6 +369,7 @@ class NCubeRuntime implements NCubeMutableClient
         }
         Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
         clearCubeFromCache(appId, oldName)
+        clearCubeFromCache(appId, newName)
         return result
     }
 
@@ -389,9 +391,9 @@ class NCubeRuntime implements NCubeMutableClient
     {
         if (!mutable)
         {
-            throw new IllegalStateException("${MUTABLE_ERROR} getReferenceAxes")
+            throw new IllegalStateException("${MUTABLE_ERROR} updateReferenceAxes")
         }
-        bean.call('ncubeController', 'getReferenceAxes', [axisRefs.toArray()])
+        bean.call('ncubeController', 'updateReferenceAxes', [axisRefs.toArray()])
         clearCache()
     }
 
@@ -534,7 +536,7 @@ class NCubeRuntime implements NCubeMutableClient
         {
             throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptMine")
         }
-        Integer result = bean.call('ncubeController', 'mergeAcceptMine', [appId, cubeNames]) as Integer
+        Integer result = bean.call('ncubeController', 'acceptMine', [appId, cubeNames]) as Integer
         return result
     }
 
@@ -544,7 +546,7 @@ class NCubeRuntime implements NCubeMutableClient
         {
             throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptTheirs")
         }
-        Integer result = bean.call('ncubeController', 'mergeAcceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
+        Integer result = bean.call('ncubeController', 'acceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
         clearCache(appId)
         return result
     }
@@ -573,14 +575,14 @@ class NCubeRuntime implements NCubeMutableClient
             ApplicationID.validateAppId(appId)
 
             // Clear NCube cache
-            Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
+            Cache cubeCache = ncubeCacheManager.getCache(appId.newCacheKey())
             cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
 
             GroovyBase.clearCache(appId)
             NCubeGroovyController.clearCache(appId)
 
             // Clear Advice cache
-            Cache adviceCache = adviceCacheManager.getCache(appId.toString())
+            Cache adviceCache = adviceCacheManager.getCache(appId.newCacheKey())
             adviceCache.clear()
 
             // Clear ClassLoader cache
@@ -595,14 +597,14 @@ class NCubeRuntime implements NCubeMutableClient
 
     void clearCubeFromCache(ApplicationID appId, String cubeName)
     {
-        Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
+        Cache cubeCache = ncubeCacheManager.getCache(appId.newCacheKey())
         cubeCache.evict(cubeName.toLowerCase())
     }
 
     protected void clearCache()
     {
         ncubeCacheManager.cacheNames.each { String appIdString ->
-            ApplicationID appId = ApplicationID.convert(appIdString)
+            ApplicationID appId = ApplicationID.convertNew(appIdString)
             clearCache(appId)
             clearCache(appId.asRelease())
         }
@@ -610,7 +612,7 @@ class NCubeRuntime implements NCubeMutableClient
 
     protected Cache getCacheForApp(ApplicationID appId)
     {
-        Cache cache = ncubeCacheManager.getCache(appId.toString())
+        Cache cache = ncubeCacheManager.getCache(appId.newCacheKey())
         return cache
     }
     
@@ -630,14 +632,14 @@ class NCubeRuntime implements NCubeMutableClient
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
-            Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.toString())
+            Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.newCacheKey())
             cubeCache.put(ncube.name.toLowerCase(), ncube)
         }
     }
 
     private NCube getCubeInternal(ApplicationID appId, String cubeName)
     {
-        Cache cubeCache = ncubeCacheManager.getCache(appId.toString())
+        Cache cubeCache = ncubeCacheManager.getCache(appId.newCacheKey())
         final String lowerCubeName = cubeName.toLowerCase()
 
         Cache.ValueWrapper item = cubeCache.get(lowerCubeName)
@@ -675,7 +677,7 @@ class NCubeRuntime implements NCubeMutableClient
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
     {
         ApplicationID.validateAppId(appId)
-        Cache current = adviceCacheManager.getCache(appId.toString())
+        Cache current = adviceCacheManager.getCache(appId.newCacheKey())
         current.put("${advice.name}/${wildcard}".toString(), advice)
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
@@ -684,7 +686,7 @@ class NCubeRuntime implements NCubeMutableClient
 
         if (ncubeCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.toString(), { String key, Object value ->
+            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.newCacheKey(), { String key, Object value ->
                 if (value instanceof NCube)
                 {   // apply advice to hydrated cubes
                     NCube ncube = value as NCube
@@ -729,7 +731,7 @@ class NCubeRuntime implements NCubeMutableClient
     {
         if (adviceCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.toString(), { String key, Object value ->
+            ((NCubeCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.newCacheKey(), { String key, Object value ->
                 final Advice advice = value as Advice
                 final String wildcard = key.replace(advice.name + '/', "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)

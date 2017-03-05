@@ -106,6 +106,14 @@ class NCubeGroovyExpression
     }
 
     /**
+     * @return Map containing system parameters (e.g. branch, etc.)
+     */
+    Map<String, Object> getSystemParams()
+    {
+        return runtimeClient.systemParams
+    }
+
+    /**
      * Using the input Map passed in, fetch the coordinate at that location.
      * @param coord Map containing precise coordinate to use.
      * @param cubeName String n-cube name.  This argument is optional and defaults

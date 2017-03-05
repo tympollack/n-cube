@@ -124,16 +124,6 @@ class NCubeService
         return mutableClient.rollbackCubes(appId, cubeNames)
     }
 
-    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
-    {
-        return mutableClient.mergeAcceptMine(appId, cubeNames)
-    }
-
-    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
-    {
-        return mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
-    }
-
     Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
     {
         return mutableClient.updateBranch(appId, cubeDtos)

@@ -101,9 +101,15 @@ class ApplicationID
     {
         if (StringUtilities.isEmpty(name))
         {
+//            return ("${tenant} / ${app} / ${version} / ${status} / ${branch} /").toLowerCase()
             return (tenant + ' / ' + app + ' / ' + version + ' / ' + branch + ' /').toLowerCase()
         }
         return (tenant + ' / ' + app + ' / ' + version + ' / ' + branch + ' / ' + name).toLowerCase()
+    }
+
+    String newCacheKey()
+    {
+        return (tenant + ' / ' + app + ' / ' + version + ' / ' + status + ' / ' + branch + ' /').toLowerCase()
     }
 
     /**
@@ -113,6 +119,12 @@ class ApplicationID
     {
         List<String> pieces = appIdString.tokenize('/')
         return new ApplicationID(pieces[0].trim(), pieces[1].trim(), pieces[2].trim(), ReleaseStatus.SNAPSHOT.name(), pieces[3].trim())
+    }
+
+    static ApplicationID convertNew(String appIdString)
+    {
+        List<String> pieces = appIdString.tokenize('/')
+        return new ApplicationID(pieces[0].trim(), pieces[1].trim(), pieces[2].trim(), pieces[3].trim().toUpperCase(), pieces[4].trim())
     }
 
     String branchAgnosticCacheKey()
