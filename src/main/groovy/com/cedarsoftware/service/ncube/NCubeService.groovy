@@ -84,9 +84,9 @@ class NCubeService
         return mutableClient.getVersions(tenant, app)
     }
 
-    void copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
-        mutableClient.copyBranch(srcAppId, targetAppId, copyWithHistory)
+        return mutableClient.copyBranch(srcAppId, targetAppId, copyWithHistory)
     }
 
     Set<String> getBranches(ApplicationID appId)
@@ -121,7 +121,17 @@ class NCubeService
 
     Integer rollbackCubes(ApplicationID appId, Object[] cubeNames)
     {
-        mutableClient.rollbackCubes(appId, cubeNames)
+        return mutableClient.rollbackCubes(appId, cubeNames)
+    }
+
+    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    {
+        return mutableClient.mergeAcceptMine(appId, cubeNames)
+    }
+
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    {
+        return mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
@@ -129,24 +139,24 @@ class NCubeService
         return mutableClient.updateBranch(appId, cubeDtos)
     }
 
-    void deleteBranch(ApplicationID appId)
+    Boolean deleteBranch(ApplicationID appId)
     {
-        mutableClient.deleteBranch(appId)
+        return mutableClient.deleteBranch(appId)
     }
 
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
-        mutableClient.mergeDeltas(appId, cubeName, deltas)
+        return mutableClient.mergeDeltas(appId, cubeName, deltas)
     }
 
     Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
     {
-        mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
+        return mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     Integer acceptMine(ApplicationID appId, Object[] cubeNames)
     {
-        mutableClient.mergeAcceptMine(appId, cubeNames)
+        return mutableClient.mergeAcceptMine(appId, cubeNames)
     }
 
     void createCube(NCube ncube)

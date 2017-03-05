@@ -1279,11 +1279,11 @@ class NCubeController extends BaseController
         }
     }
 
-    void copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
+    Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
         srcAppId = addTenant(srcAppId)
         targetAppId = addTenant(targetAppId)
-        ncubeService.copyBranch(srcAppId, targetAppId, copyWithHistory)
+        Integer rows = ncubeService.copyBranch(srcAppId, targetAppId, copyWithHistory)
         if (ArrayUtilities.size(getCachedApps(tenant)) > 0)
         {
             addToAppCache(targetAppId.tenant, targetAppId.app)
@@ -1299,6 +1299,7 @@ class NCubeController extends BaseController
                 addBranchToCache(targetAppId.asVersion('0.0.0'));
             }
         }
+        return rows
     }
 
     Object[] getBranches(ApplicationID appId)
@@ -1395,6 +1396,18 @@ class NCubeController extends BaseController
         return ncubeService.rollbackCubes(appId, cubeNames)
     }
 
+    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    {
+        appId = addTenant(appId)
+        return ncubeService.mergeAcceptMine(appId, cubeNames)
+    }
+
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    {
+        appId = addTenant(appId)
+        return ncubeService.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
+    }
+
     Object updateCubeFromHead(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
@@ -1414,16 +1427,17 @@ class NCubeController extends BaseController
         return result
     }
 
-    void deleteBranch(ApplicationID appId)
+    Boolean deleteBranch(ApplicationID appId)
     {
         appId = addTenant(appId)
-        ncubeService.deleteBranch(appId)
+        Boolean result = ncubeService.deleteBranch(appId)
         removeBranchFromCache(appId)
         ApplicationID bootAppId = appId.asVersion('0.0.0')
         if (!ncubeService.search(bootAppId, '*', null, null).size())
         {
             removeBranchFromCache(bootAppId)
         }
+        return result
     }
 
     Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
@@ -1546,11 +1560,11 @@ class NCubeController extends BaseController
         return true
     }
 
-    void mergeDeltas(ApplicationID appId, String cubeName, Object[] deltas)
+    NCube mergeDeltas(ApplicationID appId, String cubeName, Object[] deltas)
     {
         appId = addTenant(appId)
         List<Delta> deltaList = deltas as List<Delta>
-        ncubeService.mergeDeltas(appId, cubeName, deltaList)
+        return ncubeService.mergeDeltas(appId, cubeName, deltaList)
     }
 
     List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
