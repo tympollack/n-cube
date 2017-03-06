@@ -595,8 +595,8 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
     protected void clearCache()
     {
         ncubeCacheManager.cacheNames.each { String appIdString ->
-            ApplicationID appId = ApplicationID.convertNew(appIdString)
-            clearCache(appId)
+            ApplicationID appId = ApplicationID.convert(appIdString)
+            clearCache(appId.asSnapshot())
             clearCache(appId.asRelease())
         }
     }

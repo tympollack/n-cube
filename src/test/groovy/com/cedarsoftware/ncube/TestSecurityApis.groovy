@@ -1,5 +1,7 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.EnvelopeException
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.springframework.test.context.ActiveProfiles
@@ -30,10 +32,9 @@ import static org.junit.Assert.*
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-@RunWith(SpringRunner.class)
-@ContextConfiguration(locations = ['/config/beans.xml'])
-@ActiveProfiles(profiles = ['server', 'test-database'])
-class TestNCubeManagerImpl extends NCubeBaseTest
+
+@Ignore
+class TestSecurityApis extends NCubeCleanupBaseTest
 {
     private static NCubeManagerImpl getManager()
     {
@@ -210,5 +211,54 @@ class TestNCubeManagerImpl extends NCubeBaseTest
             assertTrue(e.message.contains(testCube.name))
         }
         manager.userId = origUser
+    }
+
+    @Test
+    void testCommitFailsWithoutPermissions()
+    {
+        preloadCubes(BRANCH2, "test.branch.1.json")
+        mutableClient.commitBranch(BRANCH2)
+        mutableClient.copyBranch(HEAD, BRANCH1)
+
+        // cube is updated by someone with access
+        String cubeName = 'TestBranch'
+        NCube testBranchCube = mutableClient.getCube(BRANCH1, cubeName)
+        testBranchCube.setCell('AAA', [Code: 15])
+        mutableClient.updateCube(testBranchCube)
+
+        // set permission on cube to deny commit for normal user
+        ApplicationID branchBoot = BRANCH1.asVersion('0.0.0')
+        NCube sysPermissions = mutableClient.getCube(branchBoot, SYS_PERMISSIONS)
+        sysPermissions.addColumn(AXIS_RESOURCE, cubeName)
+        sysPermissions.setCell(true, [(AXIS_RESOURCE): cubeName, (AXIS_ROLE): ROLE_USER, (AXIS_ACTION): Action.READ.lower()])
+        mutableClient.updateCube(sysPermissions)
+        List<NCubeInfoDto> dtos = runtimeClient.search(branchBoot, SYS_PERMISSIONS, null, null)
+        assert dtos.size() == 1
+        NCubeInfoDto permissionDto = dtos[0]
+        mutableClient.commitBranch(branchBoot, permissionDto)
+
+        // set testUser to have user role on branch
+        NCube sysBranchPermissions = mutableClient.getCube(branchBoot, SYS_BRANCH_PERMISSIONS)
+        String testUser = 'testUser'
+        sysBranchPermissions.addColumn(AXIS_USER, testUser)
+        sysBranchPermissions.setCell(true, [(AXIS_USER): testUser])
+        mutableClient.updateCube(sysBranchPermissions)
+
+        // impersonate testUser, who shouldn't be able to commit the changed cube
+        mutableClient.userId = testUser
+
+        try
+        {
+            mutableClient.commitBranch(BRANCH1)
+            fail()
+        }
+        catch (EnvelopeException e)
+        {
+            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        }
     }
 }

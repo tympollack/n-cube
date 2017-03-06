@@ -102,15 +102,9 @@ class ApplicationID
     static ApplicationID convert(String appIdString)
     {
         List<String> pieces = appIdString.tokenize('/')
-        return new ApplicationID(pieces[0].trim(), pieces[1].trim(), pieces[2].trim(), ReleaseStatus.SNAPSHOT.name(), pieces[3].trim())
-    }
-
-    static ApplicationID convertNew(String appIdString)
-    {
-        List<String> pieces = appIdString.tokenize('/')
         return new ApplicationID(pieces[0].trim(), pieces[1].trim(), pieces[2].trim(), pieces[3].trim().toUpperCase(), pieces[4].trim())
     }
-    
+
     boolean equals(Object o)
     {
         if (this.is(o))

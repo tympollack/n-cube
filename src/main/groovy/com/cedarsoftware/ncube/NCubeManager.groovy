@@ -1795,30 +1795,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     private static void addBranchPermissionsCube(ApplicationID appId)
     {
-        ApplicationID permAppId = appId.asVersion('0.0.0')
-        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null)
-        {
-            return
-        }
-
-        String impId = impliedId
-        NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
-        branchPermCube.applicationID = permAppId
-        branchPermCube.defaultCellValue = false
-
-        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.STRING, true)
-        resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
-        branchPermCube.addAxis(resourceAxis)
-
-        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
-        userAxis.addColumn(impId)
-        branchPermCube.addAxis(userAxis)
-
-        branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
-        branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):null])
-
-        persister.updateCube(branchPermCube, getUserId())
-        VersionControl.updateBranch(permAppId)
+        throw new IllegalStateException('This should never be called')
     }
 
     private static void addAppPermissionsCubes(ApplicationID appId)

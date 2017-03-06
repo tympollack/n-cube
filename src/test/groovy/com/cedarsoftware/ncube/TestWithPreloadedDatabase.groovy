@@ -2373,56 +2373,6 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert dtos2.size() == 0    // Nothing for BRANCH2 because cube matched HEAD already
     }
 
-    // TODO
-    @Test
-    void testCommitFailsWithoutPermissions()
-    {
-        preloadCubes(BRANCH2, "test.branch.1.json")
-        mutableClient.commitBranch(BRANCH2)
-        mutableClient.copyBranch(HEAD, BRANCH1)
-
-        // cube is updated by someone with access
-        String cubeName = 'TestBranch'
-        NCube testBranchCube = mutableClient.getCube(BRANCH1, cubeName)
-        testBranchCube.setCell('AAA', [Code: 15])
-        mutableClient.updateCube(testBranchCube)
-
-        // set permission on cube to deny commit for normal user
-        ApplicationID branchBoot = BRANCH1.asVersion('0.0.0')
-        NCube sysPermissions = mutableClient.getCube(branchBoot, SYS_PERMISSIONS)
-        sysPermissions.addColumn(AXIS_RESOURCE, cubeName)
-        sysPermissions.setCell(true, [(AXIS_RESOURCE): cubeName, (AXIS_ROLE): ROLE_USER, (AXIS_ACTION): Action.READ.lower()])
-        mutableClient.updateCube(sysPermissions)
-        List<NCubeInfoDto> dtos = runtimeClient.search(branchBoot, SYS_PERMISSIONS, null, null)
-        assert dtos.size() == 1
-        NCubeInfoDto permissionDto = dtos[0]
-        mutableClient.commitBranch(branchBoot, permissionDto)
-
-        // set testUser to have user role on branch
-        NCube sysBranchPermissions = mutableClient.getCube(branchBoot, SYS_BRANCH_PERMISSIONS)
-        String testUser = 'testUser'
-        sysBranchPermissions.addColumn(AXIS_USER, testUser)
-        sysBranchPermissions.setCell(true, [(AXIS_USER): testUser])
-        mutableClient.updateCube(sysBranchPermissions)
-
-        // impersonate testUser, who shouldn't be able to commit the changed cube
-        mutableClient.userId = testUser
-
-        try
-        {
-            mutableClient.commitBranch(BRANCH1)
-            fail()
-        }
-        catch (EnvelopeException e)
-        {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
-        }
-    }
-
     /***** tests for commit and update from our cube matrix *****/
 
     @Test
@@ -6027,7 +5977,6 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'bar'), cube.getCell([env:'SAND']))
     }
 
-    // TODO
     @Test
     void testUserOverloadedClassPath()
 	{
@@ -6198,19 +6147,42 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testBootstrapWithMismatchedTenantAndAppForcesWarning()
+    void testGetAppIdFromBootstrapCube()
     {
-        ApplicationID zero = new ApplicationID('FOO', 'TEST', '0.0.0', ReleaseStatus.SNAPSHOT.name(), 'HEAD')
-
+        ApplicationID zero = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'TEST', '0.0.0', ReleaseStatus.SNAPSHOT.name(), runtimeClient.systemParams[NCUBE_PARAMS_BRANCH] as String)
         preloadCubes(zero, "sys.bootstrap.test.1.json")
+        ApplicationID appId = runtimeClient.getApplicationID(ApplicationID.DEFAULT_TENANT, 'TEST', null)
 
-        ApplicationID appId = runtimeClient.getApplicationID('FOO', 'TEST', null)
-        // ensure cube on disk tenant and app are not loaded (saved as NONE and ncube.test
-        assertEquals('FOO', appId.tenant)
+        assertEquals(ApplicationID.DEFAULT_TENANT, appId.tenant)
         assertEquals('TEST', appId.app)
         assertEquals('1.28.0', appId.version)
         assertEquals('RELEASE', appId.status)
         assertEquals('HEAD', appId.branch)
+    }
+
+    @Test
+    void testGetBootstrapVersion()
+    {
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        System.setProperty("NCUBE_PARAMS", '{}')
+        runtime.clearSysParams()
+
+        ApplicationID id = runtime.getBootVersion('foo', 'bar')
+        assertEquals 'foo', id.tenant
+        assertEquals 'bar', id.app
+        assertEquals '0.0.0', id.version
+        assertEquals 'SNAPSHOT', id.status
+        assertEquals 'HEAD', id.branch
+
+        System.setProperty("NCUBE_PARAMS", '{"branch":"qux"}')
+        runtime.clearSysParams()
+
+        id = runtime.getBootVersion('foo', 'bar')
+        assertEquals 'foo', id.tenant
+        assertEquals 'bar', id.app
+        assertEquals '0.0.0', id.version
+        assertEquals 'SNAPSHOT', id.status
+        assertEquals 'qux', id.branch
     }
 
     @Test
