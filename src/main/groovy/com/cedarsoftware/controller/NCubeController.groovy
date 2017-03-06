@@ -241,10 +241,10 @@ class NCubeController extends BaseController
         {
             throw new IllegalStateException("${HOSTED_ERROR} getVisualizerJson")
         }
-        if (!SystemUtilities.getExternalVariable('NCE_VISUALIZER_ENABLED'))
-        {
-            throw new IllegalStateException("""The visualizer is currently available <a href="#" onclick="window.open('https://nce.dockerdev.td.afg/n-cube-editor/#');return false;">here</a>""")
-        }
+//        if (!SystemUtilities.getExternalVariable('NCE_VISUALIZER_ENABLED'))
+//        {
+//            throw new IllegalStateException("""The visualizer is currently available <a href="#" onclick="window.open('https://nce.dockerdev.td.afg/n-cube-editor/#');return false;">here</a>""")
+//        }
         String cubeName = options.startCubeName
         Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.mutableClient) : new Visualizer(ncubeService.mutableClient)
         appId = addTenant(appId)
@@ -1026,7 +1026,7 @@ class NCubeController extends BaseController
         NCube ncube = ncubeService.getCube(appId, cubeName) // Will check READ.
         Map output = [:]
         // TODO: Check EXECUTE permission
-//        nCubeService.assertPermissions(appId, cubeName, Action.EXECUTE)
+//        ncubeService.assertPermissions(appId, cubeName, Action.EXECUTE)
         ncube.getCell(coordinate, output, defaultValue)
         return output
     }
