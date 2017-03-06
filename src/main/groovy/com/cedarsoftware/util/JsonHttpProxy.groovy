@@ -15,11 +15,7 @@ import org.apache.http.conn.routing.HttpRoute
 import org.apache.http.entity.ContentType
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.auth.BasicScheme
-import org.apache.http.impl.client.BasicAuthCache
-import org.apache.http.impl.client.BasicCookieStore
-import org.apache.http.impl.client.BasicCredentialsProvider
-import org.apache.http.impl.client.CloseableHttpClient
-import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.impl.client.*
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.util.EntityUtils
 import org.apache.logging.log4j.LogManager
@@ -105,6 +101,11 @@ class JsonHttpProxy implements CallableBean
         clientContext.authCache = authCache
 
         HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${method}")
+        String poser = System.getProperty('ncube.fakeuser')
+        if (StringUtilities.hasContent(poser))
+        {
+            request.setHeader('fakeuser', poser)
+        }
         request.entity = new StringEntity(jsonArgs, ContentType.APPLICATION_JSON)
         HttpResponse response = httpClient.execute(request, clientContext)
         String json = EntityUtils.toString(response.entity)

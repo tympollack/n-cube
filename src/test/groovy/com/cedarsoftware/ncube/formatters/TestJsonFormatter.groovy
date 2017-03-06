@@ -210,7 +210,7 @@ class TestJsonFormatter extends NCubeBaseTest
     @Test
     void testAlternateJsonFormat()
     {
-        NCube ncube = NCubeManager.getNCubeFromResource(ApplicationID.testAppId, "idBasedCube.json")
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, "idBasedCube.json")
         String json = ncube.toFormattedJson([indexFormat: true])
         assert json.contains('"cells":{"1')
         assert json.contains('":{"type":"string","value":"1 10"}')
