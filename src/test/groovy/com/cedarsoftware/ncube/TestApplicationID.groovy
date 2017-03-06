@@ -5,14 +5,7 @@ import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import org.junit.Test
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNotSame
-import static org.junit.Assert.assertSame
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 
 /**
  * ApplicationID Tests
@@ -154,8 +147,8 @@ class TestApplicationID
     void testAppKey()
     {
         ApplicationID appId = new ApplicationID('Sears', 'Inventory', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        assertEquals 'sears / inventory / 1.0.0 / test /', appId.cacheKey('')
-        assertEquals 'sears / inventory / 1.0.0 / test /', appId.toString()
+        assertEquals 'sears/inventory/1.0.0/snapshot/test/', appId.cacheKey('')
+        assertEquals 'sears/inventory/1.0.0/snapshot/test/', appId.toString()
     }
 
     @Test
@@ -164,7 +157,7 @@ class TestApplicationID
         ApplicationID appId1 = new ApplicationID('Sears', 'Inventory', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
         ApplicationID appId2 = new ApplicationID('Sears', 'Inventory', '1.0.0', ReleaseStatus.RELEASE.name(), ApplicationID.TEST_BRANCH)
 
-        assertEquals appId1.cacheKey(''), appId2.cacheKey('')
+        assertNotEquals appId1.cacheKey(''), appId2.cacheKey('')
         assertNotEquals appId1, appId2
         assertNotEquals appId1.hashCode(), appId2.hashCode()
 

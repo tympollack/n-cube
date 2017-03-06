@@ -66,8 +66,8 @@ class TestCdnRouter extends NCubeCleanupBaseTest
         HttpServletResponse response = Mockito.mock(HttpServletResponse.class)
 
         when(request.servletPath).thenReturn '/dyn/view/500'
-        setupMockRequestHeaders request
-        setupMockResponseHeaders response
+        setupMockRequestHeaders(request)
+        setupMockResponseHeaders(response)
 
         ServletOutputStream out = new DumboOutputStream()
         ServletInputStream input = new DumboInputStream()
@@ -79,9 +79,9 @@ class TestCdnRouter extends NCubeCleanupBaseTest
 
         runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         CdnRouter router = new CdnRouter()
-        router.route request, response
+        router.route(request, response)
 
-        verify(response, times(1)).sendError 500, 'Invalid URL in cell (malformed or cannot resolve given classpath): tests/does/not/exist/index.html, cube: CdnRouterTest, app: none / default_app / 999.99.9 / test /'
+        verify(response, times(1)).sendError(500, 'Invalid URL in cell (malformed or cannot resolve given classpath): tests/does/not/exist/index.html, cube: CdnRouterTest, app: none/default_app/999.99.9/snapshot/test/')
     }
 
     @Test
@@ -133,7 +133,7 @@ class TestCdnRouter extends NCubeCleanupBaseTest
         runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
         new CdnRouter().route request, response
 
-        verify(response, times(1)).sendError 500, 'CdnRouter - Error occurred: Could not load routing cube using app: none / default_app / 999.99.9 / test /, cube name: foo'
+        verify(response, times(1)).sendError 500, 'CdnRouter - Error occurred: Could not load routing cube using app: none/default_app/999.99.9/snapshot/test/, cube name: foo'
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
 import org.junit.Ignore
+import org.junit.Test
 
 import java.security.SecureRandom
 import java.util.concurrent.CountDownLatch
@@ -34,6 +35,11 @@ class TestThreadedClearCache extends NCubeCleanupBaseTest
     public static ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, "clearCacheTest", ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
     public static ApplicationID usedId = new ApplicationID(ApplicationID.DEFAULT_TENANT, "usedInvalidId", ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
+    @Test
+    void testQuiet()
+    {
+    }
+    
     // Uncomment when testing threading.  This hits an external website, so use sparingly
     @Ignore
     void testCubesWithThreadedClearCacheWithAppId()

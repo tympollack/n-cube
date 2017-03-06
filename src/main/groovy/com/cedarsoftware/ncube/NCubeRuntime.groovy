@@ -1,12 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
-import com.cedarsoftware.util.CallableBean
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -24,11 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
-import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
-import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
+import static com.cedarsoftware.ncube.NCubeConstants.*
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -575,14 +566,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
             ApplicationID.validateAppId(appId)
 
             // Clear NCube cache
-            Cache cubeCache = ncubeCacheManager.getCache(appId.newCacheKey())
+            Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
             cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
 
             GroovyBase.clearCache(appId)
             NCubeGroovyController.clearCache(appId)
 
             // Clear Advice cache
-            Cache adviceCache = adviceCacheManager.getCache(appId.newCacheKey())
+            Cache adviceCache = adviceCacheManager.getCache(appId.cacheKey())
             adviceCache.clear()
 
             // Clear ClassLoader cache
@@ -597,7 +588,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
 
     void clearCubeFromCache(ApplicationID appId, String cubeName)
     {
-        Cache cubeCache = ncubeCacheManager.getCache(appId.newCacheKey())
+        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
         cubeCache.evict(cubeName.toLowerCase())
     }
 
@@ -612,7 +603,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
 
     protected Cache getCacheForApp(ApplicationID appId)
     {
-        Cache cache = ncubeCacheManager.getCache(appId.newCacheKey())
+        Cache cache = ncubeCacheManager.getCache(appId.cacheKey())
         return cache
     }
     
@@ -632,14 +623,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
-            Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.newCacheKey())
+            Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.cacheKey())
             cubeCache.put(ncube.name.toLowerCase(), ncube)
         }
     }
 
     private NCube getCubeInternal(ApplicationID appId, String cubeName)
     {
-        Cache cubeCache = ncubeCacheManager.getCache(appId.newCacheKey())
+        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
         final String lowerCubeName = cubeName.toLowerCase()
 
         Cache.ValueWrapper item = cubeCache.get(lowerCubeName)
@@ -677,7 +668,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
     {
         ApplicationID.validateAppId(appId)
-        Cache current = adviceCacheManager.getCache(appId.newCacheKey())
+        Cache current = adviceCacheManager.getCache(appId.cacheKey())
         current.put("${advice.name}/${wildcard}".toString(), advice)
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
@@ -686,7 +677,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
 
         if (ncubeCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.newCacheKey(), { String key, Object value ->
+            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.cacheKey(), { String key, Object value ->
                 if (value instanceof NCube)
                 {   // apply advice to hydrated cubes
                     NCube ncube = value as NCube
@@ -731,7 +722,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
     {
         if (adviceCacheManager instanceof NCubeCacheManager)
         {
-            ((NCubeCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.newCacheKey(), { String key, Object value ->
+            ((NCubeCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.cacheKey(), { String key, Object value ->
                 final Advice advice = value as Advice
                 final String wildcard = key.replace(advice.name + '/', "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)

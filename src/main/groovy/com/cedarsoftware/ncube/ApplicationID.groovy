@@ -6,8 +6,6 @@ import groovy.transform.CompileStatic
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
-
 /**
  * This class binds together Tenant, App, version, status, and branch.  These fields together
  * completely identify the application that a given n-cube belongs to.
@@ -92,24 +90,10 @@ class ApplicationID
         return branch
     }
 
-    String cacheKey()
+    String cacheKey(String name = '')
     {
-        return cacheKey("")
-    }
-
-    String cacheKey(String name)
-    {
-        if (StringUtilities.isEmpty(name))
-        {
-//            return ("${tenant} / ${app} / ${version} / ${status} / ${branch} /").toLowerCase()
-            return (tenant + ' / ' + app + ' / ' + version + ' / ' + branch + ' /').toLowerCase()
-        }
-        return (tenant + ' / ' + app + ' / ' + version + ' / ' + branch + ' / ' + name).toLowerCase()
-    }
-
-    String newCacheKey()
-    {
-        return (tenant + ' / ' + app + ' / ' + version + ' / ' + status + ' / ' + branch + ' /').toLowerCase()
+        name = name ?: ''
+        return "${tenant}/${app}/${version}/${status}/${branch}/${name}".toLowerCase()
     }
 
     /**
@@ -126,12 +110,7 @@ class ApplicationID
         List<String> pieces = appIdString.tokenize('/')
         return new ApplicationID(pieces[0].trim(), pieces[1].trim(), pieces[2].trim(), pieces[3].trim().toUpperCase(), pieces[4].trim())
     }
-
-    String branchAgnosticCacheKey()
-    {
-        return (tenant + ' / ' + app + ' / ' + version + ' / ').toLowerCase()
-    }
-
+    
     boolean equals(Object o)
     {
         if (this.is(o))

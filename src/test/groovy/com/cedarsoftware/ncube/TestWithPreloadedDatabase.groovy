@@ -1,4 +1,5 @@
 package com.cedarsoftware.ncube
+
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
@@ -9,21 +10,9 @@ import org.junit.Before
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNotSame
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertSame
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
+import static org.junit.Assert.*
+
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -5999,13 +5988,15 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(0, dtos.length)
     }
 
-    // TODO
     @Test
     void testBootstrapWithOverrides()
 	{
         NCubeRuntime runtime = mutableClient as NCubeRuntime
-        ApplicationID id = runtime.getBootVersion('none', 'example')
-        assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'EXAMPLE', '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD), id)
+        ApplicationID id = runtime.getBootVersion(ApplicationID.DEFAULT_TENANT, 'example')
+        assert id.tenant == ApplicationID.DEFAULT_TENANT
+        assert id.app == 'example'
+        assert id.version == '0.0.0'
+        assert id.status == ReleaseStatus.SNAPSHOT.name()
 
         preloadCubes(id, "sys.bootstrap.user.overloaded.json")
 
@@ -6021,14 +6012,14 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.25.0', 'RELEASE', 'HEAD'), cube.getCell([env:'PROD']))
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'baz'), cube.getCell([env:'SAND']))
 
-        // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
+        // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
         runtime.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":"RELEASE", "app":"UD", "tenant":"foo", "branch":"bar"}')
         assertEquals(new ApplicationID('foo', 'UD', '1.28.0', 'RELEASE', 'bar'), cube.getCell([env:'DEV']))
         assertEquals(new ApplicationID('foo', 'UD', '1.25.0', 'RELEASE', 'bar'), cube.getCell([env:'PROD']))
         assertEquals(new ApplicationID('foo', 'UD', '1.29.0', 'RELEASE', 'bar'), cube.getCell([env:'SAND']))
 
-        // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
+        // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
         runtime.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"branch":"bar"}')
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'bar'), cube.getCell([env:'DEV']))

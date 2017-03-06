@@ -2,12 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.MapUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -325,23 +320,7 @@ class NCubeManager
 
     static void clearCacheForBranches(ApplicationID appId)
     {
-        synchronized (ncubeCache)
-        {
-            Set<ApplicationID> set = [] as Set
-
-            for (ApplicationID id : ncubeCache.keySet())
-            {
-                if (id.cacheKey().startsWith(appId.branchAgnosticCacheKey()))
-                {
-                    set.add(id)
-                }
-            }
-
-            for (ApplicationID appId1 : set)
-            {
-                clearCache(appId1)
-            }
-        }
+        throw new IllegalStateException('Why is this getting called?')
     }
 
     /**
