@@ -592,6 +592,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return result
     }
 
+    Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
+    {
+        Boolean result = bean.call('ncubeController', 'isCubeUpToDate', [appId, cubeName]) as Boolean
+        return result
+    }
+
     ApplicationID getBootVersion(String tenant, String app)
     {
         String branch = getSystemParams()[NCUBE_PARAMS_BRANCH]

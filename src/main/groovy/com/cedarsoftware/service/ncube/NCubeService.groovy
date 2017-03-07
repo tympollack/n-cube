@@ -6,12 +6,7 @@ import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.springframework.stereotype.Service
-
-import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
-import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
 
 /**
  * RESTful Ajax/JSON API for editor application
@@ -37,7 +32,6 @@ import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
 class NCubeService
 {
     private NCubeClient ncubeClient
-    private static final Logger LOG = LogManager.getLogger(NCubeService.class)
 
     NCubeService(NCubeClient ncubeClient)
     {
@@ -69,9 +63,14 @@ class NCubeService
         return mutableClient.restoreCubes(appId, cubeNames)
     }
 
-    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
+    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion = false)
     {
         return mutableClient.getRevisionHistory(appId, cubeName, ignoreVersion)
+    }
+
+    List<String> getAppNames()
+    {
+        throw new IllegalStateException("getAppNames() should not be called on ${getClass().name} without tenant. Please check Spring bean configuration.")
     }
 
     List<String> getAppNames(String tenant)
@@ -79,6 +78,11 @@ class NCubeService
         return mutableClient.getAppNames(tenant)
     }
 
+    Object[] getVersions(String app)
+    {
+        throw new IllegalStateException("getVersions() should not be called on ${getClass().name} without tenant. Please check Spring bean configuration.")
+    }
+    
     Map<String, List<String>> getVersions(String tenant, String app)
     {
         return mutableClient.getVersions(tenant, app)
@@ -139,7 +143,7 @@ class NCubeService
         return mutableClient.getCommits(tenant)
     }
 
-    Map<String, Object> commitBranch(ApplicationID appId, Object[] infoDtos)
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] infoDtos = null)
     {
         return mutableClient.commitBranch(appId, infoDtos)
     }
@@ -148,8 +152,8 @@ class NCubeService
     {
         return mutableClient.rollbackCubes(appId, cubeNames)
     }
-
-    Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
+    
+    Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos = null)
     {
         return mutableClient.updateBranch(appId, cubeDtos)
     }
@@ -164,12 +168,12 @@ class NCubeService
         return mutableClient.mergeDeltas(appId, cubeName, deltas)
     }
 
-    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         return mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
-    Integer acceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
     {
         return mutableClient.mergeAcceptMine(appId, cubeNames)
     }
@@ -184,7 +188,7 @@ class NCubeService
         return mutableClient.deleteCubes(appId, cubeNames)
     }
 
-    Boolean duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
+    Boolean duplicate(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
     {
         return mutableClient.duplicate(appId, destAppId, cubeName, newName)
     }
@@ -194,9 +198,9 @@ class NCubeService
         return mutableClient.releaseCubes(appId, newSnapVer)
     }
 
-    Boolean changeVersionValue(ApplicationID appId, String newSnapVer)
+    void changeVersionValue(ApplicationID appId, String newSnapVer)
     {
-        return mutableClient.changeVersionValue(appId, newSnapVer)
+        mutableClient.changeVersionValue(appId, newSnapVer)
     }
 
     void addAxis(ApplicationID appId, String cubeName, String axisName, String type, String valueType)
@@ -360,7 +364,7 @@ class NCubeService
      * In-place update of a cell.  'Value' is the final (converted) object type to be stored
      * in the indicated (by colIds) cell.
      */
-    Boolean updateNCube(NCube ncube)
+    Boolean updateCube(NCube ncube)
     {
         return mutableClient.updateCube(ncube)
     }
@@ -396,7 +400,7 @@ class NCubeService
             {
                 mutableClient.updateCube(ncube)
             }
-            catch (Exception e)
+            catch (Exception ignore)
             {
                 try
                 {
@@ -404,7 +408,7 @@ class NCubeService
                 }
                 catch (Exception ex)
                 {
-                    throw new IllegalArgumentException("Unable to update or create cube: ${ncube.name}")
+                    throw new IllegalArgumentException("Unable to update or create cube: ${ncube.name}", ex)
                 }
             }
         }
@@ -485,7 +489,7 @@ class NCubeService
         mutableClient.impliedId
     }
 
-    boolean isAdmin(ApplicationID appId, boolean useRealId = false)
+    Boolean isAdmin(ApplicationID appId, boolean useRealId = false)
     {
         mutableClient.isAdmin(appId, useRealId)
     }
@@ -505,12 +509,12 @@ class NCubeService
         runtimeClient.getApplicationID(tenant, app, coord)
     }
 
-    boolean assertPermissions(ApplicationID appId, String resource, Action action)
+    Boolean assertPermissions(ApplicationID appId, String resource, Action action)
     {
         mutableClient.assertPermissions(appId, resource, action ?: Action.READ)
     }
 
-    boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
         mutableClient.checkPermissions(appId, resource, action)
     }
@@ -520,9 +524,9 @@ class NCubeService
         mutableClient.getAppLockedBy(appId)
     }
 
-    void lockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId)
     {
-        mutableClient.lockApp(appId)
+        return mutableClient.lockApp(appId)
     }
 
     void unlockApp(ApplicationID appId)
@@ -540,31 +544,9 @@ class NCubeService
         return mutableClient.releaseVersion(appId, newSnapVer)
     }
 
-    boolean isCubeUpToDate(ApplicationID appId, String cubeName)
+    Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
     {
-        Map options = [:]
-        options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
-        options[(SEARCH_EXACT_MATCH_NAME)] = true
-
-        List<NCubeInfoDto> list = mutableClient.search(appId, cubeName, null, options)
-        if (list.size() != 1)
-        {
-            return false
-        }
-
-        NCubeInfoDto branchDto = list.first()     // only 1 because we used exact match
-        list = mutableClient.search(appId.asHead(), cubeName, null, options)
-        if (list.size() == 0)
-        {   // New n-cube - up-todate because it does not yet exist in HEAD - the branch n-cube is the Creator.
-            return true
-        }
-        else if (list.size() != 1)
-        {   // Should never happen
-            return false
-        }
-
-        NCubeInfoDto headDto = list.first()     // only 1 because we used exact match
-        return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
+        return mutableClient.isCubeUpToDate(appId, cubeName)
     }
 
     void clearTestDatabase()

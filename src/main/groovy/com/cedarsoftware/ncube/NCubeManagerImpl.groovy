@@ -2219,6 +2219,33 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return count
     }
 
+    Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
+    {
+        Map options = [:]
+        options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
+        options[(SEARCH_EXACT_MATCH_NAME)] = true
+
+        List<NCubeInfoDto> list = search(appId, cubeName, null, options)
+        if (list.size() != 1)
+        {
+            return false
+        }
+
+        NCubeInfoDto branchDto = list.first()     // only 1 because we used exact match
+        list = search(appId.asHead(), cubeName, null, options)
+        if (list.size() == 0)
+        {   // New n-cube - up-to-date because it does not yet exist in HEAD - the branch n-cube is the Creator.
+            return true
+        }
+        else if (list.size() != 1)
+        {   // Should never happen
+            return false
+        }
+
+        NCubeInfoDto headDto = list.first()     // only 1 because we used exact match
+        return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
+    }
+
     // -------------------------------- Non API methods --------------------------------------
 
     NCube mergeCubesIfPossible(NCubeInfoDto branchInfo, NCubeInfoDto headInfo, boolean headToBranch)

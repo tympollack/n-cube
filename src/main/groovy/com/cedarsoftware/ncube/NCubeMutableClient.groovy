@@ -130,5 +130,7 @@ interface NCubeMutableClient extends NCubeClient
 
     Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
 
+    Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
+
     void clearTestDatabase()
 }
