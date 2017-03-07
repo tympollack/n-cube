@@ -691,12 +691,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                        (METHOD_NAME) : 'commitMergedCubeToBranch'] as Map
 
         NCubeInfoDto result = null
+        boolean changed = cube.sha1() != headSha1
 
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
             Long revision = row.getLong('revision_number')
             byte[] testData = row.getBytes(TEST_DATA_BIN)
             revision = revision < 0 ? revision - 1 : revision + 1
-            result = insertCube(c, appId, cube, revision, testData, 'merged to branch, txId: [' + txId + ']', true, headSha1, username, 'commitMergedCubeToBranch')
+            result = insertCube(c, appId, cube, revision, testData, 'merged to branch, txId: [' + txId + ']', changed, headSha1, username, 'commitMergedCubeToBranch')
         })
         return result
     }
