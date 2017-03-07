@@ -27,9 +27,12 @@ import org.junit.Ignore
 @Ignore
 class NCubeCleanupBaseTest extends NCubeBaseTest
 {
+    private String NCUBE_PARAMS
+
     @Before
     void setup()
     {
+        NCUBE_PARAMS = System.getProperty('NCUBE_PARAMS')
         NCube cp = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
         mutableClient.createCube(cp)
         cp = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
@@ -39,6 +42,10 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     @After
     void teardown()
     {
+        if (NCUBE_PARAMS)
+        {
+            System.setProperty('NCUBE_PARAMS', NCUBE_PARAMS)
+        }
         NCubeRuntime runtime = mutableClient as NCubeRuntime
         runtime.clearTestDatabase()
         runtime.clearCache()

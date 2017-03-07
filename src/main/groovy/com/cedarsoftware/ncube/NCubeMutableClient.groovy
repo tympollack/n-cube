@@ -132,5 +132,7 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
 
+    Map heartBeat(Map args)
+
     void clearTestDatabase()
 }

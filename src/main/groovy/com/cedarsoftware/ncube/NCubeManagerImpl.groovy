@@ -4,7 +4,12 @@ import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.UniqueIdGenerator
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
@@ -2244,6 +2249,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
         NCubeInfoDto headDto = list.first()     // only 1 because we used exact match
         return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
+    }
+
+    Map heartBeat(Map args)
+    {
+        throw new IllegalStateException('Controller should handle this')
     }
 
     // -------------------------------- Non API methods --------------------------------------

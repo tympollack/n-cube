@@ -57,5 +57,34 @@ class TestNCubeController extends NCubeCleanupBaseTest
 
         mutableClient.updateBranch(BRANCH1)                                       // pick up changes from HEAD
         assert mutableClient.isCubeUpToDate(ncube1.applicationID, ncube1.name)    // up to date
+
+        assert mutableClient.isCubeUpToDate(BRANCH1.asHead(), ncube1.name)          // HEAD is always true
+    }
+
+    @Test
+    void testHeartBeat()
+    {
+        Map health = mutableClient.heartBeat(null)
+        assert health
+        Map stats = health.serverStats as Map
+        assert stats.containsKey('User ID')
+        assert stats.containsKey('Server Info')
+    }
+
+    @Test
+    void testGetApplicationID()
+    {
+        ApplicationID appId = ApplicationID.testAppId
+        appId = appId.asVersion('0.0.0')
+        createCubeFromResource(appId, "sys.bootstrap.test.1.json")
+
+        System.setProperty("NCUBE_PARAMS", '{"branch":"TEST"}')
+
+        ApplicationID bootId = runtimeClient.getApplicationID(appId.tenant, appId.app, [env:null]) as ApplicationID
+        assert bootId.tenant == 'NONE'
+        assert bootId.app == 'DEFAULT_APP'
+        assert bootId.version == '1.28.0'
+        assert bootId.status == 'RELEASE'
+        assert bootId.branch == 'HEAD'
     }
 }
