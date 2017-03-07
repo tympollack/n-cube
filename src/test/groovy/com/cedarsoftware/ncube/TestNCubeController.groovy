@@ -24,10 +24,38 @@ import org.junit.Test
 @CompileStatic
 class TestNCubeController extends NCubeCleanupBaseTest
 {
+    private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
+    private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
+
     @Test
     void testIsCubeUpToDate()
     {
-        NCube ncube = NCubeBuilder.discrete1D
-        mutableClient.createCube(ncube)
+        NCube ncube1 = NCubeBuilder.discrete1D
+        NCube ncube2 = NCubeBuilder.discrete1D
+        ncube1.applicationID = BRANCH1
+        mutableClient.createCube(ncube1)
+        ncube2.applicationID = BRANCH2
+        mutableClient.createCube(ncube2)
+
+        assert mutableClient.isCubeUpToDate(ncube1.applicationID, ncube1.name)    // new state (cube not in HEAD) is considered up-to-date
+        mutableClient.commitBranch(ncube1.applicationID)
+
+        assert !mutableClient.isCubeUpToDate(ncube2.applicationID, ncube2.name)    // Not up-to-date because BRANCH2 created cube (no HEAD sha1) which matches a cube in HEAD
+        mutableClient.commitBranch(ncube2.applicationID)
+
+        assert mutableClient.isCubeUpToDate(ncube1.applicationID, ncube1.name)    // same as HEAD, up-to-date
+        assert !mutableClient.isCubeUpToDate(ncube2.applicationID, ncube2.name)    // same as HEAD, but no HEAD SHA1
+
+        mutableClient.updateBranch(BRANCH2)                                       // pick up changes from HEAD
+        assert mutableClient.isCubeUpToDate(ncube2.applicationID, ncube2.name)    // same as HEAD, with HEAD-SHA1 now on branch cube
+
+        ncube2.addColumn('state', 'AL')
+        mutableClient.updateCube(ncube2)
+        mutableClient.commitBranch(BRANCH2)
+        assert !mutableClient.isCubeUpToDate(ncube1.applicationID, ncube1.name)    // out of date
+        assert mutableClient.isCubeUpToDate(ncube2.applicationID, ncube2.name)
+
+        mutableClient.updateBranch(BRANCH1)                                       // pick up changes from HEAD
+        assert mutableClient.isCubeUpToDate(ncube1.applicationID, ncube1.name)    // up to date
     }
 }
