@@ -1,5 +1,6 @@
 package com.cedarsoftware.util
 
+import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -20,6 +21,8 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.util.EntityUtils
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+
+import javax.servlet.http.HttpServletRequest
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
@@ -43,8 +46,8 @@ import org.apache.logging.log4j.Logger
 class JsonHttpProxy implements CallableBean
 {
     private final CloseableHttpClient httpClient
-    private final CredentialsProvider credsProvider
-    private final AuthCache authCache
+    private CredentialsProvider credsProvider
+    private AuthCache authCache
     private final HttpHost httpHost
     private final String context
     private final String username
@@ -61,12 +64,15 @@ class JsonHttpProxy implements CallableBean
         this.numConnections = numConnections
         httpClient = createClient()
 
-        credsProvider = new BasicCredentialsProvider()
-        AuthScope authScope = new AuthScope(httpHost.hostName, httpHost.port)
-        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, password)
-        credsProvider.setCredentials(authScope, credentials)
-        authCache = new BasicAuthCache()
-        authCache.put(httpHost, new BasicScheme())
+        if (username && password)
+        {
+            credsProvider = new BasicCredentialsProvider()
+            AuthScope authScope = new AuthScope(httpHost.hostName, httpHost.port)
+            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, password)
+            credsProvider.setCredentials(authScope, credentials)
+            authCache = new BasicAuthCache()
+            authCache.put(httpHost, new BasicScheme())
+        }
     }
 
     /**
@@ -97,10 +103,17 @@ class JsonHttpProxy implements CallableBean
         long start = System.nanoTime()
 
         HttpClientContext clientContext = HttpClientContext.create()
-        clientContext.credentialsProvider = credsProvider
-        clientContext.authCache = authCache
-
         HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${method}")
+        if (username && password)
+        {
+            clientContext.credentialsProvider = credsProvider
+            clientContext.authCache = authCache
+        }
+        else
+        {
+            addHeaders(request)
+        }
+
         String poser = System.getProperty('ncube.fakeuser')
         if (StringUtilities.hasContent(poser))
         {
@@ -136,5 +149,20 @@ class JsonHttpProxy implements CallableBean
             throw new EnvelopeException("REST call [${bean}.${method}] indicated failure:", envelope)
         }
         return envelope.data
+    }
+
+    private void addHeaders(HttpPost proxyRequest)
+    {
+        HttpServletRequest servletRequest = JsonCommandServlet.servletRequest.get()
+        if (servletRequest instanceof HttpServletRequest)
+        {
+            Enumeration<String> e = servletRequest.headerNames
+            while (e.hasMoreElements())
+            {
+                String headerName = e.nextElement()
+                String headerValue = servletRequest.getHeader(headerName)
+                proxyRequest.setHeader(headerName, headerValue)
+            }
+        }
     }
 }
