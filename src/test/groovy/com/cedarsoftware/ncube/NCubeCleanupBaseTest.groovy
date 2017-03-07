@@ -42,7 +42,7 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
         runtime.clearCache()
     }
 
-    NCube createCubeFromResource(String fileName, ApplicationID appId = ApplicationID.testAppId)
+    NCube createCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
     {
         String json = NCubeRuntime.getResourceAsString(fileName)
         NCube ncube = NCube.fromSimpleJson(json)
@@ -55,7 +55,7 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     {
         for (String name : names)
         {
-            createCubeFromResource(name, id)
+            createCubeFromResource(id, name)
         }
         runtimeClient.clearCache(id)
     }

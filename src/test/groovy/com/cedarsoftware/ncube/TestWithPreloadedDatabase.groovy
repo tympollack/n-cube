@@ -154,7 +154,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testCommitBranchOnCubeCreatedInBranch()
     {
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
 
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assert dtos.size() == 1
@@ -182,8 +182,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testMergeWithNoHadCube()
     {
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
-        createCubeFromResource('test.branch.age.2.json', BRANCH2)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
+        createCubeFromResource(BRANCH2, 'test.branch.age.2.json')
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.length)
@@ -195,7 +195,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void updateWithNoChangeClearsChangedFlag()
     {
-        NCube cube1 = createCubeFromResource('test.branch.1.json', BRANCH1)
+        NCube cube1 = createCubeFromResource(BRANCH1, 'test.branch.1.json')
         mutableClient.commitBranch(BRANCH1)
         List<NCubeInfoDto> cubes0 = mutableClient.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assert cubes0.size() == 1
@@ -228,7 +228,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testGetBranchChangesOnceBranchIsDeleted()
     {
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.length)
@@ -297,7 +297,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testUpdateBranchOnCubeCreatedInBranch()
     {
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.length)
@@ -319,7 +319,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     void testRollbackBranchWithPendingAdd()
     {
         preloadCubes(HEAD, "test.branch.1.json")
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
 
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.size())
@@ -499,7 +499,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNull(mutableClient.getCube(BRANCH1, 'TestAge'))
         assertNull(mutableClient.getCube(HEAD, 'TestAge'))
 
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, 'TestBranch').size())
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, 'TestBranch').size())
@@ -560,7 +560,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         // update the new edited cube.
         assertTrue(mutableClient.updateCube(cube))
 
-        createCubeFromResource('test.branch.age.1.json', BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
 
         // Only Branch "TestBranch" has been updated.
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
@@ -689,7 +689,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testCommitBranchOnUpdateWithOldInvalidSha1()
     {
-        createCubeFromResource('test.branch.1.json', HEAD)
+        createCubeFromResource(HEAD, 'test.branch.1.json')
 
         //assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").length)
         // pre-branch, cubes don't exist
@@ -2290,7 +2290,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
         assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
 
-        createCubeFromResource("test.branch.age.2.json", BRANCH2)
+        createCubeFromResource(BRANCH2, "test.branch.age.2.json")
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH2)
         assertEquals(1, dtos.length)
@@ -2301,7 +2301,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert dtos2.size() == 1
         assert dtos2[0].name == 'TestAge'
 
-        createCubeFromResource("test.branch.age.1.json", BRANCH1)
+        createCubeFromResource(BRANCH1, "test.branch.age.1.json")
 
         dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.length)
@@ -4778,7 +4778,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testConflictOverwriteBranch()
 	{
-        NCube cube = createCubeFromResource("test.branch.2.json", BRANCH2)
+        NCube cube = createCubeFromResource(BRANCH2, "test.branch.2.json")
         assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", cube.sha1())
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH2)
@@ -4791,7 +4791,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
         assertEquals("BAZ", cube.getCell([Code : 10.0]))
 
-        createCubeFromResource("test.branch.1.json", BRANCH1)
+        createCubeFromResource(BRANCH1, "test.branch.1.json")
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals("B4020BFB1B47942D8661640E560881E34993B608", cube.sha1())
@@ -5267,14 +5267,14 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testConflictAcceptMine()
     {
-        createCubeFromResource("test.branch.2.json", BRANCH2)
+        createCubeFromResource(BRANCH2, "test.branch.2.json")
         mutableClient.commitBranch(BRANCH2)
 
         NCube cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
         assertEquals("BAZ", cube.getCell([Code : 10.0]))
 
-        createCubeFromResource("test.branch.1.json", BRANCH1)
+        createCubeFromResource(BRANCH1, "test.branch.1.json")
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5535,13 +5535,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
         assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH2))
 
-        createCubeFromResource("test.branch.age.2.json", BRANCH2)
+        createCubeFromResource(BRANCH2, "test.branch.age.2.json")
 
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH2)
         assertEquals(1, dtos.size())
         mutableClient.commitBranch(BRANCH2, dtos as Object[])
 
-        createCubeFromResource("test.branch.age.1.json", BRANCH1)
+        createCubeFromResource(BRANCH1, "test.branch.age.1.json")
 
         dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.size())
@@ -5664,7 +5664,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
         assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
 
-        createCubeFromResource("test.branch.age.2.json", BRANCH2)
+        createCubeFromResource(BRANCH2, "test.branch.age.2.json")
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH2)
         assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
@@ -5673,7 +5673,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 0
         assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 0
 
-        createCubeFromResource("test.branch.age.1.json", BRANCH1)
+        createCubeFromResource(BRANCH1, "test.branch.age.1.json")
 
         result = mutableClient.updateBranch(BRANCH1)
         assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 0

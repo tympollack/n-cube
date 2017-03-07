@@ -275,8 +275,8 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testGetReferencedCubeNames()
     {
-        NCube n1 = createCubeFromResource('template1.json', defaultSnapshotApp)
-        NCube n2 = createCubeFromResource('template2.json', defaultSnapshotApp)
+        NCube n1 = createCubeFromResource(defaultSnapshotApp, 'template1.json')
+        NCube n2 = createCubeFromResource(defaultSnapshotApp, 'template2.json')
 
         Set refs = mutableClient.getReferencedCubeNames(defaultSnapshotApp, n1.name)
 
@@ -305,8 +305,8 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testGetReferencedCubeNamesSimple()
     {
-        createCubeFromResource('aa.json', defaultSnapshotApp)
-        createCubeFromResource('bb.json', defaultSnapshotApp)
+        createCubeFromResource(defaultSnapshotApp, 'aa.json')
+        createCubeFromResource(defaultSnapshotApp, 'bb.json')
 
         Set refs = mutableClient.getReferencedCubeNames(defaultSnapshotApp, 'aa')
 
@@ -413,7 +413,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testChangeVersionValue()
     {
         ApplicationID newId = defaultSnapshotApp.createNewSnapshotId('1.1.20')
-        NCube n1 = createCubeFromResource('stringIds.json', defaultSnapshotApp)
+        NCube n1 = createCubeFromResource(defaultSnapshotApp, 'stringIds.json')
 
         assertNotNull(mutableClient.getCube(defaultSnapshotApp, 'idTest'))
         assertNull(mutableClient.getCube(newId, 'idTest'))
@@ -679,7 +679,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNotNull(runtimeClient.getUrlClassLoader(customId, [:]))
         assertEquals(1, getCacheSize(customId))
 
-        NCube testCube = createCubeFromResource('sys.classpath.tests.json', customId)
+        NCube testCube = createCubeFromResource(customId, 'sys.classpath.tests.json')
 
         assertEquals(1, runtimeClient.getUrlClassLoader(customId, [:]).URLs.length)
         assertEquals(2, getCacheSize(customId))
@@ -710,7 +710,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNotNull(urlClassLoader1)
         assertEquals(1, getCacheSize(customId))
 
-        createCubeFromResource('sys.classpath.tests.json', customId)
+        createCubeFromResource(customId, 'sys.classpath.tests.json')
 
         final URLClassLoader urlClassLoader = runtimeClient.getUrlClassLoader(customId, [:])
         assertEquals(1, urlClassLoader.URLs.length)
@@ -993,16 +993,16 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         ApplicationID appId = new ApplicationID('NONE', 'none', '1.0.0', 'SNAPSHOT', 'jdereg')
 
-        NCube cube1 = createCubeFromResource('testCube1.json', appId)
+        NCube cube1 = createCubeFromResource(appId, 'testCube1.json')
         String sha1 = cube1.sha1()
 
-        NCube cube2 = createCubeFromResource('template1.json', appId)
+        NCube cube2 = createCubeFromResource(appId, 'template1.json')
         String sha2 = cube2.sha1()
 
-        NCube cube3 = createCubeFromResource('urlPieces.json', appId)
+        NCube cube3 = createCubeFromResource(appId, 'urlPieces.json')
         String sha3 = cube3.sha1()
 
-        NCube cube4 = createCubeFromResource('months.json', appId)
+        NCube cube4 = createCubeFromResource(appId, 'months.json')
         String sha4 = cube4.sha1()
 
         List<NCubeInfoDto> changes = mutableClient.getBranchChangesForHead(appId)
@@ -1386,7 +1386,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         // branch was changed).  But, because the branch owner made the same change as someone else, when they
         // go to update, it is recognized, and then their branch cube just has it's HEAD SHA1 updated.
         ApplicationID johnAppId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'deep.blue', '1.0.0', 'SNAPSHOT', 'jdereg')
-        createCubeFromResource('testCube6.json', johnAppId)
+        createCubeFromResource(johnAppId, 'testCube6.json')
         List<NCubeInfoDto> cubes = mutableClient.getBranchChangesForHead(johnAppId)
         mutableClient.commitBranch(johnAppId, cubes.toArray())
         ApplicationID kenAppId  = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'deep.blue', '1.0.0', 'SNAPSHOT', 'ken')
@@ -1474,7 +1474,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testCopyBranch()
     {
         ApplicationID copyAppId = defaultSnapshotApp.asBranch('copy')
-        NCube cube = createCubeFromResource('latlon.json', defaultSnapshotApp)
+        NCube cube = createCubeFromResource(defaultSnapshotApp, 'latlon.json')
 
         mutableClient.copyBranch(defaultSnapshotApp, copyAppId)
         NCube copiedCube = mutableClient.getCube(copyAppId, cube.name)
@@ -1502,7 +1502,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testThinCopyBranch()
     {
         ApplicationID copyAppId = defaultSnapshotApp.asBranch('copy')
-        NCube cube = createCubeFromResource('test.branch.1.json', defaultSnapshotApp)
+        NCube cube = createCubeFromResource(defaultSnapshotApp, 'test.branch.1.json')
         mutableClient.commitBranch(defaultSnapshotApp)
 
         mutableClient.copyBranch(defaultSnapshotApp.asHead(), copyAppId)
@@ -1542,7 +1542,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testMutateReleaseCube()
     {
         assertNotNull(mutableClient.getCube(defaultBootApp, SYS_LOCK))
-        NCube cube = createCubeFromResource('latlon.json', defaultSnapshotApp)
+        NCube cube = createCubeFromResource(defaultSnapshotApp, 'latlon.json')
         Object[] cubeInfos = mutableClient.search(defaultSnapshotApp, '*', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         assertNotNull(cubeInfos)
         assertEquals(2, cubeInfos.length)
@@ -1625,9 +1625,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testCircularCubeReference()
     {
-        createCubeFromResource('a.json', defaultSnapshotApp)
-        createCubeFromResource('b.json', defaultSnapshotApp)
-        createCubeFromResource('c.json', defaultSnapshotApp)
+        createCubeFromResource(defaultSnapshotApp, 'a.json')
+        createCubeFromResource(defaultSnapshotApp, 'b.json')
+        createCubeFromResource(defaultSnapshotApp, 'c.json')
 
         Set<String> names = mutableClient.getReferencedCubeNames(defaultSnapshotApp, 'a')
         assertEquals(3, names.size())
@@ -1771,11 +1771,11 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     private void loadTestClassPathCubes()
     {
         runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.versions.json')
-        createCubeFromResource('sys.versions.json', defaultSnapshotApp)
+        createCubeFromResource(defaultSnapshotApp, 'sys.versions.json')
         NCube ncube = runtimeClient.getNCubeFromResource(defaultSnapshotApp, 'sys.classpath.json')
         mutableClient.updateCube(ncube)
-        createCubeFromResource('sys.classpath.local.json', defaultSnapshotApp)
-        createCubeFromResource('sys.classpath.base.json', defaultSnapshotApp)
+        createCubeFromResource(defaultSnapshotApp, 'sys.classpath.local.json')
+        createCubeFromResource(defaultSnapshotApp, 'sys.classpath.base.json')
     }
 
     /**

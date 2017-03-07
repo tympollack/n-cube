@@ -44,8 +44,8 @@ class TestThreadedClearCache extends NCubeCleanupBaseTest
     @Ignore
     void testCubesWithThreadedClearCacheWithAppId()
     {
-        createCubeFromResource('sys.classpath.2per.app.json', usedId)
-        createCubeFromResource('math.controller.json', usedId)
+        createCubeFromResource(usedId, 'sys.classpath.2per.app.json')
+        createCubeFromResource(usedId, 'math.controller.json')
         concurrencyTest()
     }
 

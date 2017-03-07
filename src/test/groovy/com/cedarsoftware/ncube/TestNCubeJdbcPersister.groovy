@@ -197,7 +197,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     @Test
     void testCommitCubeThatDoesntExist()
     {
-        createCubeFromResource('2DSimpleJson.json', defaultSnapshotApp)
+        createCubeFromResource(defaultSnapshotApp, '2DSimpleJson.json')
         List<NCubeInfoDto> dtos = mutableClient.search(defaultSnapshotApp, 'businessUnit', null, null)
         assert 1 == dtos.size()
         NCubeInfoDto dto = dtos[0]
