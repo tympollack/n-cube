@@ -148,7 +148,7 @@ class TestApplicationID
     {
         ApplicationID appId = new ApplicationID('Sears', 'Inventory', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
         assertEquals 'sears/inventory/1.0.0/snapshot/test/', appId.cacheKey('')
-        assertEquals 'sears/inventory/1.0.0/snapshot/test/', appId.toString()
+        assertEquals 'Sears/Inventory/1.0.0/SNAPSHOT/TEST/', appId.toString()
     }
 
     @Test
@@ -200,7 +200,8 @@ class TestApplicationID
     void testAppStrSameAsToString()
     {
         ApplicationID appId = new ApplicationID('Sears', 'Inventory', '1.0.0', ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        assertEquals appId.toString(), appId.cacheKey('')
+        assertNotEquals(appId.toString(), appId.cacheKey(''))
+        assertEquals(appId.toString().toLowerCase(), appId.cacheKey(''))
     }
 
     // Want to know if this assumption ever changes
@@ -607,5 +608,14 @@ class TestApplicationID
         ApplicationID appId = ApplicationID.testAppId
         assert appId.versionValue == 999 * 1000 * 1000 + 99 * 1000 + 9
         assert ApplicationID.getVersionValue('5.6') == 0     // needs 3 parts
+    }
+
+    @Test
+    void testApplicationIdIsCaseInsensitive()
+    {
+        ApplicationID lower = new ApplicationID('foo', 'bar', '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'baz')
+        ApplicationID upper = new ApplicationID('FOO', 'BAR', '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'BAZ')
+        assert lower == upper
+        assert lower.hashCode() == upper.hashCode()
     }
 }

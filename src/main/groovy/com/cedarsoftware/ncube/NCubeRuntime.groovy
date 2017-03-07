@@ -498,6 +498,56 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return map
     }
 
+    String generateCommitLink(ApplicationID appId, Object[] infoDtos)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} generateCommitLink")
+        }
+        String link = bean.call('ncubeController', 'generateCommitLink', [appId, infoDtos]) as String
+        return link
+    }
+
+    Map honorCommit(String tenant, String commitId)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} honorCommit")
+        }
+        Map result = bean.call('ncubeController', 'honorCommit', [tenant, commitId]) as Map
+        return result
+    }
+
+    Boolean cancelCommit(String tenant, String commitId)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} cancelCommit")
+        }
+        Boolean result = bean.call('ncubeController', 'cancelCommit', [tenant, commitId]) as Boolean
+        return result
+    }
+
+    Boolean reopenCommit(String tenant, String commitId)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} reopenCommit")
+        }
+        Boolean result = bean.call('ncubeController', 'reopenCommit', [tenant, commitId]) as Boolean
+        return result
+    }
+
+    Object[] getCommits(String tenant)
+    {
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} getCommits")
+        }
+        Object[] result = bean.call('ncubeController', 'getCommits', [tenant]) as Object[]
+        return result
+    }
+
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
     {
         if (!mutable)
@@ -594,10 +644,9 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
 
     protected void clearCache()
     {
-        ncubeCacheManager.cacheNames.each { String appIdString ->
-            ApplicationID appId = ApplicationID.convert(appIdString)
-            clearCache(appId.asSnapshot())
-            clearCache(appId.asRelease())
+        ncubeCacheManager.cacheNames.each { String cacheKey ->
+            ApplicationID appId = ApplicationID.convert(cacheKey)
+            clearCache(appId)
         }
     }
 

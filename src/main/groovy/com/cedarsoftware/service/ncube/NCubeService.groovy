@@ -114,6 +114,31 @@ class NCubeService
         return mutableClient.getBranchChangesForMyBranch(appId, branch)
     }
 
+    String generateCommitLink(ApplicationID appId, Object[] infoDtos)
+    {
+        return mutableClient.generateCommitLink(appId, infoDtos)
+    }
+
+    Map<String, Object> honorCommit(String tenant, String commitId)
+    {
+        return mutableClient.honorCommit(tenant, commitId)
+    }
+
+    Boolean cancelCommit(String tenant, String commitId)
+    {
+        return mutableClient.cancelCommit(tenant, commitId)
+    }
+
+    Boolean reopenCommit(String tenant, String commitId)
+    {
+        return mutableClient.reopenCommit(tenant, commitId)
+    }
+
+    Object[] getCommits(String tenant)
+    {
+        return mutableClient.getCommits(tenant)
+    }
+
     Map<String, Object> commitBranch(ApplicationID appId, Object[] infoDtos)
     {
         return mutableClient.commitBranch(appId, infoDtos)

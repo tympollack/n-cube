@@ -108,6 +108,16 @@ interface NCubeMutableClient extends NCubeClient
 
     Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
 
+    String generateCommitLink(ApplicationID appId, Object[] infoDtos)
+
+    Map honorCommit(String tenant, String commitId)
+
+    Boolean cancelCommit(String tenant, String commitId)
+
+    Boolean reopenCommit(String tenant, String commitId)
+
+    Object[] getCommits(String tenant)
+
     Map<String, Object> commitBranch(ApplicationID appId)
 
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes)

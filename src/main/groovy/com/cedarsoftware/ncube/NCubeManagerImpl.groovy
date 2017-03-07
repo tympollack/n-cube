@@ -1922,6 +1922,31 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return ret
     }
 
+    String generateCommitLink(ApplicationID appId, Object[] infoDtos)
+    {
+        return null
+    }
+
+    Map honorCommit(String tenant, String commitId)
+    {
+        return null
+    }
+
+    Boolean cancelCommit(String tenant, String commitId)
+    {
+        return null
+    }
+
+    Boolean reopenCommit(String tenant, String commitId)
+    {
+        return null
+    }
+
+    Object[] getCommits(String tenant)
+    {
+        return new Object[0]
+    }
+
     /**
      * Commit the passed in changed cube records identified by NCubeInfoDtos.
      * @return array of NCubeInfoDtos that are to be committed.

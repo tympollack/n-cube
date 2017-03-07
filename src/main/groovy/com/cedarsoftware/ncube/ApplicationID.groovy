@@ -93,11 +93,11 @@ class ApplicationID
     String cacheKey(String name = '')
     {
         name = name ?: ''
-        return "${tenant}/${app}/${version}/${status}/${branch}/${name}".toLowerCase()
+        return "${toString()}${name}".toLowerCase()
     }
 
     /**
-     * Convert "tenant / app / version / branch / ..." into Snapshot Application ID
+     * Convert "tenant/app/version/status/branch/" to ApplicationID
      */
     static ApplicationID convert(String appIdString)
     {
@@ -133,7 +133,7 @@ class ApplicationID
 
     String toString()
     {
-        return cacheKey()
+        return "${tenant}/${app}/${version}/${status}/${branch}/"
     }
 
     boolean isSnapshot()
