@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.EnvelopeException
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.runner.RunWith
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
@@ -30,6 +31,7 @@ import static org.junit.Assert.assertTrue
 @RunWith(SpringRunner.class)
 @ContextConfiguration(locations = ['/config/beans.xml'])
 @ActiveProfiles(profiles = ['runtime', 'test-mutable'])
+@Ignore
 class NCubeBaseTest
 {
     static NCubeRuntimeClient getRuntimeClient()

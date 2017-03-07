@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -23,6 +24,7 @@ import org.junit.Before
  */
 
 @CompileStatic
+@Ignore
 class NCubeCleanupBaseTest extends NCubeBaseTest
 {
     @Before
