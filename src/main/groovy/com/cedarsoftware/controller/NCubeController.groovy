@@ -1348,6 +1348,31 @@ class NCubeController extends BaseController
 
     // TODO get generateCommitLink(), honorCommit() and getCommits() from https://github.com/jdereg/n-cube-editor/pull/427
 
+    String generateCommitLink(ApplicationID appId, Object[] infoDtos)
+    {
+        appId = addTenant(appId)
+        String commitId = ncubeService.generateCommitLink(appId, infoDtos)
+        return commitId
+    }
+
+    Boolean cancelCommit(String commitId)
+    {
+        Boolean result = ncubeService.cancelCommit(tenant, commitId)
+        return result
+    }
+
+    Boolean reopenCommit(String commitId)
+    {
+        Boolean result = ncubeService.reopenCommit(tenant, commitId)
+        return result
+    }
+
+    Object[] getCommits()
+    {
+        Object[] commits = ncubeService.getCommits(tenant)
+        return commits
+    }
+
     Object commitCube(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
