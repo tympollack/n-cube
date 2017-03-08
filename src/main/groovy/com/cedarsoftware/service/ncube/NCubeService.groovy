@@ -1,10 +1,6 @@
 package com.cedarsoftware.service.ncube
 
 import com.cedarsoftware.ncube.*
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.io.JsonObject
-import com.cedarsoftware.util.io.JsonReader
-import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import org.springframework.stereotype.Service
 
@@ -29,7 +25,7 @@ import org.springframework.stereotype.Service
  */
 @CompileStatic
 @Service
-class NCubeService
+class NCubeService implements NCubeMutableClient
 {
     private NCubeClient ncubeClient
 
@@ -205,78 +201,12 @@ class NCubeService
 
     void addAxis(ApplicationID appId, String cubeName, String axisName, String type, String valueType)
     {
-        if (StringUtilities.isEmpty(axisName))
-        {
-            throw new IllegalArgumentException("Axis name cannot be empty.")
-        }
-
-        NCube ncube = mutableClient.getCube(appId, cubeName)
-        if (ncube == null)
-        {
-            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
-        }
-
-        long maxId = -1
-        Iterator<Axis> i = ncube.axes.iterator()
-        while (i.hasNext())
-        {
-            Axis axis = i.next()
-            if (axis.id > maxId)
-            {
-                maxId = axis.id
-            }
-        }
-        Axis axis = new Axis(axisName, AxisType.valueOf(type), AxisValueType.valueOf(valueType), true, Axis.DISPLAY, maxId + 1)
-        ncube.addAxis(axis)
-        mutableClient.updateCube(ncube)
+        throw new IllegalStateException('should not get here')
     }
 
     void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName)
     {
-        NCube nCube = mutableClient.getCube(appId, cubeName)
-        if (nCube == null)
-        {
-            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
-        }
-
-        if (StringUtilities.isEmpty(axisName))
-        {
-            axisName = refAxisName
-        }
-
-        long maxId = -1
-        Iterator<Axis> i = nCube.axes.iterator()
-        while (i.hasNext())
-        {
-            Axis axis = i.next()
-            if (axis.id > maxId)
-            {
-                maxId = axis.id
-            }
-        }
-
-        Map args = [:]
-        args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
-        args[ReferenceAxisLoader.REF_APP] = refAppId.app
-        args[ReferenceAxisLoader.REF_VERSION] = refAppId.version
-        args[ReferenceAxisLoader.REF_STATUS] = refAppId.status
-        args[ReferenceAxisLoader.REF_BRANCH] = refAppId.branch
-        args[ReferenceAxisLoader.REF_CUBE_NAME] = refCubeName  // cube name of the holder of the referring (pointing) axis
-        args[ReferenceAxisLoader.REF_AXIS_NAME] = refAxisName    // axis name of the referring axis (the variable that you had missing earlier)
-        if (transformAppId?.app)
-        {
-            args[ReferenceAxisLoader.TRANSFORM_APP] = transformAppId.app // Notice no target tenant.  User MUST stay within TENENT boundary
-            args[ReferenceAxisLoader.TRANSFORM_VERSION] = transformAppId.version
-            args[ReferenceAxisLoader.TRANSFORM_STATUS] = transformAppId.status
-            args[ReferenceAxisLoader.TRANSFORM_BRANCH] = transformAppId.branch
-            args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = transformCubeName
-            args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = transformMethodName
-        }
-        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, args)
-
-        Axis axis = new Axis(axisName, maxId + 1, true, refAxisLoader)
-        nCube.addAxis(axis)
-        mutableClient.updateCube(nCube)
+        throw new IllegalStateException('should not get here')
     }
 
     /**
@@ -284,19 +214,7 @@ class NCubeService
      */
     void deleteAxis(ApplicationID appId, String name, String axisName)
     {
-        NCube ncube = mutableClient.getCube(appId, name)
-        if (ncube == null)
-        {
-            throw new IllegalArgumentException("Could not delete axis '" + axisName + "', NCube '" + name + "' not found for app: " + appId)
-        }
-
-        if (ncube.numDimensions == 1)
-        {
-            throw new IllegalArgumentException("Could not delete axis '" + axisName + "' - at least one axis must exist on n-cube.")
-        }
-
-        ncube.deleteAxis(axisName)
-        mutableClient.updateCube(ncube)
+        throw new IllegalStateException('should not get here')
     }
 
     /**
@@ -304,44 +222,7 @@ class NCubeService
      */
     void updateAxis(ApplicationID appId, String name, String origAxisName, String axisName, boolean hasDefault, boolean isSorted, boolean fireAll)
     {
-        NCube ncube = mutableClient.getCube(appId, name)
-        if (ncube == null)
-        {
-            throw new IllegalArgumentException("Could not update axis '" + origAxisName + "', NCube '" + name + "' not found for app: " + appId)
-        }
-
-        // Rename axis
-        if (!origAxisName.equalsIgnoreCase(axisName))
-        {
-            ncube.renameAxis(origAxisName, axisName)
-        }
-
-        // Update default column setting (if changed)
-        Axis axis = ncube.getAxis(axisName)
-        if (axis.hasDefaultColumn() && !hasDefault)
-        {   // If it went from having default column to NOT having default column...
-            ncube.deleteColumn(axisName, null)
-        }
-        else if (!axis.hasDefaultColumn() && hasDefault)
-        {
-            if (axis.type != AxisType.NEAREST)
-            {
-                ncube.addColumn(axisName, null)
-            }
-        }
-
-        // update preferred column order
-        if (axis.type == AxisType.RULE)
-        {
-            axis.fireAll = fireAll
-        }
-        else
-        {
-            axis.columnOrder = isSorted ? Axis.SORTED : Axis.DISPLAY
-        }
-
-        ncube.clearSha1()
-        mutableClient.updateCube(ncube)
+        throw new IllegalStateException('should not get here')
     }
 
     /**
@@ -349,15 +230,7 @@ class NCubeService
      */
     void breakAxisReference(ApplicationID appId, String name, String axisName)
     {
-        NCube ncube = mutableClient.getCube(appId, name)
-        if (ncube == null)
-        {
-            throw new IllegalArgumentException("Could not break reference for '" + axisName + "', NCube '" + name + "' not found for app: " + appId)
-        }
-
-        // Update default column setting (if changed)
-        ncube.breakAxisReference(axisName)
-        mutableClient.updateCube(ncube)
+        throw new IllegalStateException('should not get here')
     }
 
     /**
@@ -380,38 +253,7 @@ class NCubeService
      */
     void updateCube(ApplicationID appId, String json)
     {
-        json = json.trim()
-        List cubes
-        if (json.startsWith("["))
-        {
-            cubes = getCubes(json)
-        }
-        else
-        {
-            cubes = new ArrayList()
-            cubes.add(NCube.fromSimpleJson(json))
-        }
-
-        for (Object object : cubes)
-        {
-            NCube ncube = (NCube) object
-            ncube.applicationID = appId
-            try
-            {
-                mutableClient.updateCube(ncube)
-            }
-            catch (Exception ignore)
-            {
-                try
-                {
-                    mutableClient.createCube(ncube)
-                }
-                catch (Exception ex)
-                {
-                    throw new IllegalArgumentException("Unable to update or create cube: ${ncube.name}", ex)
-                }
-            }
-        }
+        throw new IllegalStateException("Never call this method")
     }
 
     Object[] getTestData(ApplicationID appId, String cubeName)
@@ -547,42 +389,6 @@ class NCubeService
     void clearTestDatabase()
     {
         mutableClient.clearTestDatabase()
-    }
-
-    // =========================================== Helper methods ======================================================
-
-    static List getCubes(String json)
-    {
-        String lastSuccessful = ""
-        try
-        {
-            Object[] cubes = (Object[]) JsonReader.jsonToJava(json)
-            List cubeList = new ArrayList(cubes.length)
-
-            for (Object cube : cubes)
-            {
-                JsonObject ncube = (JsonObject) cube
-                if (ncube.containsKey("action"))
-                {
-                    cubeList.add(ncube)
-                    lastSuccessful = (String) ncube.get("ncube")
-                }
-                else
-                {
-                    String json1 = JsonWriter.objectToJson(ncube)
-                    NCube nCube = NCube.fromSimpleJson(json1)
-                    cubeList.add(nCube)
-                    lastSuccessful = nCube.name
-                }
-            }
-
-            return cubeList
-        }
-        catch (Exception e)
-        {
-            String s = "Failed to load n-cubes from passed in JSON, last successful cube read: " + lastSuccessful
-            throw new IllegalArgumentException(s, e)
-        }
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
