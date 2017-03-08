@@ -4456,36 +4456,36 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     void testMergedCubesIfPossibleResultsInNewCubeMatchingHead() {
         ApplicationID teamBranch = BRANCH1.asBranch('TEAM')
         preloadCubes(BRANCH2, "test.branch.1.json")
-        VersionControl.commitBranch(BRANCH2)
-        NCubeManager.copyBranch(HEAD, BRANCH1)
-        NCubeManager.copyBranch(HEAD, teamBranch)
+        mutableClient.commitBranch(BRANCH2)
+        mutableClient.copyBranch(HEAD, BRANCH1)
+        mutableClient.copyBranch(HEAD, teamBranch)
         // all 3 branches on HEAD
 
         // branch1 makes change
-        NCube branch1Cube = NCubeManager.loadCube(BRANCH1, 'TestBranch')
+        NCube branch1Cube = mutableClient.getCube(BRANCH1, 'TestBranch')
         branch1Cube.setCell('AAA', [Code : -15])
-        NCubeManager.updateCube(BRANCH1, branch1Cube)
+        mutableClient.updateCube(branch1Cube)
 
         // branch2 makes different change
-        NCube branch2Cube = NCubeManager.loadCube(BRANCH2, 'TestBranch')
+        NCube branch2Cube = mutableClient.getCube(BRANCH2, 'TestBranch')
         branch2Cube.setCell('DDD', [Code : 0])
-        NCubeManager.updateCube(BRANCH2, branch2Cube)
+        mutableClient.updateCube(branch2Cube)
 
         // team branch takes branch2 change and commits
-        NCube teamCube = NCubeManager.loadCube(teamBranch, 'TestBranch')
+        NCube teamCube = mutableClient.getCube(teamBranch, 'TestBranch')
         teamCube.setCell('DDD', [Code : 0])
-        NCubeManager.updateCube(teamBranch, teamCube)
-        VersionControl.commitBranch(teamBranch)
+        mutableClient.updateCube(teamCube)
+        mutableClient.commitBranch(teamBranch)
 
         // branch1 updates then commits change
-        VersionControl.updateBranch(BRANCH1)
-        VersionControl.commitBranch(BRANCH1)
+        mutableClient.updateBranch(BRANCH1)
+        mutableClient.commitBranch(BRANCH1)
 
-        NCubeInfoDto head = NCubeManager.search(HEAD, 'TestBranch', null, null).first()
+        NCubeInfoDto head = mutableClient.search(HEAD, 'TestBranch', null, null).first()
 
         // branch2 updates, should have all changes and match HEAD
-        Map result = VersionControl.updateBranch(BRANCH2)
-        NCubeInfoDto dto = (result[VersionControl.BRANCH_UPDATES] as List).first() as NCubeInfoDto
+        Map result = mutableClient.updateBranch(BRANCH2)
+        NCubeInfoDto dto = (result[mutableClient.BRANCH_UPDATES] as List).first() as NCubeInfoDto
         assert dto.headSha1 == head.sha1
         assert dto.sha1 == dto.headSha1
         assert !dto.changed // should no longer be changed after matching HEAD
