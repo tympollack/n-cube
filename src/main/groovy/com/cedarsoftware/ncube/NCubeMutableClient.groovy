@@ -110,7 +110,7 @@ interface NCubeMutableClient extends NCubeClient
 
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
 
-    Map honorCommit(String commitId)
+    Map<String, Object> honorCommit(String commitId)
 
     NCube cancelCommit(String commitId)
 

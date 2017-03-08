@@ -1357,7 +1357,8 @@ class NCubeController extends BaseController
 
     Object honorCommit(String commitId)
     {
-        return null
+        Map result = ncubeService.honorCommit(commitId)
+        return result
     }
 
     NCube cancelCommit(String commitId)

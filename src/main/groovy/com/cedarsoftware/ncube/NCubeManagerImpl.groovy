@@ -5,6 +5,7 @@ import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.*
+import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
@@ -1975,9 +1976,38 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return newId
     }
 
-    Map honorCommit(String commitId)
+    Map<String, Object> honorCommit(String commitId)
     {
-        return null
+        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
+
+        String status = commitsCube.getCell([property:'status'])
+        if (status.contains('closed'))
+        {
+            // TODO - add more detailed information
+            throw new IllegalArgumentException('Commit request already closed.')
+        }
+
+        String appIdString = commitsCube.getCell([property:'appId'])
+        ApplicationID commitAppId = ApplicationID.convert(appIdString)
+        String commitInfoJson = commitsCube.getCell([property:'cubeNames']) as String
+        List<Map<String, String>> commitInfo = JsonReader.jsonToJava(commitInfoJson) as List
+
+        Object[] allDtos = getBranchChangesForHead(commitAppId)
+        Object[] commitDtos = allDtos.findAll {
+            NCubeInfoDto dto = it as NCubeInfoDto
+            commitInfo.find { Map<String, String> info ->
+                info.name == dto.name && info.id == dto.id
+            }
+        }
+
+        Map ret = commitBranch(commitAppId, commitDtos)
+
+        commitsCube.setCell('closed complete', [property:'status'])
+        commitsCube.setCell(getUserId(), [property:'commitUser'])
+        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [property:'commitTime'])
+        updateCube(commitsCube, true)
+        return ret
     }
 
     NCube cancelCommit(String commitId)

@@ -508,7 +508,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return link
     }
 
-    Map honorCommit(String commitId)
+    Map<String, Object> honorCommit(String commitId)
     {
         if (!mutable)
         {

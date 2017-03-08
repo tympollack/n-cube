@@ -112,4 +112,20 @@ class TestCommit extends NCubeCleanupBaseTest
         Object[] commits = mutableClient.commits
         assert 2 == commits.length
     }
+
+    @Test
+    void testHonorCommit()
+    {
+        NCube ncube = createCubeFromResource('test.branch.1.json')
+        List<NCubeInfoDto> dtos = mutableClient.search(appId, ncube.name, null, null)
+
+        List<NCubeInfoDto> headDtos = mutableClient.search(appId.asHead(), ncube.name, null, null)
+        assert 0 == headDtos.size()
+
+        String commitId = mutableClient.generateCommitLink(appId, dtos.toArray())
+        mutableClient.honorCommit(commitId)
+
+        headDtos = mutableClient.search(appId.asHead(), ncube.name, null, null)
+        assert 1 == headDtos.size()
+    }
 }
