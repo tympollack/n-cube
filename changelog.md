@@ -1,4 +1,6 @@
 ### Revision History
+* 3.6.12
+  * Bug fix: Committing merged cube into branch was not resetting the change flag in the case when the n-cube SHA-1 was the same as the HEAD n-cube's SHA-1.
 * 3.6.11
   * Bug fix: Duplicate cube was not setting changed flag.
 * 3.6.10
