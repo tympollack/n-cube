@@ -123,24 +123,24 @@ class NCubeService
         return mutableClient.generateCommitLink(appId, infoDtos)
     }
 
-    Map<String, Object> honorCommit(String tenant, String commitId)
+    Map<String, Object> honorCommit(String commitId)
     {
-        return mutableClient.honorCommit(tenant, commitId)
+        return mutableClient.honorCommit(commitId)
     }
 
-    Boolean cancelCommit(String tenant, String commitId)
+    NCube cancelCommit(String commitId)
     {
-        return mutableClient.cancelCommit(tenant, commitId)
+        return mutableClient.cancelCommit(commitId)
     }
 
-    Boolean reopenCommit(String tenant, String commitId)
+    NCube reopenCommit(String commitId)
     {
-        return mutableClient.reopenCommit(tenant, commitId)
+        return mutableClient.reopenCommit(commitId)
     }
 
-    Object[] getCommits(String tenant)
+    Object[] getCommits()
     {
-        return mutableClient.getCommits(tenant)
+        return mutableClient.commits
     }
 
     Map<String, Object> commitBranch(ApplicationID appId, Object[] infoDtos = null)

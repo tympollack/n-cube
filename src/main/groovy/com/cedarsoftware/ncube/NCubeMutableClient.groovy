@@ -110,13 +110,13 @@ interface NCubeMutableClient extends NCubeClient
 
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
 
-    Map honorCommit(String tenant, String commitId)
+    Map honorCommit(String commitId)
 
-    Boolean cancelCommit(String tenant, String commitId)
+    NCube cancelCommit(String commitId)
 
-    Boolean reopenCommit(String tenant, String commitId)
+    NCube reopenCommit(String commitId)
 
-    Object[] getCommits(String tenant)
+    Object[] getCommits()
 
     Map<String, Object> commitBranch(ApplicationID appId)
 

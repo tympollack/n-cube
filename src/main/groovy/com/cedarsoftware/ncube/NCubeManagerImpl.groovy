@@ -5,6 +5,7 @@ import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.*
+import com.cedarsoftware.util.io.JsonWriter
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
@@ -1926,12 +1927,16 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return ret
     }
 
+    String getTenant()
+    {
+        return ApplicationID.DEFAULT_TENANT
+    }
+
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
     {
         // TODO - would like to use constants, but waiting until ncube client refactor complete
-        ApplicationID sysAppId = new ApplicationID(appId.tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         ApplicationID headAppId = appId.asHead()
-        String appIdStr = "new ApplicationID('${appId.tenant}', '${appId.app}', '${appId.version}', '${appId.status}', '${appId.branch}')".toString()
+        List commitInfo = []
         StringBuilder sb = new StringBuilder('[')
         for (Object infoDto : infoDtos)
         {
@@ -1942,14 +1947,15 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
                 NCubeInfoDto headDto = search(headAppId, dto.name, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true]).first()
                 headId = headDto.id
             }
-            sb.append("[name:'${dto.name}',changeType:'${dto.changeType}',id:'${dto.id}',head:'${headId}'],".toString())
+            commitInfo.add([name: dto.name, changeType: dto.changeType, id: dto.id, head: headId])
         }
-        sb.deleteCharAt(sb.length() - 1).append(']') // replace last comma with bracket
+        String commitInfoJson = JsonWriter.objectToJson(commitInfo)
         Date time = new Date()
         String newId = time.format('yyyyMMdd.HHmmss.') + String.format('%05d', UniqueIdGenerator.uniqueId % 100000)
         String user = NCubeManager.userId
 
         NCube commitCube = new NCube("tx.${newId}")
+        commitCube.applicationID = new ApplicationID(appId.tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         commitCube.addAxis(new Axis('property', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
         commitCube.addColumn('property', 'status')
         commitCube.addColumn('property', 'appId')
@@ -1960,39 +1966,40 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         commitCube.addColumn('property', 'commitUser')
         commitCube.addColumn('property', 'commitTime')
         commitCube.setCell('open', [property:'status'])
-        commitCube.setCell(new GroovyExpression(appIdStr, null, false), [property:'appId'])
-        commitCube.setCell(new GroovyExpression(sb.toString(), null, false), [property:'cubeNames'])
+        commitCube.setCell(appId.toString(), [property:'appId'])
+        commitCube.setCell(commitInfoJson, [property:'cubeNames'])
         commitCube.setCell(user, [property:'requestUser'])
         commitCube.setCell(time.format('M/d/yyyy HH:mm:ss'), [property:'requestTime'])
 
-        updateCube(commitCube, true)
+        createCube(commitCube)
         return newId
     }
 
-    Map honorCommit(String tenant, String commitId)
+    Map honorCommit(String commitId)
     {
         return null
     }
 
-    Boolean cancelCommit(String tenant, String commitId)
+    NCube cancelCommit(String commitId)
     {
         ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
 
         String status = commitsCube.getCell([property:'status'])
-        if (status == 'closed complete')
+        if (status.contains('closed'))
         {
+            // TODO - add more detailed information
             throw new IllegalArgumentException('Request is already closed.')
         }
 
         commitsCube.setCell('closed cancelled', [property:'status'])
         commitsCube.setCell(getUserId(), [property:'commitUser'])
         commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [property:'commitTime'])
-        Boolean updated = updateCube(commitsCube, true)
-        return updated
+        updateCube(commitsCube, true)
+        return commitsCube
     }
 
-    Boolean reopenCommit(String tenant, String commitId)
+    NCube reopenCommit(String commitId)
     {
         ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
@@ -2000,17 +2007,18 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         String status = commitsCube.getCell([property:'status'])
         if (status == 'closed complete' || !status.contains('closed'))
         {
+            // TODO - add more detailed information
             throw new IllegalArgumentException('Unable to reopen commit.')
         }
 
         commitsCube.setCell('open', [property:'status'])
         commitsCube.setCell(getUserId(), [property:'commitUser'])
         commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [property:'commitTime'])
-        Boolean updated = updateCube(commitsCube, true)
-        return updated
+        updateCube(commitsCube, true)
+        return commitsCube
     }
 
-    Object[] getCommits(String tenant)
+    Object[] getCommits()
     {
         List<Map> results = []
         ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)

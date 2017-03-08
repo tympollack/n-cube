@@ -1355,21 +1355,26 @@ class NCubeController extends BaseController
         return commitId
     }
 
-    Boolean cancelCommit(String commitId)
+    Object honorCommit(String commitId)
     {
-        Boolean result = ncubeService.cancelCommit(tenant, commitId)
+        return null
+    }
+
+    NCube cancelCommit(String commitId)
+    {
+        NCube result = ncubeService.cancelCommit(commitId)
         return result
     }
 
-    Boolean reopenCommit(String commitId)
+    NCube reopenCommit(String commitId)
     {
-        Boolean result = ncubeService.reopenCommit(tenant, commitId)
+        NCube result = ncubeService.reopenCommit(commitId)
         return result
     }
 
     Object[] getCommits()
     {
-        Object[] commits = ncubeService.getCommits(tenant)
+        Object[] commits = ncubeService.commits
         return commits
     }
 

@@ -508,43 +508,45 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return link
     }
 
-    Map honorCommit(String tenant, String commitId)
+    Map honorCommit(String commitId)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} honorCommit")
         }
-        Map result = bean.call('ncubeController', 'honorCommit', [tenant, commitId]) as Map
+        Map result = bean.call('ncubeController', 'honorCommit', [commitId]) as Map
         return result
     }
 
-    Boolean cancelCommit(String tenant, String commitId)
+    NCube cancelCommit(String commitId)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} cancelCommit")
         }
-        Boolean result = bean.call('ncubeController', 'cancelCommit', [tenant, commitId]) as Boolean
-        return result
+        NCube ncube = bean.call('ncubeController', 'cancelCommit', [commitId]) as NCube
+        clearCubeFromCache(ncube.applicationID, ncube.name)
+        return ncube
     }
 
-    Boolean reopenCommit(String tenant, String commitId)
+    NCube reopenCommit(String commitId)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} reopenCommit")
         }
-        Boolean result = bean.call('ncubeController', 'reopenCommit', [tenant, commitId]) as Boolean
-        return result
+        NCube ncube = bean.call('ncubeController', 'reopenCommit', [commitId]) as NCube
+        clearCubeFromCache(ncube.applicationID, ncube.name)
+        return ncube
     }
 
-    Object[] getCommits(String tenant)
+    Object[] getCommits()
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} getCommits")
         }
-        Object[] result = bean.call('ncubeController', 'getCommits', [tenant]) as Object[]
+        Object[] result = bean.call('ncubeController', 'getCommits', []) as Object[]
         return result
     }
 
