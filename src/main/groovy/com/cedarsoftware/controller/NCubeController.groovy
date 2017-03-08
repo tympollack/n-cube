@@ -291,7 +291,7 @@ class NCubeController extends BaseController
     Map getAxisMetaProperties(ApplicationID appId, String cubeName, String axisName)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' +axisName
+        String resourceName = "${cubeName}/${axisName}"
         mutableClient.assertPermissions(appId, resourceName, null)
         NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
@@ -301,7 +301,7 @@ class NCubeController extends BaseController
     Boolean updateColumnMetaProperties(ApplicationID appId, String cubeName, String axisName, long colId, Map<String, Object> newMetaProperties)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' +axisName
+        String resourceName = "${cubeName}/${axisName}"
         mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
         NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
@@ -316,7 +316,7 @@ class NCubeController extends BaseController
     Map getColumnMetaProperties(ApplicationID appId, String cubeName, String axisName, long colId)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' +axisName
+        String resourceName = "${cubeName}/${axisName}"
         mutableClient.assertPermissions(appId, resourceName, null)
         NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
@@ -559,7 +559,7 @@ class NCubeController extends BaseController
 
     private static String getBranchCacheKey(ApplicationID appId)
     {
-        return appId.tenant + '/' + appId.app + '/' + appId.version + '/' + appId.status
+        return "${appId.tenant}/${appId.app}/${appId.version}/${appId.status}"
     }
 
     /**
@@ -737,7 +737,7 @@ class NCubeController extends BaseController
     void addAxis(ApplicationID appId, String cubeName, String axisName, String type, String valueType)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' + axisName
+        String resourceName = "${cubeName}/${axisName}"
         mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
         if (StringUtilities.isEmpty(axisName))
         {
@@ -747,7 +747,7 @@ class NCubeController extends BaseController
         NCube ncube = mutableClient.getCube(appId, cubeName)
         if (ncube == null)
         {
-            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+            throw new IllegalArgumentException("Could not add axis '${axisName}', NCube '${cubeName}' not found for app: ${appId}")
         }
 
         long maxId = -1
@@ -774,7 +774,7 @@ class NCubeController extends BaseController
         NCube nCube = mutableClient.getCube(appId, cubeName)
         if (nCube == null)
         {
-            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+            throw new IllegalArgumentException("Could not add axis '${axisName}', NCube '${cubeName}' not found for app: ${appId}")
         }
 
         if (StringUtilities.isEmpty(axisName))
@@ -1015,7 +1015,7 @@ class NCubeController extends BaseController
             Properties props = System.properties
             String server = props.getProperty("http.proxyHost")
             String port = props.getProperty("http.proxyPort")
-            LOG.info('proxy server: ' + server + ', proxy port: ' + port)
+            LOG.info("proxy server: ${server}, proxy port: ${port}".toString())
 
             appId = addTenant(appId)
             NCube ncube = mutableClient.getCube(appId, cubeName)
@@ -1057,7 +1057,7 @@ class NCubeController extends BaseController
                     args.output = assertionOutput
                     if (!NCube.isTrue(exp.execute(args)))
                     {
-                        errors.add('[assertion ' + i + ' failed]: ' + exp.cmd)
+                        errors.add("[assertion ${i} failed]: ${exp.cmd}".toString())
                         success = false
                     }
                 }
@@ -1101,7 +1101,7 @@ class NCubeController extends BaseController
 
         if (StringUtilities.isEmpty(testName))
         {
-            throw new IllegalArgumentException("Test name cannot be empty, cube: " + cubeName + ", app: " + appId)
+            throw new IllegalArgumentException("Test name cannot be empty, cube: ${cubeName}, app: ${appId}")
         }
 
         Set<String> items = ncube.getRequiredScope([:], [:])
@@ -1313,7 +1313,7 @@ class NCubeController extends BaseController
         NCube ncube = mutableClient.getCube(appId, cubeName)
         if (ncube == null)
         {
-            markRequestFailed("Could not paste cells, cube: " + cubeName + " not found for app: " + appId)
+            markRequestFailed("Could not paste cells, cube: ${cubeName} not found for app: ${appId}")
             return false
         }
 
@@ -1359,7 +1359,7 @@ class NCubeController extends BaseController
         NCube ncube = mutableClient.getCube(appId, cubeName)
         if (ncube == null)
         {
-            markRequestFailed("Could not paste cells, cube: " + cubeName + " not found for app: " + appId)
+            markRequestFailed("Could not paste cells, cube: ${cubeName} not found for app: ${appId}")
             return false
         }
 
@@ -1457,7 +1457,8 @@ class NCubeController extends BaseController
         if (getBranchesFromCache(targetAppId).size() != 0)
         {
             addBranchToCache(targetAppId)
-            if (targetAppId.version != '0.0.0') {
+            if (targetAppId.version != '0.0.0')
+            {
                 addBranchToCache(targetAppId.asVersion('0.0.0'));
             }
         }
@@ -1507,9 +1508,7 @@ class NCubeController extends BaseController
         List<NCubeInfoDto> branchChanges = mutableClient.getBranchChangesForMyBranch(appId, branch)
         return branchChanges.toArray()
     }
-
-    // TODO get generateCommitLink(), honorCommit() and getCommits() from https://github.com/jdereg/n-cube-editor/pull/427
-
+    
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
     {
         appId = addTenant(appId)
@@ -1595,7 +1594,7 @@ class NCubeController extends BaseController
         NCubeInfoDto dto = mutableClient.getHeadChangesForBranch(appId).find { it.name == cubeName }
         if (dto == null)
         {
-            markRequestFailed(cubeName + ' is already up-to-date')
+            markRequestFailed("${cubeName} is already up-to-date")
             return null
         }
         mutableClient.updateBranch(appId, dto)
@@ -1961,7 +1960,7 @@ class NCubeController extends BaseController
             {
                 msg = t.class.name
             }
-            LOG.info('user runtime error: ' + msg)
+            LOG.info("user runtime error: ${msg}".toString())
         }
         else
         {
@@ -2350,7 +2349,7 @@ class NCubeController extends BaseController
         }
         catch (Exception e)
         {
-            String s = "Failed to load n-cubes from passed in JSON, last successful cube read: " + lastSuccessful
+            String s = "Failed to load n-cubes from passed in JSON, last successful cube read: ${lastSuccessful}"
             throw new IllegalArgumentException(s, e)
         }
     }
