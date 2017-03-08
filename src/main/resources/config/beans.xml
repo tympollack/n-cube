@@ -79,12 +79,8 @@
         </bean>
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-            <constructor-arg ref="ncubeService" />
-            <constructor-arg value="true" />
-        </bean>
-
-        <bean name="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
             <constructor-arg ref="ncubeRuntime" />
+            <constructor-arg value="true" />
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeManagerImpl">
@@ -121,8 +117,8 @@
 
         <aop:config>
 
-            <aop:pointcut id="ncubeServiceMethods" expression="execution(* com.cedarsoftware.service.ncube.NCubeService.*(..))"/>
-            <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeServiceMethods"/>
+            <aop:pointcut id="ncubeTransactedMethods" expression="execution(* com.cedarsoftware.ncube.NCubeMutableClient.*(..))"/>
+            <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeTransactedMethods"/>
 
         </aop:config>
 

@@ -3,9 +3,9 @@ package com.cedarsoftware.controller
 import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
-import com.cedarsoftware.service.ncube.NCubeService
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.*
+import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import com.google.common.util.concurrent.AtomicDouble
@@ -51,7 +51,7 @@ class NCubeController extends BaseController
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
     private static final Pattern NO_QUOTES_REGEX = ~/"/
 
-    private NCubeService ncubeService
+    private NCubeMutableClient mutableClient
     private static String servletHostname = null
     private static String inetHostname = null
     private static AtomicDouble processLoadPeak = new AtomicDouble(0.0d)
@@ -69,11 +69,11 @@ class NCubeController extends BaseController
 //        SpringApplication.run(NCubeController.class, args)
 //    }
 
-    NCubeController(NCubeService ncubeService, boolean hosted = false)
+    NCubeController(NCubeMutableClient mutableClient, boolean hosted = false)
     {
         System.err = new ThreadAwarePrintStreamErr()
         System.out = new ThreadAwarePrintStream()
-        this.ncubeService = ncubeService
+        this.mutableClient = mutableClient
         this.hosted = hosted
     }
 
@@ -82,7 +82,7 @@ class NCubeController extends BaseController
         HttpServletRequest request = JsonCommandServlet.servletRequest.get()
         String smuser = request.getHeader('smuser')
         String realId = smuser && StringUtilities.hasContent(smuser) ? smuser : System.getProperty('user.name')
-        ncubeService.userId = realId
+        mutableClient.userId = realId
 
         String fakeuser = request.getHeader('fakeuser')
         String appid = request.getHeader('appid')
@@ -94,13 +94,13 @@ class NCubeController extends BaseController
                 ApplicationID appId = new ApplicationID(tenant, appIdParts[0], appIdParts[1], appIdParts[2], appIdParts[3])
                 if (isAppAdmin(appId, true))
                 {
-                    ncubeService.fakeId = fakeuser
+                    mutableClient.fakeId = fakeuser
                 }
             }
         }
         else
         {
-            ncubeService.fakeId = ''
+            mutableClient.fakeId = ''
         }
 
         return realId
@@ -108,7 +108,7 @@ class NCubeController extends BaseController
 
     protected void setUser(String userId)
     {
-        ncubeService.userId = userId
+        mutableClient.userId = userId
     }
 
     // ============================================= Begin API =========================================================
@@ -116,25 +116,25 @@ class NCubeController extends BaseController
     Boolean checkPermissions(ApplicationID appId, String resource, String action)
     {
         appId = addTenant(appId)
-        return ncubeService.checkPermissions(appId, resource, action == null ? Action.READ : Action.valueOf(action.toUpperCase()))
+        return mutableClient.checkPermissions(appId, resource, action == null ? Action.READ : Action.valueOf(action.toUpperCase()))
     }
 
     Boolean isAppAdmin(ApplicationID appId, boolean useRealId = false)
     {
         appId = addTenant(appId)
-        return ncubeService.isAdmin(appId, useRealId)
+        return mutableClient.isAdmin(appId, useRealId)
     }
 
     String getAppLockedBy(ApplicationID appId)
     {
         appId = addTenant(appId)
-        return ncubeService.getAppLockedBy(appId)
+        return mutableClient.getAppLockedBy(appId)
     }
 
     Boolean isAppLocked(ApplicationID appId)
     {
         appId = addTenant(appId)
-        String lockedBy = ncubeService.getAppLockedBy(appId)
+        String lockedBy = mutableClient.getAppLockedBy(appId)
         return lockedBy != null
     }
 
@@ -143,24 +143,24 @@ class NCubeController extends BaseController
         appId = addTenant(appId)
         if (shouldLock)
         {
-            ncubeService.lockApp(appId)
+            mutableClient.lockApp(appId)
         }
         else
         {
-            ncubeService.unlockApp(appId)
+            mutableClient.unlockApp(appId)
         }
     }
 
     void moveBranch(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        ncubeService.moveBranch(appId, newSnapVer)
+        mutableClient.moveBranch(appId, newSnapVer)
     }
 
     Integer releaseVersion(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        int rowCount = ncubeService.releaseVersion(appId, newSnapVer)
+        int rowCount = mutableClient.releaseVersion(appId, newSnapVer)
         clearVersionCache(appId.app)
         return rowCount
     }
@@ -172,7 +172,7 @@ class NCubeController extends BaseController
         {
             cubeNamePattern = cubeNamePattern.trim()
         }
-        List<NCubeInfoDto> cubeInfos = ncubeService.search(appId, cubeNamePattern, content, options)
+        List<NCubeInfoDto> cubeInfos = mutableClient.search(appId, cubeNamePattern, content, options)
 
         Collections.sort(cubeInfos, new Comparator<NCubeInfoDto>() {
             int compare(NCubeInfoDto info1, NCubeInfoDto info2)
@@ -192,20 +192,20 @@ class NCubeController extends BaseController
     void restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
         appId = addTenant(appId)
-        ncubeService.restoreCubes(appId, cubeNames)
+        mutableClient.restoreCubes(appId, cubeNames)
     }
 
     Object[] getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion = false)
     {
         appId = addTenant(appId)
-        List<NCubeInfoDto> cubeInfos = ncubeService.getRevisionHistory(appId, cubeName, ignoreVersion)
+        List<NCubeInfoDto> cubeInfos = mutableClient.getRevisionHistory(appId, cubeName, ignoreVersion)
         return cubeInfos.toArray()
     }
 
     String getHtml(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         // The Strings below are hints to n-cube to tell it which axis to place on top
         String html = toHtmlWithColumnHints(ncube)
         return html
@@ -224,14 +224,15 @@ class NCubeController extends BaseController
     String getJson(ApplicationID appId, String cubeName, Map options)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         return formatCube(ncube, options)
     }
 
     NCube getCube(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        return ncubeService.getCube(appId, cubeName, true)
+        NCube cube = mutableClient.getCube(appId, cubeName)
+        return cube
     }
 
     // TODO: This needs to be externalized (loaded via Grapes)
@@ -246,7 +247,7 @@ class NCubeController extends BaseController
 //            throw new IllegalStateException("""The visualizer is currently available <a href="#" onclick="window.open('https://nce.dockerdev.td.afg/n-cube-editor/#');return false;">here</a>""")
 //        }
         String cubeName = options.startCubeName
-        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.runtimeClient) : new Visualizer(ncubeService.runtimeClient)
+        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient) : new Visualizer(mutableClient)
         appId = addTenant(appId)
         return vis.buildGraph(appId, options)
     }
@@ -259,7 +260,7 @@ class NCubeController extends BaseController
             throw new IllegalStateException("${HOSTED_ERROR} getVisualizerCellValues")
         }
         String cubeName = options.startCubeName
-        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(ncubeService.runtimeClient) : new Visualizer(ncubeService.runtimeClient)
+        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient) : new Visualizer(mutableClient)
         appId = addTenant(appId)
         return vis.getCellValues(appId, options)
     }
@@ -267,32 +268,32 @@ class NCubeController extends BaseController
     Boolean updateCubeMetaProperties(ApplicationID appId, String cubeName, Map<String, Object> newMetaProperties)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         ncube.clearMetaProperties()
         ncube.addMetaProperties(newMetaProperties)
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
     Map getCubeMetaProperties(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         return valuesToCellInfo(ncube.metaProperties)
     }
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
     {
         appId = addTenant(appId)
-        ncubeService.updateAxisMetaProperties(appId, cubeName, axisName, newMetaProperties)
+        mutableClient.updateAxisMetaProperties(appId, cubeName, axisName, newMetaProperties)
     }
 
     Map getAxisMetaProperties(ApplicationID appId, String cubeName, String axisName)
     {
         appId = addTenant(appId)
         String resourceName = cubeName + '/' +axisName
-        ncubeService.assertPermissions(appId, resourceName, null)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        mutableClient.assertPermissions(appId, resourceName, null)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
         return valuesToCellInfo(axis.metaProperties)
     }
@@ -301,14 +302,14 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         String resourceName = cubeName + '/' +axisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
         Column column = axis.getColumnById(colId)
         column.clearMetaProperties()
         column.addMetaProperties(newMetaProperties)
         ncube.clearSha1()
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
@@ -316,8 +317,8 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         String resourceName = cubeName + '/' +axisName
-        ncubeService.assertPermissions(appId, resourceName, null)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        mutableClient.assertPermissions(appId, resourceName, null)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
         Column col = axis.getColumnById(colId)
         return valuesToCellInfo(col.metaProperties)
@@ -357,7 +358,7 @@ class NCubeController extends BaseController
             return apps
         }
 
-        List<String> appNames = ncubeService.getAppNames(tenant)
+        List<String> appNames = mutableClient.getAppNames(tenant)
         if (appNames.size() == 0) {
             ApplicationID defaultAppId = new ApplicationID(tenant, ApplicationID.DEFAULT_APP, '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'DEFAULT_BRANCH')
             createCube(defaultAppId, 'defaultNewAppCube')
@@ -405,7 +406,7 @@ class NCubeController extends BaseController
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, app, ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
         appId = addTenant(appId)
 
-        Map<String, List<String>> versionMap = ncubeService.getVersions(appId.tenant, appId.app)
+        Map<String, List<String>> versionMap = mutableClient.getVersions(appId.tenant, appId.app)
         addAllToVersionCache(app, versionMap.RELEASE, '-RELEASE')
         addAllToVersionCache(app, versionMap.SNAPSHOT, '-SNAPSHOT')
         return getCachedVersions(app)
@@ -634,12 +635,12 @@ class NCubeController extends BaseController
         addToVersionsCache(appId)
         addToVersionsCache(appId.asVersion('0.0.0'))
 
-        ncubeService.createCube(ncube)
+        mutableClient.createCube(ncube)
     }
 
     Boolean updateCube(NCube ncube)
     {
-        return ncubeService.updateCube(ncube)
+        return mutableClient.updateCube(ncube)
     }
 
     /**
@@ -654,7 +655,7 @@ class NCubeController extends BaseController
         }
         appId = addTenant(appId)
 
-        if (!ncubeService.deleteCubes(appId, cubeNames))
+        if (!mutableClient.deleteCubes(appId, cubeNames))
         {
             markRequestFailed("Cannot delete RELEASE n-cube.")
         }
@@ -669,7 +670,7 @@ class NCubeController extends BaseController
     Object[] getReferencesFrom(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        Set<String> references = ncubeService.getReferencedCubeNames(appId, cubeName)
+        Set<String> references = mutableClient.getReferencedCubeNames(appId, cubeName)
         Object[] refs = references.toArray()
         caseInsensitiveSort(refs)
         return refs
@@ -683,7 +684,7 @@ class NCubeController extends BaseController
     Object[] getRequiredScope(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Set<String> refs = ncube.getRequiredScope([:], [:])
         Object[] scopeKeys = refs.toArray()
         caseInsensitiveSort(scopeKeys)
@@ -704,7 +705,7 @@ class NCubeController extends BaseController
         addToVersionsCache(appId)
         addToVersionsCache(destAppId)
 
-        return ncubeService.duplicate(appId, destAppId, cubeName, newName)
+        return mutableClient.duplicate(appId, destAppId, cubeName, newName)
     }
 
     /**
@@ -715,7 +716,7 @@ class NCubeController extends BaseController
     Integer releaseCubes(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        int rowCount = ncubeService.releaseCubes(appId, newSnapVer)
+        int rowCount = mutableClient.releaseCubes(appId, newSnapVer)
         clearVersionCache(appId.app)
         return rowCount
     }
@@ -726,7 +727,7 @@ class NCubeController extends BaseController
     void changeVersionValue(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        ncubeService.changeVersionValue(appId, newSnapVer)
+        mutableClient.changeVersionValue(appId, newSnapVer)
         clearVersionCache(appId.app)
     }
 
@@ -737,8 +738,31 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         String resourceName = cubeName + '/' + axisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
-        ncubeService.addAxis(appId, cubeName, axisName, type, valueType)
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
+        if (StringUtilities.isEmpty(axisName))
+        {
+            throw new IllegalArgumentException("Axis name cannot be empty.")
+        }
+
+        NCube ncube = mutableClient.getCube(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+        }
+
+        long maxId = -1
+        Iterator<Axis> i = ncube.axes.iterator()
+        while (i.hasNext())
+        {
+            Axis axis = i.next()
+            if (axis.id > maxId)
+            {
+                maxId = axis.id
+            }
+        }
+        Axis axis = new Axis(axisName, AxisType.valueOf(type), AxisValueType.valueOf(valueType), true, Axis.DISPLAY, maxId + 1)
+        ncube.addAxis(axis)
+        mutableClient.updateCube(ncube)
     }
 
     /**
@@ -747,7 +771,50 @@ class NCubeController extends BaseController
     void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName)
     {
         appId = addTenant(appId)
-        ncubeService.addAxis(appId, cubeName, axisName, refAppId, refCubeName, refAxisName, transformAppId, transformCubeName, transformMethodName)
+        NCube nCube = mutableClient.getCube(appId, cubeName)
+        if (nCube == null)
+        {
+            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+        }
+
+        if (StringUtilities.isEmpty(axisName))
+        {
+            axisName = refAxisName
+        }
+
+        long maxId = -1
+        Iterator<Axis> i = nCube.axes.iterator()
+        while (i.hasNext())
+        {
+            Axis axis = i.next()
+            if (axis.id > maxId)
+            {
+                maxId = axis.id
+            }
+        }
+
+        Map args = [:]
+        args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
+        args[ReferenceAxisLoader.REF_APP] = refAppId.app
+        args[ReferenceAxisLoader.REF_VERSION] = refAppId.version
+        args[ReferenceAxisLoader.REF_STATUS] = refAppId.status
+        args[ReferenceAxisLoader.REF_BRANCH] = refAppId.branch
+        args[ReferenceAxisLoader.REF_CUBE_NAME] = refCubeName  // cube name of the holder of the referring (pointing) axis
+        args[ReferenceAxisLoader.REF_AXIS_NAME] = refAxisName    // axis name of the referring axis (the variable that you had missing earlier)
+        if (transformAppId?.app)
+        {
+            args[ReferenceAxisLoader.TRANSFORM_APP] = transformAppId.app // Notice no target tenant.  User MUST stay within TENENT boundary
+            args[ReferenceAxisLoader.TRANSFORM_VERSION] = transformAppId.version
+            args[ReferenceAxisLoader.TRANSFORM_STATUS] = transformAppId.status
+            args[ReferenceAxisLoader.TRANSFORM_BRANCH] = transformAppId.branch
+            args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = transformCubeName
+            args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = transformMethodName
+        }
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, args)
+
+        Axis axis = new Axis(axisName, maxId + 1, true, refAxisLoader)
+        nCube.addAxis(axis)
+        mutableClient.updateCube(nCube)
     }
 
     /**
@@ -764,9 +831,9 @@ class NCubeController extends BaseController
     Map getAxis(ApplicationID appId, String cubeName, String axisName)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' +axisName
-        ncubeService.assertPermissions(appId, resourceName, null)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        String resourceName = "${cubeName}/${axisName}"
+        mutableClient.assertPermissions(appId, resourceName, null)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Axis axis = ncube.getAxis(axisName)
         return convertAxis(axis)
     }
@@ -777,19 +844,68 @@ class NCubeController extends BaseController
     void deleteAxis(ApplicationID appId, String cubeName, String axisName)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' +axisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
-        ncubeService.deleteAxis(appId, cubeName, axisName)
+        String resourceName = "${cubeName}/${axisName}"
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Could not delete axis '${axisName}', NCube '${cubeName}' not found for app: ${appId}")
+        }
+
+        if (ncube.numDimensions == 1)
+        {
+            throw new IllegalArgumentException("Could not delete axis '${axisName}' - at least one axis must exist on n-cube.")
+        }
+
+        ncube.deleteAxis(axisName)
+        mutableClient.updateCube(ncube)
     }
 
     void updateAxis(ApplicationID appId, String cubeName, String origAxisName, String axisName, boolean hasDefault, boolean isSorted, boolean fireAll)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' + origAxisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
-        resourceName = cubeName + '/' + axisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
-        ncubeService.updateAxis(appId, cubeName, origAxisName, axisName, hasDefault, isSorted, fireAll)
+        String resourceName = "${cubeName}/${origAxisName}"
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
+        resourceName = "${cubeName}/${axisName}"
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Could not update axis '${origAxisName}', NCube '${cubeName}' not found for app: ${appId}")
+        }
+
+        // Rename axis
+        if (!origAxisName.equalsIgnoreCase(axisName))
+        {
+            ncube.renameAxis(origAxisName, axisName)
+        }
+
+        // Update default column setting (if changed)
+        Axis axis = ncube.getAxis(axisName)
+        if (axis.hasDefaultColumn() && !hasDefault)
+        {   // If it went from having default column to NOT having default column...
+            ncube.deleteColumn(axisName, null)
+        }
+        else if (!axis.hasDefaultColumn() && hasDefault)
+        {
+            if (axis.type != AxisType.NEAREST)
+            {
+                ncube.addColumn(axisName, null)
+            }
+        }
+
+        // update preferred column order
+        if (axis.type == AxisType.RULE)
+        {
+            axis.fireAll = fireAll
+        }
+        else
+        {
+            axis.columnOrder = isSorted ? Axis.SORTED : Axis.DISPLAY
+        }
+
+        ncube.clearSha1()
+        mutableClient.updateCube(ncube)
     }
 
     /**
@@ -799,8 +915,8 @@ class NCubeController extends BaseController
     void updateAxisColumns(ApplicationID appId, String cubeName, String axisName, Object[] cols)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' + axisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
+        String resourceName = "${cubeName}/${axisName}"
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
         Set<Column> columns = new LinkedHashSet<>()
 
         if (cols != null)
@@ -810,42 +926,81 @@ class NCubeController extends BaseController
                     Object value = column.value
                     if (value == null || "".equals(value))
                     {
-                        throw new IllegalArgumentException('Column cannot have empty value, n-cube: ' + cubeName + ', axis: ' + axisName)
+                        throw new IllegalArgumentException("Column cannot have empty value, n-cube: ${cubeName}, axis: ${axisName}")
                     }
                     columns.add(column)
             }
         }
 
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         ncube.updateColumns(axisName, columns)
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
     }
 
     void breakAxisReference(ApplicationID appId, String cubeName, String axisName)
     {
         appId = addTenant(appId)
-        String resourceName = cubeName + '/' + axisName
-        ncubeService.assertPermissions(appId, resourceName, Action.UPDATE)
-        ncubeService.breakAxisReference(appId, cubeName, axisName)
+        String resourceName = "${cubeName}/${axisName}"
+        mutableClient.assertPermissions(appId, resourceName, Action.UPDATE)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Could not break reference for '${axisName}', NCube '${cubeName}' not found for app: ${appId}")
+        }
+
+        // Update default column setting (if changed)
+        ncube.breakAxisReference(axisName)
+        mutableClient.updateCube(ncube)
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
         appId = addTenant(appId)
-        return ncubeService.renameCube(appId, oldName, newName)
+        return mutableClient.renameCube(appId, oldName, newName)
     }
 
     void promoteRevision(ApplicationID appId, long cubeId)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.loadCubeById(cubeId)
+        NCube ncube = mutableClient.loadCubeById(cubeId)
         saveJson(appId, ncube.toFormattedJson())
     }
 
     void saveJson(ApplicationID appId, String json)
     {
         appId = addTenant(appId)
-        ncubeService.updateCube(appId, json)
+        json = json.trim()
+        List cubes
+        if (json.startsWith("["))
+        {
+            cubes = getCubes(json)
+        }
+        else
+        {
+            cubes = new ArrayList()
+            cubes.add(NCube.fromSimpleJson(json))
+        }
+
+        for (Object object : cubes)
+        {
+            NCube ncube = (NCube) object
+            ncube.applicationID = appId
+            try
+            {
+                mutableClient.updateCube(ncube)
+            }
+            catch (Exception ignore)
+            {
+                try
+                {
+                    mutableClient.createCube(ncube)
+                }
+                catch (Exception ex)
+                {
+                    throw new IllegalArgumentException("Unable to update or create cube: ${ncube.name}", ex)
+                }
+            }
+        }
     }
 
     Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
@@ -863,7 +1018,7 @@ class NCubeController extends BaseController
             LOG.info('proxy server: ' + server + ', proxy port: ' + port)
 
             appId = addTenant(appId)
-            NCube ncube = ncubeService.getCube(appId, cubeName)
+            NCube ncube = mutableClient.getCube(appId, cubeName)
             Map<String, Object> coord = test.coordWithValues
             boolean success = true
             Map output = new LinkedHashMap()
@@ -930,19 +1085,19 @@ class NCubeController extends BaseController
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        return ncubeService.getTestData(appId, cubeName)
+        return mutableClient.getTestData(appId, cubeName)
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
         appId = addTenant(appId)
-        return ncubeService.saveTests(appId, cubeName, tests)
+        return mutableClient.saveTests(appId, cubeName, tests)
     }
 
     NCubeTest createNewTest(ApplicationID appId, String cubeName, String testName)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
 
         if (StringUtilities.isEmpty(testName))
         {
@@ -969,13 +1124,13 @@ class NCubeController extends BaseController
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
     {
         appId = addTenant(appId)
-        return ncubeService.updateNotes(appId, cubeName, notes)
+        return mutableClient.updateNotes(appId, cubeName, notes)
     }
 
     String getNotes(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        return ncubeService.getNotes(appId, cubeName)
+        return mutableClient.getNotes(appId, cubeName)
     }
 
     /**
@@ -984,7 +1139,7 @@ class NCubeController extends BaseController
     Boolean updateCell(ApplicationID appId, String cubeName, Object[] ids, CellInfo cellInfo)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Set<Long> colIds = getCoordinate(ids)
 
         if (cellInfo == null)
@@ -995,14 +1150,14 @@ class NCubeController extends BaseController
         {
             ncube.setCellById(cellInfo.recreate(), colIds)
         }
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
     Boolean updateCellAt(ApplicationID appId, String cubeName, Map coordinate, CellInfo cellInfo)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
 
         if (cellInfo == null)
         {
@@ -1012,7 +1167,7 @@ class NCubeController extends BaseController
         {
             ncube.setCell(cellInfo.recreate(), coordinate)
         }
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
@@ -1023,7 +1178,7 @@ class NCubeController extends BaseController
             throw new IllegalStateException("${HOSTED_ERROR} getCell")
         }
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName) // Will check READ.
+        NCube ncube = mutableClient.getCube(appId, cubeName) // Will check READ.
         Map output = [:]
         // TODO: Check EXECUTE permission
 //        ncubeService.assertPermissions(appId, cubeName, Action.EXECUTE)
@@ -1034,7 +1189,7 @@ class NCubeController extends BaseController
     Object getCellNoExecute(ApplicationID appId, String cubeName, Object[] ids)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Set<Long> colIds = getCoordinate(ids)
         Object cell = ncube.getCellByIdNoExecute(colIds)
 
@@ -1068,7 +1223,7 @@ class NCubeController extends BaseController
     Object[] getCellsNoExecute(ApplicationID appId, String cubeName, Object[] idArrays)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Object[] ret = new Object[idArrays.length]
         Set key = new HashSet()
         int idx = 0
@@ -1098,7 +1253,7 @@ class NCubeController extends BaseController
     Map getCellCoordinate(ApplicationID appId, String cubeName, Object[] ids)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         Set<Long> colIds = getCoordinate(ids)
         Map<String, Object> coord = ncube.getDisplayCoordinateFromIds(colIds)
         Map<String, Object> niceCoord = [:]
@@ -1118,7 +1273,7 @@ class NCubeController extends BaseController
             return null
         }
 
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         List<Object[]> cells = new ArrayList<>()
 
         for (Object id : ids)
@@ -1142,7 +1297,7 @@ class NCubeController extends BaseController
 
         if (isCut)
         {
-            ncubeService.updateCube(ncube)
+            mutableClient.updateCube(ncube)
         }
         return JsonWriter.objectToJson(cells.toArray())
     }
@@ -1155,7 +1310,7 @@ class NCubeController extends BaseController
             return false
         }
 
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         if (ncube == null)
         {
             markRequestFailed("Could not paste cells, cube: " + cubeName + " not found for app: " + appId)
@@ -1189,7 +1344,7 @@ class NCubeController extends BaseController
                 }
             }
         }
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
@@ -1201,7 +1356,7 @@ class NCubeController extends BaseController
             return false
         }
 
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         if (ncube == null)
         {
             markRequestFailed("Could not paste cells, cube: " + cubeName + " not found for app: " + appId)
@@ -1231,7 +1386,7 @@ class NCubeController extends BaseController
                 }
             }
         }
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
@@ -1242,34 +1397,41 @@ class NCubeController extends BaseController
             throw new IllegalStateException("${HOSTED_ERROR} resolveRelativeUrl")
         }
         appId = addTenant(appId)
-        URL absUrl = ncubeService.resolveRelativeUrl(appId, relativeUrl)
+        NCubeRuntimeClient runtime = mutableClient as NCubeRuntimeClient
+        URL absUrl = runtime.getActualUrl(appId, relativeUrl, [:])
         if (absUrl == null)
         {
-            throw new IllegalStateException('Unable to resolve the relative URL (' + relativeUrl + ') to a physical URL, app: ' + appId)
+            throw new IllegalStateException("Unable to resolve the relative URL (${relativeUrl}) to a physical URL, app: ${appId}")
         }
         return absUrl
     }
 
     void clearCache(ApplicationID appId)
     {
+        if (hosted)
+        {
+            throw new IllegalStateException("${HOSTED_ERROR} clearCache")
+        }
         appId = addTenant(appId)
+        NCubeRuntimeClient runtime = mutableClient as NCubeRuntimeClient
+        
         if (isAppAdmin(appId))
         {
-            ncubeService.clearCache(appId)
+            runtime.clearCache(appId)
             clearAppCache(appId.tenant)
             clearVersionCache(appId.app)
             clearBranchCache(appId)
         }
         else if (!appId.head)
         {
-            ncubeService.clearCache(appId)
+            runtime.clearCache(appId)
         }
     }
 
     void createBranch(ApplicationID appId)
     {
         appId = addTenant(appId)
-        ncubeService.copyBranch(appId.asHead(), appId)
+        mutableClient.copyBranch(appId.asHead(), appId)
         if (getBranchesFromCache(appId).size() != 0)
         {
             addBranchToCache(appId)
@@ -1283,7 +1445,7 @@ class NCubeController extends BaseController
     {
         srcAppId = addTenant(srcAppId)
         targetAppId = addTenant(targetAppId)
-        Integer rows = ncubeService.copyBranch(srcAppId, targetAppId, copyWithHistory)
+        Integer rows = mutableClient.copyBranch(srcAppId, targetAppId, copyWithHistory)
         if (ArrayUtilities.size(getCachedApps(tenant)) > 0)
         {
             addToAppCache(targetAppId.tenant, targetAppId.app)
@@ -1311,7 +1473,7 @@ class NCubeController extends BaseController
             return branches
         }
 
-        Set<String> realBranches = ncubeService.getBranches(appId)
+        Set<String> realBranches = mutableClient.getBranches(appId)
         realBranches.add(ApplicationID.HEAD)
         clearBranchCache(appId)
         addBranchesToCache(appId, realBranches)
@@ -1322,27 +1484,27 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         // Run against database as this is used to verify live record counts
-        return ncubeService.getBranchCount(appId)
+        return mutableClient.getBranchCount(appId)
     }
 
     Object[] getHeadChangesForBranch(ApplicationID appId)
     {
         appId = addTenant(appId)
-        List<NCubeInfoDto> branchChanges = ncubeService.getHeadChangesForBranch(appId)
+        List<NCubeInfoDto> branchChanges = mutableClient.getHeadChangesForBranch(appId)
         return branchChanges.toArray()
     }
 
     Object[] getBranchChangesForHead(ApplicationID appId)
     {
         appId = addTenant(appId)
-        List<NCubeInfoDto> branchChanges = ncubeService.getBranchChangesForHead(appId)
+        List<NCubeInfoDto> branchChanges = mutableClient.getBranchChangesForHead(appId)
         return branchChanges.toArray()
     }
 
     Object[] getBranchChangesForMyBranch(ApplicationID appId, String branch)
     {
         appId = addTenant(appId)
-        List<NCubeInfoDto> branchChanges = ncubeService.getBranchChangesForMyBranch(appId, branch)
+        List<NCubeInfoDto> branchChanges = mutableClient.getBranchChangesForMyBranch(appId, branch)
         return branchChanges.toArray()
     }
 
@@ -1351,31 +1513,31 @@ class NCubeController extends BaseController
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
     {
         appId = addTenant(appId)
-        String commitId = ncubeService.generateCommitLink(appId, infoDtos)
+        String commitId = mutableClient.generateCommitLink(appId, infoDtos)
         return commitId
     }
 
     Object honorCommit(String commitId)
     {
-        Map result = ncubeService.honorCommit(commitId)
+        Map result = mutableClient.honorCommit(commitId)
         return result
     }
 
     NCube cancelCommit(String commitId)
     {
-        NCube result = ncubeService.cancelCommit(commitId)
+        NCube result = mutableClient.cancelCommit(commitId)
         return result
     }
 
     NCube reopenCommit(String commitId)
     {
-        NCube result = ncubeService.reopenCommit(commitId)
+        NCube result = mutableClient.reopenCommit(commitId)
         return result
     }
 
     Object[] getCommits()
     {
-        Object[] commits = ncubeService.commits
+        Object[] commits = mutableClient.commits
         return commits
     }
 
@@ -1385,10 +1547,10 @@ class NCubeController extends BaseController
         Map options = [:]
         options[(SEARCH_EXACT_MATCH_NAME)] = true
         options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
-        List<NCubeInfoDto> list = ncubeService.search(appId, cubeName, null, options)
+        List<NCubeInfoDto> list = mutableClient.search(appId, cubeName, null, options)
         try
         {
-            return ncubeService.commitBranch(appId, list)
+            return mutableClient.commitBranch(appId, list)
         }
         catch (BranchMergeException e)
         {
@@ -1407,7 +1569,7 @@ class NCubeController extends BaseController
         appId = addTenant(appId)
         try
         {
-            return ncubeService.commitBranch(appId, infoDtos)
+            return mutableClient.commitBranch(appId, infoDtos)
         }
         catch (BranchMergeException e)
         {
@@ -1424,35 +1586,35 @@ class NCubeController extends BaseController
     Integer rollbackBranch(ApplicationID appId, Object[] cubeNames)
     {
         appId = addTenant(appId)
-        return ncubeService.rollbackCubes(appId, cubeNames)
+        return mutableClient.rollbackCubes(appId, cubeNames)
     }
 
     Object updateCubeFromHead(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        NCubeInfoDto dto = ncubeService.getHeadChangesForBranch(appId).find { it.name == cubeName }
+        NCubeInfoDto dto = mutableClient.getHeadChangesForBranch(appId).find { it.name == cubeName }
         if (dto == null)
         {
             markRequestFailed(cubeName + ' is already up-to-date')
             return null
         }
-        ncubeService.updateBranch(appId, dto)
+        mutableClient.updateBranch(appId, dto)
     }
 
     Object updateBranch(ApplicationID appId, Object[] cubeDtos)
     {
         appId = addTenant(appId)
-        Map<String, Object> result = ncubeService.updateBranch(appId, cubeDtos)
+        Map<String, Object> result = mutableClient.updateBranch(appId, cubeDtos)
         return result
     }
 
     Boolean deleteBranch(ApplicationID appId)
     {
         appId = addTenant(appId)
-        Boolean result = ncubeService.deleteBranch(appId)
+        Boolean result = mutableClient.deleteBranch(appId)
         removeBranchFromCache(appId)
         ApplicationID bootAppId = appId.asVersion('0.0.0')
-        if (!ncubeService.search(bootAppId, '*', null, null).size())
+        if (!mutableClient.search(bootAppId, '*', null, null).size())
         {
             removeBranchFromCache(bootAppId)
         }
@@ -1462,24 +1624,24 @@ class NCubeController extends BaseController
     Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
     {
         appId = addTenant(appId)
-        return ncubeService.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
+        return mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     Integer acceptMine(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         appId = addTenant(appId)
-        return ncubeService.mergeAcceptMine(appId, cubeNames)
+        return mutableClient.mergeAcceptMine(appId, cubeNames)
     }
 
     String loadCubeById(ApplicationID appId, long id, String mode)
     {
-        NCube ncube = ncubeService.loadCubeById(id)
+        NCube ncube = mutableClient.loadCubeById(id)
         return formatCube(ncube, [mode: mode])
     }
 
     NCube loadCubeById(long id)
     {
-        NCube ncube = ncubeService.loadCubeById(id)
+        NCube ncube = mutableClient.loadCubeById(id)
         return ncube
     }
 
@@ -1507,9 +1669,9 @@ class NCubeController extends BaseController
         int dot = command.lastIndexOf('.')
         String controller = command.substring(0, dot)
         String method = command.substring(dot + 1i)
-        Map coordinate = ['method' : method, 'service': ncubeService]
+        Map coordinate = ['method' : method, 'service': mutableClient]
         coordinate.putAll(args)
-        NCube cube = ncubeService.getCube(appId, controller)
+        NCube cube = mutableClient.getCube(appId, controller)
         Map output = [:]
         cube.getCell(coordinate, output)    // return value is set on 'return' key of output Map
         output.remove('_rule')  // remove execution meta information (too big to send - add special API if needed)
@@ -1521,10 +1683,10 @@ class NCubeController extends BaseController
         try
         {   // Do not remove try-catch handler in favor of advice handler
             appId = addTenant(appId)
-            NCube menuCube = ncubeService.getCube(appId.asVersion('0.0.0'), 'sys.menu')
+            NCube menuCube = mutableClient.getCube(appId.asVersion('0.0.0'), 'sys.menu')
             if (menuCube == null)
             {
-                menuCube = ncubeService.getCube(appId.asVersion('0.0.0').asHead(), 'sys.menu')
+                menuCube = mutableClient.getCube(appId.asVersion('0.0.0').asHead(), 'sys.menu')
             }
             return menuCube.getCell([:])
         }
@@ -1547,7 +1709,7 @@ class NCubeController extends BaseController
     Object getDefaultCell(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        NCube menuCube = ncubeService.getCube(appId, cubeName)
+        NCube menuCube = mutableClient.getCube(appId, cubeName)
         CellInfo cellInfo = new CellInfo(menuCube.defaultCellValue)
         cellInfo.collapseToUiSupportedTypes()
         return cellInfo
@@ -1556,9 +1718,9 @@ class NCubeController extends BaseController
     Boolean clearDefaultCell(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         ncube.defaultCellValue = null
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
@@ -1569,9 +1731,9 @@ class NCubeController extends BaseController
                 CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
                 CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
 
-        NCube ncube = ncubeService.getCube(appId, cubeName)
+        NCube ncube = mutableClient.getCube(appId, cubeName)
         ncube.defaultCellValue = cellValue
-        ncubeService.updateCube(ncube)
+        mutableClient.updateCube(ncube)
         return true
     }
 
@@ -1579,20 +1741,20 @@ class NCubeController extends BaseController
     {
         appId = addTenant(appId)
         List<Delta> deltaList = deltas as List<Delta>
-        return ncubeService.mergeDeltas(appId, cubeName, deltaList)
+        return mutableClient.mergeDeltas(appId, cubeName, deltaList)
     }
 
     private List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
     {
-        ncubeService.checkPermissions(newCube.applicationID, newCube.name, Action.READ)
-        ncubeService.checkPermissions(oldCube.applicationID, oldCube.name, Action.READ)
+        mutableClient.checkPermissions(newCube.applicationID, newCube.name, Action.READ)
+        mutableClient.checkPermissions(oldCube.applicationID, oldCube.name, Action.READ)
         return DeltaProcessor.getDeltaDescription(newCube, oldCube)
     }
 
     List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
     {
-        NCube newCube = ncubeService.loadCubeById(newCubeId)
-        NCube oldCube = ncubeService.loadCubeById(oldCubeId)
+        NCube newCube = mutableClient.loadCubeById(newCubeId)
+        NCube oldCube = mutableClient.loadCubeById(oldCubeId)
         addTenant(newCube.applicationID)
         addTenant(oldCube.applicationID)
         return getDeltaDescription(newCube, oldCube)
@@ -1602,27 +1764,27 @@ class NCubeController extends BaseController
     {
         ApplicationID newAppId = new ApplicationID(tenant, newInfoDto.app, newInfoDto.version, newInfoDto.status, newInfoDto.branch)
         ApplicationID oldAppId = new ApplicationID(tenant, oldInfoDto.app, oldInfoDto.version, oldInfoDto.status, oldInfoDto.branch)
-        NCube newCube = ncubeService.getCube(newAppId, newInfoDto.name)
-        NCube oldCube = ncubeService.getCube(oldAppId, oldInfoDto.name)
+        NCube newCube = mutableClient.getCube(newAppId, newInfoDto.name)
+        NCube oldCube = mutableClient.getCube(oldAppId, oldInfoDto.name)
         return getDeltaDescription(newCube, oldCube)
     }
 
     Object[] getReferenceAxes(ApplicationID appId)
     {
         appId = addTenant(appId)
-        List refAxes = ncubeService.getReferenceAxes(appId)
+        List refAxes = mutableClient.getReferenceAxes(appId)
         return refAxes as Object[]
     }
 
     void updateReferenceAxes(Object[] axisRefs)
     {
         List<AxisRef> axisRefList = axisRefs as List<AxisRef>
-        ncubeService.updateReferenceAxes(axisRefList)
+        mutableClient.updateReferenceAxes(axisRefList)
     }
 
     void clearTestDatabase()
     {
-        ncubeService.clearTestDatabase()
+        mutableClient.clearTestDatabase()
     }
 
     Map heartBeat(Map openCubes)
@@ -1646,7 +1808,7 @@ class NCubeController extends BaseController
 
         // App server name and version
         Map serverStats = [:]
-        putIfNotNull(serverStats, 'User ID', ncubeService.impliedId)
+        putIfNotNull(serverStats, 'User ID', mutableClient.impliedId)
         putIfNotNull(serverStats, 'Server Info', getAttribute(mbs, 'Catalina:type=Server', 'serverInfo'))
         putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
         putIfNotNull(serverStats, 'JVM Route', getAttribute(mbs, 'Catalina:type=Engine', 'jvmRoute'))
@@ -1729,7 +1891,7 @@ class NCubeController extends BaseController
             return true
         }
         appId = addTenant(appId)
-        return ncubeService.isCubeUpToDate(appId, cubeName)
+        return mutableClient.isCubeUpToDate(appId, cubeName)
     }
 
     // ============================================= End API ===========================================================
@@ -2157,5 +2319,39 @@ class NCubeController extends BaseController
             servletHostname = JsonCommandServlet.servletRequest.get().serverName
         }
         return servletHostname
+    }
+    
+    static List getCubes(String json)
+    {
+        String lastSuccessful = ""
+        try
+        {
+            Object[] cubes = (Object[]) JsonReader.jsonToJava(json)
+            List cubeList = new ArrayList(cubes.length)
+
+            for (Object cube : cubes)
+            {
+                JsonObject ncube = (JsonObject) cube
+                if (ncube.containsKey("action"))
+                {
+                    cubeList.add(ncube)
+                    lastSuccessful = (String) ncube.get("ncube")
+                }
+                else
+                {
+                    String json1 = JsonWriter.objectToJson(ncube)
+                    NCube nCube = NCube.fromSimpleJson(json1)
+                    cubeList.add(nCube)
+                    lastSuccessful = nCube.name
+                }
+            }
+
+            return cubeList
+        }
+        catch (Exception e)
+        {
+            String s = "Failed to load n-cubes from passed in JSON, last successful cube read: " + lastSuccessful
+            throw new IllegalArgumentException(s, e)
+        }
     }
 }
