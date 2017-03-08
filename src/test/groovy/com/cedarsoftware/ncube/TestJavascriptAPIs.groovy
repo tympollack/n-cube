@@ -22,7 +22,7 @@ import org.junit.Test
  */
 
 @CompileStatic
-class TestNCubeController extends NCubeCleanupBaseTest
+class TestJavascriptAPIs extends NCubeCleanupBaseTest
 {
     private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
     private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
@@ -64,7 +64,8 @@ class TestNCubeController extends NCubeCleanupBaseTest
     @Test
     void testHeartBeat()
     {
-        Map health = mutableClient.heartBeat(null)
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        Map health = call('heartBeat', [null]) as Map
         assert health
         Map stats = health.serverStats as Map
         assert stats.containsKey('User ID')
@@ -74,17 +75,59 @@ class TestNCubeController extends NCubeCleanupBaseTest
     @Test
     void testGetApplicationID()
     {
-        ApplicationID appId = ApplicationID.testAppId
-        appId = appId.asVersion('0.0.0')
-        createCubeFromResource(appId, "sys.bootstrap.test.1.json")
+        System.setProperty("NCUBE_PARAMS", '{"branch":"jose"}')
 
-        System.setProperty("NCUBE_PARAMS", '{"branch":"TEST"}')
+        ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'ncube.test', '0.0.0', 'SNAPSHOT', 'jose')
+        createCubeFromResource(appId, "sys.bootstrap.test.1.json")
 
         ApplicationID bootId = runtimeClient.getApplicationID(appId.tenant, appId.app, [env:null]) as ApplicationID
         assert bootId.tenant == 'NONE'
-        assert bootId.app == 'DEFAULT_APP'
+        assert bootId.app == 'ncube.test'
         assert bootId.version == '1.28.0'
         assert bootId.status == 'RELEASE'
         assert bootId.branch == 'HEAD'
+    }
+    
+    @Test
+    void testFetchJsonRevDiffs()
+    {
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        List<NCubeInfoDto> cubes = runtime.search(BRANCH1, 'TestBranch', null, null)
+        assert cubes.size() == 1
+        NCubeInfoDto origDto = cubes[0]
+        String origId = origDto.id
+        NCube foo = runtime.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
+        runtime.updateCube(foo)
+        List<NCubeInfoDto> cubes2 = runtime.search(BRANCH1, 'TestBranch', null, null)
+        assert cubes2.size() == 1
+        NCubeInfoDto newDto = cubes2[0]
+        String newId = newDto.id
+
+        List<Delta> result = call('fetchJsonRevDiffs', [newId, origId]) as List
+        assert result.size() == 4
+    }
+
+    @Test
+    void testFetchJsonBranchDiffs()
+    {
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        createCubeFromResource(BRANCH2, 'test.branch.2.json')
+        List<NCubeInfoDto> cubes = runtime.search(BRANCH1, 'TestBranch', null, null)
+        assert cubes.size() == 1
+        NCubeInfoDto origDto = cubes[0]
+        List<NCubeInfoDto> cubes2 = runtime.search(BRANCH2, 'TestBranch', null, null)
+        assert cubes2.size() == 1
+        NCubeInfoDto newDto = cubes2[0]
+
+        List<Delta> result = call('fetchJsonBranchDiffs', [newDto, origDto]) as List
+        assert result.size() == 4
+    }
+
+    private Object call(String method, List args)
+    {
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        runtime.bean.call('ncubeController', method, args)
     }
 }

@@ -1,18 +1,6 @@
 package com.cedarsoftware.service.ncube
 
-import com.cedarsoftware.ncube.Action
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisRef
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.Delta
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeClient
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeMutableClient
-import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.ReferenceAxisLoader
+import com.cedarsoftware.ncube.*
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
@@ -516,11 +504,6 @@ class NCubeService
         mutableClient.updateReferenceAxes(axisRefs)
     }
 
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
-    {
-        runtimeClient.getApplicationID(tenant, app, coord)
-    }
-
     Boolean assertPermissions(ApplicationID appId, String resource, Action action)
     {
         mutableClient.assertPermissions(appId, resource, action ?: Action.READ)
@@ -559,11 +542,6 @@ class NCubeService
     Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
     {
         return mutableClient.isCubeUpToDate(appId, cubeName)
-    }
-
-    Map heartBeat(Map args)
-    {
-        throw new IllegalStateException('Controller should handle this')
     }
 
     void clearTestDatabase()

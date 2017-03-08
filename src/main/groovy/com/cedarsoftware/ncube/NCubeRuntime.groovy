@@ -1,12 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
-import com.cedarsoftware.util.CallableBean
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -24,11 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
-import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
-import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
+import static com.cedarsoftware.ncube.NCubeConstants.*
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -612,12 +603,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         String branch = getSystemParams()[NCUBE_PARAMS_BRANCH]
         return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? ApplicationID.HEAD : branch)
     }
-
-    Map heartBeat(Map args)
-    {
-        Map result = bean.call('ncubeController', 'heartBeat', [args]) as Map
-        return result
-    }
+    
     //-- NCube Caching -------------------------------------------------------------------------------------------------
 
     /**

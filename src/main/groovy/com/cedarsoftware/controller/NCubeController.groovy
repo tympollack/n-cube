@@ -1467,17 +1467,13 @@ class NCubeController extends BaseController
 
     String loadCubeById(ApplicationID appId, long id, String mode)
     {
-        appId = addTenant(appId)
         NCube ncube = ncubeService.loadCubeById(id)
-        ncubeService.assertPermissions(appId, ncube.name, Action.READ)
         return formatCube(ncube, [mode: mode])
     }
 
     NCube loadCubeById(long id)
     {
         NCube ncube = ncubeService.loadCubeById(id)
-        ApplicationID appId = ncube.applicationID
-        ncubeService.assertPermissions(appId, ncube.name, Action.READ)
         return ncube
     }
 
@@ -1580,7 +1576,7 @@ class NCubeController extends BaseController
         return ncubeService.mergeDeltas(appId, cubeName, deltaList)
     }
 
-    List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
+    private List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
     {
         ncubeService.checkPermissions(newCube.applicationID, newCube.name, Action.READ)
         ncubeService.checkPermissions(oldCube.applicationID, oldCube.name, Action.READ)
@@ -1616,11 +1612,6 @@ class NCubeController extends BaseController
     {
         List<AxisRef> axisRefList = axisRefs as List<AxisRef>
         ncubeService.updateReferenceAxes(axisRefList)
-    }
-
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
-    {
-        return ncubeService.getApplicationID(tenant, app, coord)
     }
 
     void clearTestDatabase()
