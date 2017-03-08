@@ -710,12 +710,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                        (METHOD_NAME) : 'commitMergedCubeToBranch'] as Map
 
         NCubeInfoDto result = null
+        boolean changed = cube.sha1() != headSha1
 
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
             Long revision = row.getLong('revision_number')
             byte[] testData = row.getBytes(TEST_DATA_BIN)
             revision = revision < 0 ? revision - 1 : revision + 1
-            result = insertCube(c, appId, cube, revision, testData, 'merged to branch, txId: [' + txId + ']', true, headSha1, username, 'commitMergedCubeToBranch')
+            result = insertCube(c, appId, cube, revision, testData, 'merged to branch, txId: [' + txId + ']', changed, headSha1, username, 'commitMergedCubeToBranch')
         })
         return result
     }
@@ -1248,6 +1249,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                     "/* copyBranch */ INSERT /*+append*/ INTO n_cube (n_cube_id, n_cube_nm, ${CUBE_VALUE_BIN}, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             runSelectCubesStatement(c, srcAppId, null, options, { ResultSet row ->
+                byte[] notes = row.getBytes(NOTES_BIN)
+                String oldNotes = new String(notes ?: "".bytes, 'UTF-8')
                 insert.setLong(1, UniqueIdGenerator.uniqueId)
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
@@ -1257,7 +1260,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
                 insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ("target ${targetAppId} copied from ${srcAppId}").getBytes('UTF-8'))
+                insert.setBytes(10, ("target ${targetAppId} copied from ${srcAppId} - ${oldNotes}").getBytes('UTF-8'))
                 insert.setString(11, targetAppId.tenant)
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, row.getLong('revision_number'))
@@ -1320,6 +1323,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                     "/* copyBranch */ INSERT /*+append*/ INTO n_cube (n_cube_id, n_cube_nm, ${CUBE_VALUE_BIN}, create_dt, create_hid, version_no_cd, status_cd, app_cd, test_data_bin, notes_bin, tenant_cd, branch_id, revision_number, changed, sha1, head_sha1) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             sql.eachRow(map, select, { ResultSet row ->
+                byte[] notes = row.getBytes(NOTES_BIN)
+                String oldNotes = new String(notes ?: "".bytes, 'UTF-8')
                 insert.setLong(1, UniqueIdGenerator.uniqueId)
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
@@ -1329,7 +1334,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
                 insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ("target ${targetAppId} copied from ${srcAppId}").getBytes('UTF-8'))
+                insert.setBytes(10, ("target ${targetAppId} copied from ${srcAppId} - ${oldNotes}").getBytes('UTF-8'))
                 insert.setString(11, targetAppId.tenant)
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, (row.getLong('revision_number') >= 0) ? 0 : -1)
@@ -1376,6 +1381,8 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             runSelectAllCubesInBranch(c, srcAppId, options, { ResultSet row ->
                 String sha1 = row.getString('sha1')
+                byte[] notes = row.getBytes(NOTES_BIN)
+                String oldNotes = new String(notes ?: "".bytes, 'UTF-8')
                 insert.setLong(1, UniqueIdGenerator.uniqueId)
                 insert.setString(2, row.getString('n_cube_nm'))
                 insert.setBytes(3, row.getBytes(CUBE_VALUE_BIN))
@@ -1385,7 +1392,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2}"""
                 insert.setString(7, ReleaseStatus.SNAPSHOT.name())
                 insert.setString(8, targetAppId.app)
                 insert.setBytes(9, row.getBytes(TEST_DATA_BIN))
-                insert.setBytes(10, ("target ${targetAppId} full copied from ${srcAppId}").getBytes('UTF-8'))
+                insert.setBytes(10, ("target ${targetAppId} full copied from ${srcAppId} - ${oldNotes}").getBytes('UTF-8'))
                 insert.setString(11, targetAppId.tenant)
                 insert.setString(12, targetAppId.branch)
                 insert.setLong(13, row.getLong('revision_number'))
@@ -1768,7 +1775,7 @@ ORDER BY abs(revision_number) DESC"""
             notes = row.getBytes(NOTES_BIN)
         }
         catch (Exception ignored) { }
-        dto.notes = new String(notes == null ? "".bytes : notes, 'UTF-8')
+        dto.notes = new String(notes ?: "".bytes, 'UTF-8')
         dto.version = row.getString('version_no_cd')
         dto.status = row.getString('status_cd')
         dto.app = appId.app
