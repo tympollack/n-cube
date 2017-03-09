@@ -2320,7 +2320,7 @@ class NCubeController extends BaseController
         return servletHostname
     }
     
-    static List getCubes(String json)
+    private static List<NCube> getCubes(String json)
     {
         String lastSuccessful = ""
         try
