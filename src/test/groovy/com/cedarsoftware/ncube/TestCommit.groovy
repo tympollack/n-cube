@@ -45,7 +45,6 @@ class TestCommit extends NCubeCleanupBaseTest
         String appIdStr = commitCube.getCell([property: 'appId'])
         ApplicationID commitApp = ApplicationID.convert(appIdStr)
         assert appId == commitApp
-//        assert 'NONE/DEFAULT_APP/999.99.9/SNAPSHOT/TEST/' == appIdStr
 
         String cubeNames = commitCube.getCell([property: 'cubeNames'])
         List commitInfos = JsonReader.jsonToJava(cubeNames) as List
@@ -55,7 +54,6 @@ class TestCommit extends NCubeCleanupBaseTest
         assert commitInfo.changeType == null
         assert commitInfo.id
         assert commitInfo.head == null
-//        assertContainsIgnoreCase(cubeNames, 'java.util.ArrayList', 'java.util.LinkedHashMap', 'name', 'TestBranch', 'changeType', 'null', 'id', 'head', 'null')
     }
 
     @Test

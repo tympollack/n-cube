@@ -204,7 +204,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         dto.name = 'notBusinessUnit'
         try
         {
-            mutableClient.commitBranch(defaultSnapshotApp, [dto])
+            mutableClient.commitBranch(defaultSnapshotApp, dtos.toArray())
             fail()
         }
         catch (EnvelopeException e)

@@ -1935,22 +1935,22 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
     {
-        // TODO - would like to use constants, but waiting until ncube client refactor complete
         ApplicationID headAppId = appId.asHead()
         List commitInfo = []
-        StringBuilder sb = new StringBuilder('[')
+        checkForRejects(appId, infoDtos)
         for (Object infoDto : infoDtos)
         {
             String headId = null
             NCubeInfoDto dto = infoDto as NCubeInfoDto
             if (dto.headSha1)
             {
-                NCubeInfoDto headDto = search(headAppId, dto.name, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true]).first()
+                // TODO is there a more efficient way than search?
+                NCubeInfoDto headDto = search(headAppId, dto.name, null, [(SEARCH_ACTIVE_RECORDS_ONLY): false, (SEARCH_EXACT_MATCH_NAME): true]).first()
                 headId = headDto.id
             }
             commitInfo.add([name: dto.name, changeType: dto.changeType, id: dto.id, head: headId])
         }
-        String commitInfoJson = JsonWriter.objectToJson(commitInfo)
+        String commitInfoJson = commitInfo.empty ? null : JsonWriter.objectToJson(commitInfo)
         Date time = new Date()
         String newId = time.format('yyyyMMdd.HHmmss.') + String.format('%05d', UniqueIdGenerator.uniqueId % 100000)
         String user = NCubeManager.userId
@@ -1991,17 +1991,21 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         String appIdString = commitsCube.getCell([property:'appId'])
         ApplicationID commitAppId = ApplicationID.convert(appIdString)
         String commitInfoJson = commitsCube.getCell([property:'cubeNames']) as String
-        List<Map<String, String>> commitInfo = JsonReader.jsonToJava(commitInfoJson) as List
 
-        Object[] allDtos = getBranchChangesForHead(commitAppId)
-        Object[] commitDtos = allDtos.findAll {
-            NCubeInfoDto dto = it as NCubeInfoDto
-            commitInfo.find { Map<String, String> info ->
-                info.name == dto.name && info.id == dto.id
+        Object[] commitDtos = null
+        if (commitInfoJson != null)
+        {
+            List<Map<String, String>> commitInfo = JsonReader.jsonToJava(commitInfoJson) as List
+            Object[] allDtos = getBranchChangesForHead(commitAppId)
+            commitDtos = allDtos.findAll {
+                NCubeInfoDto dto = it as NCubeInfoDto
+                commitInfo.find { Map<String, String> info ->
+                    info.name == dto.name && info.id == dto.id
+                }
             }
         }
 
-        Map ret = commitBranch(commitAppId, commitDtos)
+        Map ret = commitBranchFromRequest(commitAppId, commitDtos)
 
         commitsCube.setCell('closed complete', [property:'status'])
         commitsCube.setCell(getUserId(), [property:'commitUser'])
@@ -2069,6 +2073,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @return array of NCubeInfoDtos that are to be committed.
      */
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
+    {
+        String commitId = generateCommitLink(appId, inputCubes)
+        return honorCommit(commitId)
+    }
+
+    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes = null)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2178,6 +2188,68 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             throw new BranchMergeException(errorMessage, ret)
         }
         return ret
+    }
+
+    private void checkForRejects(ApplicationID appId, Object[] inputCubes)
+    {
+        ApplicationID.validateAppId(appId)
+        appId.validateBranchIsNotHead()
+        appId.validateStatusIsNotRelease()
+        assertNotLockBlocked(appId)
+        assertPermissions(appId, null, Action.COMMIT)
+
+        List<NCubeInfoDto> rejects = []
+        List<NCubeInfoDto> cubesToUpdate = []
+        getCubesToUpdate(appId, inputCubes, cubesToUpdate, rejects)
+
+        for (NCubeInfoDto updateCube : cubesToUpdate)
+        {
+            if (!checkPermissions(appId, updateCube.name, Action.COMMIT) || updateCube.changeType == ChangeType.CONFLICT.code)
+            {
+                rejects.add(updateCube)
+            }
+        }
+
+        Map<String, Object> ret = [:]
+        ret[BRANCH_ADDS] = []
+        ret[BRANCH_DELETES] = []
+        ret[BRANCH_UPDATES] = []
+        ret[BRANCH_RESTORES] = []
+        ret[BRANCH_REJECTS] = rejects
+
+        if (!rejects.empty)
+        {
+            int rejectSize = rejects.size()
+            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}."
+            ret['_message'] = errorMessage
+            throw new BranchMergeException(errorMessage, ret)
+        }
+    }
+
+    private void getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> cubesToUpdate, List<NCubeInfoDto> rejects)
+    {
+        Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
+        List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
+        if (inputCubes == null)
+        {
+            cubesToUpdate = newDtoList
+        }
+        else
+        {
+            newDtoList.each { newDtos[it.name] = it }
+            (inputCubes.toList() as List<NCubeInfoDto>).each { NCubeInfoDto oldDto ->
+                // make reject list by comparing with refresh records
+                NCubeInfoDto newDto = newDtos[oldDto.name]
+                if (newDto == null || newDto.id != oldDto.id)
+                {   // if in oldDtos but not in newDtos OR if something happened while we were away
+                    rejects.add(oldDto)
+                }
+                else
+                {
+                    cubesToUpdate.add(newDto)
+                }
+            }
+        }
     }
 
     /**

@@ -1223,7 +1223,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         cube.addAxis(oddAxis)
 
         mutableClient.updateCube(cube)
-        Map<String, Object> result = mutableClient.commitBranch(defaultSnapshotApp, mutableClient.search(defaultSnapshotApp, cube.name, null, null))
+        Map<String, Object> result = mutableClient.commitBranch(defaultSnapshotApp, mutableClient.search(defaultSnapshotApp, cube.name, null, null).toArray())
         assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
         assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 0
         assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 0
@@ -1410,7 +1410,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube)
         cubes = mutableClient.getBranchChangesForHead(kenAppId)
         assert cubes.size() == 1
-        Map <String, Object> result = mutableClient.commitBranch(kenAppId, cubes)
+        Map <String, Object> result = mutableClient.commitBranch(kenAppId, cubes.toArray())
         assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 0
         assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 0
         assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1

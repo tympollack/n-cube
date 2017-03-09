@@ -1414,7 +1414,7 @@ class NCubeController extends BaseController
         }
         appId = addTenant(appId)
         NCubeRuntimeClient runtime = mutableClient as NCubeRuntimeClient
-        
+
         if (isAppAdmin(appId))
         {
             runtime.clearCache(appId)
@@ -1508,7 +1508,7 @@ class NCubeController extends BaseController
         List<NCubeInfoDto> branchChanges = mutableClient.getBranchChangesForMyBranch(appId, branch)
         return branchChanges.toArray()
     }
-    
+
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
     {
         appId = addTenant(appId)
@@ -1518,8 +1518,20 @@ class NCubeController extends BaseController
 
     Object honorCommit(String commitId)
     {
-        Map result = mutableClient.honorCommit(commitId)
-        return result
+        try
+        {
+            Map result = mutableClient.honorCommit(commitId)
+            return result
+        }
+        catch (BranchMergeException e)
+        {
+            markRequestFailed(e.message)
+            return e.errors
+        }
+        catch (Exception e)
+        {
+            throw e
+        }
     }
 
     NCube cancelCommit(String commitId)
@@ -1558,8 +1570,7 @@ class NCubeController extends BaseController
         }
         catch (Exception e)
         {
-            fail(e)
-            return [:]
+            throw e
         }
     }
 
@@ -1577,8 +1588,7 @@ class NCubeController extends BaseController
         }
         catch (Exception e)
         {
-            fail(e)
-            return [:]
+            throw e
         }
     }
 
@@ -2319,7 +2329,7 @@ class NCubeController extends BaseController
         }
         return servletHostname
     }
-    
+
     private static List<NCube> getCubes(String json)
     {
         String lastSuccessful = ""
