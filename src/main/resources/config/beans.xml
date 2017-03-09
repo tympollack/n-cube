@@ -54,14 +54,10 @@
     <beans profile="controller">
         
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-            <constructor-arg ref="ncubeService" />
+            <constructor-arg ref="ncubeRuntime" />
             <constructor-arg value="false" />
         </bean>
-        
-        <bean name="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
-            <constructor-arg ref="ncubeRuntime" />
-        </bean>
-        
+
     </beans>
 
     <beans profile="server">
