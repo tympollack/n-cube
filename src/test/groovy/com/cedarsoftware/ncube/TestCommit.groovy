@@ -51,7 +51,7 @@ class TestCommit extends NCubeCleanupBaseTest
         assert 1 == commitInfos.size()
         Map commitInfo = commitInfos[0]
         assert commitInfo.name == 'TestBranch'
-        assert commitInfo.changeType == null
+        assert commitInfo.changeType == 'C'
         assert commitInfo.id
         assert commitInfo.head == null
     }

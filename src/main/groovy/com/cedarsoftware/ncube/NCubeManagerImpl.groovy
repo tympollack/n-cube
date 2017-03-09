@@ -1935,22 +1935,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     String generateCommitLink(ApplicationID appId, Object[] infoDtos)
     {
-        ApplicationID headAppId = appId.asHead()
-        List commitInfo = []
-        checkForRejects(appId, infoDtos)
-        for (Object infoDto : infoDtos)
-        {
-            String headId = null
-            NCubeInfoDto dto = infoDto as NCubeInfoDto
-            if (dto.headSha1)
-            {
-                // TODO is there a more efficient way than search?
-                NCubeInfoDto headDto = search(headAppId, dto.name, null, [(SEARCH_ACTIVE_RECORDS_ONLY): false, (SEARCH_EXACT_MATCH_NAME): true]).first()
-                headId = headDto.id
-            }
-            commitInfo.add([name: dto.name, changeType: dto.changeType, id: dto.id, head: headId])
-        }
-        String commitInfoJson = commitInfo.empty ? null : JsonWriter.objectToJson(commitInfo)
+        List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
+        String commitInfoJson = commitRecords.empty ? null : JsonWriter.objectToJson(commitRecords)
         Date time = new Date()
         String newId = time.format('yyyyMMdd.HHmmss.') + String.format('%05d', UniqueIdGenerator.uniqueId % 100000)
         String user = NCubeManager.userId
@@ -2080,12 +2066,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes = null)
     {
-        ApplicationID.validateAppId(appId)
-        appId.validateBranchIsNotHead()
-        appId.validateStatusIsNotRelease()
-        assertNotLockBlocked(appId)
-        assertPermissions(appId, null, Action.COMMIT)
-
         List<NCubeInfoDto> adds = []
         List<NCubeInfoDto> deletes = []
         List<NCubeInfoDto> updates = []
@@ -2095,30 +2075,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         List<NCubeInfoDto> finalUpdates
 
         long txId = UniqueIdGenerator.uniqueId
-        Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
-        List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
-        List<NCubeInfoDto> cubesToUpdate = []
-
-        if (inputCubes == null)
-        {
-            cubesToUpdate = newDtoList
-        }
-        else
-        {
-            newDtoList.each { newDtos[it.name] = it }
-            (inputCubes.toList() as List<NCubeInfoDto>).each { NCubeInfoDto oldDto ->
-                // make reject list by comparing with refresh records
-                NCubeInfoDto newDto = newDtos[oldDto.name]
-                if (newDto == null || newDto.id != oldDto.id)
-                {   // if in oldDtos but no in newDtos OR if something happened while we were away
-                    rejects.add(oldDto)
-                }
-                else
-                {
-                    cubesToUpdate.add(newDto)
-                }
-            }
-        }
+        List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
 
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
@@ -2190,17 +2147,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return ret
     }
 
-    private void checkForRejects(ApplicationID appId, Object[] inputCubes)
+    private List<Map<String, String>> getCommitRecords(ApplicationID appId, Object[] inputCubes)
     {
-        ApplicationID.validateAppId(appId)
-        appId.validateBranchIsNotHead()
-        appId.validateStatusIsNotRelease()
-        assertNotLockBlocked(appId)
-        assertPermissions(appId, null, Action.COMMIT)
-
+        List<Map<String, String>> commitRecords = []
         List<NCubeInfoDto> rejects = []
-        List<NCubeInfoDto> cubesToUpdate = []
-        getCubesToUpdate(appId, inputCubes, cubesToUpdate, rejects)
+        List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
+        ApplicationID headAppId = appId.asHead()
 
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
@@ -2208,6 +2160,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             {
                 rejects.add(updateCube)
             }
+            String headId = null
+            if (updateCube.headSha1)
+            {
+                NCubeInfoDto headDto = search(headAppId, updateCube.name, null, [(SEARCH_ACTIVE_RECORDS_ONLY): false, (SEARCH_EXACT_MATCH_NAME): true]).first()
+                headId = headDto.id
+            }
+            commitRecords.add([name: updateCube.name, changeType: updateCube.changeType, id: updateCube.id, head: headId])
         }
 
         Map<String, Object> ret = [:]
@@ -2224,18 +2183,26 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             ret['_message'] = errorMessage
             throw new BranchMergeException(errorMessage, ret)
         }
+        return commitRecords
     }
 
-    private void getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> cubesToUpdate, List<NCubeInfoDto> rejects)
+    private List<NCubeInfoDto> getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> rejects)
     {
-        Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
+        ApplicationID.validateAppId(appId)
+        appId.validateBranchIsNotHead()
+        appId.validateStatusIsNotRelease()
+        assertNotLockBlocked(appId)
+        assertPermissions(appId, null, Action.COMMIT)
+
         List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
         if (inputCubes == null)
         {
-            cubesToUpdate = newDtoList
+            return newDtoList
         }
         else
         {
+            List<NCubeInfoDto> cubesToUpdate = []
+            Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
             newDtoList.each { newDtos[it.name] = it }
             (inputCubes.toList() as List<NCubeInfoDto>).each { NCubeInfoDto oldDto ->
                 // make reject list by comparing with refresh records
@@ -2249,6 +2216,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
                     cubesToUpdate.add(newDto)
                 }
             }
+            return cubesToUpdate
         }
     }
 
