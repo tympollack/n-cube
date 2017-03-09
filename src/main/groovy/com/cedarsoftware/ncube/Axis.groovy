@@ -89,7 +89,7 @@ class Axis
     private final transient TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>(16, 0.8f)   // Setting load factor to 0.8 because trove uses 0.5 (uses too much memory)
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    private transient NavigableMap<Comparable, Column> valueToCol = new TreeMap<>()
+    private transient NavigableMap<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
     private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
@@ -136,6 +136,7 @@ class Axis
         this.id = id
         this.name = name
         this.type = type
+        this.valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap<>(String.CASE_INSENSITIVE_ORDER) : new TreeMap<>()
         preferredOrder = order
         this.fireAll = fireAll
         if (type == AxisType.RULE)
@@ -176,6 +177,7 @@ class Axis
         this.name = name
         this.id = id
         isRef = true
+        this.valueToCol = new TreeMap<>()
 
         // Ask the provider to load this axis up.
         axisRefProvider.load(this)
@@ -1298,7 +1300,7 @@ class Axis
      */
     static Comparable promoteValue(AxisValueType srcValueType, Comparable value)
     {
-        if (AxisValueType.STRING == srcValueType)
+        if (AxisValueType.STRING == srcValueType || AxisValueType.CISTRING == srcValueType)
         {
             return (Comparable) Converter.convert(value, String.class)
         }
