@@ -235,14 +235,11 @@ class NCubeBuilder
         return axis
     }
 
-    static Axis getFullGenderAxis()
+    static Axis getCaseInsensitiveAxis(boolean defCol)
     {
-        Axis axis = new Axis("Gender", AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY)
+        Axis axis = new Axis("Gender", AxisType.DISCRETE, AxisValueType.CISTRING, defCol)
         axis.addColumn("Male")
         axis.addColumn("Female")
-        axis.addColumn("Trans Female->Male")
-        axis.addColumn("Trans Male->Female")
-        axis.addColumn("Hermaphrodite")
         return axis
     }
 
