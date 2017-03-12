@@ -34,6 +34,11 @@ class SpringAppContext implements ApplicationContextAware
         return ctx.getBean(beanName)
     }
 
+    static boolean containsBean(String beanName)
+    {
+        return ctx.containsBean(beanName)
+    }
+
     static NCubeRuntimeClient getRuntime()
     {
         return getBean(RUNTIME_BEAN) as NCubeRuntimeClient

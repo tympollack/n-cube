@@ -50,8 +50,9 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private final Logger LOG = LogManager.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
-    protected CallableBean bean
-    private boolean mutable
+    protected final CallableBean bean
+    private final boolean mutable
+    private final String beanName
 
     NCubeRuntime(SpringAppContext appContext, CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean mutable)
     {
@@ -60,6 +61,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = adviceCacheManager
         this.mutable = mutable
+        this.beanName = appContext.containsBean('ncubeManager') ? 'ncubeManager' : 'ncubeController'
     }
 
     /**
@@ -78,7 +80,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      */
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
     {
-        Object[] searchResults = bean.call('ncubeController', 'search', [appId, cubeNamePattern, content, options]) as Object[]
+        Object[] searchResults = bean.call(beanName, 'search', [appId, cubeNamePattern, content, options]) as Object[]
         List<NCubeInfoDto> dtos = []
         searchResults.each { NCubeInfoDto dto -> dtos.add(dto) }
         return dtos
@@ -105,7 +107,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     Object[] getTests(ApplicationID appId, String cubeName)
     {
-        Object[] result = bean.call('ncubeController', 'getTests', [appId, cubeName]) as Object[]
+        Object[] result = bean.call(beanName, 'getTests', [appId, cubeName]) as Object[]
         return result
     }
 
@@ -120,7 +122,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateCube")
         }
-        Boolean result = bean.call('ncubeController', 'updateCube', [ncube]) as Boolean
+        Boolean result = bean.call(beanName, 'updateCube', [ncube]) as Boolean
 
         if (CLASSPATH_CUBE.equalsIgnoreCase(ncube.name))
         {   // If the sys.classpath cube is changed, then the entire class loader must be dropped.  It will be lazily rebuilt.
@@ -132,7 +134,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     NCube loadCubeById(long id)
     {
-        NCube ncube = bean.call('ncubeController', 'loadCubeById', [id]) as NCube
+        NCube ncube = bean.call(beanName, 'loadCubeById', [id]) as NCube
         prepareCube(ncube)
         return ncube
     }
@@ -143,7 +145,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} createCube")
         }
-        bean.call('ncubeController', 'createCube', [ncube])
+        bean.call(beanName, 'createCube', [ncube])
         prepareCube(ncube)
     }
 
@@ -153,20 +155,20 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} duplicate")
         }
-        Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
+        Boolean result = bean.call(beanName, 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
         clearCubeFromCache(newAppId, newName)
         return result
     }
 
     Boolean assertPermissions(ApplicationID appId, String resource, Action action)
     {
-        Boolean result = bean.call('ncubeController', 'assertPermissions', [appId, resource, action]) as Boolean
+        Boolean result = bean.call(beanName, 'assertPermissions', [appId, resource, action]) as Boolean
         return result
     }
 
     Boolean checkPermissions(ApplicationID appId, String resource, String action)
     {
-        Boolean result = bean.call('ncubeController', 'checkPermissions', [appId, resource, action]) as Boolean
+        Boolean result = bean.call(beanName, 'checkPermissions', [appId, resource, action]) as Boolean
         return result
     }
 
@@ -176,7 +178,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} setFakeId")
         }
-        bean.call('ncubeController', 'setFakeId', [fake])
+        bean.call(beanName, 'setFakeId', [fake])
     }
 
     String getImpliedId()
@@ -185,18 +187,18 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} getImpliedId")
         }
-        bean.call('ncubeController', 'getImpliedId', [])
+        bean.call(beanName, 'getImpliedId', [])
     }
 
     Boolean isAppAdmin(ApplicationID appId, boolean useRealId)
     {
-        Boolean result = bean.call('ncubeController', 'isAppAdmin', [appId, useRealId]) as Boolean
+        Boolean result = bean.call(beanName, 'isAppAdmin', [appId, useRealId]) as Boolean
         return result
     }
 
     String getAppLockedBy(ApplicationID appId)
     {
-        String result = bean.call('ncubeController', 'getAppLockedBy', [appId]) as String
+        String result = bean.call(beanName, 'getAppLockedBy', [appId]) as String
         return result
     }
 
@@ -206,7 +208,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} lockApp")
         }
-        Boolean result = bean.call('ncubeController', 'lockApp', [appId, shouldLock]) as Boolean
+        Boolean result = bean.call(beanName, 'lockApp', [appId, shouldLock]) as Boolean
         return result
     }
 
@@ -216,7 +218,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} moveBranch")
         }
-        Integer result = bean.call('ncubeController', 'moveBranch', [appId, newSnapVer]) as Integer
+        Integer result = bean.call(beanName, 'moveBranch', [appId, newSnapVer]) as Integer
         clearCache(appId)
         return result
     }
@@ -227,7 +229,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} releaseVersion")
         }
-        Integer result = bean.call('ncubeController', 'releaseVersion', [appId, newSnapVer]) as Integer
+        Integer result = bean.call(beanName, 'releaseVersion', [appId, newSnapVer]) as Integer
         clearCache()
         return result
     }
@@ -238,7 +240,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} releaseCubes")
         }
-        Integer result = bean.call('ncubeController', 'releaseCubes', [appId, newSnapVer]) as Integer
+        Integer result = bean.call(beanName, 'releaseCubes', [appId, newSnapVer]) as Integer
         clearCache()
         return result
     }
@@ -249,19 +251,19 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} restoreCubes")
         }
-        Boolean result = bean.call('ncubeController', 'restoreCubes', [appId, cubeNames]) as Boolean
+        Boolean result = bean.call(beanName, 'restoreCubes', [appId, cubeNames]) as Boolean
         return result
     }
 
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion = false)
     {
-        List<NCubeInfoDto> result = bean.call('ncubeController', 'getRevisionHistory', [appId, cubeName, ignoreVersion]) as List
+        List<NCubeInfoDto> result = bean.call(beanName, 'getRevisionHistory', [appId, cubeName, ignoreVersion]) as List
         return result
     }
 
     List<String> getAppNames()
     {
-        List<String> result = bean.call('ncubeController', 'getAppNames', []) as List
+        List<String> result = bean.call(beanName, 'getAppNames', []) as List
         return result
     }
 
@@ -273,7 +275,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     Object[] getVersions(String app)
     {
-        Object[] result = bean.call('ncubeController', 'getVersions', [app]) as Object[]
+        Object[] result = bean.call(beanName, 'getVersions', [app]) as Object[]
         return result
     }
 
@@ -283,20 +285,20 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} copyBranch")
         }
-        Integer result = bean.call('ncubeController', 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
+        Integer result = bean.call(beanName, 'copyBranch', [srcAppId, targetAppId, copyWithHistory]) as Integer
         clearCache(targetAppId)
         return result
     }
 
     Set<String> getBranches(ApplicationID appId)
     {
-        Set<String> result = bean.call('ncubeController', 'getBranches', [appId]) as Set
+        Set<String> result = bean.call(beanName, 'getBranches', [appId]) as Set
         return result
     }
 
     Integer getBranchCount(ApplicationID appId)
     {
-        Integer result = bean.call('ncubeController', 'getBranchCount', [appId]) as Integer
+        Integer result = bean.call(beanName, 'getBranchCount', [appId]) as Integer
         return result
     }
 
@@ -306,7 +308,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} deleteBranch")
         }
-        Boolean result = bean.call('ncubeController', 'deleteBranch', [appId]) as Boolean
+        Boolean result = bean.call(beanName, 'deleteBranch', [appId]) as Boolean
         clearCache(appId)
         return result
     }
@@ -317,7 +319,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} mergeDeltas")
         }
-        NCube ncube = bean.call('ncubeController', 'mergeDeltas', [appId, cubeName, deltas]) as NCube
+        NCube ncube = bean.call(beanName, 'mergeDeltas', [appId, cubeName, deltas]) as NCube
         cacheCube(ncube)
         return ncube
     }
@@ -328,7 +330,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} deleteCubes")
         }
-        Boolean result = bean.call('ncubeController', 'deleteCubes', [appId, cubeNames]) as Boolean
+        Boolean result = bean.call(beanName, 'deleteCubes', [appId, cubeNames]) as Boolean
         clearCache(appId)
         return result
     }
@@ -339,7 +341,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} changeVersionValue")
         }
-        bean.call('ncubeController', 'changeVersionValue', [appId, newVersion])
+        bean.call(beanName, 'changeVersionValue', [appId, newVersion])
         clearCache(appId)
         clearCache(appId.asVersion(newVersion))
     }
@@ -350,7 +352,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} renameCube")
         }
-        Boolean result = bean.call('ncubeController', 'renameCube', [appId, oldName, newName]) as Boolean
+        Boolean result = bean.call(beanName, 'renameCube', [appId, oldName, newName]) as Boolean
         clearCubeFromCache(appId, oldName)
         clearCubeFromCache(appId, newName)
         return result
@@ -358,7 +360,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     Set<String> getReferencesFrom(ApplicationID appId, String cubeName)
     {
-        Object[] results = bean.call('ncubeController', 'getReferencesFrom', [appId, cubeName]) as Object[]
+        Object[] results = bean.call(beanName, 'getReferencesFrom', [appId, cubeName]) as Object[]
         Set<String> refs = new CaseInsensitiveSet()
         results.each { String result -> refs.add(result) }
         return refs
@@ -366,7 +368,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     List<AxisRef> getReferenceAxes(ApplicationID appId)
     {
-        List<AxisRef> result = bean.call('ncubeController', 'getReferenceAxes', [appId]) as List
+        List<AxisRef> result = bean.call(beanName, 'getReferenceAxes', [appId]) as List
         return result
     }
 
@@ -376,7 +378,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateReferenceAxes")
         }
-        bean.call('ncubeController', 'updateReferenceAxes', [axisRefs])
+        bean.call(beanName, 'updateReferenceAxes', [axisRefs])
         clearCache()
     }
 
@@ -422,7 +424,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateAxisMetaProperties")
         }
-        bean.call('ncubeController', 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
+        bean.call(beanName, 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
         clearCubeFromCache(appId, cubeName)
     }
 
@@ -432,7 +434,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} saveTests")
         }
-        Boolean result = bean.call('ncubeController', 'saveTests', [appId, cubeName, tests]) as Boolean
+        Boolean result = bean.call(beanName, 'saveTests', [appId, cubeName, tests]) as Boolean
         return result
     }
 
@@ -442,13 +444,13 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateNotes")
         }
-        Boolean result = bean.call('ncubeController', 'updateNotes', [appId, cubeName, notes]) as Boolean
+        Boolean result = bean.call(beanName, 'updateNotes', [appId, cubeName, notes]) as Boolean
         return result
     }
 
     String getNotes(ApplicationID appId, String cubeName)
     {
-        String result = bean.call('ncubeController', 'getNotes', [appId, cubeName]) as String
+        String result = bean.call(beanName, 'getNotes', [appId, cubeName]) as String
         return result
     }
 
@@ -458,24 +460,24 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} clearTestDatabase")
         }
-        bean.call('ncubeController', 'clearTestDatabase', []) as Boolean
+        bean.call(beanName, 'clearTestDatabase', []) as Boolean
     }
 
     List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
     {
-        List<NCubeInfoDto> changes = bean.call('ncubeController', 'getHeadChangesForBranch', [appId]) as List<NCubeInfoDto>
+        List<NCubeInfoDto> changes = bean.call(beanName, 'getHeadChangesForBranch', [appId]) as List<NCubeInfoDto>
         return changes
     }
 
     List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
     {
-        List<NCubeInfoDto> changes = bean.call('ncubeController', 'getBranchChangesForHead', [appId]) as List<NCubeInfoDto>
+        List<NCubeInfoDto> changes = bean.call(beanName, 'getBranchChangesForHead', [appId]) as List<NCubeInfoDto>
         return changes
     }
 
     List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
     {
-        List<NCubeInfoDto> changes = bean.call('ncubeController', 'getBranchChangesForMyBranch', [appId, branch]) as List<NCubeInfoDto>
+        List<NCubeInfoDto> changes = bean.call(beanName, 'getBranchChangesForMyBranch', [appId, branch]) as List<NCubeInfoDto>
         return changes
     }
 
@@ -485,7 +487,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateBranch")
         }
-        Map<String, Object> map = bean.call('ncubeController', 'updateBranch', [appId, cubeDtos]) as Map<String, Object>
+        Map<String, Object> map = bean.call(beanName, 'updateBranch', [appId, cubeDtos]) as Map<String, Object>
         clearCache(appId)
         return map
     }
@@ -496,7 +498,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} generateCommitLink")
         }
-        String link = bean.call('ncubeController', 'generateCommitLink', [appId, infoDtos]) as String
+        String link = bean.call(beanName, 'generateCommitLink', [appId, infoDtos]) as String
         return link
     }
 
@@ -506,7 +508,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} honorCommit")
         }
-        Map result = bean.call('ncubeController', 'honorCommit', [commitId]) as Map
+        Map result = bean.call(beanName, 'honorCommit', [commitId]) as Map
         return result
     }
 
@@ -516,7 +518,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} cancelCommit")
         }
-        NCube ncube = bean.call('ncubeController', 'cancelCommit', [commitId]) as NCube
+        NCube ncube = bean.call(beanName, 'cancelCommit', [commitId]) as NCube
         clearCubeFromCache(ncube.applicationID, ncube.name)
         return ncube
     }
@@ -527,7 +529,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} reopenCommit")
         }
-        NCube ncube = bean.call('ncubeController', 'reopenCommit', [commitId]) as NCube
+        NCube ncube = bean.call(beanName, 'reopenCommit', [commitId]) as NCube
         clearCubeFromCache(ncube.applicationID, ncube.name)
         return ncube
     }
@@ -538,7 +540,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} getCommits")
         }
-        Object[] result = bean.call('ncubeController', 'getCommits', []) as Object[]
+        Object[] result = bean.call(beanName, 'getCommits', []) as Object[]
         return result
     }
 
@@ -548,7 +550,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} commitBranch")
         }
-        Map<String, Object> map = bean.call('ncubeController', 'commitBranch', [appId, inputCubes]) as Map<String, Object>
+        Map<String, Object> map = bean.call(beanName, 'commitBranch', [appId, inputCubes]) as Map<String, Object>
         clearCache(appId)
         clearCache(appId.asHead())
         return map
@@ -560,7 +562,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} rollbackBranch")
         }
-        Integer result = bean.call('ncubeController', 'rollbackBranch', [appId, names]) as Integer
+        Integer result = bean.call(beanName, 'rollbackBranch', [appId, names]) as Integer
         clearCache(appId)
         return result
     }
@@ -571,7 +573,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} acceptMine")
         }
-        Integer result = bean.call('ncubeController', 'acceptMine', [appId, cubeNames]) as Integer
+        Integer result = bean.call(beanName, 'acceptMine', [appId, cubeNames]) as Integer
         return result
     }
 
@@ -581,14 +583,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             throw new IllegalStateException("${MUTABLE_ERROR} acceptTheirs")
         }
-        Integer result = bean.call('ncubeController', 'acceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
+        Integer result = bean.call(beanName, 'acceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
         clearCache(appId)
         return result
     }
 
     Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
     {
-        Boolean result = bean.call('ncubeController', 'isCubeUpToDate', [appId, cubeName]) as Boolean
+        Boolean result = bean.call(beanName, 'isCubeUpToDate', [appId, cubeName]) as Boolean
         return result
     }
 
@@ -693,7 +695,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         // and normal app processing doesn't do two queries anymore.
         // used to do getCubeInfoRecords() -> dto
         // and then dto -> loadCube(id)
-        NCube ncube = bean.call('ncubeController', 'getCube', [appId, cubeName]) as NCube
+        NCube ncube = bean.call(beanName, 'getCube', [appId, cubeName]) as NCube
         if (ncube == null)
         {
             cubeCache.put(lowerCubeName, false)

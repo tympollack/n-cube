@@ -30,11 +30,11 @@ import java.util.concurrent.ConcurrentHashMap
 class ReflectiveProxy implements CallableBean, ApplicationContextAware
 {
     private static ApplicationContext ctx
-    private static final Map<String, Method> methodMap = new ConcurrentHashMap<>()
+    private static final Map<String, Method> METHOD_MAP = new ConcurrentHashMap<>()
 
     Object call(String beanName, String methodName, List args)
     {
-        Object bean = ctx.getBean('ncubeManager')
+        Object bean = ctx.getBean(beanName)
         Method method = getMethod(bean, beanName, methodName, args.size())
         try
         {
@@ -65,7 +65,7 @@ class ReflectiveProxy implements CallableBean, ApplicationContextAware
     private static Method getMethod(Object bean, String beanName, String methodName, int argCount)
     {
         String methodKey = "${beanName}.${methodName}.${argCount}"
-        Method method = methodMap[methodKey]
+        Method method = METHOD_MAP[methodKey]
         if (method == null)
         {
             method = getMethod(bean.class, methodName, argCount)
@@ -73,7 +73,7 @@ class ReflectiveProxy implements CallableBean, ApplicationContextAware
             {
                 throw new IllegalArgumentException("Cannot call method: ${methodName} on bean: ${beanName}")
             }
-            methodMap[methodKey] = method
+            METHOD_MAP[methodKey] = method
         }
         return method
     }

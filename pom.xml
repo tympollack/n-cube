@@ -235,8 +235,11 @@
                 <version>${version.plugin.surefire}</version>
                 <configuration>
                     <includes>
-                        <include>**/*TestAdvice*</include>
+                        <include>**/**</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/*VisualizerTest*</exclude>
+                    </excludes>
                 </configuration>
                 <executions>
                     <execution>
