@@ -61,20 +61,20 @@ class NCubeController extends BaseController
     private static final ConcurrentMap<String, ConcurrentSkipListSet<String>> appVersions = new ConcurrentHashMap<>()
     private static final ConcurrentMap<String, ConcurrentSkipListSet<String>> appBranches = new ConcurrentHashMap<>()
     private static final Map NO_CELL = [type:null, value:null]
-    private static final String HOSTED_ERROR = 'Method cannot be called when hosted:'
-    private final hosted
+    private static final String EXECUTE_ERROR = 'User code cannot be executed on this server. Attempted method: '
+    private final allowExecute
 
 //    public static void main(String[] args)
 //    {
 //        SpringApplication.run(NCubeController.class, args)
 //    }
 
-    NCubeController(NCubeMutableClient mutableClient, boolean hosted = false)
+    NCubeController(NCubeMutableClient mutableClient, boolean allowExecute)
     {
         System.err = new ThreadAwarePrintStreamErr()
         System.out = new ThreadAwarePrintStream()
         this.mutableClient = mutableClient
-        this.hosted = hosted
+        this.allowExecute = allowExecute
     }
 
     protected String getUserForDatabase()
@@ -116,13 +116,13 @@ class NCubeController extends BaseController
     Boolean checkPermissions(ApplicationID appId, String resource, String action)
     {
         appId = addTenant(appId)
-        return mutableClient.checkPermissions(appId, resource, action == null ? Action.READ : Action.valueOf(action.toUpperCase()))
+        return mutableClient.checkPermissions(appId, resource, action == null ? Action.READ.name() : action)
     }
 
     Boolean isAppAdmin(ApplicationID appId, boolean useRealId = false)
     {
         appId = addTenant(appId)
-        return mutableClient.isAdmin(appId, useRealId)
+        return mutableClient.isAppAdmin(appId, useRealId)
     }
 
     String getAppLockedBy(ApplicationID appId)
@@ -141,14 +141,7 @@ class NCubeController extends BaseController
     void lockApp(ApplicationID appId, boolean shouldLock)
     {
         appId = addTenant(appId)
-        if (shouldLock)
-        {
-            mutableClient.lockApp(appId)
-        }
-        else
-        {
-            mutableClient.unlockApp(appId)
-        }
+        mutableClient.lockApp(appId, shouldLock)
     }
 
     void moveBranch(ApplicationID appId, String newSnapVer)
@@ -238,9 +231,9 @@ class NCubeController extends BaseController
     // TODO: This needs to be externalized (loaded via Grapes)
     Map<String, Object> getVisualizerJson(ApplicationID appId, Map options)
     {
-        if (hosted)
+        if (!allowExecute)
         {
-            throw new IllegalStateException("${HOSTED_ERROR} getVisualizerJson")
+            throw new IllegalStateException("${EXECUTE_ERROR} getVisualizerJson")
         }
 //        if (!SystemUtilities.getExternalVariable('NCE_VISUALIZER_ENABLED'))
 //        {
@@ -255,9 +248,9 @@ class NCubeController extends BaseController
     // TODO: This needs to be externalized (loaded via Grapes)
     Map getVisualizerCellValues(ApplicationID appId, Map options)
     {
-        if (hosted)
+        if (!allowExecute)
         {
-            throw new IllegalStateException("${HOSTED_ERROR} getVisualizerCellValues")
+            throw new IllegalStateException("${EXECUTE_ERROR} getVisualizerCellValues")
         }
         String cubeName = options.startCubeName
         Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient) : new Visualizer(mutableClient)
@@ -403,12 +396,8 @@ class NCubeController extends BaseController
             return appVers
         }
 
-        ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, app, ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
-        appId = addTenant(appId)
-
-        Map<String, List<String>> versionMap = mutableClient.getVersions(appId.tenant, appId.app)
-        addAllToVersionCache(app, versionMap.RELEASE, '-RELEASE')
-        addAllToVersionCache(app, versionMap.SNAPSHOT, '-SNAPSHOT')
+        Object[] versions = mutableClient.getVersions(app)
+        addAllToVersionCache(app, versions)
         return getCachedVersions(app)
     }
 
@@ -469,12 +458,12 @@ class NCubeController extends BaseController
         getVersionsCache(appId.app).add(appId.version + '-' + appId.status)
     }
 
-    private static void addAllToVersionCache(String app, List<String> versions, String suffix)
+    private static void addAllToVersionCache(String app, Object[] versions)
     {
         Set<String> set = getVersionsCache(app)
         for (String version : versions)
         {
-            set.add(version + suffix)
+            set.add(version)
         }
     }
 
@@ -670,7 +659,7 @@ class NCubeController extends BaseController
     Object[] getReferencesFrom(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        Set<String> references = mutableClient.getReferencedCubeNames(appId, cubeName)
+        Set<String> references = mutableClient.getReferencesFrom(appId, cubeName)
         Object[] refs = references.toArray()
         caseInsensitiveSort(refs)
         return refs
@@ -695,7 +684,7 @@ class NCubeController extends BaseController
      * Duplicate the passed in cube, but change the name to newName AND the status of the new
      * n-cube will be SNAPSHOT.
      */
-    Boolean duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
+    Boolean duplicate(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
     {
         appId = addTenant(appId)
         destAppId = addTenant(destAppId)
@@ -1005,9 +994,9 @@ class NCubeController extends BaseController
 
     Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
     {
-        if (hosted)
+        if (!allowExecute)
         {
-            throw new IllegalStateException("${HOSTED_ERROR} runTest")
+            throw new IllegalStateException("${EXECUTE_ERROR} runTest")
         }
         try
         {   // Do not remove try-catch handler here - this API must handle it's own exceptions, instead
@@ -1085,7 +1074,7 @@ class NCubeController extends BaseController
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        return mutableClient.getTestData(appId, cubeName)
+        return mutableClient.getTests(appId, cubeName)
     }
 
     Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
@@ -1173,9 +1162,9 @@ class NCubeController extends BaseController
 
     Map getCell(ApplicationID appId, String cubeName, Map coordinate, defaultValue = null)
     {
-        if (hosted)
+        if (!allowExecute)
         {
-            throw new IllegalStateException("${HOSTED_ERROR} getCell")
+            throw new IllegalStateException("${EXECUTE_ERROR} getCell")
         }
         appId = addTenant(appId)
         NCube ncube = mutableClient.getCube(appId, cubeName) // Will check READ.
@@ -1258,8 +1247,8 @@ class NCubeController extends BaseController
         Map<String, Object> coord = ncube.getDisplayCoordinateFromIds(colIds)
         Map<String, Object> niceCoord = [:]
         coord.each { k, v ->
-                Comparable c = v as Comparable
-                niceCoord[k] = CellInfo.formatForDisplay(c)
+            Comparable c = v as Comparable
+            niceCoord[k] = CellInfo.formatForDisplay(c)
         }
         return niceCoord
     }
@@ -1392,9 +1381,9 @@ class NCubeController extends BaseController
 
     String resolveRelativeUrl(ApplicationID appId, String relativeUrl)
     {
-        if (hosted)
+        if (!allowExecute)
         {
-            throw new IllegalStateException("${HOSTED_ERROR} resolveRelativeUrl")
+            throw new IllegalStateException("${EXECUTE_ERROR} resolveRelativeUrl")
         }
         appId = addTenant(appId)
         NCubeRuntimeClient runtime = mutableClient as NCubeRuntimeClient
@@ -1408,10 +1397,6 @@ class NCubeController extends BaseController
 
     void clearCache(ApplicationID appId)
     {
-        if (hosted)
-        {
-            throw new IllegalStateException("${HOSTED_ERROR} clearCache")
-        }
         appId = addTenant(appId)
         NCubeRuntimeClient runtime = mutableClient as NCubeRuntimeClient
 
@@ -1595,7 +1580,7 @@ class NCubeController extends BaseController
     Integer rollbackBranch(ApplicationID appId, Object[] cubeNames)
     {
         appId = addTenant(appId)
-        return mutableClient.rollbackCubes(appId, cubeNames)
+        return mutableClient.rollbackBranch(appId, cubeNames)
     }
 
     Object updateCubeFromHead(ApplicationID appId, String cubeName)
@@ -1633,13 +1618,13 @@ class NCubeController extends BaseController
     Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
     {
         appId = addTenant(appId)
-        return mutableClient.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
+        return mutableClient.acceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     Integer acceptMine(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         appId = addTenant(appId)
-        return mutableClient.mergeAcceptMine(appId, cubeNames)
+        return mutableClient.acceptMine(appId, cubeNames)
     }
 
     String loadCubeById(ApplicationID appId, long id, String mode)
@@ -1672,23 +1657,29 @@ class NCubeController extends BaseController
         return headers
     }
 
-    Map execute(ApplicationID appId, Map args, String command)
+    Map execute(ApplicationID appId, String cubeName, String method, Map args)
     {
+        if (!allowExecute)
+        {
+            throw new IllegalStateException("${EXECUTE_ERROR} execute")
+        }
+
         appId = addTenant(appId)
-        int dot = command.lastIndexOf('.')
-        String controller = command.substring(0, dot)
-        String method = command.substring(dot + 1i)
         Map coordinate = ['method' : method, 'service': mutableClient]
         coordinate.putAll(args)
-        NCube cube = mutableClient.getCube(appId, controller)
+        NCube cube = mutableClient.getCube(appId, cubeName)
         Map output = [:]
         cube.getCell(coordinate, output)    // return value is set on 'return' key of output Map
-        output.remove('_rule')  // remove execution meta information (too big to send - add special API if needed)
         return output
     }
 
     Map getMenu(ApplicationID appId)
     {
+        if (!allowExecute)
+        {
+            throw new IllegalStateException("${EXECUTE_ERROR} getMenu")
+        }
+
         try
         {   // Do not remove try-catch handler in favor of advice handler
             appId = addTenant(appId)
@@ -1705,11 +1696,11 @@ class NCubeController extends BaseController
             return ['title':'Enterprise Configurator',
                     'tab-menu':
                             ['n-cube':[html:'html/ntwobe.html',img:'img/letter-n.png'],
-                            'n-cube-old':[html:'html/ncube.html',img:'img/letter-o.png'],
-                            'JSON':[html:'html/jsonEditor.html',img:'img/letter-j.png'],
-                            'Details':[html:'html/details.html',img:'img/letter-d.png'],
-                            'Test':[html:'html/test.html',img:'img/letter-t.png'],
-                            'Visualizer':[html:'html/visualize.html', img:'img/letter-v.png']],
+                             'n-cube-old':[html:'html/ncube.html',img:'img/letter-o.png'],
+                             'JSON':[html:'html/jsonEditor.html',img:'img/letter-j.png'],
+                             'Details':[html:'html/details.html',img:'img/letter-d.png'],
+                             'Test':[html:'html/test.html',img:'img/letter-t.png'],
+                             'Visualizer':[html:'html/visualize.html', img:'img/letter-v.png']],
                     'nav-menu':[:]
             ]
         }
@@ -1755,8 +1746,8 @@ class NCubeController extends BaseController
 
     private List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
     {
-        mutableClient.checkPermissions(newCube.applicationID, newCube.name, Action.READ)
-        mutableClient.checkPermissions(oldCube.applicationID, oldCube.name, Action.READ)
+        mutableClient.checkPermissions(newCube.applicationID, newCube.name, Action.READ.name())
+        mutableClient.checkPermissions(oldCube.applicationID, oldCube.name, Action.READ.name())
         return DeltaProcessor.getDeltaDescription(newCube, oldCube)
     }
 
@@ -1787,8 +1778,7 @@ class NCubeController extends BaseController
 
     void updateReferenceAxes(Object[] axisRefs)
     {
-        List<AxisRef> axisRefList = axisRefs as List<AxisRef>
-        mutableClient.updateReferenceAxes(axisRefList)
+        mutableClient.updateReferenceAxes(axisRefs)
     }
 
     void clearTestDatabase()

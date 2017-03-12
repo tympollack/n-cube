@@ -40,19 +40,17 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean assertPermissions(ApplicationID appId, String resource, Action action)
 
-    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    Boolean checkPermissions(ApplicationID appId, String resource, String action)
 
     void setFakeId(String fake)
 
     String getImpliedId()
 
-    Boolean isAdmin(ApplicationID appId, boolean useRealId)
+    Boolean isAppAdmin(ApplicationID appId, boolean useRealId)
 
     String getAppLockedBy(ApplicationID appId)
 
-    Boolean lockApp(ApplicationID appId)
-
-    void unlockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId, boolean shouldLock)
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
 
@@ -67,8 +65,6 @@ interface NCubeMutableClient extends NCubeClient
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
 
     List<String> getAppNames(String tenant)
-
-    Map<String, List<String>> getVersions(String tenant, String app)
 
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId)
 
@@ -86,7 +82,7 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
 
-    void updateReferenceAxes(List<AxisRef> axisRefs)
+    void updateReferenceAxes(Object[] axisRefs)
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
 
@@ -94,7 +90,7 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
 
-    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
+    Set<String> getReferencesFrom(ApplicationID appId, String cubeName)
 
     List<AxisRef> getReferenceAxes(ApplicationID appId)
 
@@ -122,13 +118,13 @@ interface NCubeMutableClient extends NCubeClient
 
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes)
 
-    Integer rollbackCubes(ApplicationID appId, Object[] names)
+    Integer rollbackBranch(ApplicationID appId, Object[] names)
 
-    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer acceptMine(ApplicationID appId, Object[] cubeNames)
 
-    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames)
+    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames)
 
-    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
 
     Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
 

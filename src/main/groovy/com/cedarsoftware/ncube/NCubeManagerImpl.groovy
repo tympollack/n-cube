@@ -143,7 +143,7 @@ class NCubeManagerImpl implements NCubeMutableClient
     /**
      * Retrieve all cube names that are deeply referenced by ApplicationID + n-cube name.
      */
-    Set<String> getReferencedCubeNames(ApplicationID appId, String name, Set<String> refs = new CaseInsensitiveSet<>())
+    Set<String> getReferencesFrom(ApplicationID appId, String name, Set<String> refs = new CaseInsensitiveSet<>())
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(name)
@@ -162,7 +162,7 @@ class NCubeManagerImpl implements NCubeMutableClient
                 if (!refs.contains(cubeName))
                 {
                     refs.add(cubeName)
-                    getReferencedCubeNames(appId, cubeName, refs)
+                    getReferencesFrom(appId, cubeName, refs)
                 }
             }
         }
@@ -222,20 +222,27 @@ class NCubeManagerImpl implements NCubeMutableClient
         return persister.getAppNames(tenant)
     }
 
+    /**
+     * Get all of the versions that exist for the given ApplicationID (app name).
+     * @return Object[] version numbers.
+     */
     Object[] getVersions(String app)
     {
-        throw new IllegalStateException("getVersions() should not be called on ${getClass().name} without tenant. Please check Spring bean configuration.")
+        ApplicationID.validateApp(app)
+        Set<String> versions = []
+        Map<String, List<String>> versionMap = persister.getVersions(tenant, app)
+        versionMap.keySet().each {String status ->
+            addVersions(versions, versionMap[status], status)
+        }
+        return versions.toArray()
     }
 
-    /**
-     * Get all of the versions that exist for the given ApplicationID (tenant and app).
-     * @return List<String> version numbers.
-     */
-    Map<String, List<String>> getVersions(String tenant, String app)
+    private void addVersions(Set<String> set, List<String> versions, String suffix)
     {
-        ApplicationID.validateTenant(tenant)
-        ApplicationID.validateApp(app)
-        return persister.getVersions(tenant, app)
+        for (String version : versions)
+        {
+            set.add("${version}-${suffix}".toString())
+        }
     }
 
     /**
@@ -245,7 +252,9 @@ class NCubeManagerImpl implements NCubeMutableClient
      */
     String getLatestVersion(String tenant, String app, String releaseStatus)
     {
-        Map<String, List<String>> versionsMap = getVersions(tenant, app)
+        ApplicationID.validateTenant(tenant)
+        ApplicationID.validateApp(app)
+        Map<String, List<String>> versionsMap = persister.getVersions(tenant, app)
         Set<String> versions = new TreeSet<>(new VersionComparator())
         versions.addAll(versionsMap[releaseStatus])
         return versions.first() as String
@@ -466,7 +475,7 @@ class NCubeManagerImpl implements NCubeMutableClient
             throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
         }
 
-        lockApp(appId)
+        lockApp(appId, true)
         if (!test)
         {   // Only sleep when running in production (not by JUnit)
             sleep(10000)
@@ -483,7 +492,7 @@ class NCubeManagerImpl implements NCubeMutableClient
         }
         int rows = persister.releaseCubes(appId, newSnapVer)
         persister.copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
-        unlockApp(appId)
+        lockApp(appId, false)
         return rows
     }
 
@@ -591,7 +600,7 @@ class NCubeManagerImpl implements NCubeMutableClient
         return persister.updateTestData(appId, cubeName, testData)
     }
 
-    Object[] getTestData(ApplicationID appId, String cubeName)
+    Object[] getTests(ApplicationID appId, String cubeName)
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
@@ -741,11 +750,12 @@ class NCubeManagerImpl implements NCubeMutableClient
         return refAxes
     }
 
-    void updateReferenceAxes(List<AxisRef> axisRefs)
+    void updateReferenceAxes(Object[] axisRefs)
     {
         Set<ApplicationID> uniqueAppIds = new HashSet()
-        for (AxisRef axisRef : axisRefs)
+        for (Object obj : axisRefs)
         {
+            AxisRef axisRef = obj as AxisRef
             ApplicationID srcApp = axisRef.srcAppId
             ApplicationID.validateAppId(srcApp)
             srcApp.validateBranchIsNotHead()
@@ -769,8 +779,9 @@ class NCubeManagerImpl implements NCubeMutableClient
             assertNotLockBlocked(appId)
         }
 
-        for (AxisRef axisRef : axisRefs)
+        for (Object obj : axisRefs)
         {
+            AxisRef axisRef = obj as AxisRef
             axisRef.with {
                 NCube ncube = persister.loadCube(srcAppId, srcCubeName)
                 Axis axis = ncube.getAxis(srcAxisName)
@@ -882,11 +893,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      */
     Boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
     {
-        if (checkPermissions(appId, resource, action))
+        if (checkPermissions(appId, resource, action.name()))
         {
             return true
         }
-        throw new SecurityException("Operation not performed.  You do not have ${action.name()} permission to ${resource}, app: ${appId}")
+        throw new SecurityException("Operation not performed.  You do not have ${action} permission to ${resource}, app: ${appId}")
     }
 
     protected boolean assertNotLockBlocked(ApplicationID appId)
@@ -958,8 +969,9 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @return boolean true if allowed, false if not.  If the permissions cubes restricting access have not yet been
      * added to the same App, then all access is granted.
      */
-    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    Boolean checkPermissions(ApplicationID appId, String resource, String actionName)
     {
+        Action action = Action.valueOf(actionName.toUpperCase())
         String key = getPermissionCacheKey(appId, resource, action)
         Boolean allowed = checkPermissionCache(key)
         if (allowed instanceof Boolean)
@@ -1002,10 +1014,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         }
 
         // Step 2: Make sure one of the user's roles allows access
-        final String actionName = action.lower()
+        final String actionNameLower = action.lower()
         for (String role : roles)
         {
-            if (checkResourcePermission(permCube, role, resource, actionName))
+            if (checkResourcePermission(permCube, role, resource, actionNameLower))
             {
                 permCache.put(key, true)
                 return true
@@ -1020,7 +1032,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * Faster permissions check that should be used when filtering a list of n-cubes.  Before calling this
      * API, call getPermInfo(AppId) to get the 'permInfo' Map to be used in this API.
      */
-    boolean fastCheckPermissions(ApplicationID appId, String resource, Action action, Map permInfo)
+    private boolean fastCheckPermissions(ApplicationID appId, String resource, Action action, Map permInfo)
     {
         String key = getPermissionCacheKey(appId, resource, action)
         Boolean allowed = checkPermissionCache(key)
@@ -1172,7 +1184,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return p.matcher(text).matches()
     }
 
-    Boolean isAdmin(ApplicationID appId, boolean useRealId = false)
+    Boolean isAppAdmin(ApplicationID appId, boolean useRealId = false)
     {
         NCube userCube = loadCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
         if (userCube == null)
@@ -1266,55 +1278,42 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     /**
      * Lock the given appId so that no changes can be made to any cubes within it
      * @param appId ApplicationID to lock
+     * @param shouldLock - true to lock, false to unlock
      */
-    Boolean lockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId, boolean shouldLock)
     {
         assertPermissions(appId, null, Action.RELEASE)
-        String impId = impliedId
         ApplicationID bootAppId = getBootAppId(appId)
-
-        String lockOwner = getAppLockedBy(appId)
-        if (impId == lockOwner)
-        {
-            return false
-        }
-        if (lockOwner != null)
-        {
-            throw new SecurityException("Application ${appId} already locked by ${lockOwner}")
-        }
-
         NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {
             return false
         }
-        sysLockCube.setCell(impId, [(AXIS_SYSTEM):null])
+        if (shouldLock)
+        {
+            String impId = impliedId
+            String lockOwner = getAppLockedBy(appId)
+            if (impId == lockOwner)
+            {
+                return false
+            }
+            if (lockOwner != null)
+            {
+                throw new SecurityException("Application ${appId} already locked by ${lockOwner}")
+            }
+            sysLockCube.setCell(impId, [(AXIS_SYSTEM):null])
+        }
+        else
+        {
+            String lockOwner = getAppLockedBy(appId)
+            if (impliedId != lockOwner && !isAppAdmin(appId))
+            {
+                throw new SecurityException("Application ${appId} locked by ${lockOwner}")
+            }
+            sysLockCube.removeCell([(AXIS_SYSTEM):null])
+        }
         persister.updateCube(sysLockCube, getUserId())
         return true
-    }
-
-    /**
-     * Unlock the given appId so that changes can be made to any cubes within it
-     * @param appId ApplicationID to unlock
-     */
-    void unlockApp(ApplicationID appId)
-    {
-        assertPermissions(appId, null, Action.RELEASE)
-        ApplicationID bootAppId = getBootAppId(appId)
-        NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
-        if (sysLockCube == null)
-        {
-            return
-        }
-
-        String lockOwner = getAppLockedBy(appId)
-        if (impliedId != lockOwner && !isAdmin(appId))
-        {
-            throw new SecurityException("Application ${appId} locked by ${lockOwner}")
-        }
-
-        sysLockCube.removeCell([(AXIS_SYSTEM):null])
-        persister.updateCube(sysLockCube, getUserId())
     }
 
     private void addAppUserGroupsCube(ApplicationID appId)
@@ -2077,9 +2076,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         long txId = UniqueIdGenerator.uniqueId
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
 
+        String commitAction = Action.COMMIT.name()
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!checkPermissions(appId, updateCube.name, Action.COMMIT))
+            if (!checkPermissions(appId, updateCube.name, commitAction))
             {
                 rejects.add(updateCube)
                 continue
@@ -2154,9 +2154,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
         ApplicationID headAppId = appId.asHead()
 
+        String commitAction = Action.COMMIT.name()
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!checkPermissions(appId, updateCube.name, Action.COMMIT) || updateCube.changeType == ChangeType.CONFLICT.code)
+            if (!checkPermissions(appId, updateCube.name, commitAction) || updateCube.changeType == ChangeType.CONFLICT.code)
             {
                 rejects.add(updateCube)
             }
@@ -2225,7 +2226,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * when the branch was created.  This is an insert cube (maintaining revision history) for
      * each cube passed in.
      */
-    Integer rollbackCubes(ApplicationID appId, Object[] names)
+    Integer rollbackBranch(ApplicationID appId, Object[] names)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2250,7 +2251,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @param cubeNames Object[] of String names of n-cube
      * @return int the number of n-cubes merged.
      */
-    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer acceptMine(ApplicationID appId, Object[] cubeNames)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2278,7 +2279,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      * @param Object[] of String SHA-1's for each of the cube names in the branch.
      * @return int the number of n-cubes merged.
      */
-    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
+    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()

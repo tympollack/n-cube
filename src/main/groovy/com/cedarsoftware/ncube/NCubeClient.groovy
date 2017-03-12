@@ -29,7 +29,7 @@ interface NCubeClient
 
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
 
-    Object[] getTestData(ApplicationID appId, String cubeName)
+    Object[] getTests(ApplicationID appId, String cubeName)
 
     String getNotes(ApplicationID appId, String cubeName)
 

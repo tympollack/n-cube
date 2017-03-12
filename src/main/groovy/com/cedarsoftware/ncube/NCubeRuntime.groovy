@@ -103,7 +103,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return getCubeInternal(appId, cubeName)
     }
 
-    Object[] getTestData(ApplicationID appId, String cubeName)
+    Object[] getTests(ApplicationID appId, String cubeName)
     {
         Object[] result = bean.call('ncubeController', 'getTests', [appId, cubeName]) as Object[]
         return result
@@ -153,7 +153,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         {
             throw new IllegalStateException("${MUTABLE_ERROR} duplicate")
         }
-        Boolean result = bean.call('ncubeController', 'duplicateCube', [oldAppId, newAppId, oldName, newName]) as Boolean
+        Boolean result = bean.call('ncubeController', 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
         clearCubeFromCache(newAppId, newName)
         return result
     }
@@ -164,7 +164,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return result
     }
 
-    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
+    Boolean checkPermissions(ApplicationID appId, String resource, String action)
     {
         Boolean result = bean.call('ncubeController', 'checkPermissions', [appId, resource, action]) as Boolean
         return result
@@ -182,7 +182,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         bean.call('ncubeController', 'getImpliedId', [])
     }
 
-    Boolean isAdmin(ApplicationID appId, boolean useRealId)
+    Boolean isAppAdmin(ApplicationID appId, boolean useRealId)
     {
         Boolean result = bean.call('ncubeController', 'isAppAdmin', [appId, useRealId]) as Boolean
         return result
@@ -194,23 +194,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return result
     }
 
-    Boolean lockApp(ApplicationID appId)
+    Boolean lockApp(ApplicationID appId, boolean shouldLock)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} lockApp")
         }
-        Boolean result = bean.call('ncubeController', 'lockApp', [appId, true]) as Boolean
+        Boolean result = bean.call('ncubeController', 'lockApp', [appId, shouldLock]) as Boolean
         return result
-    }
-
-    void unlockApp(ApplicationID appId)
-    {
-        if (!mutable)
-        {
-            throw new IllegalStateException("${MUTABLE_ERROR} unlockApp")
-        }
-        bean.call('ncubeController', 'lockApp', [appId, false])
     }
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
@@ -278,11 +269,6 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
     {
         Object[] result = bean.call('ncubeController', 'getVersions', [app]) as Object[]
         return result
-    }
-
-    Map<String, List<String>> getVersions(String tenant, String app)
-    {
-        throw new IllegalStateException('Please use getVersions() that returns Object[].')
     }
 
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
@@ -364,7 +350,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return result
     }
 
-    Set<String> getReferencedCubeNames(ApplicationID appId, String cubeName)
+    Set<String> getReferencesFrom(ApplicationID appId, String cubeName)
     {
         Object[] results = bean.call('ncubeController', 'getReferencesFrom', [appId, cubeName]) as Object[]
         Set<String> refs = new CaseInsensitiveSet()
@@ -378,13 +364,13 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return result
     }
 
-    void updateReferenceAxes(List<AxisRef> axisRefs)
+    void updateReferenceAxes(Object[] axisRefs)
     {
         if (!mutable)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} updateReferenceAxes")
         }
-        bean.call('ncubeController', 'updateReferenceAxes', [axisRefs.toArray()])
+        bean.call('ncubeController', 'updateReferenceAxes', [axisRefs])
         clearCache()
     }
 
@@ -562,32 +548,32 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return map
     }
 
-    Integer rollbackCubes(ApplicationID appId, Object[] names)
+    Integer rollbackBranch(ApplicationID appId, Object[] names)
     {
         if (!mutable)
         {
-            throw new IllegalStateException("${MUTABLE_ERROR} rollbackCubes")
+            throw new IllegalStateException("${MUTABLE_ERROR} rollbackBranch")
         }
         Integer result = bean.call('ncubeController', 'rollbackBranch', [appId, names]) as Integer
         clearCache(appId)
         return result
     }
 
-    Integer mergeAcceptMine(ApplicationID appId, Object[] cubeNames)
+    Integer acceptMine(ApplicationID appId, Object[] cubeNames)
     {
         if (!mutable)
         {
-            throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptMine")
+            throw new IllegalStateException("${MUTABLE_ERROR} acceptMine")
         }
         Integer result = bean.call('ncubeController', 'acceptMine', [appId, cubeNames]) as Integer
         return result
     }
 
-    Integer mergeAcceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
+    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         if (!mutable)
         {
-            throw new IllegalStateException("${MUTABLE_ERROR} mergeAcceptTheirs")
+            throw new IllegalStateException("${MUTABLE_ERROR} acceptTheirs")
         }
         Integer result = bean.call('ncubeController', 'acceptTheirs', [appId, cubeNames, sourceBranch]) as Integer
         clearCache(appId)
@@ -650,7 +636,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         cubeCache.evict(cubeName.toLowerCase())
     }
 
-    protected void clearCache()
+    void clearCache()
     {
         ncubeCacheManager.cacheNames.each { String cacheKey ->
             ApplicationID appId = ApplicationID.convert(cacheKey)
@@ -658,7 +644,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         }
     }
 
-    protected Cache getCacheForApp(ApplicationID appId)
+    Cache getCacheForApp(ApplicationID appId)
     {
         Cache cache = ncubeCacheManager.getCache(appId.cacheKey())
         return cache
@@ -936,7 +922,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
         return systemParams
     }
 
-    protected void clearSysParams()
+    void clearSysParams()
     {
         systemParams = null
     }

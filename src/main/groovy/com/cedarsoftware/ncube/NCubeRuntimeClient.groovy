@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.springframework.cache.Cache
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
@@ -42,4 +43,14 @@ interface NCubeRuntimeClient extends NCubeClient
     Map<String, Object> getSystemParams()
 
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+
+    //-- Testing methods --
+
+    void clearSysParams()
+
+    void clearCache()
+
+    Cache getCacheForApp(ApplicationID appId)
+
+    ApplicationID getBootVersion(String tenant, String app)
 }

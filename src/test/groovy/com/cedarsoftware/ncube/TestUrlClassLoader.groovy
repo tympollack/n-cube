@@ -31,14 +31,9 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
     {
     }
 
-    private static NCubeRuntime getRuntime()
-    {
-        return mutableClient as NCubeRuntime
-    }
-    
     static int getCacheSize(ApplicationID applicationID)
     {
-        return runtime.getCacheForApp(applicationID).cache.size()
+        return runtimeClient.getCacheForApp(applicationID).cache.size()
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.JsonHttpProxy
 import groovy.transform.CompileStatic
 import org.junit.Test
 
@@ -64,8 +65,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     @Test
     void testHeartBeat()
     {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
-        Map health = call('heartBeat', [null]) as Map
+        Map health = call('heartBeat', [[:]]) as Map
         assert health
         Map stats = health.serverStats as Map
         assert stats.containsKey('User ID')
@@ -91,15 +91,14 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     @Test
     void testFetchJsonRevDiffs()
     {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         createCubeFromResource(BRANCH1, 'test.branch.1.json')
-        List<NCubeInfoDto> cubes = runtime.search(BRANCH1, 'TestBranch', null, null)
+        List<NCubeInfoDto> cubes = runtimeClient.search(BRANCH1, 'TestBranch', null, null)
         assert cubes.size() == 1
         NCubeInfoDto origDto = cubes[0]
         String origId = origDto.id
-        NCube foo = runtime.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
-        runtime.updateCube(foo)
-        List<NCubeInfoDto> cubes2 = runtime.search(BRANCH1, 'TestBranch', null, null)
+        NCube foo = runtimeClient.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
+        mutableClient.updateCube(foo)
+        List<NCubeInfoDto> cubes2 = runtimeClient.search(BRANCH1, 'TestBranch', null, null)
         assert cubes2.size() == 1
         NCubeInfoDto newDto = cubes2[0]
         String newId = newDto.id
@@ -111,13 +110,12 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     @Test
     void testFetchJsonBranchDiffs()
     {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         createCubeFromResource(BRANCH1, 'test.branch.1.json')
         createCubeFromResource(BRANCH2, 'test.branch.2.json')
-        List<NCubeInfoDto> cubes = runtime.search(BRANCH1, 'TestBranch', null, null)
+        List<NCubeInfoDto> cubes = runtimeClient.search(BRANCH1, 'TestBranch', null, null)
         assert cubes.size() == 1
         NCubeInfoDto origDto = cubes[0]
-        List<NCubeInfoDto> cubes2 = runtime.search(BRANCH2, 'TestBranch', null, null)
+        List<NCubeInfoDto> cubes2 = runtimeClient.search(BRANCH2, 'TestBranch', null, null)
         assert cubes2.size() == 1
         NCubeInfoDto newDto = cubes2[0]
 
@@ -125,9 +123,9 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         assert result.size() == 4
     }
 
-    private Object call(String method, List args)
+    private Object call(String methodName, List args)
     {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
-        runtime.bean.call('ncubeController', method, args)
+        JsonHttpProxy proxy = SpringAppContext.getBean('jsonHttpProxy') as JsonHttpProxy
+        proxy.invokeMethod('call', ['ncubeController', methodName, args])
     }
 }

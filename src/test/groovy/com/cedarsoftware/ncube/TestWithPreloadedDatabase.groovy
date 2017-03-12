@@ -324,7 +324,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.size())
         Object[] names = [dtos.first().name]
-        mutableClient.rollbackCubes(BRANCH1, names)
+        mutableClient.rollbackBranch(BRANCH1, names)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
         assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 0
@@ -358,7 +358,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert dtos2.size() == 0
 
         // undo delete
-        mutableClient.rollbackCubes(BRANCH1, names)
+        mutableClient.rollbackBranch(BRANCH1, names)
 
         result = mutableClient.commitBranch(BRANCH1)
         assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 0
@@ -396,7 +396,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNotNull(mutableClient.getCube(BRANCH1, cubeName))
 
         // undo restore
-        mutableClient.rollbackCubes(BRANCH1, cubeName)
+        mutableClient.rollbackBranch(BRANCH1, cubeName)
         assertNull(mutableClient.getCube(BRANCH1, cubeName))
 
         result = mutableClient.commitBranch(BRANCH1)
@@ -432,7 +432,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         String nextVersion = '1.29.0'
         mutableClient.releaseCubes(BRANCH1, nextVersion)
         ApplicationID nextBranch1 = BRANCH1.asVersion(nextVersion)
-        mutableClient.rollbackCubes(nextBranch1, cubeName)
+        mutableClient.rollbackBranch(nextBranch1, cubeName)
 
         cube = mutableClient.getCube(nextBranch1, cubeName)
         assertEquals(changes[1], cube.getCell(coord))
@@ -848,7 +848,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         //  loads in both TestAge and TestBranch through only TestBranch has changed.
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(1, dtos.size())
-        assertEquals(1, mutableClient.rollbackCubes(BRANCH1, "TestBranch"))
+        assertEquals(1, mutableClient.rollbackBranch(BRANCH1, "TestBranch"))
 
         assertEquals(6, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
 
@@ -1607,7 +1607,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(0, dtos.length)
 
         assertNull(mutableClient.getCube(BRANCH1, "TestBranch2"))
-        assertEquals(0, mutableClient.rollbackCubes(BRANCH1, dtos))
+        assertEquals(0, mutableClient.rollbackBranch(BRANCH1, dtos))
 
         assertNotNull(mutableClient.getCube(BRANCH1, "TestBranch"))
         assertNull(mutableClient.getCube(BRANCH1, "TestBranch2"))
@@ -1638,7 +1638,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(2, dtos.size())
 
-        assertEquals(2, mutableClient.rollbackCubes(BRANCH1, ["TestBranch", "TestBranch2"] as Object[]))
+        assertEquals(2, mutableClient.rollbackBranch(BRANCH1, ["TestBranch", "TestBranch2"] as Object[]))
 
         assertNotNull(mutableClient.getCube(BRANCH1, "TestBranch"))
         assertNull(mutableClient.getCube(BRANCH1, "TestBranch2"))
@@ -1938,7 +1938,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(2, dtos.size())
 
-        assertEquals(2, mutableClient.rollbackCubes(BRANCH1, [dtos.get(0).name, dtos.get(1).name] as Object[]))
+        assertEquals(2, mutableClient.rollbackBranch(BRANCH1, [dtos.get(0).name, dtos.get(1).name] as Object[]))
 
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, null).size())
         assertEquals(1, getDeletedCubesFromDatabase(BRANCH1, null).size())
@@ -2086,7 +2086,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH2)
         assertEquals(1, dtos.size())
 
-        assertEquals(1, mutableClient.rollbackCubes(BRANCH2, dtos.first().name))
+        assertEquals(1, mutableClient.rollbackBranch(BRANCH2, dtos.first().name))
 
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, null).size())
         assertEquals(0, getDeletedCubesFromDatabase(BRANCH1, null).size())
@@ -4805,7 +4805,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         //consumer update from producer
-        mutableClient.mergeAcceptTheirs(BRANCH1, ['TestBranch'] as Object[], BRANCH2.branch)
+        mutableClient.acceptTheirs(BRANCH1, ['TestBranch'] as Object[], BRANCH2.branch)
 
         //consumer open commit modal
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH1)
@@ -4859,7 +4859,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
-        assertEquals(1, mutableClient.mergeAcceptTheirs(BRANCH1, 'TestBranch'))
+        assertEquals(1, mutableClient.acceptTheirs(BRANCH1, 'TestBranch'))
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -4913,7 +4913,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
-        assertEquals(1, mutableClient.mergeAcceptTheirs(BRANCH1, 'TestBranch'))
+        assertEquals(1, mutableClient.acceptTheirs(BRANCH1, 'TestBranch'))
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -4942,7 +4942,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert !branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -4979,7 +4979,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5022,7 +5022,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert !branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5070,7 +5070,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5116,7 +5116,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert !branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5168,7 +5168,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5202,7 +5202,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert !branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5239,7 +5239,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         NCubeInfoDto headDto = mutableClient.search(HEAD, 'TestBranch', null, null).first()
@@ -5268,7 +5268,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert !branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
@@ -5293,7 +5293,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCubeInfoDto branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
         assert !branch2Dto.changed
 
-        assert 1 == mutableClient.mergeAcceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
+        assert 1 == mutableClient.acceptTheirs(BRANCH2, ['TestBranch'] as Object[], BRANCH1.branch)
 
         NCubeInfoDto branch1Dto = mutableClient.search(BRANCH1, 'TestBranch', null, null).first()
         branch2Dto = mutableClient.search(BRANCH2, 'TestBranch', null, null).first()
@@ -5345,7 +5345,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         String saveHeadSha1 = infoDto.sha1
         assert saveHeadSha1 != null
 
-        assertEquals(1, mutableClient.mergeAcceptMine(BRANCH1, "TestBranch"))
+        assertEquals(1, mutableClient.acceptMine(BRANCH1, "TestBranch"))
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5412,7 +5412,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         String saveHeadSha1 = infoDto.sha1
         assert saveHeadSha1 != null
 
-        assertEquals(1, mutableClient.mergeAcceptMine(BRANCH1, "TestBranch"))
+        assertEquals(1, mutableClient.acceptMine(BRANCH1, "TestBranch"))
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5436,7 +5436,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     {
         try
         {
-            mutableClient.mergeAcceptMine(appId, "TestBranch")
+            mutableClient.acceptMine(appId, "TestBranch")
             fail()
         }
         catch (EnvelopeException e)
@@ -5451,7 +5451,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         try
         {
             preloadCubes(BRANCH1, "test.branch.1.json")
-            mutableClient.mergeAcceptMine(appId, "TestBranch")
+            mutableClient.acceptMine(appId, "TestBranch")
             fail()
         }
         catch (EnvelopeException e)
@@ -5465,7 +5465,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     {
         try
 		{
-            mutableClient.mergeAcceptTheirs(appId, "TestBranch")
+            mutableClient.acceptTheirs(appId, "TestBranch")
             fail()
         }
         catch (EnvelopeException e)
@@ -5480,7 +5480,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         try
 		{
             preloadCubes(BRANCH1, "test.branch.1.json")
-            mutableClient.mergeAcceptTheirs(appId, "TestBranch")
+            mutableClient.acceptTheirs(appId, "TestBranch")
             fail()
         }
         catch (EnvelopeException e)
@@ -5604,7 +5604,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         String sha1 = dtos[0].sha1
         assertNotEquals(sha1, newSha1)
 
-        mutableClient.mergeAcceptMine(BRANCH1, "TestAge")
+        mutableClient.acceptMine(BRANCH1, "TestAge")
 
         dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         String branchHeadSha1 = dtos[0].headSha1
@@ -5722,7 +5722,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 0
         assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
 
-        mutableClient.mergeAcceptTheirs(BRANCH1, "TestAge")
+        mutableClient.acceptTheirs(BRANCH1, "TestAge")
         assertEquals(0, mutableClient.getBranchChangesForHead(BRANCH1).size())
     }
 
@@ -5980,8 +5980,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testBootstrapWithOverrides()
 	{
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
-        ApplicationID id = runtime.getBootVersion(ApplicationID.DEFAULT_TENANT, 'example')
+        ApplicationID id = runtimeClient.getBootVersion(ApplicationID.DEFAULT_TENANT, 'example')
         assert id.tenant == ApplicationID.DEFAULT_TENANT
         assert id.app == 'example'
         assert id.version == '0.0.0'
@@ -5992,7 +5991,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCube cube = mutableClient.getCube(id, 'sys.bootstrap')
 
         // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
 
         // ensure properties are cleared (if empty, this would load the environment version of NCUBE_PARAMS)
         System.setProperty('NCUBE_PARAMS', '{"foo":"bar"}')
@@ -6002,14 +6001,14 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'baz'), cube.getCell([env:'SAND']))
 
         // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":"RELEASE", "app":"UD", "tenant":"foo", "branch":"bar"}')
         assertEquals(new ApplicationID('foo', 'UD', '1.28.0', 'RELEASE', 'bar'), cube.getCell([env:'DEV']))
         assertEquals(new ApplicationID('foo', 'UD', '1.25.0', 'RELEASE', 'bar'), cube.getCell([env:'PROD']))
         assertEquals(new ApplicationID('foo', 'UD', '1.29.0', 'RELEASE', 'bar'), cube.getCell([env:'SAND']))
 
         // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"branch":"bar"}')
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'bar'), cube.getCell([env:'DEV']))
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.25.0', 'RELEASE', 'bar'), cube.getCell([env:'PROD']))
@@ -6019,11 +6018,10 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testUserOverloadedClassPath()
 	{
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         preloadCubes(appId, "sys.classpath.user.overloaded.json", "sys.versions.json")
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         // Check DEV
         NCube cube = mutableClient.getCube(appId, "sys.classpath")
         // ensure properties are cleared.
@@ -6041,7 +6039,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals('https://www.foo.com/tests/ncube/cp2/private/groovy/', intLoader.URLs[2].toString())
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         // Check with overload
         System.setProperty("NCUBE_PARAMS", '{"cpBase":"file://C:/Development/"}')
 
@@ -6071,7 +6069,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals('file://C:/Development/private/groovy/', devLoaderAgain.URLs[2].toString())
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         // Check version overload only
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
@@ -6084,11 +6082,10 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testSystemParamsOverloads()
 	{
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         preloadCubes(appId, "sys.classpath.system.params.user.overloaded.json", "sys.versions.2.json", "sys.resources.base.url.json")
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
 
         // Check DEV
         NCube cube = mutableClient.getCube(appId, "sys.classpath")
@@ -6111,7 +6108,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         System.setProperty("NCUBE_PARAMS", '{"cpBase":"file://C:/Development/"}')
 
         // int loader is not marked as cached so we recreate this one each time.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         CdnClassLoader differentIntLoader = cube.getCell([env:"INT"])
 
         assertNotSame(intLoader, differentIntLoader)
@@ -6138,7 +6135,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         // Check version overload only
         runtimeClient.clearCache(appId)
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
         URLClassLoader loader = cube.getCell([env:"SAND"])
@@ -6202,11 +6199,10 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testGetBootstrapVersion()
     {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
         System.setProperty("NCUBE_PARAMS", '{}')
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
 
-        ApplicationID id = runtime.getBootVersion('foo', 'bar')
+        ApplicationID id = runtimeClient.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant
         assertEquals 'bar', id.app
         assertEquals '0.0.0', id.version
@@ -6214,9 +6210,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals 'HEAD', id.branch
 
         System.setProperty("NCUBE_PARAMS", '{"branch":"qux"}')
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
 
-        id = runtime.getBootVersion('foo', 'bar')
+        id = runtimeClient.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant
         assertEquals 'bar', id.app
         assertEquals '0.0.0', id.version
@@ -6268,7 +6264,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         // Will fail because cube is not RELEASE / HEAD
         try
         {
-            mutableClient.updateReferenceAxes([axisRef] as List) // Update
+            mutableClient.updateReferenceAxes([axisRef] as Object[])
             fail()
         }
         catch (EnvelopeException e)

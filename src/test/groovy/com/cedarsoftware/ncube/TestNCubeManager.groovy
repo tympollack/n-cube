@@ -148,17 +148,17 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         Object[] expectedTests = createTests()
 
         // reading from cache.
-        Object[] data = mutableClient.getTestData(defaultSnapshotApp, 'test.Age-Gender')
+        Object[] data = mutableClient.getTests(defaultSnapshotApp, 'test.Age-Gender')
         assertTrue(DeepEquals.deepEquals(expectedTests, data))
 
         // reload from db
         runtimeClient.clearCache(defaultSnapshotApp)
-        data = mutableClient.getTestData(defaultSnapshotApp, 'test.Age-Gender')
+        data = mutableClient.getTests(defaultSnapshotApp, 'test.Age-Gender')
         assertTrue(DeepEquals.deepEquals(expectedTests, data))
 
         //  update cube
         mutableClient.updateCube(cube)
-        data = mutableClient.getTestData(defaultSnapshotApp, 'test.Age-Gender')
+        data = mutableClient.getTests(defaultSnapshotApp, 'test.Age-Gender')
         assertTrue(DeepEquals.deepEquals(expectedTests, data))
 
         assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, [cube.name].toArray()))
@@ -169,7 +169,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         try
         {
-            mutableClient.getReferencedCubeNames(defaultSnapshotApp, 'AnyCube')
+            mutableClient.getReferencesFrom(defaultSnapshotApp, 'AnyCube')
             fail()
         }
         catch (EnvelopeException e)
@@ -278,13 +278,13 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         NCube n1 = createCubeFromResource(defaultSnapshotApp, 'template1.json')
         NCube n2 = createCubeFromResource(defaultSnapshotApp, 'template2.json')
 
-        Set refs = mutableClient.getReferencedCubeNames(defaultSnapshotApp, n1.name)
+        Set refs = mutableClient.getReferencesFrom(defaultSnapshotApp, n1.name)
 
         assertEquals(2, refs.size())
         assertTrue(refs.contains('Template2Cube'))
 
         refs.clear()
-        refs = mutableClient.getReferencedCubeNames(defaultSnapshotApp, n2.name)
+        refs = mutableClient.getReferencesFrom(defaultSnapshotApp, n2.name)
         assertEquals(2, refs.size())
         assertTrue(refs.contains('Template1Cube'))
 
@@ -293,7 +293,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
         try
         {
-            mutableClient.getReferencedCubeNames(defaultSnapshotApp, n2.name)
+            mutableClient.getReferencesFrom(defaultSnapshotApp, n2.name)
             fail()
         }
         catch (EnvelopeException e)
@@ -308,13 +308,13 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         createCubeFromResource(defaultSnapshotApp, 'aa.json')
         createCubeFromResource(defaultSnapshotApp, 'bb.json')
 
-        Set refs = mutableClient.getReferencedCubeNames(defaultSnapshotApp, 'aa')
+        Set refs = mutableClient.getReferencesFrom(defaultSnapshotApp, 'aa')
 
         assertEquals(1, refs.size())
         assertTrue(refs.contains('bb'))
 
         refs.clear()
-        refs = mutableClient.getReferencedCubeNames(defaultSnapshotApp, 'bb')
+        refs = mutableClient.getReferencesFrom(defaultSnapshotApp, 'bb')
         assertEquals(0, refs.size())
     }
 
@@ -477,7 +477,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertTrue(ncube1.numDimensions == 3)
         mutableClient.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray())
         mutableClient.saveTests(defaultSnapshotApp, ncube1.name, createTests())
-        Object[] testData = mutableClient.getTestData(defaultSnapshotApp, ncube1.name)
+        Object[] testData = mutableClient.getTests(defaultSnapshotApp, ncube1.name)
         Object[] expectedTests = createTests()
         assertTrue(DeepEquals.deepEquals(expectedTests, testData))
     }
@@ -567,7 +567,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertTrue('Trailer Config Notes' == notes1)
 
         mutableClient.saveTests(next, 'test.ValidTrailorConfigs', null)
-        String testData = mutableClient.getTestData(next, 'test.ValidTrailorConfigs')
+        String testData = mutableClient.getTests(next, 'test.ValidTrailorConfigs')
         assertNull(testData)
     }
 
@@ -884,7 +884,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         try
         {
-            mutableClient.getTestData(defaultSnapshotApp, 'DashboardRoles')
+            mutableClient.getTests(defaultSnapshotApp, 'DashboardRoles')
             fail('should not make it here')
         }
         catch (EnvelopeException e)
@@ -893,7 +893,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         }
 
         createCube()
-        Object[] testData = mutableClient.getTestData(defaultSnapshotApp, 'test.Age-Gender')
+        Object[] testData = mutableClient.getTests(defaultSnapshotApp, 'test.Age-Gender')
         assertNotNull(testData)
         assertTrue(testData.size() > 0)
 
@@ -910,7 +910,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         ApplicationID newId = defaultSnapshotApp.createNewSnapshotId('0.1.1')
         try
         {
-            mutableClient.getTestData(newId, 'test.Age-Gender')
+            mutableClient.getTests(newId, 'test.Age-Gender')
             fail('Should not make it here')
         }
         catch (EnvelopeException e)
@@ -984,7 +984,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         Object[] names = new Object[2]
         names[0] = "TestCube"
 
-        int x = mutableClient.rollbackCubes(defaultSnapshotApp, names)
+        int x = mutableClient.rollbackBranch(defaultSnapshotApp, names)
         assert 0 == x
     }
 
@@ -1009,7 +1009,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assert 4 == changes.size()
 
         Object[] cubes = [cube1.name, cube2.name, cube3.name, cube4.name].toArray()
-        assert 4 == mutableClient.rollbackCubes(appId, cubes)
+        assert 4 == mutableClient.rollbackBranch(appId, cubes)
         changes = mutableClient.getBranchChangesForHead(appId)
         assert 0 == changes.size()  // Looks like we've got no cubes (4 deleted ones but 0 active)
 
@@ -1229,9 +1229,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 0
         assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 0
         assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 0
-        mutableClient.lockApp(defaultSnapshotApp)
+        mutableClient.lockApp(defaultSnapshotApp, true)
         mutableClient.releaseVersion(defaultSnapshotApp, '2.0.0')
-        mutableClient.unlockApp(defaultSnapshotApp)
+        mutableClient.lockApp(defaultSnapshotApp, false)
         List<NCubeInfoDto> fullHistory = mutableClient.getRevisionHistory(defaultSnapshotApp.asVersion('2.0.0').asHead(), cube.name, true)
         assert fullHistory.size() == 1
     }
@@ -1629,7 +1629,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         createCubeFromResource(defaultSnapshotApp, 'b.json')
         createCubeFromResource(defaultSnapshotApp, 'c.json')
 
-        Set<String> names = mutableClient.getReferencedCubeNames(defaultSnapshotApp, 'a')
+        Set<String> names = mutableClient.getReferencesFrom(defaultSnapshotApp, 'a')
         assertEquals(3, names.size())
         assertTrue(names.contains('a'))
         assertTrue(names.contains('b'))
@@ -1639,8 +1639,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testGetSystemParamsHappyPath()
     {
-        NCubeRuntime runtime = mutableClient as NCubeRuntime
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         System.setProperty('NCUBE_PARAMS', '{"branch":"foo"}')
         assertEquals('foo', runtimeClient.systemParams.branch)
         assertNull(runtimeClient.systemParams.status)
@@ -1655,7 +1654,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNull(runtimeClient.systemParams.tenant)
 
 
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":"RELEASE", "app":"UD", "tenant":"foo", "branch":"bar"}')
         assertEquals('bar', runtimeClient.systemParams.branch)
         assertEquals('RELEASE', runtimeClient.systemParams.status)
@@ -1670,7 +1669,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertEquals('foo', runtimeClient.systemParams.tenant)
 
         // test invalid json, hands back nice empty map.
-        runtime.clearSysParams()
+        runtimeClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":}')
         assertNull(runtimeClient.systemParams.branch)
         assertNull(runtimeClient.systemParams.status)
@@ -1738,10 +1737,10 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testIsAdminPass()
     {
         //without user cube present
-        assertTrue(mutableClient.isAdmin(defaultSnapshotApp, true))
+        assertTrue(mutableClient.isAppAdmin(defaultSnapshotApp, true))
 
         assertNotNull(mutableClient.getCube(defaultBootApp, SYS_USERGROUPS))
-        assertTrue(mutableClient.isAdmin(defaultSnapshotApp, true))
+        assertTrue(mutableClient.isAppAdmin(defaultSnapshotApp, true))
     }
 
     @Test
