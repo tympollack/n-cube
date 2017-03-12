@@ -69,7 +69,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         assert health
         Map stats = health.serverStats as Map
         assert stats.containsKey('User ID')
-        assert stats.containsKey('Server Info')
+        assert stats.containsKey('Java version')
     }
 
     @Test
