@@ -39,9 +39,9 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     @After
     void teardown()
     {
-        mutableClient.clearTestDatabase()
-        runtimeClient.clearCache()
-        runtimeClient.clearSysParams()
+        testClient.clearTestDatabase()
+        testClient.clearCache()
+        testClient.clearSysParams()
     }
 
     NCube createCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)

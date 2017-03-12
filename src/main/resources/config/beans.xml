@@ -147,7 +147,7 @@
             <constructor-arg type="boolean" value="false" />
         </bean>
 
-        <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeManagerImpl">
+        <bean id="ncubeRuntime" name="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
             <constructor-arg ref="appContext" />
             <constructor-arg ref="persister" />
         </bean>
@@ -169,7 +169,7 @@
             <constructor-arg value="true" />
         </bean>
 
-        <bean id="ncubeImpl" class="com.cedarsoftware.ncube.NCubeManagerImpl">
+        <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
             <constructor-arg ref="appContext" />
             <constructor-arg ref="persister" />
         </bean>

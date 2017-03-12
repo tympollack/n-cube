@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.springframework.cache.Cache
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
@@ -22,25 +21,7 @@ import org.springframework.cache.Cache
  */
 
 @CompileStatic
-interface NCubeRuntimeClient extends NCubeClient
+interface NCubeTestServer
 {
-    void clearCache(ApplicationID appId)
-
-    URL getActualUrl(ApplicationID appId, String url, Map input)
-
-    URLClassLoader getLocalClassloader(ApplicationID appId)
-
-    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
-
-    NCube getNCubeFromResource(ApplicationID appId, String name)
-
-    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
-
-    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
-
-    void addCube(NCube ncube)
-
-    Map<String, Object> getSystemParams()
-
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    void clearTestDatabase()
 }

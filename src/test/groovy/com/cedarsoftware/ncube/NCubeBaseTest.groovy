@@ -43,7 +43,17 @@ class NCubeBaseTest
     {
         return SpringAppContext.mutableClient
     }
-    
+
+    static NCubeTestClient getTestClient()
+    {
+        return SpringAppContext.testClient
+    }
+
+    static NCubeTestServer getTestServer()
+    {
+        return SpringAppContext.testServer
+    }
+
     static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)
     {
         assertContainsIgnoreCase(e.envelopeData as String, contains)

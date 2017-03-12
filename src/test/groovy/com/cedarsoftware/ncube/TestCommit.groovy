@@ -5,6 +5,8 @@ import com.cedarsoftware.util.io.JsonReader
 import groovy.transform.CompileStatic
 import org.junit.Test
 
+import static org.junit.Assert.fail
+
 /**
  * NCubeController Tests
  *
@@ -76,10 +78,11 @@ class TestCommit extends NCubeCleanupBaseTest
         try
         {
             mutableClient.cancelCommit(commitId)
+            fail()
         }
         catch (EnvelopeException e)
         {
-            assertEnvelopeExceptionContains(e, 'request', 'closed')
+            assertEnvelopeExceptionContains(e, 'request', 'closed', 'status', 'requested', 'applicationid')
         }
 
         // reopen a commit
@@ -90,11 +93,12 @@ class TestCommit extends NCubeCleanupBaseTest
         // attempt to reopen a previously reopened commit
         try
         {
-            mutableClient.cancelCommit(commitId)
+            mutableClient.reopenCommit(commitId)
+            fail()
         }
         catch (EnvelopeException e)
         {
-            assertEnvelopeExceptionContains(e, 'request', 'closed')
+            assertEnvelopeExceptionContains(e, 'unable', 'reopen', 'status', 'requested', 'applicationid')
         }
     }
 
@@ -125,5 +129,16 @@ class TestCommit extends NCubeCleanupBaseTest
 
         headDtos = mutableClient.search(appId.asHead(), ncube.name, null, null)
         assert 1 == headDtos.size()
+
+        // attempt to commit a request that's already been committed
+        try
+        {
+            mutableClient.honorCommit(commitId)
+            fail()
+        }
+        catch (EnvelopeException e)
+        {
+            assertEnvelopeExceptionContains(e, 'request', 'closed', 'status', 'requested', 'committed', 'applicationid')
+        }
     }
 }

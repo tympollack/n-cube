@@ -26,6 +26,8 @@ import org.springframework.context.ApplicationContextAware
 class SpringAppContext implements ApplicationContextAware
 {
     private static ApplicationContext ctx
+    private static final String RUNTIME_BEAN = 'ncubeRuntime'
+    private static final String MANAGER_BEAN = 'ncubeManager'
 
     static Object getBean(String beanName)
     {
@@ -34,12 +36,22 @@ class SpringAppContext implements ApplicationContextAware
 
     static NCubeRuntimeClient getRuntime()
     {
-        return getBean('ncubeRuntime') as NCubeRuntimeClient
+        return getBean(RUNTIME_BEAN) as NCubeRuntimeClient
     }
     
     static NCubeMutableClient getMutableClient()
     {
-        return getBean('ncubeRuntime') as NCubeMutableClient
+        return getBean(RUNTIME_BEAN) as NCubeMutableClient
+    }
+
+    static NCubeTestClient getTestClient()
+    {
+        return getBean(RUNTIME_BEAN) as NCubeTestClient
+    }
+
+    static NCubeTestServer getTestServer()
+    {
+        return getBean(MANAGER_BEAN) as NCubeTestServer
     }
 
     void setApplicationContext(ApplicationContext applicationContext)

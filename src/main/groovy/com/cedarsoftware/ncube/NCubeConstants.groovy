@@ -38,6 +38,7 @@ interface NCubeConstants
     static final String SEARCH_FILTER_INCLUDE = 'includeTags'
     static final String SEARCH_FILTER_EXCLUDE = 'excludeTags'
 
+    static final String SYS_APP = 'sys.app'
     static final String SYS_BOOTSTRAP = 'sys.bootstrap'
     static final String SYS_PROTOTYPE = 'sys.prototype'
     static final String SYS_PERMISSIONS = 'sys.permissions'
@@ -65,4 +66,18 @@ interface NCubeConstants
     static final String NCUBE_PARAMS_BYTE_CODE_VERSION = 'byteCodeVersion'
     static final String NCUBE_ACCEPTED_DOMAINS = 'acceptedDomains'
     static final String NCUBE_PARAMS_BRANCH = 'branch'
+
+    static final String PR_PROP = 'property'
+    static final String PR_STATUS = 'status'
+    static final String PR_APP = 'appId'
+    static final String PR_CUBES = 'cubeNames'
+    static final String PR_REQUESTER = 'requestUser'
+    static final String PR_REQUEST_TIME = 'requestTime'
+    static final String PR_ID = 'prId'
+    static final String PR_MERGER = 'commitUser'
+    static final String PR_MERGE_TIME = 'commitTime'
+    static final String PR_OPEN = 'open'
+    static final String PR_CLOSED = 'closed'
+    static final String PR_CANCEL= 'closed cancelled'
+    static final String PR_COMPLETE= 'closed complete'
 }

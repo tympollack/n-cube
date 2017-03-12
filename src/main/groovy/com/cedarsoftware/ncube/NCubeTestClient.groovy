@@ -22,25 +22,15 @@ import org.springframework.cache.Cache
  */
 
 @CompileStatic
-interface NCubeRuntimeClient extends NCubeClient
+interface NCubeTestClient
 {
-    void clearCache(ApplicationID appId)
+    void clearSysParams()
 
-    URL getActualUrl(ApplicationID appId, String url, Map input)
+    void clearCache()
 
-    URLClassLoader getLocalClassloader(ApplicationID appId)
+    Cache getCacheForApp(ApplicationID appId)
 
-    URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
+    ApplicationID getBootVersion(String tenant, String app)
 
-    NCube getNCubeFromResource(ApplicationID appId, String name)
-
-    List<NCube> getNCubesFromResource(ApplicationID appId, String name)
-
-    void addAdvice(ApplicationID appId, String wildcard, Advice advice)
-
-    void addCube(NCube ncube)
-
-    Map<String, Object> getSystemParams()
-
-    ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
+    void clearTestDatabase()
 }

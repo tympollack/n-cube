@@ -46,7 +46,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeManagerImpl implements NCubeMutableClient
+class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
 {
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
@@ -70,7 +70,7 @@ class NCubeManagerImpl implements NCubeMutableClient
 
     // cache key = userId + '/' + appId + '/' + resource + '/' + Action
     // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
-    private Cache<String, Boolean> permCache = CacheBuilder.newBuilder().expireAfterAccess(30, TimeUnit.MINUTES).maximumSize(100000).concurrencyLevel(16).build()
+    private Cache<String, Boolean> permCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(100000).concurrencyLevel(16).build()
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
@@ -129,15 +129,6 @@ class NCubeManagerImpl implements NCubeMutableClient
     {
         detectNewAppId(ncube.applicationID)
         persister.createCube(ncube, getUserId())
-    }
-
-    /**
-     * This method will clear all caches for all ApplicationIDs.
-     * Do not call it for anything other than test purposes.
-     */
-    void clearPermissionsCache()
-    {
-        permCache.invalidateAll()
     }
 
     /**
@@ -1941,21 +1932,21 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         String user = NCubeManager.userId
 
         NCube commitCube = new NCube("tx.${newId}")
-        commitCube.applicationID = new ApplicationID(appId.tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        commitCube.addAxis(new Axis('property', AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
-        commitCube.addColumn('property', 'status')
-        commitCube.addColumn('property', 'appId')
-        commitCube.addColumn('property', 'cubeNames')
-        commitCube.addColumn('property', 'requestUser')
-        commitCube.addColumn('property', 'requestTime')
-        commitCube.addColumn('property', 'prId')
-        commitCube.addColumn('property', 'commitUser')
-        commitCube.addColumn('property', 'commitTime')
-        commitCube.setCell('open', [property:'status'])
-        commitCube.setCell(appId.toString(), [property:'appId'])
-        commitCube.setCell(commitInfoJson, [property:'cubeNames'])
-        commitCube.setCell(user, [property:'requestUser'])
-        commitCube.setCell(time.format('M/d/yyyy HH:mm:ss'), [property:'requestTime'])
+        commitCube.applicationID = new ApplicationID(appId.tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        commitCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
+        commitCube.addColumn(PR_PROP, PR_STATUS)
+        commitCube.addColumn(PR_PROP, PR_APP)
+        commitCube.addColumn(PR_PROP, PR_CUBES)
+        commitCube.addColumn(PR_PROP, PR_REQUESTER)
+        commitCube.addColumn(PR_PROP, PR_REQUEST_TIME)
+        commitCube.addColumn(PR_PROP, PR_ID)
+        commitCube.addColumn(PR_PROP, PR_MERGER)
+        commitCube.addColumn(PR_PROP, PR_MERGE_TIME)
+        commitCube.setCell(PR_OPEN, [(PR_PROP):PR_STATUS])
+        commitCube.setCell(appId.toString(), [(PR_PROP):PR_APP])
+        commitCube.setCell(commitInfoJson, [(PR_PROP):PR_CUBES])
+        commitCube.setCell(user, [(PR_PROP):PR_REQUESTER])
+        commitCube.setCell(time.format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
 
         createCube(commitCube)
         return newId
@@ -1966,16 +1957,18 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
 
-        String status = commitsCube.getCell([property:'status'])
-        if (status.contains('closed'))
+        String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
+        String appIdString = commitsCube.getCell([(PR_PROP):PR_APP])
+        ApplicationID commitAppId = ApplicationID.convert(appIdString)
+        if (status.contains(PR_CLOSED))
         {
-            // TODO - add more detailed information
-            throw new IllegalArgumentException('Commit request already closed.')
+            String requestUser = commitsCube.getCell([(PR_PROP): PR_REQUESTER])
+            String commitUser = commitsCube.getCell([(PR_PROP): PR_MERGER])
+            throw new IllegalArgumentException("Commit request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${commitAppId}")
         }
 
-        String appIdString = commitsCube.getCell([property:'appId'])
-        ApplicationID commitAppId = ApplicationID.convert(appIdString)
-        String commitInfoJson = commitsCube.getCell([property:'cubeNames']) as String
+
+        String commitInfoJson = commitsCube.getCell([(PR_PROP):PR_CUBES]) as String
 
         Object[] commitDtos = null
         if (commitInfoJson != null)
@@ -1992,47 +1985,51 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
         Map ret = commitBranchFromRequest(commitAppId, commitDtos)
 
-        commitsCube.setCell('closed complete', [property:'status'])
-        commitsCube.setCell(getUserId(), [property:'commitUser'])
-        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [property:'commitTime'])
+        commitsCube.setCell(PR_COMPLETE, [(PR_PROP):PR_STATUS])
+        commitsCube.setCell(getUserId(), [(PR_PROP):PR_MERGER])
+        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_MERGE_TIME])
         updateCube(commitsCube, true)
         return ret
     }
 
     NCube cancelCommit(String commitId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
 
-        String status = commitsCube.getCell([property:'status'])
-        if (status.contains('closed'))
+        String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
+        if (status.contains(PR_CLOSED))
         {
-            // TODO - add more detailed information
-            throw new IllegalArgumentException('Request is already closed.')
+            String requestUser = commitsCube.getCell([(PR_PROP): PR_REQUESTER])
+            String appIdString = commitsCube.getCell([(PR_PROP):PR_APP])
+            ApplicationID commitAppId = ApplicationID.convert(appIdString)
+            throw new IllegalArgumentException("Request is already closed. Status: ${status}, Requested by: ${requestUser}, ApplicationID: ${commitAppId}")
         }
 
-        commitsCube.setCell('closed cancelled', [property:'status'])
-        commitsCube.setCell(getUserId(), [property:'commitUser'])
-        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [property:'commitTime'])
+        commitsCube.setCell(PR_CANCEL, [(PR_PROP):PR_STATUS])
+        commitsCube.setCell(getUserId(), [(PR_PROP):PR_MERGER])
+        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_MERGE_TIME])
         updateCube(commitsCube, true)
         return commitsCube
     }
 
     NCube reopenCommit(String commitId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
 
-        String status = commitsCube.getCell([property:'status'])
-        if (status == 'closed complete' || !status.contains('closed'))
+        String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
+        if (status == PR_COMPLETE || !status.contains(PR_CLOSED))
         {
-            // TODO - add more detailed information
-            throw new IllegalArgumentException('Unable to reopen commit.')
+            String requestUser = commitsCube.getCell([(PR_PROP): PR_REQUESTER])
+            String appIdString = commitsCube.getCell([(PR_PROP):PR_APP])
+            ApplicationID commitAppId = ApplicationID.convert(appIdString)
+            throw new IllegalArgumentException("Unable to reopen commit. Status: ${status}, Requested by: ${requestUser}, ApplicationID: ${commitAppId}")
         }
 
-        commitsCube.setCell('open', [property:'status'])
-        commitsCube.setCell(getUserId(), [property:'commitUser'])
-        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [property:'commitTime'])
+        commitsCube.setCell(PR_OPEN, [(PR_PROP):PR_STATUS])
+        commitsCube.setCell(getUserId(), [(PR_PROP):PR_MERGER])
+        commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_MERGE_TIME])
         updateCube(commitsCube, true)
         return commitsCube
     }
@@ -2040,13 +2037,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     Object[] getCommits()
     {
         List<Map> results = []
-        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
         List<NCubeInfoDto> dtos = search(sysAppId, 'tx.', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         dtos.sort {it.name}
         for (NCubeInfoDto dto : dtos)
         {
             NCube cube = loadCubeById(Long.parseLong(dto.id))
-            Map commitInfo = cube.getMap([property:[] as Set])
+            Map commitInfo = cube.getMap([(PR_PROP):[] as Set])
             commitInfo.put('txid', dto.name.substring(3))
             results.add(commitInfo)
         }

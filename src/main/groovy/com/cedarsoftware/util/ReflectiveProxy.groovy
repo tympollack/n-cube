@@ -34,7 +34,7 @@ class ReflectiveProxy implements CallableBean, ApplicationContextAware
 
     Object call(String beanName, String methodName, List args)
     {
-        Object bean = ctx.getBean("ncubeImpl")
+        Object bean = ctx.getBean('ncubeManager')
         Method method = getMethod(bean, beanName, methodName, args.size())
         try
         {

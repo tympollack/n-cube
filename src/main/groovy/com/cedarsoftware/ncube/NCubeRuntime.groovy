@@ -40,7 +40,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
+class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestClient
 {
     private static SpringAppContext appContext
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'
@@ -172,13 +172,19 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient
 
     void setFakeId(String fake)
     {
-        // TODO - does this need mutable check?
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} setFakeId")
+        }
         bean.call('ncubeController', 'setFakeId', [fake])
     }
 
     String getImpliedId()
     {
-        // TODO - does this need mutable check?
+        if (!mutable)
+        {
+            throw new IllegalStateException("${MUTABLE_ERROR} getImpliedId")
+        }
         bean.call('ncubeController', 'getImpliedId', [])
     }
 

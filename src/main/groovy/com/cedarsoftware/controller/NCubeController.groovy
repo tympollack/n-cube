@@ -1783,7 +1783,7 @@ class NCubeController extends BaseController
 
     void clearTestDatabase()
     {
-        mutableClient.clearTestDatabase()
+        SpringAppContext.testServer.clearTestDatabase()
     }
 
     Map heartBeat(Map openCubes)

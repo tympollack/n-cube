@@ -5980,7 +5980,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testBootstrapWithOverrides()
 	{
-        ApplicationID id = runtimeClient.getBootVersion(ApplicationID.DEFAULT_TENANT, 'example')
+        ApplicationID id = testClient.getBootVersion(ApplicationID.DEFAULT_TENANT, 'example')
         assert id.tenant == ApplicationID.DEFAULT_TENANT
         assert id.app == 'example'
         assert id.version == '0.0.0'
@@ -5991,27 +5991,27 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         NCube cube = mutableClient.getCube(id, 'sys.bootstrap')
 
         // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
 
         // ensure properties are cleared (if empty, this would load the environment version of NCUBE_PARAMS)
         System.setProperty('NCUBE_PARAMS', '{"foo":"bar"}')
 
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'HEAD'), cube.getCell([env:'DEV']))
-        assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.25.0', 'RELEASE', 'HEAD'), cube.getCell([env:'PROD']))
+        assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.25.0', ReleaseStatus.RELEASE.name(), 'HEAD'), cube.getCell([env:'PROD']))
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'baz'), cube.getCell([env:'SAND']))
 
         // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"status":"RELEASE", "app":"UD", "tenant":"foo", "branch":"bar"}')
-        assertEquals(new ApplicationID('foo', 'UD', '1.28.0', 'RELEASE', 'bar'), cube.getCell([env:'DEV']))
-        assertEquals(new ApplicationID('foo', 'UD', '1.25.0', 'RELEASE', 'bar'), cube.getCell([env:'PROD']))
-        assertEquals(new ApplicationID('foo', 'UD', '1.29.0', 'RELEASE', 'bar'), cube.getCell([env:'SAND']))
+        assertEquals(new ApplicationID('foo', 'UD', '1.28.0', ReleaseStatus.RELEASE.name(), 'bar'), cube.getCell([env:'DEV']))
+        assertEquals(new ApplicationID('foo', 'UD', '1.25.0', ReleaseStatus.RELEASE.name(), 'bar'), cube.getCell([env:'PROD']))
+        assertEquals(new ApplicationID('foo', 'UD', '1.29.0', ReleaseStatus.RELEASE.name(), 'bar'), cube.getCell([env:'SAND']))
 
         // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"branch":"bar"}')
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'bar'), cube.getCell([env:'DEV']))
-        assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.25.0', 'RELEASE', 'bar'), cube.getCell([env:'PROD']))
+        assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.25.0', ReleaseStatus.RELEASE.name(), 'bar'), cube.getCell([env:'PROD']))
         assertEquals(new ApplicationID(ApplicationID.DEFAULT_TENANT, 'UD.REF.APP', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'bar'), cube.getCell([env:'SAND']))
     }
 
@@ -6021,7 +6021,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(appId, "sys.classpath.user.overloaded.json", "sys.versions.json")
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         // Check DEV
         NCube cube = mutableClient.getCube(appId, "sys.classpath")
         // ensure properties are cleared.
@@ -6039,7 +6039,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals('https://www.foo.com/tests/ncube/cp2/private/groovy/', intLoader.URLs[2].toString())
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         // Check with overload
         System.setProperty("NCUBE_PARAMS", '{"cpBase":"file://C:/Development/"}')
 
@@ -6069,7 +6069,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals('file://C:/Development/private/groovy/', devLoaderAgain.URLs[2].toString())
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         // Check version overload only
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
@@ -6085,7 +6085,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(appId, "sys.classpath.system.params.user.overloaded.json", "sys.versions.2.json", "sys.resources.base.url.json")
 
         // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
 
         // Check DEV
         NCube cube = mutableClient.getCube(appId, "sys.classpath")
@@ -6108,7 +6108,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         System.setProperty("NCUBE_PARAMS", '{"cpBase":"file://C:/Development/"}')
 
         // int loader is not marked as cached so we recreate this one each time.
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         CdnClassLoader differentIntLoader = cube.getCell([env:"INT"])
 
         assertNotSame(intLoader, differentIntLoader)
@@ -6135,7 +6135,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         // Check version overload only
         runtimeClient.clearCache(appId)
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
         URLClassLoader loader = cube.getCell([env:"SAND"])
@@ -6192,7 +6192,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(ApplicationID.DEFAULT_TENANT, appId.tenant)
         assertEquals('TEST', appId.app)
         assertEquals('1.28.0', appId.version)
-        assertEquals('RELEASE', appId.status)
+        assertEquals(ReleaseStatus.RELEASE.name(), appId.status)
         assertEquals('HEAD', appId.branch)
     }
 
@@ -6200,9 +6200,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     void testGetBootstrapVersion()
     {
         System.setProperty("NCUBE_PARAMS", '{}')
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
 
-        ApplicationID id = runtimeClient.getBootVersion('foo', 'bar')
+        ApplicationID id = testClient.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant
         assertEquals 'bar', id.app
         assertEquals '0.0.0', id.version
@@ -6210,9 +6210,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals 'HEAD', id.branch
 
         System.setProperty("NCUBE_PARAMS", '{"branch":"qux"}')
-        runtimeClient.clearSysParams()
+        testClient.clearSysParams()
 
-        id = runtimeClient.getBootVersion('foo', 'bar')
+        id = testClient.getBootVersion('foo', 'bar')
         assertEquals 'foo', id.tenant
         assertEquals 'bar', id.app
         assertEquals '0.0.0', id.version
