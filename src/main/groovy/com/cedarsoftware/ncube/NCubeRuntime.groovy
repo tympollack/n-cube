@@ -54,12 +54,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private final boolean allowMutable
     private final String beanName
 
-    NCubeRuntime(SpringAppContext appContext, CallableBean bean, CacheManager ncubeCacheManager, CacheManager adviceCacheManager, boolean allowMutable)
+    NCubeRuntime(SpringAppContext appContext, CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutable)
     {
         this.appContext = appContext
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
-        this.adviceCacheManager = adviceCacheManager
+        this.adviceCacheManager = new NCubeCacheManager()
         this.allowMutable = allowMutable
         this.beanName = appContext.containsBean('ncubeManager') ? 'ncubeManager' : 'ncubeController'
     }

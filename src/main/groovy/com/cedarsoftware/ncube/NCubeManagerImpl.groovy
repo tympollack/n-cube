@@ -70,7 +70,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    NCubeManagerImpl(SpringAppContext appContext, NCubePersister persister, NCubeCacheManager permCacheManager)
+    NCubeManagerImpl(SpringAppContext appContext, NCubePersister persister, CacheManager permCacheManager)
     {
         nCubePersister = persister
         this.appContext = appContext

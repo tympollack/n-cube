@@ -23,14 +23,6 @@
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_CONCURRENCY'] ?: systemProperties['NCUBE_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
-    <bean id="adviceCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
-        <constructor-arg value="0"/>
-        <constructor-arg value="none"/>
-        <constructor-arg value="0"/>
-        <constructor-arg value="minutes"/>
-        <constructor-arg value="16"/>
-    </bean>
-
     <bean id="permCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_MAX_SIZE'] ?: systemProperties['PERM_CACHE_MAX'] ?: 100000}"/>
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_TYPE'] ?: systemProperties['PERM_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
@@ -154,7 +146,6 @@
             <constructor-arg ref="appContext" />
             <constructor-arg ref="jsonHttpProxy" />
             <constructor-arg ref="ncubeCacheManager" />
-            <constructor-arg ref="adviceCacheManager" />
             <constructor-arg value="#{runtimeProperties.NCUBE_MUTABLE}" />
         </bean>
 
@@ -186,7 +177,6 @@
             <constructor-arg ref="appContext" />
             <constructor-arg ref="reflectiveProxy" />
             <constructor-arg ref="ncubeCacheManager" />
-            <constructor-arg ref="adviceCacheManager" />
             <constructor-arg value="true" />
         </bean>
 
