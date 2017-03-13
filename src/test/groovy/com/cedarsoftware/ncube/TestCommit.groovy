@@ -141,4 +141,38 @@ class TestCommit extends NCubeCleanupBaseTest
             assertEnvelopeExceptionContains(e, 'request', 'closed', 'status', 'requested', 'committed', 'applicationid')
         }
     }
+
+    @Test
+    void testInvalidId()
+    {
+        try
+        {
+            mutableClient.honorCommit('123')
+            fail()
+        }
+        catch (EnvelopeException e)
+        {
+            assertEnvelopeExceptionContains(e, 'invalid', 'id')
+        }
+
+        try
+        {
+            mutableClient.cancelCommit('123')
+            fail()
+        }
+        catch (EnvelopeException e)
+        {
+            assertEnvelopeExceptionContains(e, 'invalid', 'id')
+        }
+
+        try
+        {
+            mutableClient.reopenCommit('123')
+            fail()
+        }
+        catch (EnvelopeException e)
+        {
+            assertEnvelopeExceptionContains(e, 'invalid', 'id')
+        }
+    }
 }

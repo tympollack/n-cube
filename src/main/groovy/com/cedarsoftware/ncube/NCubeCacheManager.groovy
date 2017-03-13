@@ -33,9 +33,20 @@ import java.util.concurrent.TimeUnit
 class NCubeCacheManager implements CacheManager
 {
     private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>()
+    private final int concurrencyLevel
+    private final int maximumSize
+    private final int evictionDuration
+    private final String evictionTimeUnit
+    private final String evictionType
 
-    NCubeCacheManager()
+    NCubeCacheManager(int maximumSize = 0, String evictionType = 'none', int evictionDuration = 0, String evictionTimeUnit = 'hours', int concurrencyLevel = 16)
     {
+        this.concurrencyLevel = concurrencyLevel
+        this.maximumSize = maximumSize
+        this.evictionType = evictionType
+        this.evictionDuration = evictionDuration
+        this.evictionTimeUnit = evictionTimeUnit
+
     }
     
     Cache getCache(String name)
@@ -44,13 +55,7 @@ class NCubeCacheManager implements CacheManager
 
         if (cache == null)
         {
-            cache = new GuavaCache(name, CacheBuilder.newBuilder()
-//                    .expireAfterWrite(5, TimeUnit.MINUTES)
-//                    .expireAfterAccess(4, TimeUnit.HOURS)
-                    .concurrencyLevel(16)
-                    .removalListener(new NCubeRemovalListener())
-//                    .maximumSize(100000)      // Another option for eviction if # cubes in memory grows too large
-                    .build() as com.google.common.cache.Cache)
+            cache = createCache(name)
             Cache mapRef = caches.putIfAbsent(name, cache)
             if (mapRef != null)
             {
@@ -58,6 +63,49 @@ class NCubeCacheManager implements CacheManager
             }
         }
         return cache
+    }
+
+    private GuavaCache createCache(String name)
+    {
+        CacheBuilder builder = CacheBuilder.newBuilder()
+        builder.removalListener(new NCubeRemovalListener())
+        builder.concurrencyLevel(concurrencyLevel)
+        if (maximumSize > 0)
+        {
+            builder.maximumSize(maximumSize)
+        }
+        if (evictionType == 'expireAfterWrite')
+        {
+            builder.expireAfterWrite(evictionDuration, getTimeUnitFromString(evictionTimeUnit))
+        }
+        else if (evictionType == 'expireAfterAccess')
+        {
+            builder.expireAfterAccess(evictionDuration, getTimeUnitFromString(evictionTimeUnit))
+        }
+        GuavaCache guavaCache = new GuavaCache(name, builder.build() as com.google.common.cache.Cache)
+        return guavaCache
+    }
+
+    private TimeUnit getTimeUnitFromString(String timeunit)
+    {
+        String lowerTimeunit = timeunit.toLowerCase()
+        switch (lowerTimeunit)
+        {
+            case 'seconds':
+                return TimeUnit.SECONDS
+                break
+            case 'minutes':
+                return TimeUnit.MINUTES
+                break
+            case 'hours':
+                return TimeUnit.HOURS
+                break
+            case 'days':
+                return TimeUnit.DAYS
+                break
+            default:
+                throw new IllegalArgumentException("Eviction time unit not understood: ${timeunit}. Please choose one of ['seconds', 'minutes', 'hours', 'days']")
+        }
     }
 
     Collection<String> getCacheNames()

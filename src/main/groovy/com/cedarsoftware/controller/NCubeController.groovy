@@ -138,16 +138,16 @@ class NCubeController extends BaseController
         return lockedBy != null
     }
 
-    void lockApp(ApplicationID appId, boolean shouldLock)
+    Boolean lockApp(ApplicationID appId, boolean shouldLock)
     {
         appId = addTenant(appId)
-        mutableClient.lockApp(appId, shouldLock)
+        return mutableClient.lockApp(appId, shouldLock)
     }
 
-    void moveBranch(ApplicationID appId, String newSnapVer)
+    Integer moveBranch(ApplicationID appId, String newSnapVer)
     {
         appId = addTenant(appId)
-        mutableClient.moveBranch(appId, newSnapVer)
+        return mutableClient.moveBranch(appId, newSnapVer)
     }
 
     Integer releaseVersion(ApplicationID appId, String newSnapVer)
@@ -182,10 +182,10 @@ class NCubeController extends BaseController
         return search(appId, cubeNamePattern, content, options).length
     }
 
-    void restoreCubes(ApplicationID appId, Object[] cubeNames)
+    Boolean restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
         appId = addTenant(appId)
-        mutableClient.restoreCubes(appId, cubeNames)
+        return mutableClient.restoreCubes(appId, cubeNames)
     }
 
     Object[] getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion = false)

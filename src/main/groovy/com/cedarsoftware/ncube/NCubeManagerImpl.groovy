@@ -1954,8 +1954,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     Map<String, Object> honorCommit(String commitId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
+        NCube commitsCube = loadCommitsCube(commitId)
 
         String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
         String appIdString = commitsCube.getCell([(PR_PROP):PR_APP])
@@ -1966,7 +1965,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
             String commitUser = commitsCube.getCell([(PR_PROP): PR_MERGER])
             throw new IllegalArgumentException("Commit request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${commitAppId}")
         }
-
 
         String commitInfoJson = commitsCube.getCell([(PR_PROP):PR_CUBES]) as String
 
@@ -1994,8 +1992,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     NCube cancelCommit(String commitId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
+        NCube commitsCube = loadCommitsCube(commitId)
 
         String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
         if (status.contains(PR_CLOSED))
@@ -2015,8 +2012,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
 
     NCube reopenCommit(String commitId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
+        NCube commitsCube = loadCommitsCube(commitId)
 
         String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
         if (status == PR_COMPLETE || !status.contains(PR_CLOSED))
@@ -2031,6 +2027,17 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         commitsCube.setCell(getUserId(), [(PR_PROP):PR_MERGER])
         commitsCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_MERGE_TIME])
         updateCube(commitsCube, true)
+        return commitsCube
+    }
+
+    private NCube loadCommitsCube(String commitId)
+    {
+        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
+        if (commitsCube == null)
+        {
+            throw new IllegalArgumentException("Invalid commit id: ${commitId}")
+        }
         return commitsCube
     }
 

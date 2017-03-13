@@ -15,9 +15,21 @@
 
     <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext" />
 
-    <bean id="cacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager" />
+    <bean id="cacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_MAX_SIZE'] ?: systemProperties['NCUBE_CACHE_MAX'] ?: 0}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_TYPE'] ?: systemProperties['NCUBE_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_DURATION'] ?: systemProperties['NCUBE_CACHE_EVICT_DURATION'] ?: 4}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_UNIT'] ?: systemProperties['NCUBE_CACHE_EVICT_UNIT'] ?: 'hours'}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_CONCURRENCY'] ?: systemProperties['NCUBE_CACHE_CONCURRENCY'] ?: 16}"/>
+    </bean>
 
-    <bean id="adviceManager" class="com.cedarsoftware.ncube.NCubeCacheManager" />
+    <bean id="adviceManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_MAX_SIZE'] ?: systemProperties['ADVICE_CACHE_MAX'] ?: 0}"/>
+        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_EVICT_TYPE'] ?: systemProperties['ADVICE_CACHE_EVICT_TYPE'] ?: 'none'}"/>
+        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_EVICT_DURATION'] ?: systemProperties['ADVICE_CACHE_EVICT_DURATION'] ?: 0}"/>
+        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_EVICT_UNIT'] ?: systemProperties['ADVICE_CACHE_EVICT_UNIT'] ?: 'minutes'}"/>
+        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_CONCURRENCY'] ?: systemProperties['ADVICE_CACHE_CONCURRENCY'] ?: 16}"/>
+    </bean>
 
     <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy" />
 
