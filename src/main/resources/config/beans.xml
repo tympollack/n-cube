@@ -127,7 +127,7 @@
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime" />
-            <constructor-arg type="boolean" value="true" />
+            <constructor-arg value="true" />
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
@@ -144,7 +144,7 @@
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime" />
-            <constructor-arg type="boolean" value="false" />
+            <constructor-arg value="false" />
         </bean>
 
         <bean id="ncubeRuntime" name="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
@@ -158,7 +158,7 @@
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime" />
-            <constructor-arg type="boolean" value="true" />
+            <constructor-arg value="true" />
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">

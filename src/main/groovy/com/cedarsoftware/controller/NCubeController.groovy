@@ -231,10 +231,7 @@ class NCubeController extends BaseController
     // TODO: This needs to be externalized (loaded via Grapes)
     Map<String, Object> getVisualizerJson(ApplicationID appId, Map options)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} getVisualizerJson")
-        }
+        verifyAllowExecute('getVisualizerJson')
 //        if (!SystemUtilities.getExternalVariable('NCE_VISUALIZER_ENABLED'))
 //        {
 //            throw new IllegalStateException("""The visualizer is currently available <a href="#" onclick="window.open('https://nce.dockerdev.td.afg/n-cube-editor/#');return false;">here</a>""")
@@ -248,10 +245,7 @@ class NCubeController extends BaseController
     // TODO: This needs to be externalized (loaded via Grapes)
     Map getVisualizerCellValues(ApplicationID appId, Map options)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} getVisualizerCellValues")
-        }
+        verifyAllowExecute('getVisualizerCellValues')
         String cubeName = options.startCubeName
         Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient) : new Visualizer(mutableClient)
         appId = addTenant(appId)
@@ -994,10 +988,7 @@ class NCubeController extends BaseController
 
     Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} runTest")
-        }
+        verifyAllowExecute('runTest')
         try
         {   // Do not remove try-catch handler here - this API must handle it's own exceptions, instead
             // of allowing the Around Advice to handle them.
@@ -1162,10 +1153,7 @@ class NCubeController extends BaseController
 
     Map getCell(ApplicationID appId, String cubeName, Map coordinate, defaultValue = null)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} getCell")
-        }
+        verifyAllowExecute('getCell')
         appId = addTenant(appId)
         NCube ncube = mutableClient.getCube(appId, cubeName) // Will check READ.
         Map output = [:]
@@ -1381,10 +1369,7 @@ class NCubeController extends BaseController
 
     String resolveRelativeUrl(ApplicationID appId, String relativeUrl)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} resolveRelativeUrl")
-        }
+        verifyAllowExecute('resolveRelativeUrl')
         appId = addTenant(appId)
         NCubeRuntimeClient runtime = mutableClient as NCubeRuntimeClient
         URL absUrl = runtime.getActualUrl(appId, relativeUrl, [:])
@@ -1659,11 +1644,7 @@ class NCubeController extends BaseController
 
     Map execute(ApplicationID appId, String cubeName, String method, Map args)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} execute")
-        }
-
+        verifyAllowExecute('execute')
         appId = addTenant(appId)
         Map coordinate = ['method' : method, 'service': mutableClient]
         coordinate.putAll(args)
@@ -1675,11 +1656,7 @@ class NCubeController extends BaseController
 
     Map getMenu(ApplicationID appId)
     {
-        if (!allowExecute)
-        {
-            throw new IllegalStateException("${EXECUTE_ERROR} getMenu")
-        }
-
+        verifyAllowExecute('getMenu')
         try
         {   // Do not remove try-catch handler in favor of advice handler
             appId = addTenant(appId)
@@ -2263,6 +2240,14 @@ class NCubeController extends BaseController
     private String getTenant()
     {
         return ApplicationID.DEFAULT_TENANT
+    }
+
+    private void verifyAllowExecute(String methodName)
+    {
+        if (!allowExecute)
+        {
+            throw new IllegalStateException("${EXECUTE_ERROR} ${methodName}()")
+        }
     }
 
     private static Object[] caseInsensitiveSort(Object[] items)
