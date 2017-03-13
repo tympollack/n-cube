@@ -15,7 +15,7 @@
 
     <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext" />
 
-    <bean id="cacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+    <bean id="ncubeCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_MAX_SIZE'] ?: systemProperties['NCUBE_CACHE_MAX'] ?: 0}"/>
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_TYPE'] ?: systemProperties['NCUBE_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_DURATION'] ?: systemProperties['NCUBE_CACHE_EVICT_DURATION'] ?: 4}"/>
@@ -23,12 +23,20 @@
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_CONCURRENCY'] ?: systemProperties['NCUBE_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
-    <bean id="adviceManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
-        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_MAX_SIZE'] ?: systemProperties['ADVICE_CACHE_MAX'] ?: 0}"/>
-        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_EVICT_TYPE'] ?: systemProperties['ADVICE_CACHE_EVICT_TYPE'] ?: 'none'}"/>
-        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_EVICT_DURATION'] ?: systemProperties['ADVICE_CACHE_EVICT_DURATION'] ?: 0}"/>
-        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_EVICT_UNIT'] ?: systemProperties['ADVICE_CACHE_EVICT_UNIT'] ?: 'minutes'}"/>
-        <constructor-arg value="#{systemEnvironment['ADVICE_CACHE_CONCURRENCY'] ?: systemProperties['ADVICE_CACHE_CONCURRENCY'] ?: 16}"/>
+    <bean id="adviceCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+        <constructor-arg value="0"/>
+        <constructor-arg value="none"/>
+        <constructor-arg value="0"/>
+        <constructor-arg value="minutes"/>
+        <constructor-arg value="16"/>
+    </bean>
+
+    <bean id="permCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_MAX_SIZE'] ?: systemProperties['PERM_CACHE_MAX'] ?: 100000}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_TYPE'] ?: systemProperties['PERM_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_DURATION'] ?: systemProperties['PERM_CACHE_EVICT_DURATION'] ?: 10}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_UNIT'] ?: systemProperties['PERM_CACHE_EVICT_UNIT'] ?: 'minutes'}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
     <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy" />
@@ -145,8 +153,8 @@
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="appContext" />
             <constructor-arg ref="jsonHttpProxy" />
-            <constructor-arg ref="cacheManager" />
-            <constructor-arg ref="adviceManager" />
+            <constructor-arg ref="ncubeCacheManager" />
+            <constructor-arg ref="adviceCacheManager" />
             <constructor-arg value="#{runtimeProperties.NCUBE_MUTABLE}" />
         </bean>
 
@@ -162,6 +170,7 @@
         <bean id="ncubeRuntime" name="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
             <constructor-arg ref="appContext" />
             <constructor-arg ref="persister" />
+            <constructor-arg ref="permCacheManager" />
         </bean>
 
     </beans>
@@ -176,14 +185,15 @@
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="appContext" />
             <constructor-arg ref="reflectiveProxy" />
-            <constructor-arg ref="cacheManager" />
-            <constructor-arg ref="adviceManager" />
+            <constructor-arg ref="ncubeCacheManager" />
+            <constructor-arg ref="adviceCacheManager" />
             <constructor-arg value="true" />
         </bean>
 
         <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
             <constructor-arg ref="appContext" />
             <constructor-arg ref="persister" />
+            <constructor-arg ref="permCacheManager" />
         </bean>
 
     </beans>

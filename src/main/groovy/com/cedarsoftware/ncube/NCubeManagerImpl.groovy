@@ -7,15 +7,14 @@ import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
-import com.google.common.cache.Cache
-import com.google.common.cache.CacheBuilder
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.springframework.cache.Cache
+import org.springframework.cache.CacheManager
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
@@ -53,6 +52,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
     private NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManagerImpl.class)
     private SpringAppContext appContext
+    private final CacheManager permCacheManager
     
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
         String initialValue()
@@ -68,16 +68,13 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
         }
     }
 
-    // cache key = userId + '/' + appId + '/' + resource + '/' + Action
-    // cache value = Long (negative = false, positive = true, abs(value) = millis since last access)
-    private Cache<String, Boolean> permCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(100000).concurrencyLevel(16).build()
-
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    NCubeManagerImpl(SpringAppContext appContext, NCubePersister persister)
+    NCubeManagerImpl(SpringAppContext appContext, NCubePersister persister, NCubeCacheManager permCacheManager)
     {
         nCubePersister = persister
         this.appContext = appContext
+        this.permCacheManager =  permCacheManager
     }
     
     NCubePersister getPersister()
@@ -927,19 +924,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     }
 
-    private String getPermissionCacheKey(ApplicationID appId, String resource, Action action)
+    private String getPermissionCacheKey(String resource, Action action)
     {
         final String sep = '/'
         final StringBuilder builder = new StringBuilder()
         builder.append(impliedId)
-        builder.append(sep)
-        builder.append(appId.tenant)
-        builder.append(sep)
-        builder.append(appId.app)
-        builder.append(sep)
-        builder.append(appId.version)
-        builder.append(sep)
-        builder.append(appId.branch)
         builder.append(sep)
         builder.append(resource)
         builder.append(sep)
@@ -947,9 +936,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
         return builder.toString()
     }
 
-    private Boolean checkPermissionCache(String key)
+    private static Boolean checkPermissionCache(Cache cache, String key)
     {
-        return permCache.getIfPresent(key)
+        Cache.ValueWrapper item = cache.get(key)
+        return item?.get()
     }
 
     /**
@@ -963,8 +953,9 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
     Boolean checkPermissions(ApplicationID appId, String resource, String actionName)
     {
         Action action = Action.valueOf(actionName.toUpperCase())
-        String key = getPermissionCacheKey(appId, resource, action)
-        Boolean allowed = checkPermissionCache(key)
+        Cache permCache = permCacheManager.getCache(appId.cacheKey())
+        String key = getPermissionCacheKey(resource, action)
+        Boolean allowed = checkPermissionCache(permCache, key)
         if (allowed instanceof Boolean)
         {
             return allowed
@@ -1025,8 +1016,9 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${tran
      */
     private boolean fastCheckPermissions(ApplicationID appId, String resource, Action action, Map permInfo)
     {
-        String key = getPermissionCacheKey(appId, resource, action)
-        Boolean allowed = checkPermissionCache(key)
+        Cache permCache = permCacheManager.getCache(appId.cacheKey())
+        String key = getPermissionCacheKey(resource, action)
+        Boolean allowed = checkPermissionCache(permCache, key)
         if (allowed instanceof Boolean)
         {
             return allowed
