@@ -36,7 +36,7 @@ class NCubeBaseTest
 {
     static NCubeRuntimeClient getRuntimeClient()
     {
-        return SpringAppContext.runtime
+        return SpringAppContext.runtimeClient
     }
 
     static NCubeMutableClient getMutableClient()

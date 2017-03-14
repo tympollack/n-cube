@@ -34,7 +34,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ReferenceAxisLoader implements Axis.AxisRefProvider
 {
-    private static NCubeRuntimeClient runtimeClient
+    private static NCubeClient ncubeClient
     public static final String REF_TENANT = 'referenceTenant'
     public static final String REF_APP = 'referenceApp'
     public static final String REF_VERSION = 'referenceVersion'
@@ -67,7 +67,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
         cubeName = containingCubeName
         axisName = sourceAxisName
         this.args = args
-        runtimeClient = SpringAppContext.runtime
+        ncubeClient = SpringAppContext.client
     }
 
     /**
@@ -186,7 +186,7 @@ n-cube: ${refCube.name}, referenced app: ${axis.referencedApp}""")
 
     private NCube getTransformCube(Axis axis, String transformCubeName, String transformMethodName)
     {
-        NCube transformCube = runtimeClient.getCube(axis.transformApp, axis.getMetaProperty(TRANSFORM_CUBE_NAME) as String)
+        NCube transformCube = ncubeClient.getCube(axis.transformApp, axis.getMetaProperty(TRANSFORM_CUBE_NAME) as String)
         if (transformCube == null)
         {
             throw new IllegalStateException("""\
@@ -198,7 +198,7 @@ Failed to load transform n-cube: ${transformCubeName}, method: ${transformMethod
 
     private NCube getReferencedCube(Axis axis, String refCubeName, String refAxisName)
     {
-        NCube refCube = runtimeClient.getCube(axis.referencedApp, axis.getMetaProperty(REF_CUBE_NAME) as String)
+        NCube refCube = ncubeClient.getCube(axis.referencedApp, axis.getMetaProperty(REF_CUBE_NAME) as String)
         if (refCube == null)
         {
             throw new IllegalStateException("""\

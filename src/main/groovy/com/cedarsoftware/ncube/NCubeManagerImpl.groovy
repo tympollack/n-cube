@@ -51,7 +51,6 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
     private static final Logger LOG = LogManager.getLogger(NCubeManagerImpl.class)
-    private SpringAppContext appContext
     private final CacheManager permCacheManager
     
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
@@ -70,10 +69,9 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    NCubeManagerImpl(SpringAppContext appContext, NCubePersister persister, CacheManager permCacheManager)
+    NCubeManagerImpl(NCubePersister persister, CacheManager permCacheManager)
     {
         nCubePersister = persister
-        this.appContext = appContext
         this.permCacheManager =  permCacheManager
     }
     
@@ -486,7 +484,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
 
     private boolean isTest()
     {
-        return appContext.getBean('hsqlSetup') as boolean
+        return SpringAppContext.getBean('hsqlSetup') as boolean
     }
 
     void changeVersionValue(ApplicationID appId, String newVersion)

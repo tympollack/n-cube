@@ -42,7 +42,6 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 @CompileStatic
 class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestClient
 {
-    private static SpringAppContext appContext
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
@@ -54,14 +53,13 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private final boolean allowMutable
     private final String beanName
 
-    NCubeRuntime(SpringAppContext appContext, CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutable)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutable)
     {
-        this.appContext = appContext
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = new NCubeCacheManager()
         this.allowMutable = allowMutable
-        this.beanName = appContext.containsBean('ncubeManager') ? 'ncubeManager' : 'ncubeController'
+        this.beanName = SpringAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
     }
 
     /**

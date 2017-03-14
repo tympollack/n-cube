@@ -46,7 +46,7 @@ class NCubeGroovyExpression
 
     NCubeGroovyExpression()
     {
-        runtimeClient = SpringAppContext.runtime
+        runtimeClient = SpringAppContext.runtimeClient
     }
 
     /**

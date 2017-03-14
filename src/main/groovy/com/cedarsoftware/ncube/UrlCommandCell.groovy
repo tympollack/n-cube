@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 abstract class UrlCommandCell implements CommandCell
 {
-    protected static NCubeRuntimeClient runtimeClient
+    protected static NCubeRuntimeClient ncubeRuntimeClient
     private static final Logger LOG = LogManager.getLogger(UrlCommandCell.class)
     private String cmd
     private volatile transient String errorMsg = null
@@ -42,7 +42,6 @@ abstract class UrlCommandCell implements CommandCell
     protected UrlCommandCell()
     {
         this.url = null
-        runtimeClient = SpringAppContext.runtime
     }
 
     UrlCommandCell(String cmd, String url, boolean cacheable)
@@ -61,7 +60,15 @@ abstract class UrlCommandCell implements CommandCell
         this.cmd = cmd
         this.cacheable = cacheable
         this.hash = cmd == null ? url.hashCode() : cmd.hashCode()
-        runtimeClient = SpringAppContext.runtime
+    }
+
+    NCubeRuntimeClient getRuntimeClient()
+    {
+        if (ncubeRuntimeClient == null)
+        {
+            ncubeRuntimeClient = SpringAppContext.runtimeClient
+        }
+        return ncubeRuntimeClient
     }
 
     String getUrl()

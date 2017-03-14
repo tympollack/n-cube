@@ -49,7 +49,7 @@ class RpmVisualizerTest
 
     @Before
     void beforeTest(){
-        visualizer = new RpmVisualizer(SpringAppContext.runtime)
+        visualizer = new RpmVisualizer(SpringAppContext.runtimeClient)
         NCubeManager.NCubePersister = new NCubeResourcePersister(PATH_PREFIX)
     }
 
@@ -129,7 +129,7 @@ class RpmVisualizerTest
         firstVisInfo.nodes = []
         firstVisInfo.edges = []
         options = [startCubeName: startCubeName, visInfo: firstVisInfo, scope: new CaseInsensitiveMap(scope)]
-        visualizer = new RpmVisualizer(SpringAppContext.runtime)
+        visualizer = new RpmVisualizer(SpringAppContext.runtimeClient)
         graphInfo = visualizer.buildGraph(appId, options)
         assert STATUS_SUCCESS == graphInfo.status
         assert !(graphInfo.visInfo as RpmVisualizerInfo).messages

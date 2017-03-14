@@ -46,7 +46,7 @@ class CdnClassLoader extends GroovyClassLoader
         super(loader, null)
         _preventRemoteBeanInfo = preventRemoteBeanInfo
         _preventRemoteCustomizer = preventRemoteCustomizer
-        runtimeClient = SpringAppContext.runtime
+        runtimeClient = SpringAppContext.runtimeClient
 
         if (acceptedDomains == null)
         {

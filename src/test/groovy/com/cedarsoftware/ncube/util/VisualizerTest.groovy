@@ -29,7 +29,7 @@ class VisualizerTest{
 
     @Before
     void beforeTest(){
-        visualizer = new Visualizer(SpringAppContext.runtime)
+        visualizer = new Visualizer(SpringAppContext.runtimeClient)
         NCubeManager.NCubePersister = new NCubeResourcePersister(PATH_PREFIX)
     }
 

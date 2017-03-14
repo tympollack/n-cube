@@ -80,4 +80,8 @@ interface NCubeConstants
     static final String PR_CLOSED = 'closed'
     static final String PR_CANCEL= 'closed cancelled'
     static final String PR_COMPLETE= 'closed complete'
+
+    static final String RUNTIME_BEAN = 'ncubeRuntime'
+    static final String MANAGER_BEAN = 'ncubeManager'
+    static final String CONTROLLER_BEAN = 'ncubeController'
 }

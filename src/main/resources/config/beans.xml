@@ -28,19 +28,18 @@
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
-    <bean name="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
+    <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
         <constructor-arg ref="ncubeController"/>
     </bean>
 
     <beans profile="runtime">
 
-        <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
+        <bean id="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime"/>
             <constructor-arg value="true"/>
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
-            <constructor-arg ref="appContext"/>
             <constructor-arg ref="jsonHttpProxy"/>
             <constructor-arg ref="ncubeCacheManager"/>
             <constructor-arg ref="mutable"/>
@@ -65,13 +64,12 @@
 
         <import resource="persister.xml"/>
 
-        <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-            <constructor-arg ref="ncubeRuntime"/>
+        <bean id="ncubeController" class="com.cedarsoftware.controller.NCubeController">
+            <constructor-arg ref="ncubeManager"/>
             <constructor-arg value="false"/>
         </bean>
 
-        <bean id="ncubeRuntime" name="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
-            <constructor-arg ref="appContext"/>
+        <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
             <constructor-arg ref="persister"/>
             <constructor-arg ref="permCacheManager"/>
         </bean>
@@ -82,20 +80,18 @@
 
         <import resource="persister.xml"/>
 
-        <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
+        <bean id="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime"/>
             <constructor-arg value="true"/>
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
-            <constructor-arg ref="appContext"/>
             <constructor-arg ref="reflectiveProxy"/>
             <constructor-arg ref="ncubeCacheManager"/>
             <constructor-arg value="true"/>
         </bean>
 
         <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
-            <constructor-arg ref="appContext"/>
             <constructor-arg ref="persister"/>
             <constructor-arg ref="permCacheManager"/>
         </bean>
