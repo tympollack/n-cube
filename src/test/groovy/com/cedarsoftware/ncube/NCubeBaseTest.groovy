@@ -34,6 +34,11 @@ import static org.junit.Assert.assertTrue
 @Ignore
 class NCubeBaseTest
 {
+    static NCubeClient getNcubeClient()
+    {
+        return SpringAppContext.ncubeClient
+    }
+
     static NCubeRuntimeClient getRuntimeClient()
     {
         return SpringAppContext.runtimeClient

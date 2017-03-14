@@ -52,7 +52,7 @@ class CdnRouter
 
     CdnRouter()
     {
-        ncubeClient = SpringAppContext.client
+        ncubeClient = SpringAppContext.ncubeClient
     }
 
     static void setCdnRoutingProvider(CdnRoutingProvider p)
