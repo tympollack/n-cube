@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
+import com.cedarsoftware.ncube.util.GCacheManager
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
@@ -57,7 +58,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
-        this.adviceCacheManager = new NCubeCacheManager()
+        this.adviceCacheManager = new GCacheManager()
         this.allowMutable = allowMutable
         this.beanName = SpringAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
     }
@@ -639,9 +640,9 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         String regex = StringUtilities.wildcardToRegexString(wildcard)
         Pattern pattern = Pattern.compile(regex)
 
-        if (ncubeCacheManager instanceof NCubeCacheManager)
+        if (ncubeCacheManager instanceof GCacheManager)
         {
-            ((NCubeCacheManager)ncubeCacheManager).applyToEntries(appId.cacheKey(), { String key, Object value ->
+            ((GCacheManager)ncubeCacheManager).applyToEntries(appId.cacheKey(), {String key, Object value ->
                 if (value instanceof NCube)
                 {   // apply advice to hydrated cubes
                     NCube ncube = value as NCube
@@ -684,9 +685,9 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      */
     private void applyAdvices(NCube ncube)
     {
-        if (adviceCacheManager instanceof NCubeCacheManager)
+        if (adviceCacheManager instanceof GCacheManager)
         {
-            ((NCubeCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.cacheKey(), { String key, Object value ->
+            ((GCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.cacheKey(), {String key, Object value ->
                 final Advice advice = value as Advice
                 final String wildcard = key.replace(advice.name + '/', "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)

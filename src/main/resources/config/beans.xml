@@ -12,7 +12,8 @@
 
     <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext"/>
 
-    <bean id="ncubeCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+    <bean id="ncubeCacheManager" class="com.cedarsoftware.ncube.util.GCacheManager">
+        <constructor-arg ref="ncubeRemoval"/>
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_MAX_SIZE'] ?: systemProperties['NCUBE_CACHE_MAX'] ?: 0}"/>
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_TYPE'] ?: systemProperties['NCUBE_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_DURATION'] ?: systemProperties['NCUBE_CACHE_EVICT_DURATION'] ?: 4}"/>
@@ -20,13 +21,16 @@
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_CONCURRENCY'] ?: systemProperties['NCUBE_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
-    <bean id="permCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
+    <bean id="permCacheManager" class="com.cedarsoftware.ncube.util.GCacheManager">
+        <constructor-arg><null/></constructor-arg>
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_MAX_SIZE'] ?: systemProperties['PERM_CACHE_MAX'] ?: 100000}"/>
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_TYPE'] ?: systemProperties['PERM_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_DURATION'] ?: systemProperties['PERM_CACHE_EVICT_DURATION'] ?: 10}"/>
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_UNIT'] ?: systemProperties['PERM_CACHE_EVICT_UNIT'] ?: 'minutes'}"/>
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
+
+    <bean id="ncubeRemoval" class="com.cedarsoftware.ncube.NCubeRemoval"/>
 
     <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
         <constructor-arg ref="ncubeController"/>

@@ -1,4 +1,4 @@
-package com.cedarsoftware.ncube
+package com.cedarsoftware.ncube.util
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.RemovalListener
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeCacheManager implements CacheManager
+class GCacheManager implements org.springframework.cache.CacheManager
 {
     private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>()
     private final int concurrencyLevel
@@ -38,15 +38,16 @@ class NCubeCacheManager implements CacheManager
     private final int evictionDuration
     private final String evictionTimeUnit
     private final String evictionType
+    private final Closure removalClosure
 
-    NCubeCacheManager(int maximumSize = 0, String evictionType = 'none', int evictionDuration = 0, String evictionTimeUnit = 'hours', int concurrencyLevel = 16)
+    GCacheManager(Closure removalClosure = {}, int maximumSize = 0, String evictionType = 'none', int evictionDuration = 0, String evictionTimeUnit = 'hours', int concurrencyLevel = 16)
     {
+        this.removalClosure = removalClosure == null ? {} : removalClosure
         this.concurrencyLevel = concurrencyLevel
         this.maximumSize = maximumSize
         this.evictionType = evictionType
         this.evictionDuration = evictionDuration
         this.evictionTimeUnit = evictionTimeUnit
-
     }
     
     Cache getCache(String name)
@@ -68,7 +69,7 @@ class NCubeCacheManager implements CacheManager
     private GuavaCache createCache(String name)
     {
         CacheBuilder builder = CacheBuilder.newBuilder()
-        builder.removalListener(new NCubeRemovalListener())
+        builder.removalListener(new NCubeRemovalListener(removalClosure))
         builder.concurrencyLevel(concurrencyLevel)
         if (maximumSize > 0)
         {
@@ -144,21 +145,16 @@ class NCubeCacheManager implements CacheManager
      */
     private static class NCubeRemovalListener implements RemovalListener
     {
+        private final Closure closure
+        NCubeRemovalListener(Closure closure)
+        {
+            this.closure = closure
+        }
+
         void onRemoval(RemovalNotification removalNotification)
         {
             Object value = removalNotification.value
-            if (value instanceof NCube)
-            {
-                NCube ncube = value as NCube
-                for (Object cellValue : ncube.cellMap.values())
-                {
-                    if (cellValue instanceof UrlCommandCell)
-                    {
-                        UrlCommandCell cell = cellValue as UrlCommandCell
-                        cell.clearClassLoaderCache()
-                    }
-                }
-            }
+            closure(value)
         }
     }
 }

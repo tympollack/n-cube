@@ -72,7 +72,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
     NCubeManagerImpl(NCubePersister persister, CacheManager permCacheManager)
     {
         nCubePersister = persister
-        this.permCacheManager =  permCacheManager
+        this.permCacheManager = permCacheManager
     }
     
     NCubePersister getPersister()
