@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
  *         limitations under the License.
  */
 @CompileStatic
-class GCacheManager implements org.springframework.cache.CacheManager
+class GCacheManager implements CacheManager
 {
     private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>()
     private final int concurrencyLevel
@@ -153,8 +153,7 @@ class GCacheManager implements org.springframework.cache.CacheManager
 
         void onRemoval(RemovalNotification removalNotification)
         {
-            Object value = removalNotification.value
-            closure(value)
+            closure(removalNotification.value)
         }
     }
 }

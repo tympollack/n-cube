@@ -30,7 +30,7 @@
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
-    <bean id="ncubeRemoval" class="com.cedarsoftware.ncube.NCubeRemoval"/>
+    <bean id="ncubeRemoval" class="com.cedarsoftware.ncube.util.NCubeRemoval"/>
 
     <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
         <constructor-arg ref="ncubeController"/>
@@ -46,11 +46,11 @@
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="jsonHttpProxy"/>
             <constructor-arg ref="ncubeCacheManager"/>
-            <constructor-arg ref="mutable"/>
+            <constructor-arg ref="allowMutableMethods"/>
         </bean>
 
-        <bean id="mutable" class="java.lang.Boolean">
-            <constructor-arg value="#{systemEnvironment['NCUBE_MUTABLE'] ?: systemProperties['NCUBE_MUTABLE'] ?: false}"/>
+        <bean id="allowMutableMethods" class="java.lang.Boolean">
+            <constructor-arg value="#{systemEnvironment['NCUBE_MUTABLE_METHODS'] ?: systemProperties['NCUBE_MUTABLE_METHODS'] ?: false}"/>
         </bean>
 
         <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
@@ -106,7 +106,7 @@
 
     <beans profile="test-mutable">
 
-        <bean id="mutable" class="java.lang.Boolean"><constructor-arg value="true"/></bean>
+        <bean id="allowMutableMethods" class="java.lang.Boolean"><constructor-arg value="true"/></bean>
 
     </beans>
 

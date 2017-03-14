@@ -1,5 +1,7 @@
-package com.cedarsoftware.ncube
+package com.cedarsoftware.ncube.util
 
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.UrlCommandCell
 import groovy.transform.CompileStatic
 
 /**

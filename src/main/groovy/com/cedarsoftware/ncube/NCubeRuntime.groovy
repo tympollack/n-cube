@@ -51,15 +51,15 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
     protected final CallableBean bean
-    private final boolean allowMutable
+    private final boolean allowMutableMethods
     private final String beanName
 
-    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutable)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutableMethods)
     {
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = new GCacheManager()
-        this.allowMutable = allowMutable
+        this.allowMutableMethods = allowMutableMethods
         this.beanName = SpringAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
     }
 
@@ -508,7 +508,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     private void verifyAllowMutable(String methodName)
     {
-        if (!allowMutable)
+        if (!allowMutableMethods)
         {
             throw new IllegalStateException("${MUTABLE_ERROR} ${methodName}()")
         }
