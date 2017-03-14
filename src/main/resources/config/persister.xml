@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <bean id="persister" class="com.cedarsoftware.ncube.NCubeJdbcPersisterAdapter">
+        <constructor-arg ref="connectionProvider"/>
+    </bean>
+
+    <bean id="connectionProvider" class="com.cedarsoftware.util.SpringConnectionProvider">
+        <constructor-arg ref="ncubeDataSource"/>
+    </bean>
+
+    <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="ncubeDataSource"/>
+    </bean>
+
+    <tx:advice id="ncubeTxAdvice" transaction-manager="ncubeTransactionManager">
+        <tx:attributes>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="is*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="has*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="does*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="search*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="load*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="resolveRelativeUrl" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="assert*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="check*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" propagation="REQUIRED"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <aop:config>
+
+        <aop:pointcut id="ncubeTransactedMethods" expression="execution(* com.cedarsoftware.ncube.NCubeManagerImpl.*(..))"/>
+        <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeTransactedMethods"/>
+
+    </aop:config>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod" value="com.cedarsoftware.ncube.NCubeManager.setNCubePersister"/>
+        <property name="arguments">
+            <list>
+                <ref bean="persister"/>
+            </list>
+        </property>
+    </bean>
+
+    <!--
+        Set NCE_JDBC_DRIVER, NCE_JDBC_URL, NCE_JDBC_USER, NCE_JDBC_PWD, and NCE_POOL_QUERY as environment
+        variables or system properties.
+    -->
+
+    <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
+          p:driverClassName="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbcDriver'}"
+          p:url="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:hsqldb:mem:testdb'}"
+          p:username="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'sa'}"
+          p:password="#{systemEnvironment['NCUBE_JDBC_PWD'] ?: systemProperties['NCUBE_JDBC_PWD'] ?: ''}"
+          p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
+          p:initialSize="5"
+          p:minIdle="5"
+          p:maxIdle="10"
+          p:maxActive="100"
+          p:maxWait="120000"
+          p:jmxEnabled="true"
+          p:removeAbandoned="true"
+          p:removeAbandonedTimeout="180"
+          p:testOnBorrow="true"
+          p:testOnReturn="false"
+          p:testWhileIdle="false"
+          p:timeBetweenEvictionRunsMillis="30000"
+          p:minEvictableIdleTimeMillis="30000"
+          p:validationInterval="60000"
+          p:validationQuery="#{systemEnvironment['NCUBE_POOL_QUERY'] ?: systemProperties['NCUBE_POOL_QUERY'] ?: 'select 1 from INFORMATION_SCHEMA.SYSTEM_USERS'}">
+    </bean>
+
+</beans>

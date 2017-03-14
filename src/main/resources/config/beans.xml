@@ -1,19 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:tx="http://www.springframework.org/schema/tx"
-       xmlns:p="http://www.springframework.org/schema/p"
        xmlns:aop="http://www.springframework.org/schema/aop"
        xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
-   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
-   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd">
 
     <context:annotation-config />
     <aop:aspectj-autoproxy/>
 
-    <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext" />
+    <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext"/>
 
     <bean id="ncubeCacheManager" class="com.cedarsoftware.ncube.NCubeCacheManager">
         <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_MAX_SIZE'] ?: systemProperties['NCUBE_CACHE_MAX'] ?: 0}"/>
@@ -31,185 +28,96 @@
         <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: 16}"/>
     </bean>
 
-    <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy" />
-
-    <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
-        <constructor-arg value="#{runtimeProperties.NCUBE_PROTOCOL}" />
-        <constructor-arg value="#{runtimeProperties.NCUBE_HOST}" />
-        <constructor-arg value="#{runtimeProperties.NCUBE_PORT}" />
-        <constructor-arg value="#{runtimeProperties.NCUBE_CONTEXT}" />
-        <constructor-arg value="#{runtimeProperties.NCUBE_USERNAME}" />
-        <constructor-arg value="#{runtimeProperties.NCUBE_PASSWORD}" />
-    </bean>
-
-    <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
-        <property name="NCUBE_MUTABLE" value="#{systemEnvironment['NCUBE_MUTABLE'] ?: systemProperties['NCUBE_MUTABLE'] ?: false}"/>
-        <property name="NCUBE_PROTOCOL" value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: 'https'}"/>
-        <property name="NCUBE_HOST" value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: ''}"/>
-        <property name="NCUBE_PORT" value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 443}"/>
-        <property name="NCUBE_CONTEXT" value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: ''}"/>
-        <property name="NCUBE_USERNAME" value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ''}"/>
-        <property name="NCUBE_PASSWORD" value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ''}"/>
-    </bean>
-
-    <bean id="serverProperties" class="com.cedarsoftware.service.ServerProperties">
-        <property name="NCUBE_JDBC_DRIVER" value="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbcDriver'}"/>
-        <property name="NCUBE_JDBC_URL" value="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:hsqldb:mem:testdb'}"/>
-        <property name="NCUBE_JDBC_USER" value="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'sa'}"/>
-        <property name="NCUBE_JDBC_PWD" value="#{systemEnvironment['NCUBE_JDBC_PWD'] ?: systemProperties['NCUBE_JDBC_PWD'] ?: ''}"/>
-        <property name="NCUBE_POOL_QUERY" value="#{systemEnvironment['NCUBE_POOL_QUERY'] ?: systemProperties['NCUBE_POOL_QUERY'] ?: 'select 1 from INFORMATION_SCHEMA.SYSTEM_USERS'}"/>
-    </bean>
-
     <bean name="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
-        <constructor-arg ref="ncubeController" />
-    </bean>
-
-    <bean id="persister" class="com.cedarsoftware.ncube.NCubeJdbcPersisterAdapter">
-        <constructor-arg ref="connectionProvider" />
-    </bean>
-
-    <bean id="connectionProvider" class="com.cedarsoftware.util.SpringConnectionProvider">
-        <constructor-arg ref="ncubeDataSource" />
-    </bean>
-
-    <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-        <property name="dataSource" ref="ncubeDataSource" />
-    </bean>
-
-    <tx:advice id="ncubeTxAdvice" transaction-manager="ncubeTransactionManager">
-        <tx:attributes>
-            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="is*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="has*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="does*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="search*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="load*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="resolveRelativeUrl" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="assert*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="check*" propagation="REQUIRED" read-only="true"/>
-            <tx:method name="*" propagation="REQUIRED"/>
-        </tx:attributes>
-    </tx:advice>
-
-    <aop:config>
-
-        <aop:pointcut id="ncubeTransactedMethods" expression="execution(* com.cedarsoftware.ncube.NCubeManagerImpl.*(..))"/>
-        <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeTransactedMethods"/>
-
-    </aop:config>
-
-    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="staticMethod" value="com.cedarsoftware.ncube.NCubeManager.setNCubePersister"/>
-        <property name="arguments">
-            <list>
-                <ref bean="persister"/>
-            </list>
-        </property>
-    </bean>
-
-    <!--
-        Set NCE_JDBC_DRIVER, NCE_JDBC_URL, NCE_JDBC_USER, NCE_JDBC_PWD, and NCE_POOL_QUERY as environment
-        variables or system properties.
-    -->
-
-    <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
-          p:driverClassName="#{serverProperties.NCUBE_JDBC_DRIVER}"
-          p:url="#{serverProperties.NCUBE_JDBC_URL}"
-          p:username="#{serverProperties.NCUBE_JDBC_USER}"
-          p:password="#{serverProperties.NCUBE_JDBC_PWD}"
-          p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
-          p:initialSize="5"
-          p:minIdle="5"
-          p:maxIdle="10"
-          p:maxActive="100"
-          p:maxWait="120000"
-          p:jmxEnabled="true"
-          p:removeAbandoned="true"
-          p:removeAbandonedTimeout="180"
-          p:testOnBorrow="true"
-          p:testOnReturn="false"
-          p:testWhileIdle="false"
-          p:timeBetweenEvictionRunsMillis="30000"
-          p:minEvictableIdleTimeMillis="30000"
-          p:validationInterval="60000"
-          p:validationQuery="#{serverProperties.NCUBE_POOL_QUERY}">
+        <constructor-arg ref="ncubeController"/>
     </bean>
 
     <beans profile="runtime">
 
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-            <constructor-arg ref="ncubeRuntime" />
-            <constructor-arg value="true" />
+            <constructor-arg ref="ncubeRuntime"/>
+            <constructor-arg value="true"/>
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
-            <constructor-arg ref="appContext" />
-            <constructor-arg ref="jsonHttpProxy" />
-            <constructor-arg ref="ncubeCacheManager" />
-            <constructor-arg value="#{runtimeProperties.NCUBE_MUTABLE}" />
+            <constructor-arg ref="appContext"/>
+            <constructor-arg ref="jsonHttpProxy"/>
+            <constructor-arg ref="ncubeCacheManager"/>
+            <constructor-arg ref="mutable"/>
+        </bean>
+
+        <bean id="mutable" class="java.lang.Boolean">
+            <constructor-arg value="#{systemEnvironment['NCUBE_MUTABLE'] ?: systemProperties['NCUBE_MUTABLE'] ?: false}"/>
+        </bean>
+
+        <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
+            <constructor-arg value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: 'http'}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: 'localhost'}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 9000}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: 'ncube'}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ''}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ''}"/>
         </bean>
 
     </beans>
 
     <beans profile="server">
 
+        <import resource="persister.xml"/>
+
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-            <constructor-arg ref="ncubeRuntime" />
-            <constructor-arg value="false" />
+            <constructor-arg ref="ncubeRuntime"/>
+            <constructor-arg value="false"/>
         </bean>
 
         <bean id="ncubeRuntime" name="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
-            <constructor-arg ref="appContext" />
-            <constructor-arg ref="persister" />
-            <constructor-arg ref="permCacheManager" />
+            <constructor-arg ref="appContext"/>
+            <constructor-arg ref="persister"/>
+            <constructor-arg ref="permCacheManager"/>
         </bean>
 
     </beans>
 
     <beans profile="combined">
 
+        <import resource="persister.xml"/>
+
         <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-            <constructor-arg ref="ncubeRuntime" />
-            <constructor-arg value="true" />
+            <constructor-arg ref="ncubeRuntime"/>
+            <constructor-arg value="true"/>
         </bean>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
-            <constructor-arg ref="appContext" />
-            <constructor-arg ref="reflectiveProxy" />
-            <constructor-arg ref="ncubeCacheManager" />
-            <constructor-arg value="true" />
+            <constructor-arg ref="appContext"/>
+            <constructor-arg ref="reflectiveProxy"/>
+            <constructor-arg ref="ncubeCacheManager"/>
+            <constructor-arg value="true"/>
         </bean>
 
         <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
-            <constructor-arg ref="appContext" />
-            <constructor-arg ref="persister" />
-            <constructor-arg ref="permCacheManager" />
+            <constructor-arg ref="appContext"/>
+            <constructor-arg ref="persister"/>
+            <constructor-arg ref="permCacheManager"/>
         </bean>
+
+        <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy"/>
 
     </beans>
 
     <beans profile="test-mutable">
 
-        <bean id="runtimeProperties" class="com.cedarsoftware.service.RuntimeProperties">
-            <property name="NCUBE_MUTABLE" value="true"/>
-            <property name="NCUBE_PROTOCOL" value="http"/>
-            <property name="NCUBE_HOST" value="localhost"/>
-            <property name="NCUBE_PORT" value="9000"/>
-            <property name="NCUBE_CONTEXT" value="ncube"/>
-            <property name="NCUBE_USERNAME" value=""/>
-            <property name="NCUBE_PASSWORD" value=""/>
-        </bean>
+        <bean id="mutable" class="java.lang.Boolean"><constructor-arg value="true"/></bean>
 
     </beans>
 
     <beans profile="test-database">
 
         <bean id="hsqlSetup" class="com.cedarsoftware.util.HsqlSchemaCreator">
-            <constructor-arg value="#{serverProperties.NCUBE_JDBC_DRIVER}" />
-            <constructor-arg value="#{serverProperties.NCUBE_JDBC_URL}" />
-            <constructor-arg value="#{serverProperties.NCUBE_JDBC_USER}" />
-            <constructor-arg value="#{serverProperties.NCUBE_JDBC_PWD}" />
-            <constructor-arg value="/ddl/hsqldb-schema.sql" />
+            <constructor-arg value="org.hsqldb.jdbcDriver"/>
+            <constructor-arg value="jdbc:hsqldb:mem:testdb"/>
+            <constructor-arg value="sa"/>
+            <constructor-arg value=""/>
+            <constructor-arg value="/ddl/hsqldb-schema.sql"/>
         </bean>
 
     </beans>
