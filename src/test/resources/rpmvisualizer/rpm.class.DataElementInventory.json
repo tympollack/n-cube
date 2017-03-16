@@ -69,14 +69,49 @@
           "value":"field4"
         },
         {
+          "id":1001638060406,
+          "type":"string",
+          "value":"fieldACoverage"
+        },
+        {
+          "id":1001800164995,
+          "type":"string",
+          "value":"fieldARisk"
+        },
+        {
           "id":1001967120536,
           "type":"string",
           "value":"fieldAdded102"
         },
         {
+          "id":1000419826321,
+          "type":"string",
+          "value":"fieldBCoverage"
+        },
+        {
+          "id":1001283143864,
+          "type":"string",
+          "value":"fieldBRisk"
+        },
+        {
+          "id":1001667903187,
+          "type":"string",
+          "value":"fieldCCoverage"
+        },
+        {
+          "id":1000067854008,
+          "type":"string",
+          "value":"fieldDRisk"
+        },
+        {
           "id":1000223698771,
           "type":"string",
           "value":"fieldObsolete101"
+        },
+        {
+          "id":1001359543243,
+          "type":"string",
+          "value":"fieldTCoverage"
         }
       ]
     },
@@ -129,7 +164,23 @@
     },
     {
       "id":[
+        1001359543243,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
         1000000000072,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
+        1001638060406,
         2000000000011
       ],
       "type":"string",
@@ -161,6 +212,14 @@
     },
     {
       "id":[
+        1000067854008,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
         1000000000209,
         2000000000011
       ],
@@ -170,6 +229,14 @@
     {
       "id":[
         1001794294683,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
+        1001800164995,
         2000000000011
       ],
       "type":"string",
@@ -201,7 +268,31 @@
     },
     {
       "id":[
+        1001283143864,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
         1000000000215,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
+        1000419826321,
+        2000000000011
+      ],
+      "type":"string",
+      "value":"string"
+    },
+    {
+      "id":[
+        1001667903187,
         2000000000011
       ],
       "type":"string",

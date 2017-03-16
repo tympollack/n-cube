@@ -96,7 +96,15 @@ class JsonHttpProxy implements CallableBean
 
     Object call(String bean, String method, List args)
     {
-        String jsonArgs = JsonWriter.objectToJson(args.toArray())
+        String jsonArgs
+        try{
+             jsonArgs = JsonWriter.objectToJson(args.toArray())
+        }
+        catch (Exception e)
+        {
+            println(e.message)
+        }
+
 
         LOG.info("${bean}.${method}(${jsonArgs})")
         println("${bean}.${method}(${jsonArgs})")

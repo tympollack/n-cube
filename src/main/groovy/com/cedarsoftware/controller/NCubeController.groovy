@@ -8,6 +8,9 @@ import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import com.cedarsoftware.visualizer.RpmVisualizer
+import com.cedarsoftware.visualizer.RpmVisualizerConstants
+import com.cedarsoftware.visualizer.Visualizer
 import com.google.common.util.concurrent.AtomicDouble
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
@@ -228,28 +231,34 @@ class NCubeController extends BaseController
         return cube
     }
 
-    // TODO: This needs to be externalized (loaded via Grapes)
-    Map<String, Object> getVisualizerJson(ApplicationID appId, Map options)
+    Map<String, Object> getVisualizerGraph(ApplicationID appId, Map options)
     {
-        verifyAllowExecute('getVisualizerJson')
-//        if (!SystemUtilities.getExternalVariable('NCE_VISUALIZER_ENABLED'))
-//        {
-//            throw new IllegalStateException("""The visualizer is currently available <a href="#" onclick="window.open('https://nce.dockerdev.td.afg/n-cube-editor/#');return false;">here</a>""")
-//        }
-        String cubeName = options.startCubeName
-        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient) : new Visualizer(mutableClient)
+        verifyAllowExecute('getVisualizerGraph')
+        Visualizer vis = getVisualizer(options.startCubeName as String)
         appId = addTenant(appId)
-        return vis.buildGraph(appId, options)
+        return vis.loadGraph(appId, options)
+    }
+
+    Map<String, Object> getVisualizerScopeChange(ApplicationID appId, Map options)
+    {
+        verifyAllowExecute('getVisualizerScopeChange')
+        Visualizer vis = getVisualizer(options.startCubeName as String)
+        appId = addTenant(appId)
+        return vis.loadScopeChange(appId, options)
+    }
+
+    Map<String, Object>  getVisualizerNodeDetails(ApplicationID appId, Map options)
+    {
+        verifyAllowExecute('getVisualizerNodeDetails')
+        Visualizer vis = getVisualizer(options.startCubeName as String)
+        appId = addTenant(appId)
+        return vis.loadNodeDetails(appId, options)
     }
 
     // TODO: This needs to be externalized (loaded via Grapes)
-    Map getVisualizerCellValues(ApplicationID appId, Map options)
+    private Visualizer getVisualizer(String cubeName)
     {
-        verifyAllowExecute('getVisualizerCellValues')
-        String cubeName = options.startCubeName
-        Visualizer vis = cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient) : new Visualizer(mutableClient)
-        appId = addTenant(appId)
-        return vis.getCellValues(appId, options)
+        return cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient as NCubeRuntimeClient) : new Visualizer(mutableClient as NCubeRuntimeClient)
     }
 
     Boolean updateCubeMetaProperties(ApplicationID appId, String cubeName, Map<String, Object> newMetaProperties)

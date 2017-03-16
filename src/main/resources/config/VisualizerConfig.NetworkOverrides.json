@@ -1,114 +1,114 @@
 {
-  "ncube":"VisualizerConfig.NetworkOverrides",
-  "default_view_axis_order":"[\"configitem\",\"cubetype\"]",
-  "axes":[
+  "ncube": "VisualizerConfig.NetworkOverrides",
+  "default_view_axis_order": "[\"configitem\",\"cubetype\"]",
+  "axes": [
     {
-      "id":2,
-      "name":"cubeType",
-      "hasDefault":true,
-      "type":"DISCRETE",
-      "valueType":"STRING",
-      "preferredOrder":0,
-      "fireAll":true,
-      "columns":[
+      "id": 2,
+      "name": "cubeType",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
         {
-          "id":2001950513622,
-          "type":"string",
-          "value":"rpm"
+          "id": 2001950513622,
+          "type": "string",
+          "value": "rpm"
         }
       ]
     },
     {
-      "id":1,
-      "name":"configItem",
-      "hasDefault":false,
-      "default_value":{
-        "type":"exp",
-        "value":"[:]"
+      "id": 1,
+      "name": "configItem",
+      "hasDefault": false,
+      "default_value": {
+        "type": "exp",
+        "value": "[:]"
       },
-      "type":"DISCRETE",
-      "valueType":"STRING",
-      "preferredOrder":0,
-      "fireAll":true,
-      "columns":[
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
         {
-          "id":1001504517186,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "cache":true,
-            "value":"[:]"
+          "id": 1001504517186,
+          "type": "string",
+          "default_value": {
+            "type": "exp",
+            "cache": true,
+            "value": "[:]"
           },
-          "value":"networkOverridesBasic"
+          "value": "networkOverridesBasic"
         },
         {
-          "id":1001110976360,
-          "type":"string",
-          "value":"networkOverridesFull"
+          "id": 1001110976360,
+          "type": "string",
+          "value": "networkOverridesFull"
         },
         {
-          "id":1001036023421,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "value":"[:]"
+          "id": 1001036023421,
+          "type": "string",
+          "default_value": {
+            "type": "exp",
+            "value": "[:]"
           },
-          "value":"networkOverridesTopNode"
+          "value": "networkOverridesSelectedNode"
         }
       ]
     }
   ],
-  "cells":[
+  "cells": [
     {
-      "id":[
+      "id": [
         1001504517186,
         2001950513622
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[\n                interaction: [\n                        navigationButtons: true,\n                        keyboard: [\n                                enabled: false,\n                                speed: [\n                                        x: 5,\n                                        y: 5,\n                                        zoom: 0.02]\n                        ],\n                        zoomView: true\n                ],\n                nodes: [\n\t\t\t\t        borderWidthSelected: 3,\n                        value: 24,\n                        scaling: [\n                                min: 24,\n                                max: 24,\n                                label: [\n                                        enabled: true\n                                ]\n                        ],\n                        shadow: [\n                                enabled: false\n                        ]\n                ],\n                edges: [\n                        arrowStrikethrough: false,\n                        arrows: [\n                                to: [\n                                        enabled: true,\n                                        scaleFactor: 0.5\n                                ]\n                        ],\n                        color: [\n                                color: 'gray'\n                        ],\n                        smooth: [\n                                enabled: false\n                        ],\n                        shadow: [\n                                enabled: false\n                        ],\n                        hoverWidth: 3,\n                        selectionWidth: 2,\n                        font: [\n                                size: 20\n                        ]\n                ],\n                physics: [\n                        minVelocity: 5,\n                        barnesHut: [\n                                gravitationalConstant: -300000,\n                                springConstant: 0.3,\n                                centralGravity: 3\n                        ]\n                ],\n                layout: [\n                        hierarchical: [\n                                enabled: false\n                        ],\n                        improvedLayout : true,\n                        randomSeed:2\n                ],\n                groups: [\n                        PRODUCT: [\n                                shape: 'box',\n                                color: '#DAE4FA'\n                        ],\n                        RISK: [\n                                shape: 'box',\n                                color: '#759BEC'\n                        ],\n                        COVERAGE: [\n                                shape: 'box',\n                                color: '#113275',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        CONTAINER: [\n                                shape: 'star',\n                                color: \"#731d1d\",\n                                font: [\n                                        buttonColor: '#D8D8D8'\n                                ]\n                        ],\n                        LIMIT: [\n                                shape: 'ellipse',\n                                color: '#FFFF99'\n                        ],\n                        DEDUCTIBLE: [\n                                shape: 'ellipse',\n                                color: '#FFFF99'\n                        ],\n                        PREMIUM: [\n                                shape: 'ellipse',\n                                color: '#0B930B',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        RATE: [\n                                shape: 'ellipse',\n                                color: '#EAC259'\n                        ],\n                        ROLE: [\n                                shape: 'box',\n                                color: '#F59D56'\n                        ],\n                        ROLEPLAYER: [\n                                shape: 'box',\n                                color: '#F2F2F2'\n                        ],\n                        RATEFACTOR: [\n                                shape: 'ellipse',\n                                color: '#EAC259'\n                        ],\n                        PARTY: [\n                                shape: 'box',\n                                color: '#004000',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        PLACE: [\n                                shape: 'box',\n                                color: '#481849',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        UNSPECIFIED: [\n                                shape: 'box',\n                                color: '#7ac5cd'\n                        ],\n                        FORM: [\n                                shape: 'box',\n                                color: '#d2691e'\n                        ],\n                        PRODUCT_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        RISK_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        COVERAGE_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        LIMIT_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        PREMIUM_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        RATE_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        RATEFACTOR_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        ROLE_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        ROLEPLAYER_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        CONTAINER_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        DEDUCTIBLE_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        PARTY_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        PLACE_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        UNSPECIFIED_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: '#7ac5cd'\n                        ]\n                ]\n        ]"
+      "type": "exp",
+      "cache": true,
+      "value": "[\n                interaction: [\n                        navigationButtons: true,\n                        keyboard: [\n                                enabled: false,\n                                speed: [\n                                        x: 5,\n                                        y: 5,\n                                        zoom: 0.02]\n                        ],\n                        zoomView: true\n                ],\n                nodes: [\n\t\t\t\t        borderWidthSelected: 3,\n                        value: 24,\n                        scaling: [\n                                min: 24,\n                                max: 24,\n                                label: [\n                                        enabled: true\n                                ]\n                        ],\n                        shadow: [\n                                enabled: false\n                        ]\n                ],\n                edges: [\n                        arrowStrikethrough: false,\n                        arrows: [\n                                to: [\n                                        enabled: true,\n                                        scaleFactor: 0.5\n                                ]\n                        ],\n                        color: [\n                                color: 'gray'\n                        ],\n                        smooth: [\n                                enabled: false\n                        ],\n                        shadow: [\n                                enabled: false\n                        ],\n                        hoverWidth: 3,\n                        selectionWidth: 2,\n                        font: [\n                                size: 20\n                        ]\n                ],\n                physics: [\n                        minVelocity: 5,\n                        barnesHut: [\n                                gravitationalConstant: -300000,\n                                springConstant: 0.3,\n                                centralGravity: 3\n                        ]\n                ],\n                layout: [\n                        hierarchical: [\n                                enabled: false\n                        ],\n                        improvedLayout : true,\n                        randomSeed:2\n                ],\n                groups: [\n                        PRODUCT: [\n                                shape: 'box',\n                                color: '#DAE4FA'\n                        ],\n                        RISK: [\n                                shape: 'box',\n                                color: '#759BEC'\n                        ],\n                        COVERAGE: [\n                                shape: 'box',\n                                color: '#113275',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        CONTAINER: [\n                                shape: 'star',\n                                color: \"#731d1d\",\n                                font: [\n                                        buttonColor: '#D8D8D8'\n                                ]\n                        ],\n                        LIMIT: [\n                                shape: 'ellipse',\n                                color: '#FFFF99'\n                        ],\n                        DEDUCTIBLE: [\n                                shape: 'ellipse',\n                                color: '#FFFF99'\n                        ],\n                        PREMIUM: [\n                                shape: 'ellipse',\n                                color: '#0B930B',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        RATE: [\n                                shape: 'ellipse',\n                                color: '#EAC259'\n                        ],\n                        ROLE: [\n                                shape: 'box',\n                                color: '#F59D56'\n                        ],\n                        ROLEPLAYER: [\n                                shape: 'box',\n                                color: '#F2F2F2'\n                        ],\n                        RATEFACTOR: [\n                                shape: 'ellipse',\n                                color: '#EAC259'\n                        ],\n                        PARTY: [\n                                shape: 'box',\n                                color: '#004000',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        PLACE: [\n                                shape: 'box',\n                                color: '#481849',\n                                font: [\n                                        color: '#D8D8D8'\n                                ]\n                        ],\n                        UNSPECIFIED: [\n                                shape: 'box',\n                                color: '#7ac5cd'\n                        ],\n                        FORM: [\n                                shape: 'box',\n                                color: '#d2691e'\n                        ],\n                        PRODUCT_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        RISK_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        COVERAGE_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        LIMIT_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        PREMIUM_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        RATE_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        RATEFACTOR_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        ROLE_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        ROLEPLAYER_ENUM : [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        CONTAINER_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        DEDUCTIBLE_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        PARTY_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        PLACE_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: 'gray'\n                        ],\n                        UNSPECIFIED_ENUM: [\n                                shape: 'dot',\n                                scaling: [min: 5, max: 5],\n                                color: '#7ac5cd'\n                        ]\n                ]\n        ]"
     },
     {
-      "id":[
+      "id": [
         1001036023421
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[\n                        shapeProperties:\n                            [\n                                useBorderWithImage: true,\n                                borderDashes: [5, 2]\n                            ],\n                        value: 40,\n                        scaling: [\n                            min: 40,\n                            max: 40,\n                            label: [\n                                enabled: true,\n                                min: 12,\n                                max: 12\n                            ]\n                        ],\n                        borderWidth: 3,\n                        size: 40,\n                        color: '#759BEC'\n                    ]"
+      "type": "exp",
+      "cache": true,
+      "value": "[\n                        shapeProperties:\n                            [\n                                useBorderWithImage: true,\n                                borderDashes: [5, 2]\n                            ],\n                        value: 35,\n                        scaling: [\n                            min: 35,\n                            max: 35,\n                            label: [\n                                enabled: true,\n                                min: 12,\n                                max: 12\n                            ]\n                        ],\n                        borderWidth: 3,\n                        size: 35,\n                        color: '#759BEC'\n                    ]"
     },
     {
-      "id":[
+      "id": [
         1001036023421,
         2001950513622
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[\n                        shapeProperties: [\n                            borderDashes: [5, 2]\n                        ],\n                        value: 40,\n                        scaling: [\n                            min: 40,\n                            max: 40,\n                            label: [\n                                enabled: true,\n                                min: 40,\n                                max: 40\n                            ]\n                        ],\n                        borderWidth: 3,\n                        size: 40\n                    ];"
+      "type": "exp",
+      "cache": true,
+      "value": "[\n                        shapeProperties: [\n                            borderDashes: [5, 2]\n                        ],\n                        value: 30,\n                        scaling: [\n                            min: 30,\n                            max: 30,\n                            label: [\n                                enabled: true,\n                                min: 30,\n                                max: 30\n                            ]\n                        ],\n                        borderWidth: 3,\n                        size: 30\n                    ];"
     },
     {
-      "id":[
+      "id": [
         1001110976360
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[ nodes:\n\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t  shadow:\n\t\t\t\t\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t\t\t\t\t  enabled: true\n\t\t\t\t\t\t\t\t\t\t  ]\n\t\t\t\t\t\t  ],\n\t\t\t\t  edges:\n\t\t\t\t\t\t  [ arrowStrikethrough:  true,\n\t\t\t\t\t\t\tarrows:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tto:\n\t\t\t\t\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tenabled: true ]\n\t\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\tshadow:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tenabled: true ]\n\t\t\t\t\t\t  ]\n\t\t\t\t]"
+      "type": "exp",
+      "cache": true,
+      "value": "[ nodes:\n\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t  shadow:\n\t\t\t\t\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t\t\t\t\t  enabled: true\n\t\t\t\t\t\t\t\t\t\t  ]\n\t\t\t\t\t\t  ],\n\t\t\t\t  edges:\n\t\t\t\t\t\t  [ arrowStrikethrough:  true,\n\t\t\t\t\t\t\tarrows:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tto:\n\t\t\t\t\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tenabled: true ]\n\t\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\tshadow:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tenabled: true ]\n\t\t\t\t\t\t  ]\n\t\t\t\t]"
     },
     {
-      "id":[
+      "id": [
         1001504517186
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[\n                interaction: [\n                        navigationButtons: true,\n                        keyboard: [\n                                enabled: false,\n                                speed: [\n                                        x: 5,\n                                        y: 5,\n                                        zoom: 0.02]\n                        ],\n                        zoomView: true\n                ],\n                nodes: [\n\t\t\t\t        borderWidthSelected: 3,\n                        value: 24,\n                        scaling: [\n                                min: 24,\n                                max: 24,\n                                label: [\n                                        enabled: true\n                                ]\n                        ],\n                        shadow: [\n                                enabled: false\n                        ]\n                ],\n                edges: [\n                        arrowStrikethrough: false,\n                        arrows: [\n                                to: [\n                                        enabled: true,\n                                        scaleFactor: 0.5\n                                ]\n                        ],\n                        color: [\n                                color: 'gray'\n                        ],\n                        smooth: [\n                                enabled: false\n                        ],\n                        shadow: [\n                                enabled: false\n                        ],\n                        hoverWidth: 3,\n                        selectionWidth: 2,\n                        font: [\n                                size: 20\n                        ]\n                ],\n                physics: [\n                        minVelocity: 5,\n                        barnesHut: [\n                                gravitationalConstant: -300000,\n                                springConstant: 0.3,\n                                centralGravity: 3\n                        ]\n                ],\n                layout: [\n                        hierarchical: [\n                                enabled: false\n                        ],\n                        improvedLayout : true,\n                        randomSeed:2\n                ],\n                groups: [\n                        NCUBE: [\n                                shape: 'image',\n\t\t\t\t\t\t\t\timage: './img/ncube.png',\n\t\t\t\t\t\t\t\tcolor: '#759BEC',\n\t\t\t\t\t\t\t\tshadow: [\n                                                                         color: '#759BEC',\n                                                                         size: 12\n                                ]\n                        ],\n                        RULE_NCUBE: [\n                                 shape: 'image',\n\t\t\t\t\t\t\t\timage: './img/ruleNcube.png',\n\t\t\t\t\t\t\t\tcolor: '#EAC259',\n\t\t\t\t\t\t\t\tshadow: [\n                                                                     color: '#EAC259',\n                                                                     size: 12\n                                ]\n                        ],                  \n                        UNSPECIFIED: [\n                                shape: 'box',\n                                color: '#7ac5cd'\n                        ],\n                ]\n        ]"
+      "type": "exp",
+      "cache": true,
+      "value": "[\n                interaction: [\n                        navigationButtons: true,\n                        keyboard: [\n                                enabled: false,\n                                speed: [\n                                        x: 5,\n                                        y: 5,\n                                        zoom: 0.02]\n                        ],\n                        zoomView: true\n                ],\n                nodes: [\n\t\t\t\t        borderWidthSelected: 3,\n                        value: 24,\n                        scaling: [\n                                min: 24,\n                                max: 24,\n                                label: [\n                                        enabled: true\n                                ]\n                        ],\n                        shadow: [\n                                enabled: false\n                        ]\n                ],\n                edges: [\n                        arrowStrikethrough: false,\n                        arrows: [\n                                to: [\n                                        enabled: true,\n                                        scaleFactor: 0.5\n                                ]\n                        ],\n                        color: [\n                                color: 'gray'\n                        ],\n                        smooth: [\n                                enabled: false\n                        ],\n                        shadow: [\n                                enabled: false\n                        ],\n                        hoverWidth: 3,\n                        selectionWidth: 2,\n                        font: [\n                                size: 20\n                        ]\n                ],\n                physics: [\n                        minVelocity: 5,\n                        barnesHut: [\n                                gravitationalConstant: -300000,\n                                springConstant: 0.3,\n                                centralGravity: 3\n                        ]\n                ],\n                layout: [\n                        hierarchical: [\n                                enabled: false\n                        ],\n                        improvedLayout : true,\n                        randomSeed:2\n                ],\n                groups: [\n                        NCUBE: [\n                                shape: 'image',\n\t\t\t\t\t\t\t\timage: './img/ncube.png',\n\t\t\t\t\t\t\t\tcolor: '#759BEC',\n\t\t\t\t\t\t\t\tshadow: [\n                                                                         color: '#759BEC',\n                                                                         size: 12\n                                ]\n                        ],\n                        RULE_NCUBE: [\n                                 shape: 'image',\n\t\t\t\t\t\t\t\timage: './img/ruleNcube.png',\n\t\t\t\t\t\t\t\tcolor: '#EAC259',\n\t\t\t\t\t\t\t\tshadow: [\n                                                                     color: '#EAC259',\n                                                                     size: 12\n                                ]\n                        ],                  \n                        UNSPECIFIED: [\n                                shape: 'box',\n                                color: '#7ac5cd'\n                        ],\n                ]\n        ]"
     },
     {
-      "id":[
+      "id": [
         1001110976360,
         2001950513622
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[ nodes:\n\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t  shadow:\n\t\t\t\t\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t\t\t\t\t  enabled: false\n\t\t\t\t\t\t\t\t\t\t  ]\n\t\t\t\t\t\t  ],\n\t\t\t\t  edges:\n\t\t\t\t\t\t  [ arrowStrikethrough:  true,\n\t\t\t\t\t\t\tarrows:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tto:\n\t\t\t\t\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tenabled: true ]\n\t\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\tshadow:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tenabled: false]\n\t\t\t\t\t\t  ]\n\t\t\t\t]"
+      "type": "exp",
+      "cache": true,
+      "value": "[ nodes:\n\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t  shadow:\n\t\t\t\t\t\t\t\t\t\t  [\n\t\t\t\t\t\t\t\t\t\t\t\t  enabled: false\n\t\t\t\t\t\t\t\t\t\t  ]\n\t\t\t\t\t\t  ],\n\t\t\t\t  edges:\n\t\t\t\t\t\t  [ arrowStrikethrough:  true,\n\t\t\t\t\t\t\tarrows:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tto:\n\t\t\t\t\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tenabled: true ]\n\t\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\tshadow:\n\t\t\t\t\t\t\t\t\t[\n\t\t\t\t\t\t\t\t\t\t\tenabled: false]\n\t\t\t\t\t\t  ]\n\t\t\t\t]"
     }
   ]
 }

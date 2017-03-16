@@ -1,13 +1,19 @@
-package com.cedarsoftware.util
+package com.cedarsoftware.visualizer
 
 import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.google.common.base.Joiner
 import groovy.transform.CompileStatic
-
-import static com.cedarsoftware.util.VisualizerConstants.*
+import static com.cedarsoftware.visualizer.VisualizerConstants.DETAILS_CLASS_EXCEPTION
+import static com.cedarsoftware.visualizer.VisualizerConstants.DETAILS_CLASS_EXECUTED_CELL
+import static com.cedarsoftware.visualizer.VisualizerConstants.DETAILS_CLASS_WORD_WRAP
+import static com.cedarsoftware.visualizer.VisualizerConstants.DOUBLE_BREAK
+import static com.cedarsoftware.visualizer.VisualizerConstants.HTTP
+import static com.cedarsoftware.visualizer.VisualizerConstants.HTTPS
+import static com.cedarsoftware.visualizer.VisualizerConstants.FILE
 
 /**
  * Provides information to visualize an n-cube cell.
@@ -16,24 +22,28 @@ import static com.cedarsoftware.util.VisualizerConstants.*
 @CompileStatic
 class VisualizerCellInfo
 {
-	ApplicationID appId
-	String nodeId
+	protected String nodeId
 
-	Map<String, Object> coordinate
-	Object noExecuteCell
-	Object cell
-	Exception exception
-
+	protected Map<String, Object> coordinate
+	protected Object noExecuteCell
+	protected Object cell
+	protected Exception exception
 	protected Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(": ")
-	VisualizerHelper helper = new VisualizerHelper()
+	protected static NCubeRuntimeClient runtimeClient
+	protected ApplicationID appId
+	protected VisualizerHelper helper = new VisualizerHelper(runtimeClient, appId)
 
-	VisualizerCellInfo(String nodeId, Map<String, Object> coordinate)
+	protected VisualizerCellInfo(){}
+
+	protected VisualizerCellInfo(NCubeRuntimeClient runtimeClient, ApplicationID appId, String nodeId, Map<String, Object> coordinate)
 	{
+		this.runtimeClient = runtimeClient
+		this.appId = appId
 		this.coordinate = coordinate
 		this.nodeId = nodeId
 	}
 
-	void getCellValue(VisualizerInfo visInfo, VisualizerRelInfo visRelInfo, Long id, StringBuilder sb)
+	protected void getCellValue(VisualizerInfo visInfo, VisualizerRelInfo visRelInfo, Long id, StringBuilder sb)
 	{
 		String coordinateString = coordinateString
 
@@ -100,28 +110,27 @@ class VisualizerCellInfo
 
 		if (t instanceof InvalidCoordinateException)
 		{
-			title = 'The cell was executed with a missing or invalid coordinate.'
+			title = 'The cell was executed with a missing or invalid coordinate'
 			listItemClassName = t.class.simpleName
-			mb.append("Additional scope is required to load coordinate ${coordinateString}. ")
-			mb.append(BREAK + helper.handleInvalidCoordinateException(t as InvalidCoordinateException, visInfo, relInfo, new LinkedHashSet()).toString())
+			mb.append("Additional scope is required:${DOUBLE_BREAK}")
+			mb.append(helper.handleInvalidCoordinateException(t as InvalidCoordinateException, visInfo, relInfo, new LinkedHashSet()).toString())
 		}
 		else if (t instanceof CoordinateNotFoundException)
 		{
-			title = 'The cell was executed with a missing or invalid coordinate.'
+			title = 'The cell was executed with a missing or invalid coordinate'
 			listItemClassName = t.class.simpleName
 			CoordinateNotFoundException exc = t as CoordinateNotFoundException
 			String scopeKey = exc.axisName
 			Object value = exc.value ?: 'null'
-			String targetMsg = "coordinate ${coordinateString}"
-			mb.append("The scope value ${value} for scope key ${scopeKey} cannot be found on axis ${scopeKey} for ${targetMsg}. ")
-			mb.append(BREAK + helper.handleCoordinateNotFoundException(t as CoordinateNotFoundException, visInfo, targetMsg))
+			mb.append("The value ${value} is not valid for ${scopeKey}. A different value must be provided:${DOUBLE_BREAK}")
+			mb.append(helper.handleCoordinateNotFoundException(t as CoordinateNotFoundException, visInfo, relInfo))
 		}
 		else
 		{
-			title = 'An error occurred during the execution of the cell.'
+			title = 'An error occurred during the execution of the cell'
 			listItemClassName = DETAILS_CLASS_EXCEPTION
-			String targetMsg = "coordinate ${coordinateString}"
-			mb.append(helper.handleException(t, targetMsg))
+			mb.append("An exception was thrown while loading the coordinate.${DOUBLE_BREAK}")
+			mb.append(helper.handleException(t))
 		}
 
 		String coordinateClassName = "coord_${id}"
@@ -133,7 +142,7 @@ class VisualizerCellInfo
 		sb.append(DOUBLE_BREAK)
 		sb.append("${noExecuteValue}")
 		sb.append(DOUBLE_BREAK)
-		sb.append("<b>'Exception:'</b>")
+		sb.append("<b>Exception:</b>")
 		sb.append(DOUBLE_BREAK)
 		sb.append("${mb.toString()}>")
 		sb.append("</pre>")
