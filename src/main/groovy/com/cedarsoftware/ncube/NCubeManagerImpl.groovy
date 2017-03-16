@@ -721,7 +721,6 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
                             ref.transformApp = transformAppId.app
                             ref.transformVersion = transformAppId.version
                             ref.transformCubeName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME)
-                            ref.transformMethodName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME)
                         }
 
                         refAxes.add(ref)
@@ -800,9 +799,8 @@ target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
                     axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_APP, transformApp)
                     axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_VERSION, transformVersion)
                     axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME, transformCubeName)
-                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME, transformMethodName)
 
-                    if (transformApp && transformVersion && transformCubeName && transformMethodName)
+                    if (transformApp && transformVersion && transformCubeName)
                     {   // If transformer cube reference supplied, verify that the cube exists
                         ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
                         NCube transformCube = persister.loadCube(txAppId, transformCubeName)
@@ -811,15 +809,7 @@ target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
                             throw new IllegalArgumentException("""\
 Cannot point reference axis transformer to non-existing cube: ${transformCubeName}. \
 Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
-target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${transformMethodName}""")
-                        }
-
-                        if (transformCube.getAxis('method') == null)
-                        {
-                            throw new IllegalArgumentException("""\
-Cannot point reference axis transformer to non-existing axis: ${transformMethodName}. \
-Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
-target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${transformMethodName}""")
+target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                         }
                     }
                     else
