@@ -32,11 +32,11 @@
 
     <bean id="ncubeRemoval" class="com.cedarsoftware.ncube.util.NCubeRemoval"/>
 
-    <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
-        <constructor-arg ref="ncubeController"/>
-    </bean>
-
     <beans profile="runtime">
+
+        <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
+            <constructor-arg ref="ncubeController"/>
+        </bean>
 
         <bean id="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime"/>
