@@ -1024,8 +1024,7 @@ class NCubeBuilder
       "transformVersion": null,
       "transformStatus": null,
       "transformBranch": null,
-      "transformCubeName": null,
-      "transformMethodName": null
+      "transformCubeName": null
     }
   ],
   "cells": [

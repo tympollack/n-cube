@@ -35,5 +35,4 @@ class AxisRef
     String transformApp
     String transformVersion
     String transformCubeName
-    String transformMethodName
 }

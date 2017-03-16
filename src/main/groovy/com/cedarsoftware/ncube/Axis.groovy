@@ -29,7 +29,6 @@ import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_METHOD_NAME
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_STATUS
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
 import static java.lang.Math.abs
@@ -325,14 +324,6 @@ class Axis
     }
 
     /**
-     * @return String method name of referenced transform method (or null if this is not a reference axis)
-     */
-    String getTransformMethodName()
-    {
-        return getMetaProperty(TRANSFORM_METHOD_NAME)
-    }
-
-    /**
      * @return boolean true if this Axis is a reference Axis AND there is a transformer app
      * specified for the reference.
      */
@@ -344,8 +335,7 @@ class Axis
                 StringUtilities.hasContent(getMetaProperty(TRANSFORM_VERSION) as String) &&
                 StringUtilities.hasContent(status) &&
                 StringUtilities.hasContent(branch) &&
-                StringUtilities.hasContent(transformCubeName) &&
-                StringUtilities.hasContent(transformMethodName)
+                StringUtilities.hasContent(transformCubeName)
     }
 
     /**
@@ -384,7 +374,6 @@ class Axis
         removeMetaProperty(TRANSFORM_STATUS)
         removeMetaProperty(TRANSFORM_BRANCH)
         removeMetaProperty(TRANSFORM_CUBE_NAME)
-        removeMetaProperty(TRANSFORM_METHOD_NAME)
     }
 
     /**

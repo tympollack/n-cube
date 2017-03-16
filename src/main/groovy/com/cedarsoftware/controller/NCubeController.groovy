@@ -760,7 +760,7 @@ class NCubeController extends BaseController
     /**
      * Add axis to an existing SNAPSHOT n-cube that is a reference to an axis in another cube.
      */
-    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName)
+    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName)
     {
         appId = addTenant(appId)
         NCube nCube = mutableClient.getCube(appId, cubeName)
@@ -800,7 +800,6 @@ class NCubeController extends BaseController
             args[ReferenceAxisLoader.TRANSFORM_STATUS] = transformAppId.status
             args[ReferenceAxisLoader.TRANSFORM_BRANCH] = transformAppId.branch
             args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = transformCubeName
-            args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = transformMethodName
         }
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, args)
 
