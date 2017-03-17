@@ -2,7 +2,6 @@ package com.cedarsoftware.visualizer
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCubeCleanupBaseTest
-import com.cedarsoftware.ncube.NCubeMutableClient
 import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.ReleaseStatus
 import com.cedarsoftware.ncube.SpringAppContext
@@ -21,7 +20,6 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     protected static final String TEST_APP_VERSION = '1.0.8'
     protected ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, TEST_APP_NAME, TEST_APP_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
 
-    protected NCubeMutableClient mutableClient
     protected Visualizer visualizer
     protected Map returnMap
     protected VisualizerInfo visInfo
