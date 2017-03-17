@@ -2,11 +2,11 @@ package com.cedarsoftware.visualizer
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCubeCleanupBaseTest
-import com.cedarsoftware.ncube.NCubeManager
-import com.cedarsoftware.ncube.NCubeResourcePersister
+import com.cedarsoftware.ncube.NCubeMutableClient
 import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.ReleaseStatus
 import com.cedarsoftware.ncube.SpringAppContext
+import org.junit.Ignore
 
 import static com.cedarsoftware.visualizer.VisualizerConstants.*
 import static com.cedarsoftware.visualizer.VisualizerTestConstants.*
@@ -14,12 +14,14 @@ import groovy.transform.CompileStatic
 import org.junit.Before
 
 @CompileStatic
+@Ignore
 class VisualizerBaseTest extends NCubeCleanupBaseTest
 {
-    protected static final String DEFAULT_SCOPE_DATE = DATE_TIME_FORMAT.format(new Date())
+    protected static final String TEST_APP_NAME = 'test.visualizer'
+    protected static final String TEST_APP_VERSION = '1.0.8'
+    protected ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, TEST_APP_NAME, TEST_APP_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
 
-    protected NCubeRuntimeClient manager
-    protected ApplicationID appId
+    protected NCubeMutableClient mutableClient
     protected Visualizer visualizer
     protected Map returnMap
     protected VisualizerInfo visInfo
@@ -28,13 +30,13 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     protected Map<Long, Map<String, Object>> edges
     protected Map<String, Object> selectedNode
 
+    protected static final String DEFAULT_SCOPE_DATE = DATE_TIME_FORMAT.format(new Date())
+
     @Before
     void setup(){
         super.setup()
-        manager = SpringAppContext.runtimeClient
         preloadCubes()
         visualizer = getVisualizer()
-        appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test.visualizer', ApplicationID.DEFAULT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         returnMap = null
         visInfo = null
         messages = null
@@ -45,17 +47,12 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
 
     protected Visualizer getVisualizer()
     {
-        return new Visualizer(manager)
+        return new Visualizer(runtimeClient)
     }
 
     protected VisualizerRelInfo getVisualizerRelInfo()
     {
-        return new VisualizerRelInfo(manager, appId)
-    }
-
-    protected String getPathPrefix()
-    {
-        return 'visualizer*//**//*'
+        return new VisualizerRelInfo(runtimeClient, appId)
     }
 
     protected Map loadGraph(Map options, boolean hasMessages = false)
@@ -153,7 +150,7 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         assert !nodeDetails.contains("""<li id="${scopeKey}""")
     }
 
-    private void preloadCubes()
+    protected void preloadCubes()
     {
         preloadCubes(appId,
                 'config/VisualizerConfig.json',

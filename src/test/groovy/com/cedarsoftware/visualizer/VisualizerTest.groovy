@@ -5,7 +5,6 @@ import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
-import org.junit.Before
 import org.junit.Test
 
 import static com.cedarsoftware.visualizer.VisualizerConstants.*
@@ -14,18 +13,10 @@ import static com.cedarsoftware.visualizer.VisualizerTestConstants.*
 @CompileStatic
 class VisualizerTest extends VisualizerBaseTest
 {
-    @Before
-    void setup(){
-        super.setup()
-        preloadCubes()
-    }
-
     @Test
     void testLoadGraph_checkVisInfo()
     {
         String startCubeName = 'CubeWithRefs'
-
-        preloadCubes(appId, "visualizer/${startCubeName}.json")
         Map scope = new CaseInsensitiveMap()
         Map options = [startCubeName: startCubeName, scope: scope]
         loadGraph(options)
@@ -311,7 +302,7 @@ class VisualizerTest extends VisualizerBaseTest
         NCube cube = new NCube('dummyCube')
         InvalidCoordinateException e = new InvalidCoordinateException('InvalidCoordinateException', null, null, relInfoScope.keySet())
         VisualizerInfo visInfo = new VisualizerInfo()
-        VisualizerRelInfo relInfo = getVisualizerRelInfo()
+        VisualizerRelInfo relInfo = visualizerRelInfo
         relInfo.targetId = 1l
         relInfo.targetCube = cube
         relInfo.availableTargetScope = new CaseInsensitiveMap(relInfoScope)
@@ -776,8 +767,10 @@ class VisualizerTest extends VisualizerBaseTest
         return node
     }
 
-    private void preloadCubes()
+    @Override
+    protected void preloadCubes()
     {
+        super.preloadCubes()
         preloadCubes(appId,
                 'visualizer/CubeHasCircularRef1.json',
                 'visualizer/CubeHasCircularRef2.json',
@@ -802,5 +795,6 @@ class VisualizerTest extends VisualizerBaseTest
                 'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json'
         )
     }
+
     class OtherVisualizerInfo extends VisualizerInfo {}
 }

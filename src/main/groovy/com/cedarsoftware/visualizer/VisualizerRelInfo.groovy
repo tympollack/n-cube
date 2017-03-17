@@ -63,7 +63,7 @@ class VisualizerRelInfo
 	VisualizerRelInfo(NCubeRuntimeClient runtimeClient, ApplicationID applicationId)
 	{
 		this.runtimeClient = runtimeClient
-		appId = applicationId
+		this.appId = applicationId
 	}
 
 	protected init(Map options, VisualizerInfo visInfo)

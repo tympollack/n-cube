@@ -6,7 +6,7 @@ import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.SpringAppContext
+import com.cedarsoftware.ncube.ReleaseStatus
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
 import org.junit.Test
@@ -25,16 +25,15 @@ class RpmVisualizerTest extends VisualizerBaseTest
     static final String VALID_VALUES_FOR_FIELD_SENTENCE_CASE = 'Valid values for field '
     static final String VALID_VALUES_FOR_FIELD_LOWER_CASE = 'valid values for field '
 
-    Map defaultScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
-                        policyControlDate: DEFAULT_SCOPE_DATE,
-                        quoteDate        : DEFAULT_SCOPE_DATE] as CaseInsensitiveMap
+    static final Map DEFAULT_SCOPE = [_effectiveVersion: TEST_APP_VERSION,
+                                      policyControlDate: DEFAULT_SCOPE_DATE,
+                                      quoteDate        : DEFAULT_SCOPE_DATE] as CaseInsensitiveMap
 
     @Test
     void testLoadGraph_checkVisInfo()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
-                             coverage         : 'FCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION, coverage: 'FCoverage'] as CaseInsensitiveMap
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -71,7 +70,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
     void testLoadGraph_canLoadTargetAsRpmClass()
     {
         Map utilizedScope = new CaseInsensitiveMap()
-        Map availableScope = defaultScope + [coverage: 'CCCoverage']
+        Map availableScope = getAvailableScope([coverage: 'CCCoverage'])
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -88,7 +87,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_checkNodeAndEdge_nonEPM()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
         Map availableScope = new CaseInsensitiveMap(utilizedScope)
 
         //Load graph
@@ -157,10 +156,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_checkStructure()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'FCoverage',
                              risk             : 'WProductOps'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -185,7 +184,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_checkStructure_nonEPM()
     {
-        Map availableScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map availableScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
 
         //Load graph
         String startCubeName = 'rpm.class.partyrole.LossPrevention'
@@ -208,9 +207,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_checkNodeAndEdge()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'FCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         Map enumScope = new CaseInsensitiveMap(utilizedScope)
         enumScope.sourceFieldName = 'Coverages'
@@ -294,9 +293,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testGetCellValues_classNode_show()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'CCCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -327,9 +326,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testGetCellValues_classNode_show_unboundAxes_changeToNonDefault()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'CCCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -388,9 +387,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
         String httpsLink = """<a href="#" onclick='window.open("${httpsURL}");return false;'>${httpsURL}</a>"""
         String httpLink = """<a href="#" onclick='window.open("${httpURL}");return false;'>${httpURL}</a>"""
 
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'AdmCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -430,9 +429,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testGetCellValues_enumNode_show()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'FCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -460,9 +459,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testGetCellValues_classNode_hide()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'TCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -513,15 +512,15 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_cubeNotFound()
     {
-        NCube cube = manager.getCube(appId, 'rpm.enum.partyrole.BasePartyRole.Parties')
+        NCube cube = runtimeClient.getCube(appId, 'rpm.enum.partyrole.BasePartyRole.Parties')
         try
         {
             //Change enum to have reference to non-existing cube
             cube.addColumn((AXIS_NAME), 'party.NoCubeExists')
             cube.setCell(true,[name:'party.NoCubeExists', trait: R_EXISTS])
 
-            Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
-            Map availableScope = defaultScope + utilizedScope
+            Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
+            Map availableScope = getAvailableScope(utilizedScope)
 
             //Load graph
             String startCubeName = 'rpm.class.partyrole.LossPrevention'
@@ -544,7 +543,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         Map utilizedScope = [_effectiveVersion: '1.0.0',
                              product          : 'WProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -559,7 +558,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         Map utilizedScope = [_effectiveVersion: '1.0.1',
                              product          : 'WProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -572,9 +571,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_effectiveVersionApplied_afterFieldAddAndObsolete()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          : 'WProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -587,8 +586,8 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_validRpmClass()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.ValidRpmClass'
@@ -602,8 +601,8 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_validRpmClass_notStartWithRpmClass()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.klutz.ValidRpmClass'
@@ -619,8 +618,8 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_validRpmClass_startCubeNotFound()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'ValidRpmClass'
@@ -637,10 +636,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         String startCubeName = 'rpm.class.ValidRpmClass'
         createNCubeWithValidRpmClass(startCubeName)
-        NCube cube = manager.getCube(appId, startCubeName)
+        NCube cube = runtimeClient.getCube(appId, startCubeName)
         cube.deleteAxis(AXIS_TRAIT)
 
-        Map scope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map scope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
         Map options = [startCubeName: startCubeName, scope: scope]
 
         loadGraph(options, true)
@@ -654,10 +653,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         String startCubeName = 'rpm.class.ValidRpmClass'
         createNCubeWithValidRpmClass(startCubeName)
-        NCube cube = manager.getCube(appId, startCubeName)
+        NCube cube = runtimeClient.getCube(appId, startCubeName)
         cube.deleteAxis(AXIS_FIELD)
 
-        Map scope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map scope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
         Map options = [startCubeName: startCubeName, scope: scope]
 
         loadGraph(options, true)
@@ -671,10 +670,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         String startCubeName = 'rpm.class.ValidRpmClass'
         createNCubeWithValidRpmClass(startCubeName)
-        NCube cube = manager.getCube(appId, startCubeName)
+        NCube cube = runtimeClient.getCube(appId, startCubeName)
         cube.getAxis(AXIS_FIELD).columns.remove(CLASS_TRAITS)
 
-        Map scope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map scope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
         Map options = [startCubeName: startCubeName, scope: scope]
 
         loadGraph(options)
@@ -686,10 +685,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         String startCubeName = 'rpm.class.ValidRpmClass'
         createNCubeWithValidRpmClass(startCubeName)
-        NCube cube = manager.getCube(appId, startCubeName)
+        NCube cube = runtimeClient.getCube(appId, startCubeName)
         cube.getAxis(AXIS_TRAIT).columns.remove(R_EXISTS)
 
-        Map scope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map scope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
         Map options = [startCubeName: startCubeName, scope: scope]
 
         loadGraph(options)
@@ -701,10 +700,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     {
         String startCubeName = 'rpm.class.ValidRpmClass'
         createNCubeWithValidRpmClass(startCubeName)
-        NCube cube = manager.getCube(appId, startCubeName)
+        NCube cube = runtimeClient.getCube(appId, startCubeName)
         cube.getAxis(AXIS_TRAIT).columns.remove(R_RPM_TYPE)
 
-        Map scope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+        Map scope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
         Map options = [startCubeName: startCubeName, scope: scope]
 
         loadGraph(options)
@@ -714,11 +713,11 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_invokedWithParentVisualizerInfoClass()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          : 'WProduct',
                              coverage         : 'FCoverage',
                              risk             : 'WProductOps'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
 
         VisualizerInfo notRpmVisInfo = new VisualizerInfo()
@@ -737,7 +736,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_exceptionInMinimumTrait()
     {
-        NCube cube = manager.getCube(appId, 'rpm.scope.class.Coverage.traits')
+        NCube cube = runtimeClient.getCube(appId, 'rpm.scope.class.Coverage.traits')
         Map coordinate = [(AXIS_FIELD): 'Exposure', (AXIS_TRAIT): R_EXISTS, coverage: 'FCoverage'] as Map
 
         try
@@ -746,9 +745,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
             String expression = 'int a = 5; int b = 0; return a / b'
             cube.setCell(new GroovyExpression(expression, null, false), coordinate)
 
-            Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+            Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                                  product          : 'WProduct'] as CaseInsensitiveMap
-            Map availableScope = defaultScope + utilizedScope
+            Map availableScope = getAvailableScope(utilizedScope)
 
             //Load graph
             String startCubeName = 'rpm.class.Product'
@@ -774,9 +773,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_nodeScope_afterTopNodeScopeChange()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          : 'AProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         String tomorrow = DATE_TIME_FORMAT.format(new Date() + 1)
 
@@ -807,9 +806,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_nodeScope_afterNonTopNodeScopeChange()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          : 'AProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         String tomorrow = DATE_TIME_FORMAT.format(new Date() + 1)
 
@@ -853,8 +852,8 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_noInitialScope()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
-        Map availableScope = defaultScope
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
+        Map availableScope = getAvailableScope()
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -877,7 +876,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         checkScopePromptTitle(node, 'product', true, 'rpm.scope.class.Product.traits')
         checkScopePromptDropdown(node, 'product', 'AProduct', ['AProduct', 'BProduct', 'GProduct', 'UProduct', 'WProduct'], [DEFAULT], '',  true)
         checkScopePromptTitle(node, '_effectiveVersion', true)
-        checkScopePromptDropdown(node, '_effectiveVersion', ApplicationID.DEFAULT_VERSION, [], [], '', true)
+        checkScopePromptDropdown(node, '_effectiveVersion', TEST_APP_VERSION, [], [], '', true)
         checkScopePromptTitle(node, 'policyControlDate', true)
         checkScopePromptDropdown(node, 'policyControlDate', DEFAULT_SCOPE_DATE, [], [], '',  true)
         checkScopePromptTitle(node, 'quoteDate', true)
@@ -892,9 +891,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_nodes_afterScopeChange()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          : 'AProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -1013,13 +1012,13 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_missingRequiredScope_nonEPM()
     {
-        NCube cube = manager.getCube(appId, 'rpm.class.party.ProfitCenter')
+        NCube cube = runtimeClient.getCube(appId, 'rpm.class.party.ProfitCenter')
         try
         {
             //Change cube to have declared required scope
             cube.setMetaProperty('requiredScopeKeys', ['dummyRequiredScopeKey'])
 
-            Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION] as CaseInsensitiveMap
+            Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION] as CaseInsensitiveMap
             Map availableScope = new CaseInsensitiveMap(utilizedScope)
 
             //Load graph
@@ -1042,15 +1041,15 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_missingDeclaredRequiredScope()
     {
-        NCube cube = manager.getCube(appId, 'rpm.class.Coverage')
+        NCube cube = runtimeClient.getCube(appId, 'rpm.class.Coverage')
         try
         {
             //Change cube to have declared required scope
             cube.setMetaProperty('requiredScopeKeys', ['dummyRequiredScopeKey'])
 
-            Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+            Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                                  risk             : 'WProductOps'] as CaseInsensitiveMap
-            Map availableScope = defaultScope + utilizedScope
+            Map availableScope = getAvailableScope(utilizedScope)
 
             //Load graph
             String startCubeName = 'rpm.class.Risk'
@@ -1072,9 +1071,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testGetCellValues_classNode_show_missingRequiredScope()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'TCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -1123,13 +1122,20 @@ class RpmVisualizerTest extends VisualizerBaseTest
         assert utilizedScope == node.scope
         assert availableScope == node.availableScope
     }
+    
+    private static Map getAvailableScope(Map utilizedScope = [:])
+    {
+        Map availableScope = new CaseInsensitiveMap(DEFAULT_SCOPE)
+        availableScope.putAll(utilizedScope)
+        return availableScope
+    }
 
     @Test
     void testGetCellValues_classNode_show_invalidRequiredScope()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              coverage         : 'TCoverage'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
         
         //Load graph
         String startCubeName = 'rpm.class.Coverage'
@@ -1165,9 +1171,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_nodeWithSingleDefaultValue()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          :'BProduct'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -1184,12 +1190,12 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_enumWithMissingThenInvalidRequiredScope()
     {
-        Map availableScope = defaultScope + [risk: 'DRisk']
+        Map availableScope = getAvailableScope([risk: 'DRisk'])
 
-        Map enumUtilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map enumUtilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                                  risk             : 'DRisk',
                                  sourceFieldName  : 'Coverages'] as CaseInsensitiveMap
-        Map enumAvailableScope = defaultScope + enumUtilizedScope
+        Map enumAvailableScope = getAvailableScope(enumUtilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Risk'
@@ -1251,9 +1257,9 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_derivedScopeKey_topNode()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              risk             : 'StateOps'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Risk'
@@ -1270,10 +1276,10 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Test
     void testLoadGraph_scopePrompt_derivedScopeKey_notTopNode()
     {
-        Map utilizedScope = [_effectiveVersion: ApplicationID.DEFAULT_VERSION,
+        Map utilizedScope = [_effectiveVersion: TEST_APP_VERSION,
                              product          : 'WProduct',
                              risk             : 'WProductOps'] as CaseInsensitiveMap
-        Map availableScope = defaultScope + utilizedScope
+        Map availableScope = getAvailableScope(utilizedScope)
 
         //Load graph
         String startCubeName = 'rpm.class.Risk'
@@ -1384,19 +1390,13 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Override
     protected Visualizer getVisualizer()
     {
-        return new RpmVisualizer(manager)
+        return new RpmVisualizer(runtimeClient)
     }
 
     @Override
     protected VisualizerRelInfo getVisualizerRelInfo()
     {
-        return new RpmVisualizerRelInfo(manager, appId)
-    }
-
-    @Override
-    protected String getPathPrefix()
-    {
-        return 'rpmvisualizer*//**//*'
+        return new RpmVisualizerRelInfo(runtimeClient, appId)
     }
 
     private void checkNode(String nodeName, String nodeType, String nodeNamePrefix = '', String nodeDetailsMessage = '', boolean unableToLoad = false, boolean showCellValues = false)
@@ -1522,7 +1522,67 @@ class RpmVisualizerTest extends VisualizerBaseTest
         cube.addAxis(new Axis(axisName, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.SORTED, 2))
         cube.addColumn(axisName, R_EXISTS)
         cube.addColumn(axisName, R_RPM_TYPE)
-        manager.addCube(cube)
+        runtimeClient.addCube(cube)
         return cube
+    }
+
+    @Override
+    protected void preloadCubes()
+    {
+        super.preloadCubes()
+        ApplicationID libraryAppId = new ApplicationID(appId.tenant, appId.app, appId.version, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+        preloadCubes(libraryAppId,
+                'rpmvisualizer/rpm.json',
+                'rpmvisualizer/Product.json',
+                'rpmvisualizer/Risk.json',
+                'rpmvisualizer/Coverage.json',
+                'rpmvisualizer/ent.manual.BusinessDivision.json',
+                'rpmvisualizer/ent.manual.State.json'
+        )
+
+        preloadCubes(appId,
+                'rpmvisualizer/rpm.class.Coverage.json',
+                'rpmvisualizer/rpm.class.Product.json',
+                'rpmvisualizer/rpm.class.Risk.json',
+                'rpmvisualizer/rpm.enum.Coverage.Coverages.json',
+                'rpmvisualizer/rpm.enum.Product.Risks.json',
+                'rpmvisualizer/rpm.enum.Risk.Coverages.json',
+                'rpmvisualizer/rpm.enum.Risk.Risks.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.classTraits.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field1And2.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field3CovC.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field3CovI.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldACoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldBCoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldCCoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldTCoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field4.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.StatCode.json',
+                'rpmvisualizer/rpm.scope.class.Product.classTraits.json',
+                'rpmvisualizer/rpm.scope.class.Product.traits.json',
+                'rpmvisualizer/rpm.scope.class.Risk.classTraits.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.Coverages.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.Risks.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldARisk.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldBRisk.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldDRisk.json',
+                'rpmvisualizer/rpm.scope.enum.Coverage.Coverages.traits.json',
+                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.json',
+                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.exists.json',
+                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.exists.category.json',
+                'rpmvisualizer/rpm.scope.enum.Risk.Coverages.traits.json',
+                'rpmvisualizer/rpm.scope.enum.Risk.Coverages.traits.exists.json',
+                'rpmvisualizer/rpm.scope.enum.Risk.Risks.traits.json',
+                'rpmvisualizer/rpm.class.DataElementInventory.json',
+                'rpmvisualizer/rpm.enum.dataelement.PrintWaiverIndicator.json',
+                'rpmvisualizer/rpm.class.party.BaseParty.json',
+                'rpmvisualizer/rpm.class.party.MoreNamedInsured.json',
+                'rpmvisualizer/rpm.class.party.ProfitCenter.json',
+                'rpmvisualizer/rpm.class.partyrole.BasePartyRole.json',
+                'rpmvisualizer/rpm.class.partyrole.LossPrevention.json',
+                'rpmvisualizer/rpm.enum.partyrole.BasePartyRole.Parties.json'
+        )
     }
 }
