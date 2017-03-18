@@ -768,11 +768,9 @@ class VisualizerTest extends VisualizerBaseTest
     }
 
     @Override
-    protected void preloadCubes()
+    List<String> getTestCubesNames()
     {
-        super.preloadCubes()
-        preloadCubes(appId,
-                'visualizer/CubeHasCircularRef1.json',
+        return ['visualizer/CubeHasCircularRef1.json',
                 'visualizer/CubeHasCircularRef2.json',
                 'visualizer/CubeHasRefsToTwoCubesInSameCell.json',
                 'visualizer/CubeHasRefToNotExistsCube.json',
@@ -792,8 +790,33 @@ class VisualizerTest extends VisualizerBaseTest
                 'visualizer/CubeCallingCubeWithDefaultColumn.json',
                 'visualizer/CubeWithDefaultColumn.json',
                 'visualizer/RuleCubeWithAllDefaults.json',
-                'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json'
-        )
+                'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json']
+    }
+
+    @Override
+    protected void preloadCubes()
+    {
+        preloadCubes(appId,  'visualizer/CubeHasCircularRef1.json',
+                'visualizer/CubeHasCircularRef2.json',
+                'visualizer/CubeHasRefsToTwoCubesInSameCell.json',
+                'visualizer/CubeHasRefToNotExistsCube.json',
+                'visualizer/CubeHasTwoRefsToSameCube.json',
+                'visualizer/CubeWithCoordinateNotFoundCell.json',
+                'visualizer/CubeWithCoordinateNotFoundCellDueToTwoNotFoundValues.json',
+                'visualizer/CubeWithDefaultsAndNoValues.json',
+                'visualizer/CubeWithExceptionCell.json',
+                'visualizer/CubeWithExecutedCell.json',
+                'visualizer/CubeWithExecutedCellAndThreeTypesExceptionCells.json',
+                'visualizer/CubeWithExecutedCellsWithURLs.json',
+                'visualizer/CubeWithInvalidCoordinateCell.json',
+                'visualizer/CubeWithInvalidCoordinateCellDueToTwoInvalidKeys.json',
+                'visualizer/CubeWithNoDefaultsAndNoValues.json',
+                'visualizer/CubeWithRefs.json',
+                'visualizer/CubeWithSingleValue.json',
+                'visualizer/CubeCallingCubeWithDefaultColumn.json',
+                'visualizer/CubeWithDefaultColumn.json',
+                'visualizer/RuleCubeWithAllDefaults.json',
+                'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json')
     }
 
     class OtherVisualizerInfo extends VisualizerInfo {}

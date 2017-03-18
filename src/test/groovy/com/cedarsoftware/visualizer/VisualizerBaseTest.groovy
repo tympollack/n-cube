@@ -1,10 +1,10 @@
 package com.cedarsoftware.visualizer
 
 import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeCleanupBaseTest
-import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.ncube.ReleaseStatus
-import com.cedarsoftware.ncube.SpringAppContext
 import org.junit.Ignore
 
 import static com.cedarsoftware.visualizer.VisualizerConstants.*
@@ -18,7 +18,8 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
 {
     protected static final String TEST_APP_NAME = 'test.visualizer'
     protected static final String TEST_APP_VERSION = '1.0.8'
-    protected ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, TEST_APP_NAME, TEST_APP_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+    protected static final ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, TEST_APP_NAME, TEST_APP_VERSION, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+    protected static List<NCube> testCubes = []
 
     protected Visualizer visualizer
     protected Map returnMap
@@ -33,7 +34,9 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     @Before
     void setup(){
         super.setup()
-        preloadCubes()
+        //preloadCubes()
+        //loadTestCubes()
+        addTestCubesToCache()
         visualizer = getVisualizer()
         returnMap = null
         visInfo = null
@@ -148,12 +151,54 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         assert !nodeDetails.contains("""<li id="${scopeKey}""")
     }
 
-    protected void preloadCubes()
+    protected void preloadCubes(){}
+
+    protected void loadTestCubes()
     {
-        preloadCubes(appId,
-                'config/VisualizerConfig.json',
-                'config/VisualizerConfig.NetworkOverrides.json',
-                'config/VisualizerTypesToAdd.json'
-        )
+        if (!testCubes)
+        {
+            testCubes = getCubesFromResource(getTestCubesNames())
+        }
+        createCubes(testCubes)
+    }
+
+    protected void addTestCubesToCache()
+    {
+        if (!testCubes)
+        {
+            testCubes = getCubesFromResource(getTestCubesNames())
+        }
+        addCubes(testCubes)
+    }
+
+    List<String> getTestCubesNames()
+    {
+        return []
+    }
+
+    protected static List<NCube> getCubesFromResource(List<String> fileNames)
+    {
+        List<NCube> cubes = []
+        fileNames.each { String fileName ->
+            String json = NCubeRuntime.getResourceAsString(fileName)
+            NCube cube = NCube.fromSimpleJson(json)
+            cube.applicationID = appId
+            cubes << cube
+        }
+        return cubes
+    }
+
+    protected static void createCubes(List<NCube> cubes)
+    {
+        cubes.each { NCube cube ->
+            mutableClient.createCube(cube)
+        }
+    }
+
+    protected static void addCubes(List<NCube> cubes)
+    {
+        cubes.each { NCube cube ->
+            runtimeClient.addCube(cube)
+        }
     }
 }

@@ -1,12 +1,10 @@
 package com.cedarsoftware.visualizer
 
-import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.ReleaseStatus
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
 import org.junit.Test
@@ -28,6 +26,8 @@ class RpmVisualizerTest extends VisualizerBaseTest
     static final Map DEFAULT_SCOPE = [_effectiveVersion: TEST_APP_VERSION,
                                       policyControlDate: DEFAULT_SCOPE_DATE,
                                       quoteDate        : DEFAULT_SCOPE_DATE] as CaseInsensitiveMap
+
+    protected static List<NCube> libraryCubes = []
 
     @Test
     void testLoadGraph_checkVisInfo()
@@ -1511,7 +1511,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         assert !nodeDetails.contains(DETAILS_LABEL_CLASS_TRAITS)
     }
 
-    private NCube createNCubeWithValidRpmClass(String cubeName)
+    private static NCube createNCubeWithValidRpmClass(String cubeName)
     {
         NCube cube = new NCube(cubeName)
         cube.applicationID = appId
@@ -1529,18 +1529,13 @@ class RpmVisualizerTest extends VisualizerBaseTest
     @Override
     protected void preloadCubes()
     {
-        super.preloadCubes()
-        ApplicationID libraryAppId = new ApplicationID(appId.tenant, appId.app, appId.version, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
-        preloadCubes(libraryAppId,
+        preloadCubes(appId,
                 'rpmvisualizer/rpm.json',
                 'rpmvisualizer/Product.json',
                 'rpmvisualizer/Risk.json',
                 'rpmvisualizer/Coverage.json',
                 'rpmvisualizer/ent.manual.BusinessDivision.json',
-                'rpmvisualizer/ent.manual.State.json'
-        )
-
-        preloadCubes(appId,
+                'rpmvisualizer/ent.manual.State.json',
                 'rpmvisualizer/rpm.class.Coverage.json',
                 'rpmvisualizer/rpm.class.Product.json',
                 'rpmvisualizer/rpm.class.Risk.json',
@@ -1584,5 +1579,85 @@ class RpmVisualizerTest extends VisualizerBaseTest
                 'rpmvisualizer/rpm.class.partyrole.LossPrevention.json',
                 'rpmvisualizer/rpm.enum.partyrole.BasePartyRole.Parties.json'
         )
+    }
+
+    List<String> getLibraryCubeNames()
+    {
+        return ['rpmvisualizer/rpm.json',
+                'rpmvisualizer/Product.json',
+                'rpmvisualizer/Risk.json',
+                'rpmvisualizer/Coverage.json',
+                'rpmvisualizer/ent.manual.BusinessDivision.json',
+                'rpmvisualizer/ent.manual.State.json']
+    }
+
+    List<String> getTestCubesNames()
+    {
+        return ['rpmvisualizer/rpm.class.Coverage.json',
+                'rpmvisualizer/rpm.class.Product.json',
+                'rpmvisualizer/rpm.class.Risk.json',
+                'rpmvisualizer/rpm.enum.Coverage.Coverages.json',
+                'rpmvisualizer/rpm.enum.Product.Risks.json',
+                'rpmvisualizer/rpm.enum.Risk.Coverages.json',
+                'rpmvisualizer/rpm.enum.Risk.Risks.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.classTraits.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field1And2.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field3CovC.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field3CovI.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldACoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldBCoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldCCoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldTCoverage.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.field4.json',
+                'rpmvisualizer/rpm.scope.class.Coverage.traits.StatCode.json',
+                'rpmvisualizer/rpm.scope.class.Product.classTraits.json',
+                'rpmvisualizer/rpm.scope.class.Product.traits.json',
+                'rpmvisualizer/rpm.scope.class.Risk.classTraits.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.Coverages.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.Risks.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldARisk.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldBRisk.json',
+                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldDRisk.json',
+                'rpmvisualizer/rpm.scope.enum.Coverage.Coverages.traits.json',
+                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.json',
+                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.exists.json',
+                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.exists.category.json',
+                'rpmvisualizer/rpm.scope.enum.Risk.Coverages.traits.json',
+                'rpmvisualizer/rpm.scope.enum.Risk.Coverages.traits.exists.json',
+                'rpmvisualizer/rpm.scope.enum.Risk.Risks.traits.json',
+                'rpmvisualizer/rpm.class.DataElementInventory.json',
+                'rpmvisualizer/rpm.enum.dataelement.PrintWaiverIndicator.json',
+                'rpmvisualizer/rpm.class.party.BaseParty.json',
+                'rpmvisualizer/rpm.class.party.MoreNamedInsured.json',
+                'rpmvisualizer/rpm.class.party.ProfitCenter.json',
+                'rpmvisualizer/rpm.class.partyrole.BasePartyRole.json',
+                'rpmvisualizer/rpm.class.partyrole.LossPrevention.json',
+                'rpmvisualizer/rpm.enum.partyrole.BasePartyRole.Parties.json']
+    }
+
+    @Override
+    protected void loadTestCubes()
+    {
+        if (!libraryCubes)
+        {
+            libraryCubes = getCubesFromResource(getLibraryCubeNames())
+        }
+        createCubes(libraryCubes)
+
+        super.loadTestCubes()
+    }
+
+    @Override
+    protected void addTestCubesToCache()
+    {
+        if (!libraryCubes)
+        {
+            libraryCubes = getCubesFromResource(getLibraryCubeNames())
+        }
+        addCubes(libraryCubes)
+
+        super.addTestCubesToCache()
     }
 }
