@@ -1,9 +1,9 @@
 package com.cedarsoftware.controller;
 
-import groovy.transform.CompileStatic;
+import com.cedarsoftware.servlet.ControllerClass;
 
 /**
- * Common functionality for all Controllers.
+ * Base interface for all controllers
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -21,11 +21,7 @@ import groovy.transform.CompileStatic;
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-@CompileStatic
-public class BaseController implements IBaseController
+@ControllerClass
+interface BaseController
 {
-	public void logout()
-	{
-	}
-
 }

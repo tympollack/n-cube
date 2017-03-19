@@ -4,8 +4,8 @@
     <name>n-cube</name>
     <groupId>com.cedarsoftware</groupId>
 	<artifactId>n-cube</artifactId>
-    <packaging>war</packaging>
-	<version>3.6.13-SNAPSHOT</version>
+    <packaging>jar</packaging>
+	<version>4.0.0-SNAPSHOT</version>
 	<description>n-cube Engine</description>
     <url>https://github.com/jdereg/n-cube</url>
     <profiles>
@@ -65,6 +65,12 @@
         </developer>
     </developers>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.5.2.RELEASE</version>
+    </parent>
+
     <properties>
         <version.json-io>4.9.10</version.json-io>
         <version.java-util>1.26.0</version.java-util>
@@ -79,7 +85,8 @@
         <version.encog.core>3.3.0</version.encog.core>
         <version.mockito>1.10.19</version.mockito>
         <version.httpclient>4.5.3</version.httpclient>
-        <version.spring>4.3.5.RELEASE</version.spring>
+        <version.spring>4.3.7.RELEASE</version.spring>
+        <version.springboot>1.5.2.RELEASE</version.springboot>
         <version.mongo>2.12.3</version.mongo>
         <version.mysql.connector.java>5.1.40</version.mysql.connector.java>
         <version.tomcat.jdbc>8.0.41</version.tomcat.jdbc>
@@ -98,7 +105,8 @@
         <version.servlet.api>2.5</version.servlet.api>
         <version.servlet>3.1.0</version.servlet>
         <version.plugin.war>2.6</version.plugin.war>
-        <version.java>1.8</version.java>
+        <java.version>1.8</java.version>
+        <tomcat.version>8.0.38</tomcat.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -216,80 +224,86 @@
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${version.plugin.surefire}</version>
-                <configuration>
-                    <excludes>
-                        <exclude>**/**</exclude>
-                    </excludes>
-                    <forkCount>2</forkCount>
-                    <failIfNoTests>false</failIfNoTests>
-                </configuration>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-surefire-plugin</artifactId>-->
+                <!--<version>${version.plugin.surefire}</version>-->
+                <!--<configuration>-->
+                    <!--<excludes>-->
+                        <!--<exclude>**/**</exclude>-->
+                    <!--</excludes>-->
+                    <!--<forkCount>2</forkCount>-->
+                    <!--<failIfNoTests>false</failIfNoTests>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
+
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-failsafe-plugin</artifactId>-->
+                <!--<version>${version.plugin.surefire}</version>-->
+                <!--<configuration>-->
+                    <!--<includes>-->
+                        <!--<include>**/**</include>-->
+                    <!--</includes>-->
+                    <!--<excludes>-->
+                        <!--<exclude>**/*VisualizerTest*</exclude>-->
+                    <!--</excludes>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<goals>-->
+                            <!--<goal>integration-test</goal>-->
+                            <!--<goal>verify</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
+
+            <!--<plugin>-->
+                <!--<groupId>org.apache.tomcat.maven</groupId>-->
+                <!--<artifactId>tomcat7-maven-plugin</artifactId>-->
+                <!--<version>${version.plugin.tomcat7}</version>-->
+                <!--<configuration>-->
+                    <!--<port>9000</port>-->
+                    <!--<path>/ncube</path>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>start-tomcat</id>-->
+                        <!--<phase>pre-integration-test</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>run</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<fork>true</fork>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
+                    <!--<execution>-->
+                        <!--<id>stop-tomcat</id>-->
+                        <!--<phase>post-integration-test</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>shutdown</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
+
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-war-plugin</artifactId>-->
+                <!--<version>${version.plugin.war}</version>-->
+                <!--<configuration>-->
+                    <!--<archiveClasses>false</archiveClasses>-->
+                    <!--<attachClasses>true</attachClasses>-->
+                    <!--<webXml>src\main\webapp\WEB-INF\web.xml</webXml>-->
+                    <!--<warName>n-cube</warName>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${version.plugin.surefire}</version>
-                <configuration>
-                    <includes>
-                        <include>**/**</include>
-                    </includes>
-                    <excludes>
-                        <exclude>**/*VisualizerTest*</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.tomcat.maven</groupId>
-                <artifactId>tomcat7-maven-plugin</artifactId>
-                <version>${version.plugin.tomcat7}</version>
-                <configuration>
-                    <port>9000</port>
-                    <path>/ncube</path>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>start-tomcat</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <fork>true</fork>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>stop-tomcat</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>shutdown</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>${version.plugin.war}</version>
-                <configuration>
-                    <archiveClasses>false</archiveClasses>
-                    <attachClasses>true</attachClasses>
-                    <webXml>src\main\webapp\WEB-INF\web.xml</webXml>
-                    <warName>n-cube</warName>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${version.springboot}</version>
             </plugin>
 
         </plugins>
@@ -298,9 +312,16 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.tuckey</groupId>
-            <artifactId>urlrewritefilter</artifactId>
-            <version>${version.tuckey}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${version.springboot}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${version.springboot}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -400,7 +421,6 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>${version.servlet}</version>
             <scope>provided</scope>
-            <optional>true</optional>
         </dependency>
 
         <dependency>

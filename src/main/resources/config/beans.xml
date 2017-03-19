@@ -8,26 +8,27 @@
    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd">
 
     <context:annotation-config />
+    <context:property-placeholder location="classpath:application.properties"/>
     <aop:aspectj-autoproxy/>
 
     <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext"/>
 
     <bean id="ncubeCacheManager" class="com.cedarsoftware.ncube.util.GCacheManager">
         <constructor-arg ref="ncubeRemoval"/>
-        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_MAX_SIZE'] ?: systemProperties['NCUBE_CACHE_MAX'] ?: 0}"/>
-        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_TYPE'] ?: systemProperties['NCUBE_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
-        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_DURATION'] ?: systemProperties['NCUBE_CACHE_EVICT_DURATION'] ?: 4}"/>
-        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_UNIT'] ?: systemProperties['NCUBE_CACHE_EVICT_UNIT'] ?: 'hours'}"/>
-        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_CONCURRENCY'] ?: systemProperties['NCUBE_CACHE_CONCURRENCY'] ?: 16}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_MAX_SIZE'] ?: systemProperties['NCUBE_CACHE_MAX_SIZE'] ?: ${ncube.cache.max.size}}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_TYPE'] ?: systemProperties['NCUBE_CACHE_EVICT_TYPE'] ?: ${ncube.cache.evict.type}}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_DURATION'] ?: systemProperties['NCUBE_CACHE_EVICT_DURATION'] ?: ${ncube.cache.evict.duration}}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_EVICT_UNITS'] ?: systemProperties['NCUBE_CACHE_EVICT_UNITS'] ?: ${ncube.cache.evict.units}}"/>
+        <constructor-arg value="#{systemEnvironment['NCUBE_CACHE_CONCURRENCY'] ?: systemProperties['NCUBE_CACHE_CONCURRENCY'] ?: ${ncube.cache.concurrency}}"/>
     </bean>
 
     <bean id="permCacheManager" class="com.cedarsoftware.ncube.util.GCacheManager">
         <constructor-arg><null/></constructor-arg>
-        <constructor-arg value="#{systemEnvironment['PERM_CACHE_MAX_SIZE'] ?: systemProperties['PERM_CACHE_MAX'] ?: 100000}"/>
-        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_TYPE'] ?: systemProperties['PERM_CACHE_EVICT_TYPE'] ?: 'expireAfterAccess'}"/>
-        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_DURATION'] ?: systemProperties['PERM_CACHE_EVICT_DURATION'] ?: 10}"/>
-        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_UNIT'] ?: systemProperties['PERM_CACHE_EVICT_UNIT'] ?: 'minutes'}"/>
-        <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: 16}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_MAX_SIZE'] ?: systemProperties['PERM_CACHE_MAX_SIZE'] ?: ${perm.cache.max.size}}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_TYPE'] ?: systemProperties['PERM_CACHE_EVICT_TYPE'] ?: ${perm.cache.evict.type}}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_DURATION'] ?: systemProperties['PERM_CACHE_EVICT_DURATION'] ?: ${perm.cache.evict.duration}}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_EVICT_UNITS'] ?: systemProperties['PERM_CACHE_EVICT_UNITS'] ?: ${perm.cache.evict.units}}"/>
+        <constructor-arg value="#{systemEnvironment['PERM_CACHE_CONCURRENCY'] ?: systemProperties['PERM_CACHE_CONCURRENCY'] ?: ${perm.cache.concurrency}}"/>
     </bean>
 
     <bean id="ncubeRemoval" class="com.cedarsoftware.ncube.util.NCubeRemoval"/>
@@ -50,16 +51,16 @@
         </bean>
 
         <bean id="allowMutableMethods" class="java.lang.Boolean">
-            <constructor-arg value="#{systemEnvironment['NCUBE_MUTABLE_METHODS'] ?: systemProperties['NCUBE_MUTABLE_METHODS'] ?: false}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_MUTABLE_METHODS'] ?: systemProperties['NCUBE_MUTABLE_METHODS'] ?: ${ncube.allow.mutable.methods}}"/>
         </bean>
 
         <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
-            <constructor-arg value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: 'http'}"/>
-            <constructor-arg value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: 'localhost'}"/>
-            <constructor-arg value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: 9000}"/>
-            <constructor-arg value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: 'ncube'}"/>
-            <constructor-arg value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ''}"/>
-            <constructor-arg value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ''}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_PROTOCOL'] ?: systemProperties['NCUBE_PROTOCOL'] ?: ${server.scheme}}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_HOST'] ?: systemProperties['NCUBE_HOST'] ?: ${server.host}}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_PORT'] ?: systemProperties['NCUBE_PORT'] ?: ${server.port}}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_CONTEXT'] ?: systemProperties['NCUBE_CONTEXT'] ?: ${server.context}}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_USERNAME'] ?: systemProperties['NCUBE_USERNAME'] ?: ${server.username}}"/>
+            <constructor-arg value="#{systemEnvironment['NCUBE_PASSWORD'] ?: systemProperties['NCUBE_PASSWORD'] ?: ${server.password}}"/>
         </bean>
 
     </beans>
@@ -117,7 +118,7 @@
             <constructor-arg value="jdbc:hsqldb:mem:testdb"/>
             <constructor-arg value="sa"/>
             <constructor-arg value=""/>
-            <constructor-arg value="/ddl/hsqldb-schema.sql"/>
+            <constructor-arg value="/config/hsqldb-schema.sql"/>
         </bean>
 
     </beans>
