@@ -66,7 +66,7 @@ class TestCdnClassLoader extends NCubeBaseTest
     void testGetResourcesWithLocalResource()
     {
         CdnClassLoader testLoader1 = new CdnClassLoader(TestCdnClassLoader.class.classLoader)
-        testLoader1.getResources("ddl/hsqldb-schema.sql").nextElement()
+        testLoader1.getResources("config/hsqldb-schema.sql").nextElement()
         try
         {
             new CdnClassLoader(TestCdnClassLoader.class.classLoader).getResources("ddl/xhsqldb-schema.sql").nextElement()
