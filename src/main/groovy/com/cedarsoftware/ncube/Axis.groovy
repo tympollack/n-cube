@@ -335,8 +335,7 @@ class Axis
                 StringUtilities.hasContent(getMetaProperty(TRANSFORM_VERSION) as String) &&
                 StringUtilities.hasContent(status) &&
                 StringUtilities.hasContent(branch) &&
-                StringUtilities.hasContent(transformCubeName) &&
-                StringUtilities.hasContent(transformMethodName)
+                StringUtilities.hasContent(transformCubeName)
     }
 
     /**
