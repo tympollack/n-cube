@@ -247,11 +247,15 @@ ${getTransformInfo(axis)}. Transform type must be one of [add, remove, subset, a
         usesMethod = true
         if (transformCube.getAxis('method') == null)
         {
-            if (!ensureTransformCubeIsCorrect(transformCube, axis))
+            if (ensureTransformCubeIsCorrect(transformCube, axis))
             {
-                throw new IllegalStateException("""\
-Unable to load n-cube: ${cubeName}, which has a reference axis: ${axis.name}. \
-No 'method' axis exists on the transformation n-cube: ${transformCube.name}, transform app: ${axis.transformApp}""")
+                usesMethod = false
+            }
+            else
+            {
+                throw new IllegalArgumentException("""${getFailMessage(axis.name)} \
+It referenced axis: ${getReferencedAxisInfo(axis)} using transform n-cube: \
+${getTransformInfo(axis)} which must have two DISCRETE axes: transform (LONG) and property (STRING)""")
             }
         }
     }
@@ -260,20 +264,14 @@ No 'method' axis exists on the transformation n-cube: ${transformCube.name}, tra
     {
         Axis property = transformCube.getAxis('property')
         Axis transform = transformCube.getAxis('transform')
-        if (transformCube.numDimensions != 2 ||
+        boolean incorrectShape = (transformCube.numDimensions != 2 ||
                 property == null ||
                 transform == null ||
                 property.type != AxisType.DISCRETE ||
                 transform.type != AxisType.DISCRETE ||
                 property.valueType != AxisValueType.STRING ||
                 transform.valueType != AxisValueType.LONG)
-        {
-            throw new IllegalArgumentException("""${getFailMessage(axis.name)} \
-It referenced axis: ${getReferencedAxisInfo(axis)} using transform n-cube: \
-${getTransformInfo(axis)} which must have two DISCRETE axes: transform (LONG) and property (STRING)""")
-        }
-        usesMethod = false
-        return true
+        return !incorrectShape
     }
 
     private Axis getReferencedAxis(NCube refCube, String refAxisName, Axis axis)
