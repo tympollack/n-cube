@@ -6,8 +6,10 @@ import groovy.transform.CompileStatic
 import org.junit.Test
 import org.mockito.Mockito
 
+import javax.servlet.ReadListener
 import javax.servlet.ServletInputStream
 import javax.servlet.ServletOutputStream
+import javax.servlet.WriteListener
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -532,7 +534,7 @@ class TestCdnRouter extends NCubeCleanupBaseTest
     {
         ByteArrayOutputStream bao = new ByteArrayOutputStream()
 
-        public byte[] getBytes()
+        byte[] getBytes()
         {
             try
             {
@@ -544,9 +546,18 @@ class TestCdnRouter extends NCubeCleanupBaseTest
             return bao.toByteArray()
         }
 
-        public void write(int b) throws IOException
+        void write(int b) throws IOException
         {
             bao.write(b)
+        }
+
+        boolean isReady()
+        {
+            return false
+        }
+
+        void setWriteListener(WriteListener writeListener) {
+
         }
     }
 
@@ -554,9 +565,23 @@ class TestCdnRouter extends NCubeCleanupBaseTest
     {
         ByteArrayInputStream bao = new ByteArrayInputStream(new byte[0])
 
-        public int read() throws IOException
+        int read() throws IOException
         {
             return bao.read()
+        }
+
+        boolean isFinished()
+        {
+            return false
+        }
+
+        boolean isReady()
+        {
+            return false
+        }
+
+        void setReadListener(ReadListener readListener) {
+
         }
     }
 

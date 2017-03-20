@@ -48,7 +48,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeController extends BaseController
+class NCubeController implements BaseController
 {
     private static final Logger LOG = LogManager.getLogger(NCubeController.class)
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
@@ -66,11 +66,6 @@ class NCubeController extends BaseController
     private static final Map NO_CELL = [type:null, value:null]
     private static final String EXECUTE_ERROR = 'User code cannot be executed on this server. Attempted method: '
     private final allowExecute
-
-//    public static void main(String[] args)
-//    {
-//        SpringApplication.run(NCubeController.class, args)
-//    }
 
     NCubeController(NCubeMutableClient mutableClient, boolean allowExecute)
     {

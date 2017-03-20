@@ -35,7 +35,7 @@ class HsqlSchemaCreator
         TestingConnectionProvider provider = new TestingConnectionProvider(driverClassName, databaseUrl, username, password)
 
         URL url = getClass().getResource(schema)
-        String fileContents = new File(url.file).text
+        String fileContents = url.text
 
         Connection c = provider.connection
         try
