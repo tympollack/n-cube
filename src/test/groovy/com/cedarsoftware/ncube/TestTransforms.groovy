@@ -2,10 +2,13 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.Converter
 import groovy.transform.CompileStatic
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
 import static org.junit.Assert.fail
+import static org.junit.Assert.assertTrue
 
 /**
  * Reference Axis Transform Tests
@@ -28,7 +31,7 @@ import static org.junit.Assert.fail
  */
 
 @CompileStatic
-class TestTransforms extends NCubeCleanupBaseTest
+class TestTransforms
 {
     private static ApplicationID library = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'Library', '1.0.0', ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
     private static ApplicationID transforms = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'Transforms', '1.0.0', ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
@@ -36,12 +39,45 @@ class TestTransforms extends NCubeCleanupBaseTest
     private static String cubeName = 'TestTransform'
     private static String refAxisName = 'reference'
 
+    ApplicationID[] branches = [library, transforms, appId, appId] as ApplicationID[]
+
+    private TestingDatabaseManager manager
+
+    @Before
+    void setup()
+    {
+        manager = testingDatabaseManager
+        manager.setUp()
+
+        NCubeManager.NCubePersister = getNCubePersister()
+    }
+
+    @After
+    void tearDown()
+    {
+        manager.removeBranches(branches)
+        manager.tearDown()
+        manager = null
+
+        NCubeManager.clearCache()
+    }
+
+    static TestingDatabaseManager getTestingDatabaseManager()
+    {
+        return TestingDatabaseHelper.testingDatabaseManager
+    }
+
+    static NCubePersister getNCubePersister()
+    {
+        return TestingDatabaseHelper.persister
+    }
+
     @Test
     void testAddStringThenRemoveTransform()
     {
         List<Map<String, Object>> transformSpec = [[transform: 1, type: 'add', value: 'GA'] as Map]
         setupDatabase(AxisType.DISCRETE, AxisValueType.STRING, standardStates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 4 == reference.columns.size()
         assert reference.findColumn('OH')
@@ -63,7 +99,7 @@ class TestTransforms extends NCubeCleanupBaseTest
     {
         List<Map<String, Object>> transformSpec = [[transform: 1, type: 'remove', value: 'OH, TX'] as Map]
         setupDatabase(AxisType.DISCRETE, AxisValueType.STRING, standardStates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 1 == reference.columns.size()
         assert reference.findColumn('NJ')
@@ -74,7 +110,7 @@ class TestTransforms extends NCubeCleanupBaseTest
     {
         List<Map<String, Object>> transformSpec = [[transform: 1, type: 'subset', value: 'OH, TX'] as Map]
         setupDatabase(AxisType.DISCRETE, AxisValueType.STRING, standardStates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 2 == reference.columns.size()
         assert reference.findColumn('OH')
@@ -84,10 +120,10 @@ class TestTransforms extends NCubeCleanupBaseTest
     @Test
     void testAddAxisString()
     {
-        createLibraryCube(AxisType.DISCRETE, AxisValueType.STRING, ['CA', 'WA'], 'Reference2')
+        createLibraryCube(AxisType.DISCRETE, AxisValueType.STRING, ['CA', 'WA'], 'Reference2', false)
         List<Map<String, Object>> transformSpec = [[transform: 1, type: 'addAxis', value: 'Library, 1.0.0, Reference2, reference'] as Map]
         setupDatabase(AxisType.DISCRETE, AxisValueType.STRING, standardStates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 5 == reference.columns.size()
         assert reference.findColumn('OH')
@@ -107,7 +143,7 @@ class TestTransforms extends NCubeCleanupBaseTest
                 [transform: 4, type: 'subset', value: 'OH, GA'] as Map
         ]
         setupDatabase(AxisType.DISCRETE, AxisValueType.STRING, standardStates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 2 == reference.columns.size()
         assert reference.findColumn('OH')
@@ -119,7 +155,7 @@ class TestTransforms extends NCubeCleanupBaseTest
     {
         List<Map<String, Object>> transformSpec = [[transform: 1, type: 'add', value: '4/1/2017'] as Map]
         setupDatabase(AxisType.DISCRETE, AxisValueType.DATE, standardDates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 4 == reference.columns.size()
         assert reference.findColumn('1/1/2017')
@@ -133,13 +169,13 @@ class TestTransforms extends NCubeCleanupBaseTest
     {
         List<Map<String, Object>> transformSpec = [[transform: 1, type: 'remove', value: '2/1/2017'] as Map]
         setupDatabase(AxisType.DISCRETE, AxisValueType.DATE, standardDates, transformSpec)
-        NCube appCube = ncubeClient.getCube(appId, cubeName)
+        NCube appCube = NCubeManager.getCube(appId, cubeName)
         Axis reference = appCube.getAxis(refAxisName)
         assert 2 == reference.columns.size()
         assert reference.findColumn('1/1/2017')
         assert reference.findColumn('3/1/2017')
     }
-    
+
     @Test
     void testImproperTransformCube()
     {
@@ -352,14 +388,14 @@ class TestTransforms extends NCubeCleanupBaseTest
         NCube ncube = new NCube(cubeName)
         ncube.applicationID = appId
         ncube.addAxis(refAxis)
-        mutableClient.createCube(ncube)
+        NCubeManager.updateCube(appId, ncube)
 
-        runtimeClient.clearCache(appId)
-        runtimeClient.clearCache(library)
-        runtimeClient.clearCache(transforms)
+        NCubeManager.clearCache(appId)
+        NCubeManager.clearCache(library)
+        NCubeManager.clearCache(transforms)
     }
 
-    private static NCube createLibraryCube(AxisType type, AxisValueType valueType, List columns, String cubeName = 'Reference')
+    private static NCube createLibraryCube(AxisType type, AxisValueType valueType, List columns, String cubeName = 'Reference', boolean release = true)
     {
         NCube referenceCube = new NCube(cubeName)
         Axis reference = new Axis(refAxisName, type, valueType, false)
@@ -367,8 +403,12 @@ class TestTransforms extends NCubeCleanupBaseTest
             reference.addColumn(new Column(comp as Comparable))
         }
         referenceCube.addAxis(reference)
-        referenceCube.applicationID = library
-        mutableClient.createCube(referenceCube)
+        NCubeManager.updateCube(library.asSnapshot().asBranch('branch'), referenceCube)
+        if (release)
+        {
+            VersionControl.commitBranch(library.asSnapshot().asBranch('branch'))
+            NCubeManager.releaseCubes(library.asSnapshot(), '1.0.1')
+        }
         return referenceCube
     }
 
@@ -389,8 +429,21 @@ class TestTransforms extends NCubeCleanupBaseTest
             transformCube.setCell(row.type, [transform: row.transform, property: 'type'])
             transformCube.setCell(row.value, [transform: row.transform, property: 'value'])
         }
-        transformCube.applicationID = transforms
-        mutableClient.createCube(transformCube)
+        NCubeManager.updateCube(transforms.asSnapshot().asBranch('branch'), transformCube)
+        VersionControl.commitBranch(transforms.asSnapshot().asBranch('branch'))
+        NCubeManager.releaseCubes(transforms.asSnapshot(), '1.0.1')
         return transformCube
     }
+
+    private static void assertContainsIgnoreCase(String source, String... contains)
+    {
+        String lowerSource = source.toLowerCase()
+        for (String contain : contains)
+        {
+            int idx = lowerSource.indexOf(contain.toLowerCase())
+            assertTrue("'${contain}' not found in '${lowerSource}'", idx >= 0)
+            lowerSource = lowerSource.substring(idx)
+        }
+    }
+
 }

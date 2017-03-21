@@ -2,7 +2,12 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.IOUtilities
+import com.cedarsoftware.util.MapUtilities
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.SystemUtilities
+import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -45,7 +50,7 @@ import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
  *         <br><br>
  *         Unless required by applicable law or agreed to in writing, software
  *         distributed under the License is distributed on an "AS IS" BASIS,
- *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either eƒfetxpress or implied.
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
@@ -320,7 +325,23 @@ class NCubeManager
 
     static void clearCacheForBranches(ApplicationID appId)
     {
-        throw new IllegalStateException('Why is this getting called?')
+        synchronized (ncubeCache)
+        {
+            Set<ApplicationID> set = [] as Set
+
+            for (ApplicationID id : ncubeCache.keySet())
+            {
+                if (id.cacheKey().startsWith(appId.branchAgnosticCacheKey()))
+                {
+                    set.add(id)
+                }
+            }
+
+            for (ApplicationID appId1 : set)
+            {
+                clearCache(appId1)
+            }
+        }
     }
 
     /**
@@ -690,7 +711,7 @@ class NCubeManager
         }
         assertPermissions(appId, cubeName, Action.UPDATE)
         assertNotLockBlocked(appId)
-        persister.updateCube(ncube, getUserId())
+        persister.updateCube(appId, ncube, getUserId())
         ncube.applicationID = appId
 
         if (CLASSPATH_CUBE.equalsIgnoreCase(cubeName))
@@ -996,7 +1017,7 @@ class NCubeManager
         return false
     }
 
-    static boolean saveTests(ApplicationID appId, String cubeName, String testData)
+    static boolean updateTestData(ApplicationID appId, String cubeName, String testData)
     {
         validateAppId(appId)
         NCube.validateCubeName(cubeName)
@@ -1053,12 +1074,6 @@ class NCubeManager
         return branches.size()
     }
 
-    static ApplicationID getBootVersion(String tenant, String app)
-    {
-        String branch = systemParams[NCUBE_PARAMS_BRANCH]
-        return new ApplicationID(tenant, app, "0.0.0", ReleaseStatus.SNAPSHOT.name(), StringUtilities.isEmpty(branch) ? ApplicationID.HEAD : branch)
-    }
-
     static ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
     {
         ApplicationID.validateTenant(tenant)
@@ -1069,7 +1084,7 @@ class NCubeManager
             coord = [:]
         }
 
-        NCube bootCube = getCube(getBootVersion(tenant, app), SYS_BOOTSTRAP)
+        NCube bootCube = getCube(ApplicationID.getBootVersion(tenant, app), SYS_BOOTSTRAP)
 
         if (bootCube == null)
         {
@@ -1143,12 +1158,141 @@ class NCubeManager
      */
     static List<AxisRef> getReferenceAxes(ApplicationID appId)
     {
-        throw new IllegalStateException('This should never be called')
+        validateAppId(appId)
+        assertPermissions(appId, null)
+
+        // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
+        List<NCubeInfoDto> list = persister.search(appId, null, "*${REF_APP}*", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<AxisRef> refAxes = []
+
+        for (NCubeInfoDto dto : list)
+        {
+            try
+            {
+                NCube source = persister.loadCubeById(dto.id as long)
+                for (Axis axis : source.axes)
+                {
+                    if (axis.reference)
+                    {
+                        AxisRef ref = new AxisRef()
+                        ref.srcAppId = appId
+                        ref.srcCubeName = source.name
+                        ref.srcAxisName = axis.name
+
+                        ApplicationID refAppId = axis.referencedApp
+                        ref.destApp = refAppId.app
+                        ref.destVersion = refAppId.version
+                        ref.destCubeName = axis.getMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME)
+                        ref.destAxisName = axis.getMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME)
+
+                        ApplicationID transformAppId = axis.transformApp
+                        if (transformAppId)
+                        {
+                            ref.transformApp = transformAppId.app
+                            ref.transformVersion = transformAppId.version
+                            ref.transformCubeName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME)
+                            ref.transformMethodName = axis.getMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME)
+                        }
+
+                        refAxes.add(ref)
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LOG.warn("Unable to load cube: ${dto.name}, app: ${dto.applicationID}", e)
+            }
+        }
+        return refAxes
     }
 
     static void updateReferenceAxes(List<AxisRef> axisRefs)
     {
-        throw new IllegalStateException('This should never be called')
+        Set<ApplicationID> uniqueAppIds = new HashSet()
+        for (AxisRef axisRef : axisRefs)
+        {
+            ApplicationID srcApp = axisRef.srcAppId
+            validateAppId(srcApp)
+            srcApp.validateBranchIsNotHead()
+            assertPermissions(srcApp, axisRef.srcCubeName, Action.UPDATE)
+            uniqueAppIds.add(srcApp)
+            ApplicationID destAppId = new ApplicationID(srcApp.tenant, axisRef.destApp, axisRef.destVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+            validateAppId(destAppId)
+            assertPermissions(destAppId, axisRef.destCubeName)
+
+            if (axisRef.transformApp != null && axisRef.transformVersion != null)
+            {
+                ApplicationID transformAppId = new ApplicationID(srcApp.tenant, axisRef.transformApp, axisRef.transformVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+                validateAppId(transformAppId)
+                assertPermissions(transformAppId, axisRef.transformCubeName, Action.READ)
+            }
+            removeCachedCube(srcApp, axisRef.srcCubeName)
+        }
+
+        // Make sure we are not lock blocked on any of the appId's that are being updated.
+        for (ApplicationID appId : uniqueAppIds)
+        {
+            assertNotLockBlocked(appId)
+        }
+
+        for (AxisRef axisRef : axisRefs)
+        {
+            axisRef.with {
+                NCube ncube = persister.loadCube(srcAppId, srcCubeName)
+                Axis axis = ncube.getAxis(srcAxisName)
+
+                if (axis.reference)
+                {
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_APP, destApp)
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_VERSION, destVersion)
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_CUBE_NAME, destCubeName)
+                    axis.setMetaProperty(ReferenceAxisLoader.REF_AXIS_NAME, destAxisName)
+                    ApplicationID appId = new ApplicationID(srcAppId.tenant, destApp, destVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+
+                    NCube target = persister.loadCube(appId, destCubeName)
+                    if (target == null)
+                    {
+                        throw new IllegalArgumentException("""\
+Cannot point reference axis to non-existing cube: ${destCubeName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
+                    }
+
+                    if (target.getAxis(destAxisName) == null)
+                    {
+                        throw new IllegalArgumentException("""\
+Cannot point reference axis to non-existing axis: ${destAxisName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
+                    }
+
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_APP, transformApp)
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_VERSION, transformVersion)
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_CUBE_NAME, transformCubeName)
+                    axis.setMetaProperty(ReferenceAxisLoader.TRANSFORM_METHOD_NAME, transformMethodName)
+
+                    if (transformApp && transformVersion && transformCubeName && transformMethodName)
+                    {   // If transformer cube reference supplied, verify that the cube exists
+                        ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
+                        NCube transformCube = persister.loadCube(txAppId, transformCubeName)
+                        if (transformCube == null)
+                        {
+                            throw new IllegalArgumentException("""\
+Cannot point reference axis transformer to non-existing cube: ${transformCubeName}. \
+Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
+target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}.${transformMethodName}""")
+                        }
+                    }
+                    else
+                    {
+                        axis.removeTransform()
+                    }
+
+                    ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
+                    persister.updateCube(axisRef.srcAppId, ncube, getUserId())
+                }
+            }
+        }
     }
 
     /**
@@ -1658,7 +1802,30 @@ class NCubeManager
 
     private static void addBranchPermissionsCube(ApplicationID appId)
     {
-        throw new IllegalStateException('This should never be called')
+        ApplicationID permAppId = appId.asVersion('0.0.0')
+        if (getCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null)
+        {
+            return
+        }
+
+        String impId = impliedId
+        NCube branchPermCube = new NCube(SYS_BRANCH_PERMISSIONS)
+        branchPermCube.applicationID = permAppId
+        branchPermCube.defaultCellValue = false
+
+        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.STRING, true)
+        resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
+        branchPermCube.addAxis(resourceAxis)
+
+        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
+        userAxis.addColumn(impId)
+        branchPermCube.addAxis(userAxis)
+
+        branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS])
+        branchPermCube.setCell(true, [(AXIS_USER):impId, (AXIS_RESOURCE):null])
+
+        persister.updateCube(permAppId, branchPermCube, getUserId())
+        VersionControl.updateBranch(permAppId)
     }
 
     private static void addAppPermissionsCubes(ApplicationID appId)
@@ -1680,7 +1847,7 @@ class NCubeManager
         sysLockCube.applicationID = appId
         sysLockCube.setMetaProperty(PROPERTY_CACHE, false)
         sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.STRING, true))
-        persister.updateCube(sysLockCube, getUserId())
+        persister.updateCube(appId, sysLockCube, getUserId())
     }
 
     /**
@@ -1723,7 +1890,7 @@ class NCubeManager
             return false
         }
         sysLockCube.setCell(impId, [(AXIS_SYSTEM):null])
-        persister.updateCube(sysLockCube, getUserId())
+        persister.updateCube(bootAppId, sysLockCube, getUserId())
         return true
     }
 
@@ -1748,7 +1915,7 @@ class NCubeManager
         }
 
         sysLockCube.removeCell([(AXIS_SYSTEM):null])
-        persister.updateCube(sysLockCube, getUserId())
+        persister.updateCube(bootAppId, sysLockCube, getUserId())
     }
 
     private static void addAppUserGroupsCube(ApplicationID appId)
@@ -1776,7 +1943,7 @@ class NCubeManager
         userGroupsCube.setCell(true, [(AXIS_USER):impId, (AXIS_ROLE):ROLE_USER])
         userGroupsCube.setCell(true, [(AXIS_USER):null, (AXIS_ROLE):ROLE_USER])
 
-        persister.updateCube(userGroupsCube, getUserId())
+        persister.updateCube(appId, userGroupsCube, getUserId())
     }
 
     private static void addAppPermissionsCube(ApplicationID appId)
@@ -1825,7 +1992,7 @@ class NCubeManager
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.COMMIT.lower()])
         appPermCube.setCell(false, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
 
-        persister.updateCube(appPermCube, getUserId())
+        persister.updateCube(appId, appPermCube, getUserId())
     }
 
     /**

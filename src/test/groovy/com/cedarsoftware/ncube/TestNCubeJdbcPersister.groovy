@@ -1,23 +1,20 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.EnvelopeException
 import com.cedarsoftware.util.UniqueIdGenerator
+import org.junit.After
+import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
-import java.sql.Connection
-import java.sql.DatabaseMetaData
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.SQLException
+import java.sql.*
 
-import static com.cedarsoftware.ncube.NCubeConstants.*
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
+import static org.junit.Assert.*
 import static org.mockito.Matchers.anyInt
 import static org.mockito.Matchers.anyString
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
+
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -35,25 +32,37 @@ import static org.mockito.Mockito.when
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
+class TestNCubeJdbcPersister
 {
-    static final String APP_ID = TestNCubeManager.APP_ID
-    static final String USER_ID = TestNCubeManager.USER_ID
+    static final String APP_ID = TestNCubeManager.APP_ID;
+    static final String USER_ID = TestNCubeManager.USER_ID;
 
     private ApplicationID defaultSnapshotApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, "1.0.0", ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+
+    @Before
+    void setUp()
+    {
+        TestingDatabaseHelper.setupDatabase()
+    }
+
+    @After
+    void tearDown()
+    {
+        TestingDatabaseHelper.tearDownDatabase()
+    }
 
     @Test
     void testDbApis()
     {
+        NCubePersister persister = TestingDatabaseHelper.persister
+
         NCube ncube1 = NCubeBuilder.testNCube3D_Boolean
         NCube ncube2 = NCubeBuilder.getTestNCube2D(true)
-        ncube1.applicationID = defaultSnapshotApp
-        ncube2.applicationID = defaultSnapshotApp
 
-        mutableClient.createCube(ncube1)
-        mutableClient.createCube(ncube2)
+        persister.updateCube(defaultSnapshotApp, ncube1, USER_ID)
+        persister.updateCube(defaultSnapshotApp, ncube2, USER_ID)
 
-        Object[] cubeList = mutableClient.search(defaultSnapshotApp, "test.%", null, [(SEARCH_ACTIVE_RECORDS_ONLY) : true])
+        Object[] cubeList = persister.search(defaultSnapshotApp, "test.%", null, [(SEARCH_ACTIVE_RECORDS_ONLY) : true])
 
         assertTrue(cubeList != null)
         assertTrue(cubeList.length == 2)
@@ -63,40 +72,39 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
 
         ncube1.deleteAxis("bu")
         ApplicationID next = defaultSnapshotApp.createNewSnapshotId("0.2.0")
-        mutableClient.updateCube(ncube1)
-        Integer numRelease = mutableClient.releaseCubes(defaultSnapshotApp, "0.2.0")
+        persister.updateCube(defaultSnapshotApp, ncube1, USER_ID)
+        int numRelease = NCubeManager.releaseCubes(defaultSnapshotApp, "0.2.0")
         assertEquals(0, numRelease)
 
-        cubeList = mutableClient.search(next, 'test.*', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        cubeList = NCubeManager.search(next, 'test.*', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         // Two cubes at the new 1.2.3 SNAPSHOT version.
         assert cubeList.length == 2
 
         // Verify that you cannot delete a RELEASE ncube
         try
         {
-            mutableClient.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray())
-            fail()
+            persister.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray(), false, USER_ID)
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
             e.message.contains('does not exist')
         }
 
         try
         {
-            mutableClient.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray())
+            persister.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray(), false, USER_ID)
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
             e.message.contains('does not exist')
         }
 
         // Delete new SNAPSHOT cubes
-        assertTrue(mutableClient.deleteCubes(next, [ncube1.name].toArray()))
-        assertTrue(mutableClient.deleteCubes(next, [ncube2.name].toArray()))
+        assertTrue(persister.deleteCubes(next, [ncube1.name].toArray(), false, USER_ID))
+        assertTrue(persister.deleteCubes(next, [ncube2.name].toArray(), false, USER_ID))
 
         // Ensure that all test ncubes are deleted
-        cubeList = mutableClient.search(defaultSnapshotApp, "test.%", null, ['activeRecordsOnly' : true])
+        cubeList = persister.search(defaultSnapshotApp, "test.%", null, ['activeRecordsOnly' : true])
         assertTrue(cubeList.length == 0)
     }
 
@@ -131,27 +139,6 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testUpdateBranchCubeHeadSha1BadArgs()
-    {
-        try
-        {
-            new NCubeJdbcPersister().updateBranchCubeHeadSha1(null, null, 'badSha1')
-        }
-        catch (IllegalArgumentException e)
-        {
-            assert e.message.toLowerCase().contains('id cannot be empty')
-        }
-        try
-        {
-            new NCubeJdbcPersister().updateBranchCubeHeadSha1(null, 75, '')
-        }
-        catch (IllegalArgumentException e)
-        {
-            assert e.message.toLowerCase().contains('sha-1 cannot be empty')
-        }
-    }
-
-    @Test
     void testUpdateBranchThatIsNotFound()
     {
         Connection c = mock(Connection.class)
@@ -164,7 +151,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         when(rs.getDate(anyString())).thenReturn(new java.sql.Date(System.currentTimeMillis()))
 
         Object[] ids = [0] as Object[]
-        assert new NCubeJdbcPersister().pullToBranch(c, defaultSnapshotApp, ids, USER_ID, UniqueIdGenerator.uniqueId).empty
+        assert new NCubeJdbcPersister().pullToBranch(c, defaultSnapshotApp, ids, USER_ID, UniqueIdGenerator.uniqueId).isEmpty()
     }
 
     @Test
@@ -194,28 +181,20 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         assert 0 == new NCubeJdbcPersister().commitCubes(null, defaultSnapshotApp, null, USER_ID, UniqueIdGenerator.uniqueId).size()
     }
 
-    @Test
+    @Ignore
     void testCommitCubeThatDoesntExist()
     {
-        createCubeFromResource(defaultSnapshotApp, '2DSimpleJson.json')
-        List<NCubeInfoDto> dtos = mutableClient.search(defaultSnapshotApp, 'businessUnit', null, null)
-        assert 1 == dtos.size()
-        NCubeInfoDto dto = dtos[0]
-        dto.name = 'notBusinessUnit'
-        try
-        {
-            mutableClient.commitBranch(defaultSnapshotApp, dtos.toArray())
-            fail()
-        }
-        catch (EnvelopeException e)
-        {
-            Map data = e.envelopeData as Map
-            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
-        }
+        Connection c = mock(Connection.class)
+        PreparedStatement ps = mock(PreparedStatement.class)
+        ResultSet rs = mock(ResultSet.class)
+        when(c.prepareStatement(anyString())).thenReturn(ps)
+        when(c.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(ps)
+        when(ps.executeQuery()).thenReturn(rs)
+        when(ps.executeUpdate()).thenReturn(1).thenReturn(0);
+        when(rs.next()).thenReturn(false)
+        when(rs.getBytes("cube_value_bin")).thenReturn("".getBytes("UTF-8"))
+
+        assert new NCubeJdbcPersister().commitCubes(c, defaultSnapshotApp, [1L] as Object[], USER_ID, UniqueIdGenerator.uniqueId).size() == 0
     }
 
     @Test
@@ -228,7 +207,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
             new NCubeJdbcPersister().copyBranch(c, defaultSnapshotApp.asHead(), defaultSnapshotApp)
             fail()
         }
-        catch (NullPointerException ignored)
+        catch (NullPointerException e)
         {
         }
     }
@@ -239,10 +218,10 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         when(c.createStatement()).thenThrow(SQLException.class)
         when(c.createStatement(anyInt(), anyInt())).thenThrow(SQLException.class)
         when(c.createStatement(anyInt(), anyInt(), anyInt())).thenThrow(SQLException.class)
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class)
-        when(c.metaData).thenReturn(metaData)
-        when(metaData.driverName).thenReturn("Oracle")
-        return c
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        when(c.metaData).thenReturn(metaData);
+        when(metaData.getDriverName()).thenReturn("Oracle");
+        return c;
     }
 
     private static Connection getConnectionThatThrowsExceptionAfterExistenceCheck(boolean exists, Class exceptionClass = SQLException.class) throws SQLException
@@ -251,12 +230,12 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         PreparedStatement ps = mock(PreparedStatement.class)
         ResultSet rs = mock(ResultSet.class)
         when(c.prepareStatement(anyString())).thenReturn(ps).thenThrow(exceptionClass)
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class)
-        when(c.metaData).thenReturn(metaData)
-        when(metaData.driverName).thenReturn("HSQL")
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        when(c.metaData).thenReturn(metaData);
+        when(metaData.getDriverName()).thenReturn("HSQL");
         when(ps.executeQuery()).thenReturn(rs)
         when(rs.next()).thenReturn(exists)
-        return c
+        return c;
     }
 
     @Test
@@ -264,5 +243,66 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     {
         List<NCubeInfoDto> list = new NCubeJdbcPersister().pullToBranch((Connection)null, (ApplicationID) null,(Object[]) null, null, UniqueIdGenerator.uniqueId)
         assert 0 == list.size()
+    }
+
+    @Test
+    void testAdaptorException()
+    {
+        NCubeJdbcPersisterAdapter adapter = new NCubeJdbcPersisterAdapter(TestingDatabaseHelper.createJdbcConnectionProvider())
+        try
+        {
+            adapter.commitMergedCubeToHead(ApplicationID.testAppId, null, "yo", UniqueIdGenerator.uniqueId)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.commitMergedCubeToBranch(ApplicationID.testAppId, null, "", "yo", UniqueIdGenerator.uniqueId)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.getAppNames(null)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        { }
+
+        try
+        {
+            adapter.getVersions(null, null)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        { }
+
+        try
+        {
+            adapter.deleteBranch(null)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.updateCube(null, null, null)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
+
+        try
+        {
+            adapter.loadCube(null, null)
+            fail()
+        }
+        catch (NullPointerException e)
+        { }
     }
 }
