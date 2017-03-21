@@ -36,9 +36,9 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     @Override
     void setup(){
         super.setup()
-        //preloadCubes()
+        preloadCubes()
         //loadTestCubes()
-        addTestCubesToCache()
+        //addTestCubesToCache()
         visualizer = getVisualizer()
         returnMap = null
         visInfo = null
