@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.controller.NCubeController
 import com.cedarsoftware.servlet.JsonCommandServlet
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -39,11 +38,11 @@ import org.springframework.web.filter.RequestContextFilter
  */
 
 @Configuration
-@ImportResource("classpath:config/beans.xml")
+@ImportResource("classpath:config/ncube-beans.xml")
 @SpringBootApplication(exclude = [DataSourceAutoConfiguration.class, DispatcherServletAutoConfiguration.class])
 class NCubeApplication
 {
-    private static final Logger LOG = LogManager.getLogger(NCubeController.class)
+    private static final Logger LOG = LogManager.getLogger(NCubeApplication.class)
 
     static void main(String[] args)
     {
@@ -64,7 +63,8 @@ class NCubeApplication
     @Bean
     ServletRegistrationBean servletRegistrationBean()
     {
-        return new ServletRegistrationBean(new JsonCommandServlet(), "/ncube/cmd/*")
+        ServletRegistrationBean bean = new ServletRegistrationBean(new JsonCommandServlet(), "/cmd/*")
+        return bean
     }
 
     @Bean
@@ -72,7 +72,6 @@ class NCubeApplication
     {
         GenericFilterBean filter = new HiddenHttpMethodFilter()
         FilterRegistrationBean registration = new FilterRegistrationBean(filter)
-        registration.addUrlPatterns("/piss-off/*")
         registration.enabled = false
         return registration
     }
@@ -82,7 +81,6 @@ class NCubeApplication
     {
         GenericFilterBean filter = new HttpPutFormContentFilter()
         FilterRegistrationBean registration = new FilterRegistrationBean(filter)
-        registration.addUrlPatterns("/piss-off/*")
         registration.enabled = false
         return registration
     }
@@ -92,7 +90,6 @@ class NCubeApplication
     {
         GenericFilterBean filter = new RequestContextFilter()
         FilterRegistrationBean registration = new FilterRegistrationBean(filter)
-        registration.addUrlPatterns("/piss-off/*")
         registration.enabled = false
         return registration
     }
