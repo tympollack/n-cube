@@ -74,7 +74,7 @@
     <properties>
         <version.json-io>4.9.10</version.json-io>
         <version.java-util>1.26.0</version.java-util>
-        <version.json-command-servlet>1.4.2</version.json-command-servlet>
+        <version.json-command-servlet>1.4.3</version.json-command-servlet>
         <version.tuckey>4.0.4</version.tuckey>
         <version.log4j>2.8</version.log4j>
         <version.log4j-web>2.8</version.log4j-web>
@@ -105,9 +105,9 @@
         <version.servlet.api>2.5</version.servlet.api>
         <version.servlet>3.1.0</version.servlet>
         <version.plugin.war>2.6</version.plugin.war>
-        <java.version>1.8</java.version>
-        <tomcat.version>8.0.38</tomcat.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+        <tomcat.version>8.5.12</tomcat.version>
     </properties>
 
     <pluginRepositories>

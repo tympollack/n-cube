@@ -57,10 +57,10 @@
     -->
 
     <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
-          p:driverClassName="#{systemEnvironment['NCUBE_JDBC_DRIVER'] ?: systemProperties['NCUBE_JDBC_DRIVER'] ?: 'org.hsqldb.jdbcDriver'}"
-          p:url="#{systemEnvironment['NCUBE_JDBC_URL'] ?: systemProperties['NCUBE_JDBC_URL'] ?: 'jdbc:hsqldb:mem:testdb'}"
-          p:username="#{systemEnvironment['NCUBE_JDBC_USER'] ?: systemProperties['NCUBE_JDBC_USER'] ?: 'sa'}"
-          p:password="#{systemEnvironment['NCUBE_JDBC_PWD'] ?: systemProperties['NCUBE_JDBC_PWD'] ?: ''}"
+          p:driverClassName="${ncube.jdbc.driver}"
+          p:url="${ncube.jdbc.url}"
+          p:username="${ncube.jdbc.username}"
+          p:password="${ncube.jdbc.password}"
           p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
           p:initialSize="5"
           p:minIdle="5"
@@ -76,7 +76,7 @@
           p:timeBetweenEvictionRunsMillis="30000"
           p:minEvictableIdleTimeMillis="30000"
           p:validationInterval="60000"
-          p:validationQuery="#{systemEnvironment['NCUBE_POOL_QUERY'] ?: systemProperties['NCUBE_POOL_QUERY'] ?: 'select 1 from INFORMATION_SCHEMA.SYSTEM_USERS'}">
+          p:validationQuery="${ncube.jdbc.pool.query}">
     </bean>
 
 </beans>
