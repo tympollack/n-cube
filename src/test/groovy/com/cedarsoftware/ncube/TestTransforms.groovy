@@ -139,7 +139,7 @@ class TestTransforms extends NCubeCleanupBaseTest
         assert reference.findColumn('1/1/2017')
         assert reference.findColumn('3/1/2017')
     }
-
+    
     @Test
     void testImproperTransformCube()
     {
