@@ -70,4 +70,9 @@ class SpringAppContext implements ApplicationContextAware
     {
         ctx = applicationContext
     }
+
+    static boolean isTest()
+    {
+        return getBean('hsqlSetup') as boolean
+    }
 }

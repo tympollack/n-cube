@@ -457,7 +457,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
         }
 
         lockApp(appId, true)
-        if (!test)
+        if (!SpringAppContext.test)
         {   // Only sleep when running in production (not by JUnit)
             sleep(10000)
         }
@@ -475,11 +475,6 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
         persister.copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
         lockApp(appId, false)
         return rows
-    }
-
-    private boolean isTest()
-    {
-        return SpringAppContext.getBean('hsqlSetup') as boolean
     }
 
     void changeVersionValue(ApplicationID appId, String newVersion)
@@ -838,7 +833,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     void clearTestDatabase()
     {
-        if (test)
+        if (SpringAppContext.test)
         {
             persister.clearTestDatabase()
         }
@@ -887,7 +882,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         final NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {   // If there is no sys.lock cube, then no permissions / locking being used.
-            if (test)
+            if (SpringAppContext.test)
             {
                 return
             }
