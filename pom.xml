@@ -74,20 +74,16 @@
     <properties>
         <version.json-io>4.9.10</version.json-io>
         <version.java-util>1.26.0</version.java-util>
-        <version.json-command-servlet>1.4.3</version.json-command-servlet>
-        <version.tuckey>4.0.4</version.tuckey>
+        <version.json-command-servlet>1.4.2</version.json-command-servlet>
         <version.log4j>2.8</version.log4j>
         <version.log4j-web>2.8</version.log4j-web>
         <version.junit>4.12</version.junit>
-        <version.groovy>2.4.9</version.groovy>
+        <version.groovy>2.4.10</version.groovy>
         <version.guava>21.0</version.guava>
-        <version.commons.math>3.5</version.commons.math>
-        <version.encog.core>3.3.0</version.encog.core>
         <version.mockito>1.10.19</version.mockito>
         <version.httpclient>4.5.3</version.httpclient>
         <version.spring>4.3.7.RELEASE</version.spring>
         <version.springboot>1.5.2.RELEASE</version.springboot>
-        <version.mongo>2.12.3</version.mongo>
         <version.mysql.connector.java>5.1.40</version.mysql.connector.java>
         <version.tomcat.jdbc>8.0.41</version.tomcat.jdbc>
         <version.hsqldb>2.3.4</version.hsqldb>
@@ -107,7 +103,7 @@
         <version.plugin.war>2.6</version.plugin.war>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <tomcat.version>8.5.12</tomcat.version>
+        <tomcat.version>8.0.38</tomcat.version>
     </properties>
 
     <pluginRepositories>
@@ -310,6 +306,12 @@
     </build>
 
     <dependencies>
+        
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc8</artifactId>
+            <version>12.2.0.1</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -498,19 +500,6 @@
             <artifactId>ivy</artifactId>
             <version>${version.apache.ivy}</version>
         </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>org.apache.commons</groupId>-->
-            <!--<artifactId>commons-math3</artifactId>-->
-            <!--<version>${version.commons.math}</version>-->
-            <!--<scope>test</scope>-->
-        <!--</dependency>-->
-
-        <!--<dependency>-->
-            <!--<groupId>org.encog</groupId>-->
-            <!--<artifactId>encog-core</artifactId>-->
-            <!--<version>${version.encog.core}</version>-->
-        <!--</dependency>-->
 
     </dependencies>
 </project>

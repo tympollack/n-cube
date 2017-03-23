@@ -5,11 +5,7 @@ import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.ncube.util.LongHashSet
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.EncryptionUtilities
-import com.cedarsoftware.util.MapUtilities
-import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.google.common.collect.RangeMap
 import com.google.common.collect.TreeRangeMap
@@ -19,19 +15,7 @@ import groovy.transform.CompileStatic
 import java.security.SecureRandom
 import java.util.regex.Matcher
 
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_APP
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_BRANCH
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_CUBE_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_METHOD_NAME
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_STATUS
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.TRANSFORM_VERSION
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
 import static java.lang.Math.abs
 
 /**
@@ -1237,7 +1221,7 @@ class Axis
         {
             if (value instanceof String)
             {
-                return parseSet(value)
+                return parseSet(value as String)
             }
             else if (value instanceof Range)
             {

@@ -57,10 +57,10 @@
     -->
 
     <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
-          p:driverClassName="${ncube.jdbc.driver}"
-          p:url="${ncube.jdbc.url}"
-          p:username="${ncube.jdbc.username}"
-          p:password="${ncube.jdbc.password}"
+          p:driverClassName="${spring.datasource.driver-class-name}"
+          p:url="${spring.datasource.url}"
+          p:username="${spring.datasource.username}"
+          p:password="${spring.datasource.password}"
           p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
           p:initialSize="5"
           p:minIdle="5"
@@ -76,7 +76,7 @@
           p:timeBetweenEvictionRunsMillis="30000"
           p:minEvictableIdleTimeMillis="30000"
           p:validationInterval="60000"
-          p:validationQuery="${ncube.jdbc.pool.query}">
+          p:validationQuery="${spring.datasource.tomcat.validation-query}">
     </bean>
 
 </beans>
