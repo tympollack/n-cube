@@ -547,7 +547,6 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo
 		Map<String, Object> scopeDefaults = new CaseInsensitiveMap()
 		String scopeValue = visInfo.inputScope[EFFECTIVE_VERSION] ?: appId.version
 		addScopeDefault(scopeDefaults, EFFECTIVE_VERSION, scopeValue)
-		//loadAvailableScopeValuesEffectiveVersion(visInfo) TODO: Very slow, commenting out for now
 
 		if (hasScopedNameTrait(targetCube) || targetCube.name.startsWith(RPM_ENUM_DOT) && hasScopedNameTrait(sourceCube))
 		{

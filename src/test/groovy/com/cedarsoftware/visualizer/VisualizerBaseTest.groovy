@@ -36,8 +36,6 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     @Override
     void setup(){
         super.setup()
-        //preloadCubes()
-        //loadTestCubes()
         addTestCubesToCache()
         visualizer = getVisualizer()
         returnMap = null
@@ -166,6 +164,8 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         assert !nodeDetails.contains("""<li id="${scopeKey}""")
     }
 
+    //TODO: Move methods below into NCubeCleanupBaseTest?
+
     protected void addTestCubesToCache()
     {
         if (!testCubes)
@@ -173,11 +173,6 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
             testCubes = getCubesFromResource(testCubesNames)
         }
         addCubes(testCubes)
-    }
-
-    List<String> getTestCubesNames()
-    {
-        return []
     }
 
     protected static List<NCube> getCubesFromResource(List<String> fileNames)
@@ -197,5 +192,10 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         cubes.each {NCube cube ->
             runtimeClient.addCube(cube)
         }
+    }
+
+    List<String> getTestCubesNames()
+    {
+        return []
     }
 }
