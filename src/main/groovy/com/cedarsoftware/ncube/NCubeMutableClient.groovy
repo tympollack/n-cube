@@ -64,8 +64,6 @@ interface NCubeMutableClient extends NCubeClient
 
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
 
-    List<String> getAppNames(String tenant)
-
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId)
 
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory)

@@ -340,23 +340,23 @@ class NCubeController implements BaseController
     Object[] getAppNames()
     {
         // TODO: Snag tenant based on authentication
-        String tenant = "NONE";
-        ApplicationID.validateTenant(tenant)
-        Object[] apps = getCachedApps(tenant)
+        String tenantName = tenant
+        ApplicationID.validateTenant(tenantName)
+        Object[] apps = getCachedApps(tenantName)
 
         if (apps.length > 0)
         {
             return apps
         }
 
-        List<String> appNames = mutableClient.getAppNames(tenant)
+        List<String> appNames = mutableClient.appNames
         if (appNames.size() == 0) {
-            ApplicationID defaultAppId = new ApplicationID(tenant, ApplicationID.DEFAULT_APP, '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'DEFAULT_BRANCH')
+            ApplicationID defaultAppId = new ApplicationID(tenantName, ApplicationID.DEFAULT_APP, '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'DEFAULT_BRANCH')
             createCube(defaultAppId, 'defaultNewAppCube')
             clearVersionCache(defaultAppId.app)
         }
-        addAllToAppCache(tenant, appNames)
-        return getCachedApps(tenant)
+        addAllToAppCache(tenantName, appNames)
+        return getCachedApps(tenantName)
     }
 
     Object[] getAppVersions(String app)

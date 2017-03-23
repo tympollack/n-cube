@@ -195,15 +195,10 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
         return revisions
     }
 
-    List<String> getAppNames()
-    {
-        throw new IllegalStateException("getAppNames() should not be called on ${getClass().name} without tenant. Please check Spring bean configuration.")
-    }
-
     /**
      * Return a List of Strings containing all unique App names for the given tenant.
      */
-    List<String> getAppNames(String tenant)
+    List<String> getAppNames()
     {
         return persister.getAppNames(tenant)
     }

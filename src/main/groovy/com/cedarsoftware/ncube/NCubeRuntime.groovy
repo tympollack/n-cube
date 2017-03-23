@@ -236,12 +236,6 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    List<String> getAppNames(String tenant)
-    {
-        ApplicationID.validateTenant(tenant)
-        return appNames
-    }
-
     Object[] getVersions(String app)
     {
         Object[] result = bean.call(beanName, 'getVersions', [app]) as Object[]

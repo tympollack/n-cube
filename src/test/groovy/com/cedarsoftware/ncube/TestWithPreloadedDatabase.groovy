@@ -145,10 +145,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(0, mutableClient.copyBranch(branch3.asHead(), branch3))
         assertEquals(2, mutableClient.copyBranch(branch4.asHead(), branch4))
 
-        // showing we only rely on tenant and branch to get app names.
-        assertTrue(mutableClient.getAppNames(ApplicationID.DEFAULT_TENANT).contains('test'))
-        assertTrue(mutableClient.getAppNames(ApplicationID.DEFAULT_TENANT).contains('foo'))
-        assertTrue(mutableClient.getAppNames(ApplicationID.DEFAULT_TENANT).contains('bar'))
+        assertTrue(mutableClient.appNames.contains('test'))
+        assertTrue(mutableClient.appNames.contains('foo'))
+        assertTrue(mutableClient.appNames.contains('bar'))
     }
 
     @Test
