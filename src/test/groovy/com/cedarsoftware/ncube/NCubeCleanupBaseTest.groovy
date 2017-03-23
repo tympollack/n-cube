@@ -32,7 +32,6 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     @Before
     void setup()
     {
-        assertTestDb()
         NCube cp = runtimeClient.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
         mutableClient.createCube(cp)
         cp = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
@@ -42,7 +41,6 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     @After
     void teardown()
     {
-        assertTestDb()
         testClient.clearTestDatabase()
         testClient.clearCache()
         testClient.clearSysParams()
@@ -50,7 +48,6 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
 
     NCube createCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
     {
-        assertTestDb()
         String json = NCubeRuntime.getResourceAsString(fileName)
         NCube ncube = NCube.fromSimpleJson(json)
         ncube.applicationID = appId
@@ -65,13 +62,5 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
             createCubeFromResource(id, name)
         }
         runtimeClient.clearCache(id)
-    }
-
-    private static void assertTestDb()
-    {
-        if (!SpringAppContext.test)
-        {
-            throw new IllegalStateException(TEST_DB_ERROR)
-        }
     }
 }
