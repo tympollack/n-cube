@@ -1,150 +1,123 @@
 {
-  "ncube":"VisualizerConfig",
-  "axes":[
+  "ncube": "VisualizerConfig",
+  "axes": [
     {
-      "id":2,
-      "name":"cubeType",
-      "hasDefault":true,
-      "type":"DISCRETE",
-      "valueType":"STRING",
-      "preferredOrder":0,
-      "fireAll":true,
-      "columns":[
+      "id": 2,
+      "name": "cubeType",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
         {
-          "id":2001950513622,
-          "type":"string",
-          "value":"rpm"
+          "id": 2001950513622,
+          "type": "string",
+          "value": "rpm"
         }
       ]
     },
     {
-      "id":1,
-      "name":"configItem",
-      "hasDefault":false,
-      "default_value":{
-        "type":"exp",
-        "value":"[:]"
+      "id": 1,
+      "name": "configItem",
+      "hasDefault": false,
+      "default_value": {
+        "type": "exp",
+        "value": "[:]"
       },
-      "type":"DISCRETE",
-      "valueType":"STRING",
-      "preferredOrder":0,
-      "fireAll":true,
-      "columns":[
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
         {
-          "id":1001273450632,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "value":"[:]"
+          "id": 1001273450632,
+          "type": "string",
+          "default_value": {
+            "type": "exp",
+            "value": "[:]"
           },
-          "value":"allGroups"
+          "value": "allGroups"
         },
         {
-          "id":1000052809612,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "value":"[] as Set"
+          "id": 1000052809612,
+          "type": "string",
+          "default_value": {
+            "type": "exp",
+            "value": "[] as Set"
           },
-          "value":"allTypes"
+          "value": "allTypes"
         },
         {
-          "id":1000269251582,
-          "type":"string",
-          "default_value":{
-            "type":"long",
-            "value":999999
-          },
-          "value":"defaultLevel"
+          "id": 1000017855263,
+          "type": "string",
+          "value": "groupSuffix"
         },
         {
-          "id":1000017855263,
-          "type":"string",
-          "value":"groupSuffix"
+          "id": 1001504517186,
+          "type": "string",
+          "default_value": {
+            "type": "exp",
+            "cache": true,
+            "value": "@VisualizerConfig.NetworkOverrides[:]"
+          },
+          "value": "networkOverridesBasic"
         },
         {
-          "id":1001504517186,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "cache":true,
-            "value":"@VisualizerConfig.NetworkOverrides[:]"
+          "id": 1001110976360,
+          "type": "string",
+          "default_value": {
+            "type": "exp",
+            "cache": true,
+            "value": "@VisualizerConfig.NetworkOverrides[:]"
           },
-          "value":"networkOverridesBasic"
-        },
-        {
-          "id":1001110976360,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "cache":true,
-            "value":"@VisualizerConfig.NetworkOverrides[:]"
-          },
-          "value":"networkOverridesFull"
-        },
-        {
-          "id":1001036023421,
-          "type":"string",
-          "default_value":{
-            "type":"exp",
-            "cache":true,
-            "value":"@VisualizerConfig.NetworkOverrides[:]"
-          },
-          "value":"networkOverridesTopNode"
+          "value": "networkOverridesFull"
         }
       ]
     }
   ],
-  "cells":[
+  "cells": [
     {
-      "id":[
-        1000052809612,
-        2001950513622
-      ],
-      "type":"exp",
-      "cache":true,
-      "value":"['Product', 'Risk', 'Coverage', 'Container', 'Deductible', 'Limit', 'Rate', 'Ratefactor', 'Premium', 'Party', 'Place', 'Role', 'Roleplayer'] as Set"
-    },
-    {
-      "id":[
-        1000052809612
-      ],
-      "type":"exp",
-      "cache":true,
-      "value":"['n-cube', 'rule cube']"
-    },
-    {
-      "id":[
+      "id": [
         1000017855263,
         2001950513622
       ],
-      "type":"string",
-      "value":"_ENUM"
+      "type": "string",
+      "value": "_ENUM"
     },
     {
-      "id":[
+      "id": [
+        1000052809612
+      ],
+      "type": "exp",
+      "cache": true,
+      "value": "['n-cube', 'rule cube']"
+    },
+    {
+      "id": [
         1001273450632,
         2001950513622
       ],
-      "type":"exp",
-      "cache":true,
-      "value":"[PRODUCT: 'Product', FORM: 'Form', RISK: 'Risk', COVERAGE: 'Coverage', CONTAINER: 'Container', DEDUCTIBLE: 'Deductible', LIMIT: 'Limit', RATE: 'Rate', RATEFACTOR: 'Rate Factor', PREMIUM: 'Premium', PARTY: 'Party', PLACE: 'Place', ROLE: 'Role', ROLEPLAYER: 'Role Player', UNSPECIFIED: 'Unspecified']"
+      "type": "exp",
+      "cache": true,
+      "value": "[PRODUCT: 'Product', FORM: 'Form', RISK: 'Risk', COVERAGE: 'Coverage', CONTAINER: 'Container', DEDUCTIBLE: 'Deductible', LIMIT: 'Limit', RATE: 'Rate', RATEFACTOR: 'Rate Factor', PREMIUM: 'Premium', PARTY: 'Party', PLACE: 'Place', ROLE: 'Role', ROLEPLAYER: 'Role Player', UNSPECIFIED: 'Unspecified']"
     },
     {
-      "id":[
-        1001273450632
-      ],
-      "type":"exp",
-      "cache":true,
-      "value":"[NCUBE: 'n-cube', RULE_NCUBE: 'rule cube', UNSPECIFIED: 'Unspecified']"
-    },
-    {
-      "id":[
-        1000269251582,
+      "id": [
+        1000052809612,
         2001950513622
       ],
-      "type":"long",
-      "value":3
+      "type": "exp",
+      "cache": true,
+      "value": "['Product', 'Risk', 'Coverage', 'Container', 'Deductible', 'Limit', 'Rate', 'Ratefactor', 'Premium', 'Party', 'Place', 'Role', 'Roleplayer'] as Set"
+    },
+    {
+      "id": [
+        1001273450632
+      ],
+      "type": "exp",
+      "cache": true,
+      "value": "[NCUBE: 'n-cube', RULE_NCUBE: 'rule cube', UNSPECIFIED: 'Unspecified']"
     }
   ]
 }
