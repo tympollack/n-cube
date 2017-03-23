@@ -22,8 +22,6 @@ import static com.cedarsoftware.visualizer.RpmVisualizerConstants.TARGET_TYPE
 @CompileStatic
 class RpmVisualizerInfo extends VisualizerInfo
 {
-    //Set<Object> effectiveVersionAvailableValues = new LinkedHashSet()
-
     RpmVisualizerInfo(){}
 
     protected RpmVisualizerInfo(NCubeRuntimeClient runtimeClient, ApplicationID applicationID)

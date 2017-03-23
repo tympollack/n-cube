@@ -49,15 +49,6 @@
           "value": "allTypes"
         },
         {
-          "id": 1000269251582,
-          "type": "string",
-          "default_value": {
-            "type": "long",
-            "value": 999999
-          },
-          "value": "defaultLevel"
-        },
-        {
           "id": 1000017855263,
           "type": "string",
           "value": "groupSuffix"
@@ -81,16 +72,6 @@
             "value": "@VisualizerConfig.NetworkOverrides[:]"
           },
           "value": "networkOverridesFull"
-        },
-        {
-          "id": 1001036023421,
-          "type": "string",
-          "default_value": {
-            "type": "exp",
-            "cache": true,
-            "value": "@VisualizerConfig.NetworkOverrides[:]"
-          },
-          "value": "networkOverridesSelectedNode"
         }
       ]
     }
@@ -129,14 +110,6 @@
       "type": "exp",
       "cache": true,
       "value": "['Product', 'Risk', 'Coverage', 'Container', 'Deductible', 'Limit', 'Rate', 'Ratefactor', 'Premium', 'Party', 'Place', 'Role', 'Roleplayer'] as Set"
-    },
-    {
-      "id": [
-        1000269251582,
-        2001950513622
-      ],
-      "type": "long",
-      "value": 3
     },
     {
       "id": [

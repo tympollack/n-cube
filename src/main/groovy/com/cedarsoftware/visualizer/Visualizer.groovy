@@ -138,6 +138,9 @@ class Visualizer
 		{
 			processCube(visInfo, stack.pop())
 		}
+
+		visInfo.calculateAggregateInfo()
+
 	}
 
 	protected void processCube(VisualizerInfo visInfo, VisualizerRelInfo relInfo)

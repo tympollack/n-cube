@@ -18,7 +18,7 @@ import org.junit.Before
 class VisualizerBaseTest extends NCubeCleanupBaseTest
 {
     protected static final String TEST_APP_NAME = 'test.visualizer'
-    protected static final String TEST_APP_VERSION = '1.0.8'
+    protected static final String TEST_APP_VERSION = '1.0.9'
     protected static final ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, TEST_APP_NAME, TEST_APP_VERSION, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD)
     protected static List<NCube> testCubes = []
 
@@ -36,9 +36,9 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     @Override
     void setup(){
         super.setup()
-        preloadCubes()
+        //preloadCubes()
         //loadTestCubes()
-        //addTestCubesToCache()
+        addTestCubesToCache()
         visualizer = getVisualizer()
         returnMap = null
         visInfo = null
@@ -112,10 +112,18 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         return nodes[node.id as Long]
     }
 
-    protected static void checkScopePromptTitle(Map node, String scopeKey, boolean required, String cubeNames = null)
+    protected static void checkScopePromptTitle(Map node, String scopeKey, boolean required, String cubeNames = null, boolean derivedScopeKey = false, boolean unusedScopeKey = false)
     {
         String nodeDetails = node.details as String
-        if (required)
+        if (derivedScopeKey)
+        {
+            assert nodeDetails.contains("""title="Scope key ${scopeKey} was added by the visualizer and may not be changed""")
+        }
+        else if (unusedScopeKey)
+        {
+            assert nodeDetails.contains("""title="Scope key ${scopeKey} was added for a source class of this class, but is not used by this class""")
+        }
+        else if (required)
         {
             assert nodeDetails.contains("""title="Scope key ${scopeKey} is required to load""")
         }
@@ -129,12 +137,13 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         }
     }
 
-    protected static void checkScopePromptDropdown(Map node, String scopeKey, String selectedScopeValue, List<String> availableScopeValues, List<String> unavailableScopeValues, String valueClass = '', boolean isTopNode = false)
+    protected static void checkScopePromptDropdown(Map node, String scopeKey, String selectedScopeValue, List<String> availableScopeValues, List<String> unavailableScopeValues, String valueClass = '', boolean isTopNode = false, boolean isDerivedScopeKey = false)
     {
         String nodeDetails = node.details as String
         String placeHolder = availableScopeValues ? SELECT_OR_ENTER_VALUE : ENTER_VALUE
         String topNodeClass = isTopNode ? DETAILS_CLASS_TOP_NODE : ''
-        assert nodeDetails.contains("""<input id="${scopeKey}" value="${selectedScopeValue}" placeholder="${placeHolder}" class="scopeInput form-control ${valueClass} ${topNodeClass}""")
+        String disabled = isDerivedScopeKey ? 'disabled="disabled"' : ''
+        assert nodeDetails.contains("""<input id="${scopeKey}" value="${selectedScopeValue}" ${disabled} placeholder="${placeHolder}" class="scopeInput form-control ${valueClass} ${topNodeClass}""")
         if (!availableScopeValues && !unavailableScopeValues)
         {
             assert !nodeDetails.contains("""<li id="${scopeKey}:""")
@@ -157,22 +166,11 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         assert !nodeDetails.contains("""<li id="${scopeKey}""")
     }
 
-    protected void preloadCubes(){}
-
-    protected void loadTestCubes()
-    {
-        if (!testCubes)
-        {
-            testCubes = getCubesFromResource(getTestCubesNames())
-        }
-        createCubes(testCubes)
-    }
-
     protected void addTestCubesToCache()
     {
         if (!testCubes)
         {
-            testCubes = getCubesFromResource(getTestCubesNames())
+            testCubes = getCubesFromResource(testCubesNames)
         }
         addCubes(testCubes)
     }
@@ -194,16 +192,9 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
         return cubes
     }
 
-    protected static void createCubes(List<NCube> cubes)
-    {
-        cubes.each { NCube cube ->
-            mutableClient.createCube(cube)
-        }
-    }
-
     protected static void addCubes(List<NCube> cubes)
     {
-        cubes.each { NCube cube ->
+        cubes.each {NCube cube ->
             runtimeClient.addCube(cube)
         }
     }

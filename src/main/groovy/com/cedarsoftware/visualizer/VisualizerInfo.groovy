@@ -3,7 +3,6 @@ package com.cedarsoftware.visualizer
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import groovy.transform.CompileStatic
@@ -17,11 +16,10 @@ import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_ALL_TYPES
 import static com.cedarsoftware.visualizer.VisualizerConstants.CUBE_TYPE
 import static com.cedarsoftware.visualizer.VisualizerConstants.CUBE_TYPE_DEFAULT
 import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_NETWORK_OVERRIDES_BASIC
-import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_NETWORK_OVERRIDES_SELECTED_NODE
 import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_NETWORK_OVERRIDES_FULL
 import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_ALL_GROUPS
 import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_GROUP_SUFFIX
-import static com.cedarsoftware.visualizer.VisualizerConstants.CONFIG_DEFAULT_LEVEL
+
 
 /**
  * Provides information to visualize n-cubes.
@@ -34,22 +32,28 @@ class VisualizerInfo
     protected Long selectedNodeId
     protected Map<Long, Map<String, Object>> nodes
     protected Map<Long, Map<String, Object>> edges
+
     protected Map<String, Object> inputScope
+
     protected long maxLevel
     protected long nodeIdCounter
     protected long edgeIdCounter
+    protected Map<Integer, Integer> levelCumulativeNodeCount
     protected long defaultLevel
     protected String cellValuesLabel
     protected String nodeLabel
+
     protected  Map<String,String> allGroups
     protected Set<String> allGroupsKeys
     protected String groupSuffix
     protected Set<String> availableGroupsAllLevels
     protected Set<String> messages
+
     protected Map<String, Object> networkOverridesBasic
     protected Map<String, Object> networkOverridesFull
-    protected Map<String, Object> networkOverridesSelectedNode
+
     protected Map<String, Set<String>> requiredScopeKeysByCube = [:]
+
     protected Map<String, List<String>> typesToAddMap = [:]
     protected static NCubeRuntimeClient runtimeClient
 
@@ -68,10 +72,10 @@ class VisualizerInfo
         messages = new LinkedHashSet()
         nodes = [:]
         edges = [:]
-        maxLevel = 1
         nodeIdCounter = 1
         edgeIdCounter = 0
         selectedNodeId = 1
+        maxLevel = 1
         availableGroupsAllLevels = new LinkedHashSet()
     }
 
@@ -88,7 +92,8 @@ class VisualizerInfo
             removeSourceEdges()
             removeTargets(edges)
             removeTargets(nodes)
-            //TODO: What to do about max level and availableGroupsAllLevels?
+            maxLevel = 1
+            availableGroupsAllLevels = new LinkedHashSet()
         }
     }
 
@@ -129,8 +134,6 @@ class VisualizerInfo
 
         networkOverridesBasic = networkConfigCube.getCell([(CONFIG_ITEM): CONFIG_NETWORK_OVERRIDES_BASIC, (CUBE_TYPE): cubeType]) as Map
         networkOverridesFull = networkConfigCube.getCell([(CONFIG_ITEM): CONFIG_NETWORK_OVERRIDES_FULL, (CUBE_TYPE): cubeType]) as Map
-        networkOverridesSelectedNode = networkConfigCube.getCell([(CONFIG_ITEM): CONFIG_NETWORK_OVERRIDES_SELECTED_NODE, (CUBE_TYPE): cubeType]) as Map
-        defaultLevel = configCube.getCell([(CONFIG_ITEM): CONFIG_DEFAULT_LEVEL, (CUBE_TYPE): cubeType]) as long
         allGroups = configCube.getCell([(CONFIG_ITEM): CONFIG_ALL_GROUPS, (CUBE_TYPE): cubeType]) as Map
         allGroupsKeys = new CaseInsensitiveSet(allGroups.keySet())
         String groupSuffix = configCube.getCell([(CONFIG_ITEM): CONFIG_GROUP_SUFFIX, (CUBE_TYPE): cubeType]) as String
@@ -155,6 +158,38 @@ class VisualizerInfo
                 value == type
             }
             typesToAddMap[entry.value] = allTypes as List
+        }
+    }
+
+    protected void calculateAggregateInfo()
+    {
+        //Determine maxLevel and availableGroupsAllLevels
+        Map<Integer, Integer> levelNodeCount = [:]
+        nodes.values().each{Map node ->
+            availableGroupsAllLevels << (node.group as String) - groupSuffix
+            long nodeLevel = node.level as long
+            maxLevel = maxLevel < nodeLevel ? nodeLevel : maxLevel
+            int nodeCountAtLevel = levelNodeCount[nodeLevel as int] ?: 0
+            nodeCountAtLevel++
+            levelNodeCount[nodeLevel as int] = nodeCountAtLevel
+        }
+
+        //Determine cumulative node count at each level + determine defaultLevel
+        levelCumulativeNodeCount = [:]
+        for (int i = 1; i < levelNodeCount.size() + 1; i++)
+        {
+            if (1 == i)
+            {
+                levelCumulativeNodeCount[i] = levelNodeCount[i]
+            }
+            else
+            {
+                levelCumulativeNodeCount[i] = levelCumulativeNodeCount[i - 1] + levelNodeCount[i]
+            }
+            if (levelCumulativeNodeCount[i] <= 100 )
+            {
+                defaultLevel = i as long
+            }
         }
     }
 

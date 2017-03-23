@@ -25,7 +25,7 @@ class VisualizerTest extends VisualizerBaseTest
         assert 4 == edges.size()
         assert 3l == visInfo.maxLevel
         assert 5l == visInfo.nodeIdCounter
-        assert 999999l == visInfo.defaultLevel
+        assert 3l == visInfo.defaultLevel
         assert '' == visInfo.groupSuffix
         assert ['NCUBE'] as Set == visInfo.availableGroupsAllLevels
 
@@ -48,7 +48,6 @@ class VisualizerTest extends VisualizerBaseTest
         //Spot check the network overrides
         assert (visInfo.networkOverridesBasic.groups as Map).keySet().containsAll(allGroups.keySet())
         assert true == ((visInfo.networkOverridesFull.nodes as Map).shadow as Map).enabled
-        assert true == (visInfo.networkOverridesSelectedNode.shapeProperties as Map).useBorderWithImage
     }
 
     @Test
@@ -80,9 +79,9 @@ class VisualizerTest extends VisualizerBaseTest
         assert false == node.showCellValues
         assert false == node.cubeLoaded
         String nodeDetails = node.details as String
-        assert nodeDetails.contains("${DETAILS_LABEL_SCOPE}</b><pre><ul><li>none</li></ul></pre><br><b>")
-        assert nodeDetails.contains("${DETAILS_LABEL_AVAILABLE_SCOPE}</b><pre><ul><li>none</li></ul></pre><br><b>")
-        assert nodeDetails.contains("${DETAILS_LABEL_AXES}</b><pre><ul><li>CubeDAxis1</li><li>CubeDAxis2</li></ul></pre><br>")
+        assert nodeDetails.contains("""${DETAILS_LABEL_SCOPE}</b><pre title="The scope keys used to load the cube. A sub-set of available scope."><ul><li>none</li></ul></pre><br><b>""")
+        assert nodeDetails.contains("""${DETAILS_LABEL_AVAILABLE_SCOPE}</b><pre title="The scope keys available as the cube was loaded in the visualization."><ul><li>none</li></ul></pre><br><b>""")
+        assert nodeDetails.contains("""${DETAILS_LABEL_AXES}</b><pre title=""><ul><li>CubeDAxis1</li><li>CubeDAxis2</li></ul></pre><br>""")
         assert !nodeDetails.contains(DETAILS_LABEL_CELL_VALUES)
 
         //Check one target node
@@ -106,9 +105,9 @@ class VisualizerTest extends VisualizerBaseTest
         //Check details on target node
         node = loadNodeDetails(node)
         nodeDetails = node.details as String
-        assert nodeDetails.contains("${DETAILS_LABEL_SCOPE}</b><pre><ul><li>CubeDAxis1: CubeDAxis1Col3</li></ul></pre><br><b>")
-        assert nodeDetails.contains("${DETAILS_LABEL_AVAILABLE_SCOPE}</b><pre><ul><li>CubeDAxis1: CubeDAxis1Col3</li></ul></pre><br><b>")
-        assert nodeDetails.contains("${DETAILS_LABEL_AXES}</b><pre><ul><li>CubeEAxis1</li><li>CubeEAxis2</li></ul></pre><br>")
+        assert nodeDetails.contains("""${DETAILS_LABEL_SCOPE}</b><pre title="The scope keys used to load the cube. A sub-set of available scope."><ul><li>CubeDAxis1: CubeDAxis1Col3</li></ul></pre><br><b>""")
+        assert nodeDetails.contains("""${DETAILS_LABEL_AVAILABLE_SCOPE}</b><pre title="The scope keys available as the cube was loaded in the visualization."><ul><li>CubeDAxis1: CubeDAxis1Col3</li></ul></pre><br><b>""")
+        assert nodeDetails.contains("""${DETAILS_LABEL_AXES}</b><pre title=""><ul><li>CubeEAxis1</li><li>CubeEAxis2</li></ul></pre><br>""")
         assert !nodeDetails.contains(DETAILS_LABEL_CELL_VALUES)
 
         //Check edge between top node and target node above
@@ -714,17 +713,8 @@ class VisualizerTest extends VisualizerBaseTest
         assert nodeDetails.contains("CubeKAxis2: CubeKAxis2Col2")
         assert nodeDetails.contains("CubeKAxis2: CubeKAxis2Col3")
     }
-     */
 
-    private static void checkExceptionMessage(String message, String exceptionName)
-    {
-        assert message.contains(DETAILS_LABEL_MESSAGE)
-        assert message.contains(DETAILS_LABEL_ROOT_CAUSE)
-        assert message.contains(exceptionName)
-        assert message.contains(DETAILS_LABEL_STACK_TRACE)
-    }
-
-    private Map checkNode(String nodeName, boolean exceptionCell = false, boolean showCellValues = false, boolean cubeLoaded = false, boolean hasCellValues = true)
+     private Map checkNode(String nodeName, boolean exceptionCell = false, boolean showCellValues = false, boolean cubeLoaded = false, boolean hasCellValues = true)
     {
         Map node = nodes.values().find {Map node1 ->  nodeName == node1.title}
         assert nodeName == node.label
@@ -767,56 +757,39 @@ class VisualizerTest extends VisualizerBaseTest
         return node
     }
 
-    @Override
-    List<String> getTestCubesNames()
+     */
+
+    private static void checkExceptionMessage(String message, String exceptionName)
     {
-        return ['visualizer/CubeHasCircularRef1.json',
-                'visualizer/CubeHasCircularRef2.json',
-                'visualizer/CubeHasRefsToTwoCubesInSameCell.json',
-                'visualizer/CubeHasRefToNotExistsCube.json',
-                'visualizer/CubeHasTwoRefsToSameCube.json',
-                'visualizer/CubeWithCoordinateNotFoundCell.json',
-                'visualizer/CubeWithCoordinateNotFoundCellDueToTwoNotFoundValues.json',
-                'visualizer/CubeWithDefaultsAndNoValues.json',
-                'visualizer/CubeWithExceptionCell.json',
-                'visualizer/CubeWithExecutedCell.json',
-                'visualizer/CubeWithExecutedCellAndThreeTypesExceptionCells.json',
-                'visualizer/CubeWithExecutedCellsWithURLs.json',
-                'visualizer/CubeWithInvalidCoordinateCell.json',
-                'visualizer/CubeWithInvalidCoordinateCellDueToTwoInvalidKeys.json',
-                'visualizer/CubeWithNoDefaultsAndNoValues.json',
-                'visualizer/CubeWithRefs.json',
-                'visualizer/CubeWithSingleValue.json',
-                'visualizer/CubeCallingCubeWithDefaultColumn.json',
-                'visualizer/CubeWithDefaultColumn.json',
-                'visualizer/RuleCubeWithAllDefaults.json',
-                'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json']
+        assert message.contains(DETAILS_LABEL_MESSAGE)
+        assert message.contains(DETAILS_LABEL_ROOT_CAUSE)
+        assert message.contains(exceptionName)
+        assert message.contains(DETAILS_LABEL_STACK_TRACE)
     }
 
-    @Override
-    protected void preloadCubes()
+    List<String> getTestCubesNames()
     {
-        preloadCubes(appId,  'visualizer/CubeHasCircularRef1.json',
-                'visualizer/CubeHasCircularRef2.json',
-                'visualizer/CubeHasRefsToTwoCubesInSameCell.json',
-                'visualizer/CubeHasRefToNotExistsCube.json',
-                'visualizer/CubeHasTwoRefsToSameCube.json',
-                'visualizer/CubeWithCoordinateNotFoundCell.json',
-                'visualizer/CubeWithCoordinateNotFoundCellDueToTwoNotFoundValues.json',
-                'visualizer/CubeWithDefaultsAndNoValues.json',
-                'visualizer/CubeWithExceptionCell.json',
-                'visualizer/CubeWithExecutedCell.json',
-                'visualizer/CubeWithExecutedCellAndThreeTypesExceptionCells.json',
-                'visualizer/CubeWithExecutedCellsWithURLs.json',
-                'visualizer/CubeWithInvalidCoordinateCell.json',
-                'visualizer/CubeWithInvalidCoordinateCellDueToTwoInvalidKeys.json',
-                'visualizer/CubeWithNoDefaultsAndNoValues.json',
-                'visualizer/CubeWithRefs.json',
-                'visualizer/CubeWithSingleValue.json',
-                'visualizer/CubeCallingCubeWithDefaultColumn.json',
-                'visualizer/CubeWithDefaultColumn.json',
-                'visualizer/RuleCubeWithAllDefaults.json',
-                'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json')
+        return [ 'visualizer/CubeHasCircularRef1.json',
+                 'visualizer/CubeHasCircularRef2.json',
+                 'visualizer/CubeHasRefsToTwoCubesInSameCell.json',
+                 'visualizer/CubeHasRefToNotExistsCube.json',
+                 'visualizer/CubeHasTwoRefsToSameCube.json',
+                 'visualizer/CubeWithCoordinateNotFoundCell.json',
+                 'visualizer/CubeWithCoordinateNotFoundCellDueToTwoNotFoundValues.json',
+                 'visualizer/CubeWithDefaultsAndNoValues.json',
+                 'visualizer/CubeWithExceptionCell.json',
+                 'visualizer/CubeWithExecutedCell.json',
+                 'visualizer/CubeWithExecutedCellAndThreeTypesExceptionCells.json',
+                 'visualizer/CubeWithExecutedCellsWithURLs.json',
+                 'visualizer/CubeWithInvalidCoordinateCell.json',
+                 'visualizer/CubeWithInvalidCoordinateCellDueToTwoInvalidKeys.json',
+                 'visualizer/CubeWithNoDefaultsAndNoValues.json',
+                 'visualizer/CubeWithRefs.json',
+                 'visualizer/CubeWithSingleValue.json',
+                 'visualizer/CubeCallingCubeWithDefaultColumn.json',
+                 'visualizer/CubeWithDefaultColumn.json',
+                 'visualizer/RuleCubeWithAllDefaults.json',
+                 'visualizer/RuleCubeWithAllDefaultsAndOnlyDefaultValues.json']
     }
 
     class OtherVisualizerInfo extends VisualizerInfo {}

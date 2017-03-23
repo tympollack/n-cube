@@ -35,7 +35,7 @@ class VisualizerHelper
 				String cubeName = unboundAxis.key as String
 				MapEntry axisEntry = unboundAxis.value as MapEntry
 				String scopeKey = axisEntry.key as String
-				if (relInfo.includeUnboundScopeKey(visInfo, scopeKey))
+				if (!relInfo.isDerivedScopeKey(visInfo, scopeKey))
 				{
 					relInfo.setLoadAgain(visInfo, scopeKey)
 					relInfo.addNodeScope(cubeName, scopeKey, true)

@@ -46,7 +46,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         assert 4l == visInfo.maxLevel
         assert 4l == visInfo.edgeIdCounter
         assert 5l == visInfo.nodeIdCounter
-        assert 3l == visInfo.defaultLevel
+        assert 4l == visInfo.defaultLevel
         assert 1l == visInfo.selectedNodeId
         assert '_ENUM' == visInfo.groupSuffix
         assert 'class' == visInfo.nodeLabel
@@ -62,8 +62,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
 
         //Spot check the network overrides
         assert (visInfo.networkOverridesBasic.groups as Map).keySet().containsAll(allGroups.keySet())
-        assert false == ((visInfo.networkOverridesFull.nodes as Map).shadow as Map).enabled
-        assert (visInfo.networkOverridesSelectedNode.shapeProperties as Map).containsKey('borderDashes')
+        assert true == ((visInfo.networkOverridesFull.nodes as Map).shadow as Map).enabled
     }
 
     @Test
@@ -477,6 +476,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         node.showingHidingCellValues = true
         node = loadNodeDetails(node)
         checkNode('TCoverage', 'Coverage', '', ADDITIONAL_SCOPE_REQUIRED, true, true)
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'points', true, 'rpm.scope.class.Coverage.traits.fieldTCoverage')
         checkScopePromptDropdown(node, 'points', '', ['A', 'B', 'C'], [DEFAULT], DETAILS_CLASS_MISSING_VALUE, true)
         assert utilizedScope == node.scope
@@ -491,6 +491,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         node.availableScope = new CaseInsensitiveMap(availableScope)
         node = loadScopeChange(node)
         checkNode('TCoverage', 'Coverage', '', DEFAULTS_WERE_USED, false, true)
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'points', true, 'rpm.scope.class.Coverage.traits.fieldTCoverage')
         checkScopePromptDropdown(node, 'points', 'A', ['A', 'B', 'C'], [DEFAULT], '', true)
         assert utilizedScope == node.scope
@@ -502,6 +503,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         node.showingHidingCellValues = true
         node = loadNodeDetails(node)
         checkNode('TCoverage', 'Coverage')
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'points', true, 'rpm.scope.class.Coverage.traits.fieldTCoverage')
         checkScopePromptDropdown(node, 'points', 'A', ['A', 'B', 'C'], [DEFAULT], '', true)
         utilizedScope.remove('points')
@@ -875,12 +877,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         checkNode('AProduct', 'Product')
         checkScopePromptTitle(node, 'product', true, 'rpm.scope.class.Product.traits')
         checkScopePromptDropdown(node, 'product', 'AProduct', ['AProduct', 'BProduct', 'GProduct', 'UProduct', 'WProduct'], [DEFAULT], '',  true)
-        checkScopePromptTitle(node, '_effectiveVersion', true)
-        checkScopePromptDropdown(node, '_effectiveVersion', TEST_APP_VERSION, [], [], '', true)
-        checkScopePromptTitle(node, 'policyControlDate', true)
-        checkScopePromptDropdown(node, 'policyControlDate', DEFAULT_SCOPE_DATE, [], [], '',  true)
-        checkScopePromptTitle(node, 'quoteDate', true)
-        checkScopePromptDropdown(node, 'quoteDate', DEFAULT_SCOPE_DATE, [], [], '', true)
+        checkDefaultScopePrompts(node)
 
         assert utilizedScope == node.scope
         assert availableScope == node.availableScope
@@ -911,7 +908,8 @@ class RpmVisualizerTest extends VisualizerBaseTest
         //Risk.Coverages for ARisk
         node =  nodes.values().find {Map node1 -> "${VALID_VALUES_FOR_FIELD_SENTENCE_CASE}Coverages on ARisk".toString() == node1.title}
         node = loadNodeDetails(node)
-        checkNoScopePrompt(node, 'product')
+        checkDefaultScopePrompts(node)
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
         checkNoScopePrompt(node, 'pgm')
         checkNoScopePrompt(node, 'state')
         checkNoScopePrompt(node, 'div')
@@ -920,30 +918,33 @@ class RpmVisualizerTest extends VisualizerBaseTest
         node =  nodes.values().find {Map node1 -> "${ADDITIONAL_SCOPE_REQUIRED_FOR}ACoverage".toString() == node1.label}
         node = loadNodeDetails(node)
         checkNode('ACoverage', 'Coverage', ADDITIONAL_SCOPE_REQUIRED_FOR, ADDITIONAL_SCOPE_REQUIRED, true)
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'pgm', true, 'rpm.scope.class.Coverage.traits.fieldACoverage')
         checkScopePromptDropdown(node, 'pgm', '', ['pgm1', 'pgm2', 'pgm3'], [DEFAULT], DETAILS_CLASS_MISSING_VALUE)
         checkScopePromptTitle(node, 'div', true, 'rpm.scope.class.Coverage.traits.fieldACoverage')
         checkScopePromptDropdown(node, 'div', '', ['div1', 'div2'], ['div3', DEFAULT], DETAILS_CLASS_MISSING_VALUE)
-        checkNoScopePrompt(node, 'product')
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
         checkNoScopePrompt(node, 'state')
 
         //BCoverage
         node = nodes.values().find { Map node1 -> "${ADDITIONAL_SCOPE_REQUIRED_FOR}${'BCoverage'}".toString() == node1.label }
         node = loadNodeDetails(node)
+        checkDefaultScopePrompts(node)
         checkNode('BCoverage', 'Coverage', ADDITIONAL_SCOPE_REQUIRED_FOR, ADDITIONAL_SCOPE_REQUIRED, true)
         checkScopePromptTitle(node, 'div', true, 'rpm.scope.class.Coverage.traits.fieldBCoverage')
         checkScopePromptDropdown(node, 'div', '', ['div3'], ['div1', 'div2', DEFAULT], DETAILS_CLASS_MISSING_VALUE)
-        checkNoScopePrompt(node, 'product')
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
         checkNoScopePrompt(node, 'pgm')
         checkNoScopePrompt(node, 'state')
 
         //CCoverage
         node = nodes.values().find { Map node1 -> 'CCoverage' == node1.label }
         node = loadNodeDetails(node)
+        checkDefaultScopePrompts(node)
         checkNode('CCoverage', 'Coverage', '', DEFAULTS_WERE_USED, false)
         checkScopePromptTitle(node, 'state', false, 'rpm.scope.class.Coverage.traits.fieldCCoverage')
         checkScopePromptDropdown(node, 'state', DEFAULT, ['GA', 'IN', 'NY', DEFAULT], ['KY', 'OH'], DETAILS_CLASS_DEFAULT_VALUE )
-        checkNoScopePrompt(node, 'product')
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
         checkNoScopePrompt(node, 'div')
         checkNoScopePrompt(node, 'pgm')
 
@@ -972,42 +973,50 @@ class RpmVisualizerTest extends VisualizerBaseTest
         //Risk.Coverages for ARisk
         node =  nodes.values().find {Map node1 -> "${VALID_VALUES_FOR_FIELD_SENTENCE_CASE}Coverages on ARisk".toString() == node1.title}
         node = loadNodeDetails(node)
-        checkNoScopePrompt(node, 'product')
+        checkDefaultScopePrompts(node)
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
         checkNoScopePrompt(node, 'pgm')
-        checkNoScopePrompt(node, 'state')
-        checkNoScopePrompt(node, 'div')
+        checkScopePromptTitle(node, 'state', false, null, false, true)
+        checkScopePromptDropdown(node, 'state', 'OH', null, null, '', false, false)
+        checkScopePromptTitle(node, 'div', false, null, false, true)
+        checkScopePromptDropdown(node, 'div', 'div1', null, null, '', false, false)
 
         //ACoverage
         node =  nodes.values().find {Map node1 -> "${ADDITIONAL_SCOPE_REQUIRED_FOR}ACoverage".toString() == node1.label}
         node = loadNodeDetails(node)
+        checkDefaultScopePrompts(node)
         checkNode('ACoverage', 'Coverage', ADDITIONAL_SCOPE_REQUIRED_FOR, ADDITIONAL_SCOPE_REQUIRED, true)
         checkScopePromptTitle(node, 'pgm', true, 'rpm.scope.class.Coverage.traits.fieldACoverage')
         checkScopePromptDropdown(node, 'pgm', '', ['pgm1', 'pgm2', 'pgm3'], [DEFAULT], DETAILS_CLASS_MISSING_VALUE)
-        checkNoScopePrompt(node, 'product')
-        checkNoScopePrompt(node, 'state')
-        checkNoScopePrompt(node, 'div')
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
+        checkScopePromptTitle(node, 'state', false, null, false, true)
+        checkScopePromptDropdown(node, 'state', 'OH', null, null, '', false, false)
+        checkScopePromptDropdown(node, 'div', 'div1', ['div1', 'div2'], ['div3', DEFAULT])
 
         //BCoverage
         node = nodes.values().find { Map node1 -> "${REQUIRED_SCOPE_VALUE_NOT_FOUND_FOR}${'BCoverage'}".toString() == node1.label }
         node = loadNodeDetails(node)
+        checkDefaultScopePrompts(node)
         checkNode('BCoverage', 'Coverage', REQUIRED_SCOPE_VALUE_NOT_FOUND_FOR, IS_NOT_VALID_FOR, true)
         checkScopePromptTitle(node, 'div', true, 'rpm.scope.class.Coverage.traits.fieldBCoverage')
         checkScopePromptDropdown(node, 'div', 'div1', ['div3'], ['div1', 'div2', DEFAULT], DETAILS_CLASS_MISSING_VALUE)
-        checkNoScopePrompt(node, 'product')
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
         checkNoScopePrompt(node, 'pgm')
-        checkNoScopePrompt(node, 'state')
+        checkScopePromptTitle(node, 'state', false, null, false, true)
+        checkScopePromptDropdown(node, 'state', 'OH', null, null, '', false, false)
 
         //CCoverage
         node = nodes.values().find { Map node1 -> 'CCoverage' == node1.label }
         node = loadNodeDetails(node)
+        checkDefaultScopePrompts(node)
         checkNode('CCoverage', 'Coverage', '', DEFAULTS_WERE_USED, false)
         checkScopePromptTitle(node, 'state', false, 'rpm.scope.class.Coverage.traits.fieldCCoverage')
-        checkScopePromptDropdown(node, 'state', 'OH', ['GA', 'IN', 'NY', DEFAULT], ['KY', 'OH'], DETAILS_CLASS_MISSING_VALUE)
-        checkNoScopePrompt(node, 'product')
-        checkNoScopePrompt(node, 'div')
+        checkScopePromptDropdown(node, 'state', 'OH', ['GA', 'IN', 'NY', DEFAULT], ['KY', 'OH'], DETAILS_CLASS_DEFAULT_VALUE)
+        checkScopePromptDropdown(node, 'product', 'AProduct', null, null, '', false, true)
+        checkScopePromptTitle(node, 'div', false, null, false, true)
+        checkScopePromptDropdown(node, 'div', 'div1', null, null, '', false, false)
         checkNoScopePrompt(node, 'pgm')
      }
-
 
     @Test
     void testLoadGraph_scopePrompt_missingRequiredScope_nonEPM()
@@ -1027,6 +1036,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
             loadGraph(options)
             Map node = nodes.values().find { Map node1 -> "${ADDITIONAL_SCOPE_REQUIRED_FOR}${'party.ProfitCenter'}".toString() == node1.label }
             node = loadNodeDetails(node)
+            checkDefaultScopePrompts(node, false, false)
             checkNode('party.ProfitCenter', 'party.ProfitCenter', ADDITIONAL_SCOPE_REQUIRED_FOR, ADDITIONAL_SCOPE_REQUIRED, true, false)
             checkScopePromptTitle(node, 'dummyRequiredScopeKey', true, 'rpm.class.party.ProfitCenter')
             checkScopePromptDropdown(node, 'dummyRequiredScopeKey', '', [], [], DETAILS_CLASS_MISSING_VALUE)
@@ -1122,13 +1132,6 @@ class RpmVisualizerTest extends VisualizerBaseTest
         assert utilizedScope == node.scope
         assert availableScope == node.availableScope
     }
-    
-    private static Map getAvailableScope(Map utilizedScope = [:])
-    {
-        Map availableScope = new CaseInsensitiveMap(DEFAULT_SCOPE)
-        availableScope.putAll(utilizedScope)
-        return availableScope
-    }
 
     @Test
     void testGetCellValues_classNode_show_invalidRequiredScope()
@@ -1212,6 +1215,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         Map node = nodes.values().find {Map node1 ->  enumNodeTitle == node1.title}
         node = loadNodeDetails(node)
         checkEnumNode(enumNodeTitle, ADDITIONAL_SCOPE_REQUIRED, true)
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'pgm', true, 'rpm.scope.enum.Risk.Coverages.traits.exists')
         checkScopePromptDropdown(node, 'pgm', '', ['pgm1', 'pgm2', 'pgm3'], [DEFAULT], DETAILS_CLASS_MISSING_VALUE)
         assert enumUtilizedScope == node.scope
@@ -1229,6 +1233,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
 
         //Risk.Coverages enum has one required prompt
         checkEnumNode("${REQUIRED_SCOPE_VALUE_NOT_FOUND_FOR}${VALID_VALUES_FOR_FIELD_LOWER_CASE}Coverages on DRisk", IS_NOT_VALID_FOR, true)
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'pgm', true, 'rpm.scope.enum.Risk.Coverages.traits.exists')
         checkScopePromptDropdown(node, 'pgm', 'pgm4', ['pgm1', 'pgm2', 'pgm3'], [DEFAULT], DETAILS_CLASS_MISSING_VALUE)
         enumUtilizedScope.pgm = 'pgm4'
@@ -1247,6 +1252,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
 
         //Risk.Coverages enum has one required prompt
         checkEnumNode("${VALID_VALUES_FOR_FIELD_SENTENCE_CASE}Coverages on DRisk")
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'pgm', true, 'rpm.scope.enum.Risk.Coverages.traits.exists')
         checkScopePromptDropdown(node, 'pgm', 'pgm1', ['pgm1', 'pgm2', 'pgm3'], [DEFAULT], '')
         enumUtilizedScope.pgm = 'pgm1'
@@ -1269,6 +1275,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
         //Check that sourceRisk is part of node scope
         List<String> risks = ['ARisk', 'BRisk', 'DRisk', 'GProductOps', 'GStateOps', 'ProductLocation', 'StateOps', 'WProductOps']
         checkNode('StateOps', 'Risk', ADDITIONAL_SCOPE_REQUIRED_FOR, ADDITIONAL_SCOPE_REQUIRED, true)
+        checkDefaultScopePrompts(node)
         checkScopePromptTitle(node, 'sourceRisk', true, 'rpm.scope.class.Risk.traits.Risks')
         checkScopePromptDropdown(node, 'sourceRisk', '', risks, [DEFAULT], DETAILS_CLASS_MISSING_VALUE)
     }
@@ -1286,11 +1293,13 @@ class RpmVisualizerTest extends VisualizerBaseTest
         Map options = [startCubeName: startCubeName, scope: new CaseInsensitiveMap(availableScope)]
         loadGraph(options)
 
-        //Check that sourceRisk is not a scope prompt
+        //Check sourceRisk cope prompt
         Map node = nodes.values().find { Map node1 -> 'StateOps' == node1.label }
         node = loadNodeDetails(node)
         checkNode('StateOps', 'Risk')
-        checkNoScopePrompt(node, 'sourceRisk')
+        checkDefaultScopePrompts(node)
+        checkScopePromptTitle(node, 'sourceRisk', false, null, true)
+        checkScopePromptDropdown(node, 'sourceRisk', 'WProductOps', null, null, '', false, true)
     }
 
     /* TODO: Will revisit providing "in scope" available scope values for r:exists at a later time.
@@ -1465,29 +1474,48 @@ class RpmVisualizerTest extends VisualizerBaseTest
 
         if (unableToLoad)
         {
+            assert nodeDetails.contains(DETAILS_LABEL_AVAILABLE_SCOPE)
             assert !nodeDetails.contains(DETAILS_LABEL_UTILIZED_SCOPE_WITHOUT_TRAITS)
             assert !nodeDetails.contains(DETAILS_LABEL_UTILIZED_SCOPE_WITH_TRAITS)
-            assert nodeDetails.contains(DETAILS_LABEL_AVAILABLE_SCOPE)
             assert !nodeDetails.contains(DETAILS_LABEL_FIELDS)
             assert !nodeDetails.contains(DETAILS_LABEL_FIELDS_AND_TRAITS)
             assert !nodeDetails.contains(DETAILS_LABEL_CLASS_TRAITS)
         }
         else if (showCellValues)
         {
+            assert nodeDetails.contains(DETAILS_LABEL_AVAILABLE_SCOPE)
             assert !nodeDetails.contains(UNABLE_TO_LOAD)
             assert !nodeDetails.contains(DETAILS_LABEL_UTILIZED_SCOPE_WITHOUT_TRAITS)
             assert nodeDetails.contains(DETAILS_LABEL_UTILIZED_SCOPE_WITH_TRAITS)
-            assert nodeDetails.contains(DETAILS_LABEL_AVAILABLE_SCOPE)
             assert nodeDetails.contains(DETAILS_LABEL_FIELDS_AND_TRAITS)
             assert nodeDetails.contains(DETAILS_LABEL_CLASS_TRAITS)
         }
         else
         {
+            assert nodeDetails.contains(DETAILS_LABEL_AVAILABLE_SCOPE)
             assert !nodeDetails.contains(UNABLE_TO_LOAD)
             assert nodeDetails.contains(DETAILS_LABEL_UTILIZED_SCOPE_WITHOUT_TRAITS)
             assert nodeDetails.contains(DETAILS_LABEL_FIELDS)
             assert !nodeDetails.contains(DETAILS_LABEL_FIELDS_AND_TRAITS)
             assert !nodeDetails.contains(DETAILS_LABEL_CLASS_TRAITS)
+        }
+    }
+
+    private static void checkDefaultScopePrompts(Map node, boolean isTopNode = false, boolean epmClass = true)
+    {
+        checkScopePromptTitle(node, '_effectiveVersion', true)
+        checkScopePromptDropdown(node, '_effectiveVersion', TEST_APP_VERSION, [], [], '', isTopNode)
+        if (epmClass)
+        {
+            checkScopePromptTitle(node, 'policyControlDate', true)
+            checkScopePromptDropdown(node, 'policyControlDate', DEFAULT_SCOPE_DATE, [], [], '', isTopNode)
+            checkScopePromptTitle(node, 'quoteDate', true)
+            checkScopePromptDropdown(node, 'quoteDate', DEFAULT_SCOPE_DATE, [], [], '', isTopNode)
+        }
+        else
+        {
+            checkNoScopePrompt(node, 'policyControlDate')
+            checkNoScopePrompt(node, 'quoteDate')
         }
     }
 
@@ -1526,59 +1554,11 @@ class RpmVisualizerTest extends VisualizerBaseTest
         return cube
     }
 
-    @Override
-    protected void preloadCubes()
+    private static Map getAvailableScope(Map utilizedScope = [:])
     {
-        preloadCubes(appId,
-                'rpmvisualizer/rpm.json',
-                'rpmvisualizer/Product.json',
-                'rpmvisualizer/Risk.json',
-                'rpmvisualizer/Coverage.json',
-                'rpmvisualizer/ent.manual.BusinessDivision.json',
-                'rpmvisualizer/ent.manual.State.json',
-                'rpmvisualizer/rpm.class.Coverage.json',
-                'rpmvisualizer/rpm.class.Product.json',
-                'rpmvisualizer/rpm.class.Risk.json',
-                'rpmvisualizer/rpm.enum.Coverage.Coverages.json',
-                'rpmvisualizer/rpm.enum.Product.Risks.json',
-                'rpmvisualizer/rpm.enum.Risk.Coverages.json',
-                'rpmvisualizer/rpm.enum.Risk.Risks.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.classTraits.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.field1And2.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.field3CovC.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.field3CovI.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldACoverage.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldBCoverage.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldCCoverage.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.fieldTCoverage.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.field4.json',
-                'rpmvisualizer/rpm.scope.class.Coverage.traits.StatCode.json',
-                'rpmvisualizer/rpm.scope.class.Product.classTraits.json',
-                'rpmvisualizer/rpm.scope.class.Product.traits.json',
-                'rpmvisualizer/rpm.scope.class.Risk.classTraits.json',
-                'rpmvisualizer/rpm.scope.class.Risk.traits.json',
-                'rpmvisualizer/rpm.scope.class.Risk.traits.Coverages.json',
-                'rpmvisualizer/rpm.scope.class.Risk.traits.Risks.json',
-                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldARisk.json',
-                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldBRisk.json',
-                'rpmvisualizer/rpm.scope.class.Risk.traits.fieldDRisk.json',
-                'rpmvisualizer/rpm.scope.enum.Coverage.Coverages.traits.json',
-                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.json',
-                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.exists.json',
-                'rpmvisualizer/rpm.scope.enum.Product.Risks.traits.exists.category.json',
-                'rpmvisualizer/rpm.scope.enum.Risk.Coverages.traits.json',
-                'rpmvisualizer/rpm.scope.enum.Risk.Coverages.traits.exists.json',
-                'rpmvisualizer/rpm.scope.enum.Risk.Risks.traits.json',
-                'rpmvisualizer/rpm.class.DataElementInventory.json',
-                'rpmvisualizer/rpm.enum.dataelement.PrintWaiverIndicator.json',
-                'rpmvisualizer/rpm.class.party.BaseParty.json',
-                'rpmvisualizer/rpm.class.party.MoreNamedInsured.json',
-                'rpmvisualizer/rpm.class.party.ProfitCenter.json',
-                'rpmvisualizer/rpm.class.partyrole.BasePartyRole.json',
-                'rpmvisualizer/rpm.class.partyrole.LossPrevention.json',
-                'rpmvisualizer/rpm.enum.partyrole.BasePartyRole.Parties.json'
-        )
+        Map availableScope = new CaseInsensitiveMap(DEFAULT_SCOPE)
+        availableScope.putAll(utilizedScope)
+        return availableScope
     }
 
     List<String> getLibraryCubeNames()
@@ -1638,23 +1618,11 @@ class RpmVisualizerTest extends VisualizerBaseTest
     }
 
     @Override
-    protected void loadTestCubes()
-    {
-        if (!libraryCubes)
-        {
-            libraryCubes = getCubesFromResource(getLibraryCubeNames())
-        }
-        createCubes(libraryCubes)
-
-        super.loadTestCubes()
-    }
-
-    @Override
     protected void addTestCubesToCache()
     {
         if (!libraryCubes)
         {
-            libraryCubes = getCubesFromResource(getLibraryCubeNames())
+            libraryCubes = getCubesFromResource(libraryCubeNames)
         }
         addCubes(libraryCubes)
 

@@ -48,6 +48,7 @@ class RpmVisualizerHelper extends VisualizerHelper
 	public static final String EFFECTIVE_VERSION_SCOPE_KEY = SYSTEM_SCOPE_KEY_PREFIX + "effectiveVersion";
 	public static final List MINIMAL_TRAITS = [R_RPM_TYPE, R_SCOPED_NAME, R_EXTENDS, R_EXISTS, R_DECLARED, R_SINCE, R_OBSOLETE, V_ENUM, V_MIN, V_MAX]
 	private static final String EXISTS_TRAIT_CONTAINS_NULL_VALUE = " may not contain a value of null. If there is a value, it must be true or false. ";
+	private static ApplicationID appId
 	private static boolean loadAllTraits
 
 	RpmVisualizerHelper(NCubeRuntimeClient runtimeClient, ApplicationID appId)
@@ -83,8 +84,9 @@ class RpmVisualizerHelper extends VisualizerHelper
 	 * COPIED: From Dynamis 5.2.0  (except for slight modifications)
 	 * pulls all of the fields and associated traits from nCube that will be used to create the RpmClass/RpmEnum instance
 	 */
-	public void loadRpmClassFields(String cubeType, String cubeName, Map<String, Object> scope, Map<String, Map<String, Object>> traitMaps, boolean loadAllTraits, Map<String, Object> output)
+	public void loadRpmClassFields(ApplicationID applicationId, String cubeType, String cubeName, Map<String, Object> scope, Map<String, Map<String, Object>> traitMaps, boolean loadAllTraits, Map<String, Object> output)
 	{
+		this.appId = applicationId
 		this.loadAllTraits = loadAllTraits
 
 		LinkedList<String> classesToProcess = new LinkedList<String>();
@@ -277,7 +279,7 @@ class RpmVisualizerHelper extends VisualizerHelper
 	 * COPIED: From Dynamis 5.2.0  (except for slight modifications)
 	 * Returns the nCube for the specified class (or enum)
 	 */
-	private NCube findClassCube(String cubeType, Map<String, Object> scope, String className, Map<String, Object> output) {
+	private static NCube findClassCube(String cubeType, Map<String, Object> scope, String className, Map<String, Object> output) {
 		if (className==null || !PATTERN_CLASS_NAME.matcher(className).matches())
 		{
 			throw new IllegalArgumentException("Invalid class identifier [" + className + "] was specified for " + cubeType);

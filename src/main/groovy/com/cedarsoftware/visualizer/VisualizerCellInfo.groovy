@@ -22,6 +22,7 @@ import static com.cedarsoftware.visualizer.VisualizerConstants.FILE
 @CompileStatic
 class VisualizerCellInfo
 {
+	protected ApplicationID appId
 	protected String nodeId
 
 	protected Map<String, Object> coordinate
@@ -30,7 +31,6 @@ class VisualizerCellInfo
 	protected Exception exception
 	protected Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(": ")
 	protected static NCubeRuntimeClient runtimeClient
-	protected ApplicationID appId
 	protected VisualizerHelper helper = new VisualizerHelper(runtimeClient, appId)
 
 	protected VisualizerCellInfo(){}
