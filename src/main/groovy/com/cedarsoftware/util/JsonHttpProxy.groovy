@@ -96,10 +96,10 @@ class JsonHttpProxy implements CallableBean
 
     Object call(String bean, String method, List args)
     {
-        String jsonArgs = JsonWriter.objectToJson(args.toArray())
+        String jArgs = JsonWriter.objectToJson(args.toArray())
+        String jsonArgs = URLEncoder.encode(jArgs, 'UTF-8')
 
         LOG.info("${bean}.${method}(${jsonArgs})")
-        println("${bean}.${method}(${jsonArgs})")
         long start = System.nanoTime()
 
         HttpClientContext clientContext = HttpClientContext.create()
@@ -126,7 +126,6 @@ class JsonHttpProxy implements CallableBean
 
         long stop = System.nanoTime()
         LOG.info("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
-        println("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
 
         Map envelope = JsonReader.jsonToJava(json) as Map
         if (envelope.status == false)
