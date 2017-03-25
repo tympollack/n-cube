@@ -859,6 +859,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
      */
     Boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
     {
+        action = action ?: Action.READ
         if (checkPermissions(appId, resource, action.name()))
         {
             return true
