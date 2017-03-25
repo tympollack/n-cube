@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue
 @CompileStatic
 @RunWith(SpringRunner.class)
 @ContextConfiguration(locations = ['/config/ncube-beans.xml'])
-@ActiveProfiles(profiles = ['runtime', 'test-mutable'])
+@ActiveProfiles(profiles = ['client', 'test-mutable'])
 @Ignore
 class NCubeBaseTest
 {

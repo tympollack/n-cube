@@ -145,7 +145,7 @@ class JsonHttpProxy implements CallableBean
                     throw obj as Exception
                 }
             }
-            throw new EnvelopeException("REST call [${bean}.${method}] indicated failure:", envelope)
+            throw new EnvelopeException("REST call [${bean}.${method}] indicated failure on server:", envelope)
         }
         return envelope.data
     }

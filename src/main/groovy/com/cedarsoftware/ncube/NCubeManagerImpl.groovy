@@ -1899,7 +1899,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         String commitInfoJson = commitRecords.empty ? null : JsonWriter.objectToJson(commitRecords)
         Date time = new Date()
         String newId = time.format('yyyyMMdd.HHmmss.') + String.format('%05d', UniqueIdGenerator.uniqueId % 100000)
-        String user = NCubeManager.userId
+        String user = getUserId()
 
         NCube commitCube = new NCube("tx.${newId}")
         commitCube.applicationID = new ApplicationID(appId.tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)

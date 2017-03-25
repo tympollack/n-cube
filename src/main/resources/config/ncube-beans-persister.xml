@@ -42,15 +42,6 @@
 
     </aop:config>
 
-    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="staticMethod" value="com.cedarsoftware.ncube.NCubeManager.setNCubePersister"/>
-        <property name="arguments">
-            <list>
-                <ref bean="persister"/>
-            </list>
-        </property>
-    </bean>
-
     <!--
         Set NCE_JDBC_DRIVER, NCE_JDBC_URL, NCE_JDBC_USER, NCE_JDBC_PWD, and NCE_POOL_QUERY as environment
         variables or system properties.
