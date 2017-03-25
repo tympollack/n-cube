@@ -337,6 +337,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <version>${version.springboot}</version>
+        </dependency>
+        
+        <dependency>
             <groupId>com.cedarsoftware</groupId>
             <artifactId>json-command-servlet</artifactId>
             <version>${version.json-command-servlet}</version>

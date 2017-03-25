@@ -5,7 +5,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.boot.web.servlet.ServletRegistrationBean
 import org.springframework.context.annotation.Bean
@@ -38,7 +37,7 @@ import org.springframework.web.filter.RequestContextFilter
 
 @Configuration
 @ImportResource("classpath:config/ncube-beans.xml")
-@SpringBootApplication(exclude = [DataSourceAutoConfiguration.class])
+@SpringBootApplication()
 class NCubeApplication
 {
     private static final Logger LOG = LogManager.getLogger(NCubeApplication.class)
