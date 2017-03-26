@@ -8,8 +8,8 @@ import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 
@@ -47,7 +47,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
-    private final Logger LOG = LogManager.getLogger(NCubeRuntime.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
     protected final CallableBean bean

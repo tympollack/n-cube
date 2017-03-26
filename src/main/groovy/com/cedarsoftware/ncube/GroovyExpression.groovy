@@ -3,8 +3,8 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 import java.util.regex.Matcher
 
@@ -51,7 +51,7 @@ class GroovyExpression extends GroovyBase
     public static final String EXP_IMPORTS = "exp.imports"
     public static final String EXP_CLASS = "exp.class"
     public static final String SYS_PROPERTY = "sys.property"
-    private static final Logger LOG = LogManager.getLogger(GroovyExpression.class)
+    private static final Logger LOG = LoggerFactory.getLogger(GroovyExpression.class)
 
     //  Private constructor only for serialization.
     private GroovyExpression() { }

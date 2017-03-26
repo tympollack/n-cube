@@ -93,6 +93,10 @@
 
         <import resource="ncube-beans-persister.xml"/>
 
+        <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
+            <constructor-arg ref="ncubeController"/>
+        </bean>
+
         <bean id="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeManager"/>
             <constructor-arg value="false"/>
@@ -108,6 +112,10 @@
     <beans profile="combined-server">
 
         <import resource="ncube-beans-persister.xml"/>
+
+        <bean id="ncubeControllerAdvice" class="com.cedarsoftware.controller.NCubeControllerAdvice">
+            <constructor-arg ref="ncubeController"/>
+        </bean>
 
         <bean id="ncubeController" class="com.cedarsoftware.controller.NCubeController">
             <constructor-arg ref="ncubeRuntime"/>

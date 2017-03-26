@@ -13,8 +13,8 @@ import com.cedarsoftware.visualizer.RpmVisualizerConstants
 import com.cedarsoftware.visualizer.Visualizer
 import com.google.common.util.concurrent.AtomicDouble
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 import javax.management.MBeanServer
 import javax.management.ObjectName
@@ -50,7 +50,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
 @CompileStatic
 class NCubeController implements BaseController
 {
-    private static final Logger LOG = LogManager.getLogger(NCubeController.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeController.class)
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
     private static final Pattern NO_QUOTES_REGEX = ~/"/
 
@@ -69,8 +69,8 @@ class NCubeController implements BaseController
 
     NCubeController(NCubeMutableClient mutableClient, boolean allowExecute)
     {
-        System.err = new ThreadAwarePrintStreamErr()
-        System.out = new ThreadAwarePrintStream()
+//        System.err = new ThreadAwarePrintStreamErr()
+//        System.out = new ThreadAwarePrintStream()
         this.mutableClient = mutableClient
         this.allowExecute = allowExecute
     }

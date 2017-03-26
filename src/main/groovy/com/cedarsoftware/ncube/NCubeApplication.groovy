@@ -1,8 +1,6 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.servlet.JsonCommandServlet
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.web.servlet.FilterRegistrationBean
@@ -14,6 +12,8 @@ import org.springframework.web.filter.GenericFilterBean
 import org.springframework.web.filter.HiddenHttpMethodFilter
 import org.springframework.web.filter.HttpPutFormContentFilter
 import org.springframework.web.filter.RequestContextFilter
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 /**
  * This class defines allowable actions against persisted n-cubes
@@ -40,7 +40,7 @@ import org.springframework.web.filter.RequestContextFilter
 @SpringBootApplication()
 class NCubeApplication
 {
-    private static final Logger LOG = LogManager.getLogger(NCubeApplication.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeApplication.class)
 
     static void main(String[] args)
     {

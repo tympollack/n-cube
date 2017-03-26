@@ -8,8 +8,8 @@ import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 
@@ -50,7 +50,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
-    private static final Logger LOG = LogManager.getLogger(NCubeManagerImpl.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeManagerImpl.class)
     private final CacheManager permCacheManager
     
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {

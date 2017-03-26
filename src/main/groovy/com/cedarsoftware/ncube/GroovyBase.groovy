@@ -6,8 +6,8 @@ import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.Phases
@@ -44,7 +44,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERS
 @CompileStatic
 abstract class GroovyBase extends UrlCommandCell
 {
-    private static final Logger LOG = LogManager.getLogger(GroovyBase.class)
+    private static final Logger LOG = LoggerFactory.getLogger(GroovyBase.class)
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     private volatile transient Class runnableCode = null
     /**

@@ -19,8 +19,8 @@ import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.impl.client.*
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.util.EntityUtils
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.servlet.http.HttpServletRequest
 
@@ -53,7 +53,7 @@ class JsonHttpProxy implements CallableBean
     private final String username
     private final String password
     private final int numConnections
-    private static final Logger LOG = LogManager.getLogger(JsonHttpProxy.class)
+    private static final Logger LOG = LoggerFactory.getLogger(JsonHttpProxy.class)
 
     JsonHttpProxy(String scheme, String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
     {

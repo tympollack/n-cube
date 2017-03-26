@@ -7,8 +7,8 @@ import com.cedarsoftware.ncube.Regexes
 import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -38,7 +38,7 @@ class CdnRouter
 {
     private static NCubeClient ncubeClient
     private static CdnRoutingProvider provider
-    private static final Logger LOG = LogManager.getLogger(CdnRouter.class)
+    private static final Logger LOG = LoggerFactory.getLogger(CdnRouter.class)
     public static final String TENANT = 'router.tenant'
     public static final String APP = 'router.app'
     public static final String CUBE_VERSION = 'router.version'

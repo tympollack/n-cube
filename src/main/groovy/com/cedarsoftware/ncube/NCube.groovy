@@ -22,8 +22,8 @@ import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 import java.lang.reflect.Array
 import java.lang.reflect.Field
@@ -59,7 +59,7 @@ import java.util.zip.GZIPOutputStream
 @CompileStatic
 class NCube<T>
 {
-    private static final Logger LOG = LogManager.getLogger(NCube.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCube.class)
     public static final String DEFAULT_CELL_VALUE_TYPE = 'defaultCellValueType'
     public static final String DEFAULT_CELL_VALUE = 'defaultCellValue'
     public static final String DEFAULT_CELL_VALUE_URL = 'defaultCellValueUrl'

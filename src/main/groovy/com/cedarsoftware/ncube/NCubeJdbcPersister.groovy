@@ -13,8 +13,8 @@ import com.cedarsoftware.util.io.JsonReader
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.sql.Blob
 import java.sql.Connection
@@ -52,7 +52,7 @@ import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
 @CompileStatic
 class NCubeJdbcPersister
 {
-    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersister.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeJdbcPersister.class)
     static final SafeSimpleDateFormat DATE_TIME_FORMAT = new SafeSimpleDateFormat('yyyy-MM-dd HH:mm:ss')
     static final String CUBE_VALUE_BIN = 'cube_value_bin'
     static final String TEST_DATA_BIN = 'test_data_bin'

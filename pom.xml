@@ -75,8 +75,6 @@
         <version.json-io>4.9.10</version.json-io>
         <version.java-util>1.26.0</version.java-util>
         <version.json-command-servlet>1.4.3</version.json-command-servlet>
-        <version.log4j>2.8</version.log4j>
-        <version.log4j-web>2.8</version.log4j-web>
         <version.junit>4.12</version.junit>
         <version.groovy>2.4.10</version.groovy>
         <version.guava>21.0</version.guava>
@@ -460,25 +458,6 @@
 			<version>${version.junit}</version>
 			<scope>test</scope>
 		</dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>${version.log4j}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>${version.log4j}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-web</artifactId>
-            <version>${version.log4j-web}</version>
-            <scope>runtime</scope>
-        </dependency>
 
         <dependency>
             <groupId>com.cedarsoftware</groupId>

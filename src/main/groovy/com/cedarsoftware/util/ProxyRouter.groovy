@@ -10,8 +10,8 @@ import com.cedarsoftware.ncube.StringUrlCmd
 import com.cedarsoftware.ncube.util.CdnRouter
 import com.cedarsoftware.util.io.JsonReader
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -40,7 +40,7 @@ class ProxyRouter
 {
     static final String SYS_CLASSPATH_PREFIX = 'sys.classpath.prefix'
 
-    private static final Logger LOG = LogManager.getLogger(ProxyRouter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProxyRouter.class);
 
     /**
      * Route the given request based on configured routing within n-cube

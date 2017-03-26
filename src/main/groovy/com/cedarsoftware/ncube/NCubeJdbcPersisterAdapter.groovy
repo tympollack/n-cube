@@ -1,8 +1,8 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.sql.Connection
 /**
@@ -30,7 +30,7 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
 {
     private final NCubeJdbcPersister persister = new NCubeJdbcPersister()
     private final JdbcConnectionProvider connectionProvider
-    private static final Logger LOG = LogManager.getLogger(NCubeJdbcPersisterAdapter.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeJdbcPersisterAdapter.class)
 
     NCubeJdbcPersisterAdapter(JdbcConnectionProvider provider)
     {
@@ -46,10 +46,9 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
             Object ret = closure(c)
             long end = System.nanoTime()
             long time = Math.round((end - start) / 1000000.0d)
-            String slow = time > 1000 ? '[SLOW]' : ''
-            if (slow)
+            if (time > 1000)
             {
-                LOG.info("    [${username}] ${msg} took ${time} ms ${slow}")
+                LOG.info("    [${username}] ${msg} took ${time} ms [SLOW]")
             }
             return ret
         }
