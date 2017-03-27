@@ -5,7 +5,6 @@ import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.DeepEquals
-import com.cedarsoftware.util.EnvelopeException
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
@@ -130,12 +129,14 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testDuplicateWhereNameAndAppIdAreIdentical()
     {
-        try {
+        try
+        {
             mutableClient.duplicate(defaultSnapshotApp, defaultSnapshotApp, 'test', 'test')
             fail()
-        } catch (EnvelopeException e)
+        }
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'could not duplicate')
+            assertContainsIgnoreCase(e.message, 'could not duplicate')
         }
     }
 
@@ -160,8 +161,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube)
         data = mutableClient.getTests(defaultSnapshotApp, 'test.Age-Gender')
         assertTrue(DeepEquals.deepEquals(expectedTests, data))
-
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, [cube.name].toArray()))
     }
 
     @Test
@@ -172,9 +171,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getReferencesFrom(defaultSnapshotApp, 'AnyCube')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'not', 'referenced', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'not', 'referenced', 'does not exist')
             assertNull(e.cause)
         }
     }
@@ -187,9 +186,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.renameCube(defaultSnapshotApp, 'foo', 'foo')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'could not rename')
+            assertContainsIgnoreCase(e.message, 'could not rename')
         }
     }
 
@@ -296,9 +295,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getReferencesFrom(defaultSnapshotApp, n2.name)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'not get referenced', 'not exist')
+            assertContainsIgnoreCase(e.message, 'not get referenced', 'not exist')
         }
     }
 
@@ -404,7 +403,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             }
         }
 
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, [n1.name].toArray()))
         assertTrue(foundName)
         assertTrue(foundVer)
     }
@@ -422,8 +420,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         NCube n2 = mutableClient.getCube(newId, 'idTest')
         assertNotNull(n2)
         assertEquals(n1, n2)
-
-        assertTrue(mutableClient.deleteCubes(newId, [n1.name].toArray()))
     }
 
     @Test
@@ -449,9 +445,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getBranchChangesForHead(defaultSnapshotApp.asHead())
             fail 'should not make it here'
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, "branch cannot be 'head'")
+            assertContainsIgnoreCase(e.message, "branch cannot be 'head'")
         }
     }
 
@@ -504,9 +500,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.changeVersionValue(new ApplicationID('foo', 'bar', '1.0.0', 'SNAPSHOT', 'john'), "1.0.1")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'no snapshot n-cubes found with version 1.0.0')
+            assertContainsIgnoreCase(e.message, 'no snapshot n-cubes found with version 1.0.0')
         }
     }
 
@@ -518,9 +514,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.updateNotes(new ApplicationID('foo', 'bar', '1.0.0', 'SNAPSHOT', 'john'), 'a', "notes")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot update notes', 'cube: a does not exist')
+            assertContainsIgnoreCase(e.message, 'cannot update notes', 'cube: a does not exist')
         }
     }
 
@@ -585,9 +581,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         {
             mutableClient.releaseCubes(defaultSnapshotApp, '1.0.0')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, '1.0.0 already exists')
+            assertContainsIgnoreCase(e.message, '1.0.0 already exists')
         }
 
         assert 2 == mutableClient.releaseCubes(defaultSnapshotApp, '1.2.3')
@@ -596,18 +592,18 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         {
             mutableClient.deleteCubes(defaultSnapshotApp, [cube.name].toArray())
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'does not exist')
+            assertContainsIgnoreCase(e.message, 'does not exist')
         }
 
         try
         {
             mutableClient.releaseCubes(defaultSnapshotApp, '1.2.3')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, '1.0.0 already exists')
+            assertContainsIgnoreCase(e.message, '1.0.0 already exists')
         }
     }
 
@@ -624,9 +620,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.renameCube(defaultSnapshotApp, ncube1.name, 'foo')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'could not rename', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'could not rename', 'does not exist')
         }
 
         mutableClient.createCube(ncube1)
@@ -646,9 +642,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
         assertTrue(nc1.name == 'test.Floppy' || nc2.name == 'test.Floppy')
         assertFalse(nc1.name == 'test.Floppy' && nc2.name == 'test.Floppy')
-
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, ['test.Floppy'].toArray()))
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray()))
     }
 
     @Test
@@ -666,9 +659,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         Object[] cubeList = mutableClient.search(defaultSnapshotApp, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
 
         assertEquals(3, cubeList.length)
-
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray()))
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray()))
     }
 
     @Test
@@ -797,9 +787,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.updateCube(null)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot be null')
+            assertContainsIgnoreCase(e.message, 'cannot be null')
         }
     }
 
@@ -814,9 +804,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         {
             mutableClient.createCube(ncube1)
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'unable to create', 'already exists')
+            assertContainsIgnoreCase(e.message, 'unable to create', 'already exists')
         }
         dtos = mutableClient.getRevisionHistory(defaultSnapshotApp, ncube1.name)
         assertEquals(1, dtos.size())
@@ -831,9 +821,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             assertFalse(mutableClient.deleteCubes(id, ['DashboardRoles'].toArray()))
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot delete cube')
+            assertContainsIgnoreCase(e.message, 'cannot delete cube')
         }
     }
 
@@ -845,9 +835,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getNotes(defaultSnapshotApp, 'DashboardRoles')
             fail('should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'Could not fetch', 'notes')
+            assertContainsIgnoreCase(e.message, 'Could not fetch', 'notes')
         }
 
         createCube()
@@ -860,9 +850,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.updateNotes(defaultSnapshotApp, 'test.funky', null)
             fail('should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'not', 'update', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'not', 'update', 'does not exist')
         }
 
         try
@@ -871,12 +861,10 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getNotes(newId, 'test.Age-Gender')
             fail('Should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'Could not fetch', 'notes')
+            assertContainsIgnoreCase(e.message, 'Could not fetch', 'notes')
         }
-
-        mutableClient.deleteCubes(defaultSnapshotApp, ['test.Age-Gender'].toArray())
     }
 
     @Test
@@ -887,9 +875,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getTests(defaultSnapshotApp, 'DashboardRoles')
             fail('should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'could not fetch', 'test data')
+            assertContainsIgnoreCase(e.message, 'could not fetch', 'test data')
         }
 
         createCube()
@@ -902,9 +890,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.saveTests(defaultSnapshotApp, 'test.funky', null)
             fail('should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot update', 'test data', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'cannot update', 'test data', 'does not exist')
         }
 
         ApplicationID newId = defaultSnapshotApp.createNewSnapshotId('0.1.1')
@@ -913,12 +901,10 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getTests(newId, 'test.Age-Gender')
             fail('Should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'not fetch', 'test data', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'not fetch', 'test data', 'does not exist')
         }
-
-        assertTrue(mutableClient.deleteCubes(defaultSnapshotApp, ['test.Age-Gender'].toArray()))
     }
 
 
@@ -940,7 +926,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
                 assertTrue(column.metaProperties.size() == 0)
             }
         }
-        mutableClient.deleteCubes(defaultSnapshotApp, [ncube.name].toArray())
     }
 
     @Test
@@ -952,9 +937,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.search(null, '', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'ApplicationID', 'null')
+            assertContainsIgnoreCase(e.message, 'ApplicationID', 'null')
         }
     }
 
@@ -972,9 +957,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.restoreCubes(defaultSnapshotApp)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'empty array', 'to be restored')
+            assertContainsIgnoreCase(e.message, 'empty array', 'to be restored')
         }
     }
 
@@ -1036,9 +1021,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.restoreCubes(defaultSnapshotApp, null)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'empty array', 'to be restored')
+            assertContainsIgnoreCase(e.message, 'empty array', 'to be restored')
         }
     }
 
@@ -1051,11 +1036,10 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.restoreCubes(defaultSnapshotApp, cube.name)
             fail('should not make it here')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot restore', 'not deleted in app')
+            assertContainsIgnoreCase(e.message, 'cannot restore', 'not deleted in app')
         }
-        mutableClient.deleteCubes(defaultSnapshotApp, [cube.name].toArray())
     }
 
     @Test
@@ -1086,8 +1070,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNotNull ncube
         assert ncube.sha1() == cube.sha1()
         assert ncube.sha1() == sha1
-
-        mutableClient.deleteCubes(defaultSnapshotApp, [cube.name].toArray())
     }
 
     @Test
@@ -1105,9 +1087,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.restoreCubes(defaultSnapshotApp, 'foo')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot restore', 'not deleted in app')
+            assertContainsIgnoreCase(e.message, 'cannot restore', 'not deleted in app')
         }
     }
 
@@ -1119,9 +1101,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(defaultSnapshotApp, 'foo')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot fetch', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'cannot fetch', 'does not exist')
         }
     }
 
@@ -1492,9 +1474,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.copyBranch(defaultSnapshotApp, copyAppId)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'exists')
+            assertContainsIgnoreCase(e.message, 'exists')
         }
     }
 
@@ -1532,9 +1514,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         {
             mutableClient.search(defaultSnapshotApp, null, null, options)
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'activeRecordsOnly', 'deletedRecordsOnly', 'mutually exclusive')
+            assertContainsIgnoreCase(e.message, 'activeRecordsOnly', 'deletedRecordsOnly', 'mutually exclusive')
         }
     }
 
@@ -1552,9 +1534,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.deleteCubes(defaultReleaseApp, [cube.name].toArray())
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'RELEASE', 'cube', 'cannot', 'deleted')
+            assertContainsIgnoreCase(e.message, 'RELEASE', 'cube', 'cannot', 'deleted')
         }
 
         try
@@ -1562,9 +1544,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.renameCube(defaultReleaseApp, cube.name, 'jumbo')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'rename', 'RELEASE', 'cube')
+            assertContainsIgnoreCase(e.message, 'cannot', 'rename', 'RELEASE', 'cube')
         }
 
         try
@@ -1572,9 +1554,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.restoreCubes(defaultReleaseApp, cube.name)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'RELEASE', 'cube', 'cannot', 'restore')
+            assertContainsIgnoreCase(e.message, 'RELEASE', 'cube', 'cannot', 'restore')
         }
 
         try
@@ -1583,9 +1565,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.updateCube(cube)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'RELEASE', 'cube', 'cannot', 'update')
+            assertContainsIgnoreCase(e.message, 'RELEASE', 'cube', 'cannot', 'update')
         }
 
         try
@@ -1593,9 +1575,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.changeVersionValue(defaultReleaseApp, '1.2.3')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'change', 'version', 'RELEASE')
+            assertContainsIgnoreCase(e.message, 'cannot', 'change', 'version', 'RELEASE')
         }
 
         try
@@ -1603,9 +1585,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.duplicate(defaultSnapshotApp, defaultReleaseApp, cube.name, 'jumbo')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'duplicate', 'RELEASE', 'version', 'cube')
+            assertContainsIgnoreCase(e.message, 'cannot', 'duplicate', 'RELEASE', 'version', 'cube')
         }
     }
 
@@ -1616,9 +1598,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.renameCube(defaultSnapshotApp, 'foo', 'bar')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'could not rename', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'could not rename', 'does not exist')
         }
     }
 
@@ -1680,7 +1662,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testGetBranches()
     {
-        Set<String> branches = mutableClient.getBranches(ApplicationID.testAppId)
+        Set<String> branches = runtimeClient.getBranches(ApplicationID.testAppId)
         assert 2 == branches.size()
         assert branches.contains(ApplicationID.TEST_BRANCH)
     }
@@ -1751,9 +1733,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.releaseCubes(defaultBootApp, '0.0.1')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, ERROR_CANNOT_RELEASE_000)
+            assertContainsIgnoreCase(e.message, ERROR_CANNOT_RELEASE_000)
         }
 
         try
@@ -1761,9 +1743,9 @@ class TestNCubeManager extends NCubeCleanupBaseTest
             mutableClient.releaseCubes(defaultSnapshotApp, '0.0.0')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, ERROR_CANNOT_RELEASE_TO_000)
+            assertContainsIgnoreCase(e.message, ERROR_CANNOT_RELEASE_TO_000)
         }
     }
 

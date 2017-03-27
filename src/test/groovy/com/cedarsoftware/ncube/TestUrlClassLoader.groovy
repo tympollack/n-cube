@@ -88,7 +88,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         preloadCubes(appId, 'sys.classpath.cp1.json', 'GroovyMethodClassPath1.json')
 
         assertEquals(0, getCacheSize(appId))
-        NCube cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
+        NCube cube = runtimeClient.getCube(appId, 'GroovyMethodClassPath1')
         assertEquals(1, getCacheSize(appId))
 
         Map input = [method: 'foo']
@@ -113,7 +113,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
 
         assertEquals(0, getCacheSize(appId))
 
-        cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
+        cube = runtimeClient.getCube(appId, 'GroovyMethodClassPath1')
         assertEquals(1, getCacheSize(appId))
 
         input = [method: 'foo']
@@ -137,7 +137,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         preloadCubes(appId, 'sys.classpath.base.json', 'sys.classpath.json', 'sys.status.json', 'sys.versions.json', 'sys.version.json', 'GroovyMethodClassPath1.json')
 
         assertEquals(0, getCacheSize(appId))
-        NCube cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
+        NCube cube = runtimeClient.getCube(appId, 'GroovyMethodClassPath1')
 
         // classpath isn't loaded at this point.
         assertEquals(1, getCacheSize(appId))
@@ -162,7 +162,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         runtimeClient.clearCache(appId)
 
         // Had to reget cube so I had a new classpath
-        cube = mutableClient.getCube(appId, 'GroovyMethodClassPath1')
+        cube = runtimeClient.getCube(appId, 'GroovyMethodClassPath1')
 
         input.env = 'UAT'
         input.put('method', 'foo')
@@ -191,7 +191,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         preloadCubes(appId, 'sys.classpath.2per.app.json', 'GroovyExpCp1.json')
 
         assertEquals(0, getCacheSize(appId))
-        NCube cube = mutableClient.getCube(appId, 'GroovyExpCp1')
+        NCube cube = runtimeClient.getCube(appId, 'GroovyExpCp1')
 
         // classpath isn't loaded at this point.
         assertEquals(1, getCacheSize(appId))
@@ -211,7 +211,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         assert 'Goodbye, world.' == y
 
         // Test JsonFormatter - that it properly handles the URLClassLoader in the sys.classpath cube
-        NCube cp1 = mutableClient.getCube(appId, 'sys.classpath')
+        NCube cp1 = runtimeClient.getCube(appId, 'sys.classpath')
         String json = cp1.toFormattedJson()
 
         NCube cp2 = NCube.fromSimpleJson(json)
@@ -232,7 +232,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         preloadCubes(appId, 'sys.classpath.2per.app.json', 'math.controller.json')
 
         assertEquals(0, getCacheSize(appId))
-        NCube cube = mutableClient.getCube(appId, 'MathController')
+        NCube cube = runtimeClient.getCube(appId, 'MathController')
 
         // classpath isn't loaded at this point.
         assertEquals(1, getCacheSize(appId))

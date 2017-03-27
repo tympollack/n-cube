@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.util.EnvelopeException
@@ -1066,14 +1067,13 @@ class TestDelta extends NCubeCleanupBaseTest
             mutableClient.commitBranch(appIdKpartlow)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            Map data = e.envelopeData as Map
-            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         // Update branch 1.0.1 -> 1.0.2
@@ -1229,14 +1229,13 @@ class TestDelta extends NCubeCleanupBaseTest
             mutableClient.commitBranch(appIdjdereg)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            Map data = e.envelopeData as Map
-            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -1260,14 +1259,13 @@ class TestDelta extends NCubeCleanupBaseTest
             mutableClient.commitBranch(appIdKpartlow)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            Map data = e.envelopeData as Map
-            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 

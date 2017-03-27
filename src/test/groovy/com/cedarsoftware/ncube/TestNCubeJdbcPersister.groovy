@@ -73,7 +73,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
             mutableClient.deleteCubes(defaultSnapshotApp, [ncube1.name].toArray())
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
             e.message.contains('does not exist')
         }
@@ -82,7 +82,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         {
             mutableClient.deleteCubes(defaultSnapshotApp, [ncube2.name].toArray())
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
             e.message.contains('does not exist')
         }

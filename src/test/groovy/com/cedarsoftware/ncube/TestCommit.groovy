@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.EnvelopeException
 import com.cedarsoftware.util.io.JsonReader
 import groovy.transform.CompileStatic
 import org.junit.Test
@@ -80,9 +79,9 @@ class TestCommit extends NCubeCleanupBaseTest
             mutableClient.cancelCommit(commitId)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'request', 'closed', 'status', 'requested', 'applicationid')
+            assertContainsIgnoreCase(e.message, 'request', 'closed', 'status', 'requested', 'applicationid')
         }
 
         // reopen a commit
@@ -96,9 +95,9 @@ class TestCommit extends NCubeCleanupBaseTest
             mutableClient.reopenCommit(commitId)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'unable', 'reopen', 'status', 'requested', 'applicationid')
+            assertContainsIgnoreCase(e.message, 'unable', 'reopen', 'status', 'requested', 'applicationid')
         }
     }
 
@@ -136,9 +135,9 @@ class TestCommit extends NCubeCleanupBaseTest
             mutableClient.honorCommit(commitId)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'request', 'closed', 'status', 'requested', 'committed', 'applicationid')
+            assertContainsIgnoreCase(e.message, 'request', 'closed', 'status', 'requested', 'committed', 'applicationid')
         }
     }
 
@@ -150,9 +149,9 @@ class TestCommit extends NCubeCleanupBaseTest
             mutableClient.honorCommit('123')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'invalid', 'id')
+            assertContainsIgnoreCase(e.message, 'invalid', 'id')
         }
 
         try
@@ -160,9 +159,9 @@ class TestCommit extends NCubeCleanupBaseTest
             mutableClient.cancelCommit('123')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'invalid', 'id')
+            assertContainsIgnoreCase(e.message, 'invalid', 'id')
         }
 
         try
@@ -170,9 +169,9 @@ class TestCommit extends NCubeCleanupBaseTest
             mutableClient.reopenCommit('123')
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'invalid', 'id')
+            assertContainsIgnoreCase(e.message, 'invalid', 'id')
         }
     }
 }

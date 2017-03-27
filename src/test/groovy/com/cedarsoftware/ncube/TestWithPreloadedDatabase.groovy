@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
@@ -1195,9 +1196,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.copyBranch(HEAD, BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalStateException e)
         {
-            assertEnvelopeExceptionContains(e, 'already exists')
+            assertContainsIgnoreCase(e.message, 'already exists')
         }
     }
 
@@ -1316,9 +1317,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.duplicate(BRANCH1, appId, "TestBranch", "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'Unable to duplicate', 'deleted')
+            assertContainsIgnoreCase(e.message, 'Unable to duplicate', 'deleted')
         }
     }
 
@@ -1336,9 +1337,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.renameCube(BRANCH1, "TestBranch", "Foo")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'Deleted cubes', 'cannot be rename')
+            assertContainsIgnoreCase(e.message, 'Deleted cubes', 'cannot be rename')
         }
     }
 
@@ -1360,9 +1361,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.duplicate(BRANCH1, BRANCH1, "TestBranch", "TestAge")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'Unable to duplicate', 'already exists')
+            assertContainsIgnoreCase(e.message, 'Unable to duplicate', 'already exists')
         }
     }
 
@@ -1893,9 +1894,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         try
@@ -1903,9 +1904,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(BRANCH1, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, null).size())
@@ -1929,9 +1930,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH1)
@@ -1955,9 +1956,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         assert 2 == mutableClient.getRevisionHistory(BRANCH1, "TestBranch2").size()
@@ -1979,9 +1980,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
@@ -2027,9 +2028,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         try
@@ -2037,9 +2038,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(BRANCH1, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, null).size())
@@ -2067,9 +2068,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         try
@@ -2077,9 +2078,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(BRANCH2, "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(BRANCH2)
@@ -2103,9 +2104,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         try
@@ -2113,9 +2114,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(BRANCH1, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         mutableClient.duplicate(BRANCH1, BRANCH2, "TestBranch", "TestBranch2")
@@ -2138,9 +2139,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(HEAD, "TestBranch2")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH2)
@@ -2165,9 +2166,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.getRevisionHistory(BRANCH2, "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot', 'revision history', 'not exist')
+            assertContainsIgnoreCase(e.message, 'cannot', 'revision history', 'not exist')
         }
 
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, null).size())
@@ -2187,9 +2188,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.duplicate(HEAD, BRANCH1, "foo", "bar")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'not duplicate cube because', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'not duplicate cube because', 'does not exist')
         }
     }
 
@@ -2204,9 +2205,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.duplicate(HEAD, BRANCH1, "TestBranch", "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'Unable to duplicate', 'already exists')
+            assertContainsIgnoreCase(e.message, 'Unable to duplicate', 'already exists')
         }
     }
 
@@ -2266,9 +2267,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         {
             mutableClient.deleteCubes(BRANCH1, 'TestBranch')
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'does not exist')
+            assertContainsIgnoreCase(e.message, 'does not exist')
         }
     }
 
@@ -2310,13 +2311,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1, dtos)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -2613,13 +2614,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -2751,13 +2752,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3147,13 +3148,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3198,13 +3199,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3437,13 +3438,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3521,13 +3522,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3654,13 +3655,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3746,13 +3747,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3802,13 +3803,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3860,13 +3861,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -3918,13 +3919,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -4186,13 +4187,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -4238,13 +4239,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -4355,13 +4356,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -4512,13 +4513,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1, dtos.toArray())
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -4849,13 +4850,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1, dtos)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         assertEquals(1, mutableClient.acceptTheirs(BRANCH1, 'TestBranch'))
@@ -4903,13 +4904,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         assertEquals(1, mutableClient.acceptTheirs(BRANCH1, 'TestBranch'))
@@ -5323,13 +5324,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         List<NCubeInfoDto> infos = mutableClient.search(BRANCH1, 'TestBranch', null, null)
@@ -5391,13 +5392,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         List<NCubeInfoDto> infos = mutableClient.search(BRANCH1, 'TestBranch', null, null)
@@ -5438,9 +5439,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.acceptMine(appId, "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalStateException e)
         {
-            assertEnvelopeExceptionContains(e, 'failed', 'update', 'branch cube', 'not exist')
+            assertContainsIgnoreCase(e.message, 'failed', 'update', 'branch cube', 'not exist')
         }
     }
 
@@ -5453,9 +5454,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.acceptMine(appId, "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalStateException e)
         {
-            assertEnvelopeExceptionContains(e, 'failed', 'update', 'branch cube', 'not exist')
+            assertContainsIgnoreCase(e.message, 'failed', 'update', 'branch cube', 'not exist')
         }
     }
 
@@ -5467,9 +5468,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.acceptTheirs(appId, "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalStateException e)
         {
-            assertEnvelopeExceptionContains(e, 'failed to overwrite', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'failed to overwrite', 'does not exist')
         }
     }
 
@@ -5482,9 +5483,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.acceptTheirs(appId, "TestBranch")
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalStateException e)
         {
-            assertEnvelopeExceptionContains(e, 'failed to overwrite', 'does not exist')
+            assertContainsIgnoreCase(e.message, 'failed to overwrite', 'does not exist')
         }
     }
 
@@ -5590,13 +5591,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1, dtos as Object[])
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
 
         dtos = mutableClient.search(HEAD, "TestAge", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
@@ -5791,13 +5792,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 
@@ -6266,9 +6267,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.updateReferenceAxes([axisRef] as Object[])
             fail()
         }
-        catch (EnvelopeException e)
+        catch (IllegalArgumentException e)
         {
-            assertEnvelopeExceptionContains(e, 'cannot point', 'reference axis', 'non-existing cube')
+            assertContainsIgnoreCase(e.message, 'cannot point', 'reference axis', 'non-existing cube')
         }
     }
 
