@@ -1,13 +1,13 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.StringUtilities
-import org.slf4j.LoggerFactory
-import org.slf4j.Logger
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.test.context.TestContextManager
 
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -161,8 +161,8 @@ class TestThreading extends NCubeCleanupBaseTest
 
         LOG.info "Running test with load=${load}, threads=${maxThreads}, count=${count}, loopCount=${loopCount}, clearCache=${clearCache}, loopTest=${loopTest}, preCache=${preCache}, sleep=${sleepTime}, sync=${sync}, remove=${remove}, warm=${warm}"
         buildAccessCube(maxThreads,count,warm)
-        NCube cube = mutableClient.getCube(ApplicationID.testAppId, 'thread')
-        NCube supportingCube = mutableClient.getCube(ApplicationID.testAppId, 'threadCount')
+        NCube cube = runtimeClient.getCube(ApplicationID.testAppId, 'thread')
+        NCube supportingCube = runtimeClient.getCube(ApplicationID.testAppId, 'threadCount')
 
         def allFailures = new ConcurrentLinkedQueue<Exception>()
         long totalDuration = 0
