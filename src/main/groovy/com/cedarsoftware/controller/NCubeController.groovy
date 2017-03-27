@@ -1067,7 +1067,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         }
         catch(Exception e)
         {
-            markRequestFailed(getTestCauses(e))
+            markRequestFailed(getTestCauses(e), e)
             ThreadAwarePrintStream.content
             ThreadAwarePrintStreamErr.content
             return null
@@ -1502,7 +1502,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         }
         catch (BranchMergeException e)
         {
-            markRequestFailed(e.message)
+            markRequestFailed(e.message, e)
             return e.errors
         }
         catch (Exception e)
@@ -1542,7 +1542,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         }
         catch (BranchMergeException e)
         {
-            markRequestFailed(e.message)
+            markRequestFailed(e.message, e)
             return e.errors
         }
         catch (Exception e)
@@ -1560,7 +1560,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         }
         catch (BranchMergeException e)
         {
-            markRequestFailed(e.message)
+            markRequestFailed(e.message, e)
             return e.errors
         }
         catch (Exception e)
@@ -1886,10 +1886,14 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         return key.replace('"','')
     }
 
-    private static void markRequestFailed(Object data)
+    private static void markRequestFailed(Object data, Exception e = null)
     {
         JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_STATUS, false)
         JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_FAIL_MESSAGE, data)
+        if (e != null)
+        {
+            JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_EXCEPTION, e)
+        }
     }
 
     private static Object getAttribute(MBeanServer mbs, String beanName, String attribute)
@@ -1926,7 +1930,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
      */
     protected static void fail(Exception e)
     {
-        markRequestFailed(getCauses(e))
+        markRequestFailed(getCauses(e), e)
         if (e instanceof AxisOverlapException ||
             e instanceof BranchMergeException ||
             e instanceof CommandCellException ||

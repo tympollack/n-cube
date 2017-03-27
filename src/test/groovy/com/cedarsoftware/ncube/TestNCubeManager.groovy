@@ -1664,14 +1664,6 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testGetBranches()
-    {
-        Set<String> branches = runtimeClient.getBranches(ApplicationID.testAppId)
-        assert 1 == branches.size()
-        assert branches.contains(ApplicationID.TEST_BRANCH)
-    }
-
-    @Test
     void testSysLockCubeCreatedWithApp()
     {
         NCube sysLockCube = mutableClient.getCube(defaultBootApp, SYS_LOCK)

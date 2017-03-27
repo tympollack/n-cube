@@ -16,7 +16,11 @@ import org.apache.http.conn.routing.HttpRoute
 import org.apache.http.entity.ContentType
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.auth.BasicScheme
-import org.apache.http.impl.client.*
+import org.apache.http.impl.client.BasicAuthCache
+import org.apache.http.impl.client.BasicCookieStore
+import org.apache.http.impl.client.BasicCredentialsProvider
+import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.util.EntityUtils
 import org.slf4j.Logger
@@ -130,6 +134,10 @@ class JsonHttpProxy implements CallableBean
         Map envelope = JsonReader.jsonToJava(json) as Map
         if (envelope.status == false)
         {
+            if (envelope.exception != null)
+            {
+                throw envelope.exception
+            }
             if (envelope.data instanceof String)
             {
                 String data = envelope.data as String
