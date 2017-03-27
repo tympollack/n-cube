@@ -10,7 +10,7 @@
     <context:annotation-config />
     <aop:aspectj-autoproxy/>
 
-    <bean id="appContext" class="com.cedarsoftware.ncube.SpringAppContext"/>
+    <bean id="appContext" class="com.cedarsoftware.ncube.NCubeAppContext"/>
 
     <bean id="ncubeCacheManager" class="com.cedarsoftware.ncube.util.GCacheManager">
         <constructor-arg ref="ncubeRemoval"/>

@@ -3,15 +3,14 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.util.EnvelopeException
 import org.junit.Ignore
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.junit4.SpringRunner
 
-import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.ncube.TestNCubeManager.defaultBootApp
 import static com.cedarsoftware.ncube.TestNCubeManager.defaultSnapshotApp
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * NCubeManager Tests
@@ -38,7 +37,7 @@ class TestSecurityApis extends NCubeCleanupBaseTest
 {
     private static NCubeManagerImpl getManager()
     {
-        return SpringAppContext.mutableClient as NCubeManagerImpl
+        return mutableClient as NCubeManagerImpl
     }
 
     @Test

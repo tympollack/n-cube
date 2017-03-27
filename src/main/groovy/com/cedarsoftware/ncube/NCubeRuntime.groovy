@@ -2,14 +2,19 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.ncube.util.GCacheManager
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.CallableBean
+import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.IOUtilities
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.SystemUtilities
+import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 
@@ -20,7 +25,13 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
+import static com.cedarsoftware.ncube.NCubeConstants.CONTROLLER_BEAN
+import static com.cedarsoftware.ncube.NCubeConstants.MANAGER_BEAN
+import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS
+import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
+import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
+import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -60,7 +71,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = new GCacheManager()
         this.allowMutableMethods = allowMutableMethods
-        this.beanName = SpringAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
+        this.beanName = NCubeAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
     }
 
     /**

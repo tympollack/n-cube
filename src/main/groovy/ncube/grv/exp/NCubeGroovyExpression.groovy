@@ -4,9 +4,9 @@ import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeAppContext
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -46,7 +46,7 @@ class NCubeGroovyExpression
 
     NCubeGroovyExpression()
     {
-        runtimeClient = SpringAppContext.runtimeClient
+        runtimeClient = NCubeAppContext.runtimeClient
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.controller.NCubeController
 import com.cedarsoftware.util.EnvelopeException
 import groovy.transform.CompileStatic
 import org.junit.Ignore
@@ -36,31 +37,37 @@ import static org.junit.Assert.assertTrue
 //@ActiveProfiles(profiles = ['client'])  // requires server running
 @ActiveProfiles(profiles = ['combined-server','test-database'])
 @Ignore
-class NCubeBaseTest
+class NCubeBaseTest implements NCubeConstants
 {
     static NCubeClient getNcubeClient()
     {
-        return SpringAppContext.ncubeClient
+        return NCubeAppContext.ncubeClient
     }
 
     static NCubeRuntimeClient getRuntimeClient()
     {
-        return SpringAppContext.runtimeClient
+        return NCubeAppContext.runtimeClient
     }
 
     static NCubeMutableClient getMutableClient()
     {
-        return SpringAppContext.mutableClient
+        String beanName = NCubeAppContext.containsBean(RUNTIME_BEAN) ? RUNTIME_BEAN : MANAGER_BEAN
+        return NCubeAppContext.getBean(beanName) as NCubeMutableClient
     }
 
     static NCubeTestClient getTestClient()
     {
-        return SpringAppContext.testClient
+        return NCubeAppContext.getBean(RUNTIME_BEAN) as NCubeTestClient
     }
 
     static NCubeTestServer getTestServer()
     {
-        return SpringAppContext.testServer
+        return NCubeAppContext.getBean(MANAGER_BEAN) as NCubeTestServer
+    }
+
+    static NCubeController getNcubeController()
+    {
+        return NCubeAppContext.getBean(CONTROLLER_BEAN) as NCubeController
     }
 
     static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)

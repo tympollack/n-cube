@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.springframework.cache.Cache
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)

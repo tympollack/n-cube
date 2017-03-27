@@ -1,6 +1,6 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.JsonHttpProxy
+import com.cedarsoftware.controller.NCubeController
 import groovy.transform.CompileStatic
 import org.junit.Test
 
@@ -125,7 +125,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
 
     private Object call(String methodName, List args)
     {
-        JsonHttpProxy proxy = SpringAppContext.getBean('jsonHttpProxy') as JsonHttpProxy
-        proxy.invokeMethod('call', ['ncubeController', methodName, args])
+        NCubeController controller = NCubeAppContext.getBean(CONTROLLER_BEAN) as NCubeController
+        return controller.invokeMethod(methodName, args)
     }
 }

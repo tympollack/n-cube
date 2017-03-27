@@ -1,10 +1,11 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
+
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  * @author Ken Partlow (kpartlow@gmail.com)
@@ -66,7 +67,7 @@ abstract class UrlCommandCell implements CommandCell
     {
         if (ncubeRuntimeClient == null)
         {
-            ncubeRuntimeClient = SpringAppContext.runtimeClient
+            ncubeRuntimeClient = NCubeAppContext.runtimeClient
         }
         return ncubeRuntimeClient
     }

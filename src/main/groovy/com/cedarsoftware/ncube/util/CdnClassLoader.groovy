@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube.util
 
+import com.cedarsoftware.ncube.NCubeAppContext
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.SpringAppContext
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 
@@ -46,7 +46,7 @@ class CdnClassLoader extends GroovyClassLoader
         super(loader, null)
         _preventRemoteBeanInfo = preventRemoteBeanInfo
         _preventRemoteCustomizer = preventRemoteCustomizer
-        runtimeClient = SpringAppContext.runtimeClient
+        runtimeClient = NCubeAppContext.runtimeClient
 
         if (acceptedDomains == null)
         {

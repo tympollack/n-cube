@@ -4,12 +4,17 @@ import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.UniqueIdGenerator
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 
@@ -457,7 +462,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
         }
 
         lockApp(appId, true)
-        if (!SpringAppContext.test)
+        if (!NCubeAppContext.test)
         {   // Only sleep when running in production (not by JUnit)
             sleep(10000)
         }
@@ -833,7 +838,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     void clearTestDatabase()
     {
-        if (SpringAppContext.test)
+        if (NCubeAppContext.test)
         {
             persister.clearTestDatabase()
         }
@@ -883,7 +888,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         final NCube sysLockCube = loadCubeInternal(bootAppId, SYS_LOCK)
         if (sysLockCube == null)
         {   // If there is no sys.lock cube, then no permissions / locking being used.
-            if (SpringAppContext.test)
+            if (NCubeAppContext.test)
             {
                 return
             }

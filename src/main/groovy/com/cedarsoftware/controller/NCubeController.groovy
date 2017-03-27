@@ -1,10 +1,42 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.*
-import com.cedarsoftware.ncube.exception.*
+import com.cedarsoftware.ncube.Action
+import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisType
+import com.cedarsoftware.ncube.AxisValueType
+import com.cedarsoftware.ncube.CellInfo
+import com.cedarsoftware.ncube.Column
+import com.cedarsoftware.ncube.CommandCell
+import com.cedarsoftware.ncube.Delta
+import com.cedarsoftware.ncube.DeltaProcessor
+import com.cedarsoftware.ncube.GroovyExpression
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeAppContext
+import com.cedarsoftware.ncube.NCubeConstants
+import com.cedarsoftware.ncube.NCubeInfoDto
+import com.cedarsoftware.ncube.NCubeMutableClient
+import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.NCubeTest
+import com.cedarsoftware.ncube.ReferenceAxisLoader
+import com.cedarsoftware.ncube.ReleaseStatus
+import com.cedarsoftware.ncube.RuleInfo
+import com.cedarsoftware.ncube.exception.AxisOverlapException
+import com.cedarsoftware.ncube.exception.BranchMergeException
+import com.cedarsoftware.ncube.exception.CommandCellException
+import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
+import com.cedarsoftware.ncube.exception.RuleJump
+import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.InetAddressUtilities
+import com.cedarsoftware.util.PoolInterceptor
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.ThreadAwarePrintStream
+import com.cedarsoftware.util.ThreadAwarePrintStreamErr
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -13,8 +45,8 @@ import com.cedarsoftware.visualizer.RpmVisualizerConstants
 import com.cedarsoftware.visualizer.Visualizer
 import com.google.common.util.concurrent.AtomicDouble
 import groovy.transform.CompileStatic
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.management.MBeanServer
 import javax.management.ObjectName
@@ -24,7 +56,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.regex.Pattern
-
 
 /**
  * NCubeController API.
@@ -1736,7 +1767,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
     void clearTestDatabase()
     {
-        SpringAppContext.testServer.clearTestDatabase()
+        NCubeAppContext.testServer.clearTestDatabase()
     }
 
     Map heartBeat(Map openCubes)
