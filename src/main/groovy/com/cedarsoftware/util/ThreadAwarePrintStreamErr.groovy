@@ -27,7 +27,7 @@ import groovy.transform.CompileStatic
 class ThreadAwarePrintStreamErr extends PrintStream
 {
     private static final ThreadLocal<ByteArrayOutputStream> output = new ThreadLocal<ByteArrayOutputStream>() {
-        public ByteArrayOutputStream initialValue()
+        ByteArrayOutputStream initialValue()
         {
             return new ByteArrayOutputStream()
         }
@@ -43,7 +43,7 @@ class ThreadAwarePrintStreamErr extends PrintStream
         output.get().write(b)
     }
 
-    public void write(byte[] buf, int off, int len)
+    void write(byte[] buf, int off, int len)
     {
         output.get().write(buf, off, len)
     }

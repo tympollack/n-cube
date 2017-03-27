@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import groovy.transform.CompileStatic
 import org.junit.Test
 
 /**
@@ -21,14 +22,14 @@ import org.junit.Test
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-
+@CompileStatic
 class TestRuleEngineIntegration extends NCubeCleanupBaseTest
 {
     @Test
     void testNCubeGroovyExpressionAPIs()
     {
-        NCube ncube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionTests.json')
-        mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'months.json')
+        NCube ncube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'expressionTests.json')
+        runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'months.json')
 
         Map input = ['Age': 10]
         Map output = [:]
@@ -36,7 +37,7 @@ class TestRuleEngineIntegration extends NCubeCleanupBaseTest
         assert output.isAxis
         assert output.isColumn
         assert output.isRange
-        assert output.colId > 0
+        assert (output.colId as long) > 0
         assert output.containsKey(0)
         assert 'sys.classpath' == output[0]
     }

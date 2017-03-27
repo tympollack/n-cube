@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.util.CaseInsensitiveMap
+import groovy.transform.CompileStatic
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
@@ -25,13 +26,14 @@ import static org.junit.Assert.assertEquals
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+@CompileStatic
 class TestGroovySourceParsing extends NCubeBaseTest
 {
     @Test
     void testFindCubeName()
     {
-        NCube cube = mutableClient.getNCubeFromResource(ApplicationID.testAppId, 'inlineExpression.json')
-        Map<CaseInsensitiveMap, Set<String>> names = cube.referencedCubeNames
+        NCube cube = runtimeClient.getNCubeFromResource(ApplicationID.testAppId, 'inlineExpression.json')
+        Map<CaseInsensitiveMap, Set<String>> names = cube.referencedCubeNames as Map
 
         assertEquals(['RockRiverArms'] as Set, names[[Age:'jump2'] as CaseInsensitiveMap])
         assertEquals(['Bersa'] as Set, names[[Age:'absRef3'] as CaseInsensitiveMap])

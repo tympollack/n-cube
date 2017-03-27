@@ -4,8 +4,10 @@ import com.cedarsoftware.util.EnvelopeException
 import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.runner.RunWith
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.junit4.SpringRunner
 
 import static org.junit.Assert.assertTrue
@@ -29,8 +31,10 @@ import static org.junit.Assert.assertTrue
  */
 @CompileStatic
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = NCubeApplication.class)
-@ActiveProfiles(profiles = ['client', 'test-mutable'])
+@TestPropertySource(properties = ['ncube.allow.mutable.methods=true','logging.level.root=INFO'])
+@ContextConfiguration(classes = NCubeApplication.class, initializers = ConfigFileApplicationContextInitializer.class)
+@ActiveProfiles(profiles = ['client'])  // requires server running
+//@ActiveProfiles(profiles = ['combined-server','test-database'])
 @Ignore
 class NCubeBaseTest
 {

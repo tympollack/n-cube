@@ -34,8 +34,6 @@
 
     <beans profile="client">
 
-        <context:property-placeholder location="classpath:application.properties"/>
-
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="jsonHttpProxy"/>
             <constructor-arg ref="ncubeCacheManager"/>
@@ -134,12 +132,6 @@
         </bean>
 
         <bean id="reflectiveProxy" class="com.cedarsoftware.util.ReflectiveProxy"/>
-
-    </beans>
-
-    <beans profile="test-mutable">
-
-        <bean id="allowMutableMethods" class="java.lang.Boolean"><constructor-arg value="true"/></bean>
 
     </beans>
 

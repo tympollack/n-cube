@@ -1,21 +1,19 @@
 package com.cedarsoftware.visualizer
 
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeCleanupBaseTest
-import com.cedarsoftware.ncube.NCubeRuntime
-import com.cedarsoftware.ncube.ReleaseStatus
+import com.cedarsoftware.ncube.*
+import groovy.transform.CompileStatic
 import org.junit.After
+import org.junit.Before
 import org.junit.Ignore
 
-import static com.cedarsoftware.visualizer.VisualizerConstants.*
-import static com.cedarsoftware.visualizer.VisualizerTestConstants.*
-import groovy.transform.CompileStatic
-import org.junit.Before
+import static com.cedarsoftware.visualizer.VisualizerConstants.getDATE_TIME_FORMAT
+import static com.cedarsoftware.visualizer.VisualizerConstants.getDETAILS_CLASS_TOP_NODE
+import static com.cedarsoftware.visualizer.VisualizerTestConstants.getENTER_VALUE
+import static com.cedarsoftware.visualizer.VisualizerTestConstants.getSELECT_OR_ENTER_VALUE
 
 @CompileStatic
 @Ignore
-class VisualizerBaseTest extends NCubeCleanupBaseTest
+class VisualizerBaseTest extends NCubeBaseTest
 {
     protected static final String TEST_APP_NAME = 'test.visualizer'
     protected static final String TEST_APP_VERSION = '1.0.9'
@@ -33,9 +31,8 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     protected static final String DEFAULT_SCOPE_DATE = DATE_TIME_FORMAT.format(new Date())
 
     @Before
-    @Override
-    void setup(){
-        super.setup()
+    void setup()
+    {
         addTestCubesToCache()
         visualizer = getVisualizer()
         returnMap = null
@@ -47,10 +44,8 @@ class VisualizerBaseTest extends NCubeCleanupBaseTest
     }
 
     @After
-    @Override
     void teardown()
     {
-        super.teardown()
         testCubes = []
     }
 
