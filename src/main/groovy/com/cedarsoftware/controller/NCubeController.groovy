@@ -25,8 +25,6 @@ import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
-import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
 
 /**
  * NCubeController API.
@@ -48,7 +46,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_EXACT_MATCH_NAME
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeController implements BaseController
+class NCubeController implements BaseController, NCubeConstants, RpmVisualizerConstants
 {
     private static final Logger LOG = LoggerFactory.getLogger(NCubeController.class)
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
@@ -253,7 +251,7 @@ class NCubeController implements BaseController
     // TODO: This needs to be externalized (loaded via Grapes)
     private Visualizer getVisualizer(String cubeName)
     {
-        return cubeName.startsWith(RpmVisualizerConstants.RPM_CLASS) ? new RpmVisualizer(mutableClient as NCubeRuntimeClient) : new Visualizer(mutableClient as NCubeRuntimeClient)
+        return cubeName.startsWith(RPM_CLASS) ? new RpmVisualizer(mutableClient as NCubeRuntimeClient) : new Visualizer(mutableClient as NCubeRuntimeClient)
     }
 
     Boolean updateCubeMetaProperties(ApplicationID appId, String cubeName, Map<String, Object> newMetaProperties)

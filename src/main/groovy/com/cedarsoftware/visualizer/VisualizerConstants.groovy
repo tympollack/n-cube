@@ -8,45 +8,44 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-class VisualizerConstants
+interface VisualizerConstants
 {
-	static final String SPACE = '&nbsp;'
-	static final String BREAK = '<br>'
-	static final String DOUBLE_BREAK = "${BREAK}${BREAK}"
+	final String SPACE = '&nbsp;'
+	final String BREAK = '<br>'
+	final String DOUBLE_BREAK = "${BREAK}${BREAK}"
 
-	static final String UNSPECIFIED = 'UNSPECIFIED'
-	static final String NCUBE = 'NCUBE'
-	static final String RULE_NCUBE = 'RULE_NCUBE'
+	final String UNSPECIFIED = 'UNSPECIFIED'
+	final String NCUBE = 'NCUBE'
+	final String RULE_NCUBE = 'RULE_NCUBE'
 
-	static final SafeSimpleDateFormat DATE_TIME_FORMAT = new SafeSimpleDateFormat('yyyy-MM-dd')
-	static final String HTTP = 'http:'
-	static final String HTTPS = 'https:'
-	static final String FILE = 'file:'
+	final String HTTP = 'http:'
+	final String HTTPS = 'https:'
+	final String FILE = 'file:'
 
-	static final String DEFAULT = 'Default'
-	static final String JSON_FILE_PREFIX = 'config/'
-	static final String JSON_FILE_SUFFIX = '.json'
-	static final String VISUALIZER_CONFIG_CUBE_NAME = 'VisualizerConfig'
-	static final String VISUALIZER_CONFIG_NETWORK_OVERRIDES_CUBE_NAME = 'VisualizerConfig.NetworkOverrides'
-	static final String CONFIG_ITEM = 'configItem'
-	static final String CONFIG_NETWORK_OVERRIDES_BASIC = 'networkOverridesBasic'
-	static final String CONFIG_NETWORK_OVERRIDES_FULL = 'networkOverridesFull'
-	static final String CONFIG_ALL_GROUPS = 'allGroups'
-	static final String CONFIG_ALL_TYPES = 'allTypes'
-	static final String CONFIG_GROUP_SUFFIX = 'groupSuffix'
-	static final String CUBE_TYPE = 'cubeType'
-	static final String CUBE_TYPE_DEFAULT = null
+	final String DEFAULT = 'Default'
+	final String JSON_FILE_PREFIX = 'config/'
+	final String JSON_FILE_SUFFIX = '.json'
+	final String VISUALIZER_CONFIG_CUBE_NAME = 'VisualizerConfig'
+	final String VISUALIZER_CONFIG_NETWORK_OVERRIDES_CUBE_NAME = 'VisualizerConfig.NetworkOverrides'
+	final String CONFIG_ITEM = 'configItem'
+	final String CONFIG_NETWORK_OVERRIDES_BASIC = 'networkOverridesBasic'
+	final String CONFIG_NETWORK_OVERRIDES_FULL = 'networkOverridesFull'
+	final String CONFIG_ALL_GROUPS = 'allGroups'
+	final String CONFIG_ALL_TYPES = 'allTypes'
+	final String CONFIG_GROUP_SUFFIX = 'groupSuffix'
+	final String CUBE_TYPE = 'cubeType'
+	final String CUBE_TYPE_DEFAULT = null
 
-	static final String DETAILS_CLASS_CELL_VALUES = 'cellValues'
-	static final String DETAILS_CLASS_WORD_WRAP = 'wordwrap'
-	static final String DETAILS_CLASS_SCOPE_CLICK = 'scopeClick'
-	static final String DETAILS_CLASS_SCOPE_INPUT = 'scopeInput'
-	static final String DETAILS_CLASS_EXCEPTION = 'Exception'
-	static final String DETAILS_CLASS_EXPAND_ALL = 'expandAll'
-	static final String DETAILS_CLASS_COLLAPSE_ALL = 'collapseAll'
-	static final String DETAILS_CLASS_EXECUTED_CELL = 'executedCell'
-	static final String DETAILS_CLASS_FORM_CONTROL = 'form-control'
-	static final String DETAILS_CLASS_TOP_NODE = 'topNode'
-	static final String DETAILS_CLASS_MISSING_VALUE = 'missingValue'
-	static final String DETAILS_CLASS_DEFAULT_VALUE = 'defaultValue'
+	final String DETAILS_CLASS_CELL_VALUES = 'cellValues'
+	final String DETAILS_CLASS_WORD_WRAP = 'wordwrap'
+	final String DETAILS_CLASS_SCOPE_CLICK = 'scopeClick'
+	final String DETAILS_CLASS_SCOPE_INPUT = 'scopeInput'
+	final String DETAILS_CLASS_EXCEPTION = 'Exception'
+	final String DETAILS_CLASS_EXPAND_ALL = 'expandAll'
+	final String DETAILS_CLASS_COLLAPSE_ALL = 'collapseAll'
+	final String DETAILS_CLASS_EXECUTED_CELL = 'executedCell'
+	final String DETAILS_CLASS_FORM_CONTROL = 'form-control'
+	final String DETAILS_CLASS_TOP_NODE = 'topNode'
+	final String DETAILS_CLASS_MISSING_VALUE = 'missingValue'
+	final String DETAILS_CLASS_DEFAULT_VALUE = 'defaultValue'
 }

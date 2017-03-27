@@ -8,41 +8,9 @@ import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
-
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.AXIS_FIELD
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.AXIS_TRAIT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.AXIS_NAME
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.CLASS_TRAITS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.V_MIN
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.V_MAX
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.R_SCOPED_NAME
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.R_EXISTS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.HTTP
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.HTTPS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.FILE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_CLASS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_ENUM
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_CLASS_DOT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_ENUM_DOT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.DOT_CLASS_TRAITS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_SCOPE_CLASS_DOT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.SOURCE_SCOPE_KEY_PREFIX
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.SYSTEM_SCOPE_KEY_PREFIX
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.SOURCE_FIELD_NAME
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.MANDATORY_SCOPE_KEYS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.EFFECTIVE_VERSION
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.POLICY_CONTROL_DATE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.QUOTE_DATE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.V_MIN_CARDINALITY
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.V_MAX_CARDINALITY
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.UNSPECIFIED
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.DATE_TIME_FORMAT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.BREAK
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.DOUBLE_BREAK
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.DETAILS_CLASS_DEFAULT_VALUE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.DETAILS_CLASS_MISSING_VALUE
 
 /**
  * Provides information to visualize a source rpm class, a target rpm class
@@ -50,12 +18,14 @@ import static com.cedarsoftware.visualizer.RpmVisualizerConstants.DETAILS_CLASS_
  */
 
 @CompileStatic
-class RpmVisualizerRelInfo extends VisualizerRelInfo
+class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerConstants
 {
 	protected RpmVisualizerHelper helper = new RpmVisualizerHelper(runtimeClient, appId)
 	protected String sourceFieldRpmType
 	protected Map<String, Map<String, Object>> sourceTraits
 	protected Map<String, Map<String, Object>> targetTraits
+
+	static final SafeSimpleDateFormat DATE_TIME_FORMAT = new SafeSimpleDateFormat('yyyy-MM-dd')
 
 	protected RpmVisualizerRelInfo(){}
 

@@ -5,22 +5,12 @@ import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
 import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.CUBE_TYPE_RPM
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.CUBE_TYPE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.JSON_FILE_PREFIX
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.JSON_FILE_SUFFIX
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.TYPES_TO_ADD_CUBE_NAME
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.CONFIG_ITEM
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.CONFIG_ALL_TYPES
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.SOURCE_TYPE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.TARGET_TYPE
-
 /**
  * Provides information to visualize rpm classes.
  */
 
 @CompileStatic
-class RpmVisualizerInfo extends VisualizerInfo
+class RpmVisualizerInfo extends VisualizerInfo implements RpmVisualizerConstants
 {
     RpmVisualizerInfo(){}
 

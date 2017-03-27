@@ -6,14 +6,9 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
 
-import static com.cedarsoftware.visualizer.VisualizerConstants.getDATE_TIME_FORMAT
-import static com.cedarsoftware.visualizer.VisualizerConstants.getDETAILS_CLASS_TOP_NODE
-import static com.cedarsoftware.visualizer.VisualizerTestConstants.getENTER_VALUE
-import static com.cedarsoftware.visualizer.VisualizerTestConstants.getSELECT_OR_ENTER_VALUE
-
 @CompileStatic
 @Ignore
-class VisualizerBaseTest extends NCubeBaseTest
+class VisualizerBaseTest extends NCubeBaseTest implements VisualizerConstants, VisualizerTestConstants
 {
     protected static final String TEST_APP_NAME = 'test.visualizer'
     protected static final String TEST_APP_VERSION = '1.0.9'
@@ -28,7 +23,7 @@ class VisualizerBaseTest extends NCubeBaseTest
     protected Map<Long, Map<String, Object>> edges
     protected Map<String, Object> selectedNode
 
-    protected static final String DEFAULT_SCOPE_DATE = DATE_TIME_FORMAT.format(new Date())
+    protected static final String DEFAULT_SCOPE_DATE = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(new Date())
 
     @Before
     void setup()

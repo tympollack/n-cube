@@ -2,15 +2,6 @@ package com.cedarsoftware.visualizer
 
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_CLASS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.CLASS_TRAITS
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.R_RPM_TYPE
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.V_ENUM
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_ENUM_DOT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_CLASS_DOT
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.UNSPECIFIED_ENUM
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.AXIS_FIELD
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.AXIS_TRAIT
 import groovy.transform.CompileStatic
 
 /**
@@ -19,7 +10,7 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-class RpmVisualizer extends Visualizer
+class RpmVisualizer extends Visualizer implements RpmVisualizerConstants
 {
 	private RpmVisualizerHelper helper
 

@@ -9,11 +9,8 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
 import org.junit.Test
 
-import static com.cedarsoftware.visualizer.RpmVisualizerConstants.*
-import static com.cedarsoftware.visualizer.VisualizerTestConstants.*
-
 @CompileStatic
-class RpmVisualizerTest extends VisualizerBaseTest
+class RpmVisualizerTest extends VisualizerBaseTest implements RpmVisualizerConstants, VisualizerTestConstants
 {
     static final String DETAILS_LABEL_UTILIZED_SCOPE_WITH_TRAITS = 'Utilized scope with traits'
     static final String DETAILS_LABEL_UTILIZED_SCOPE_WITHOUT_TRAITS = 'Utilized scope with no traits'
@@ -779,7 +776,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
                              product          : 'AProduct'] as CaseInsensitiveMap
         Map availableScope = getAvailableScope(utilizedScope)
 
-        String tomorrow = DATE_TIME_FORMAT.format(new Date() + 1)
+        String tomorrow = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(new Date() + 1)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -812,7 +809,7 @@ class RpmVisualizerTest extends VisualizerBaseTest
                              product          : 'AProduct'] as CaseInsensitiveMap
         Map availableScope = getAvailableScope(utilizedScope)
 
-        String tomorrow = DATE_TIME_FORMAT.format(new Date() + 1)
+        String tomorrow = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(new Date() + 1)
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
