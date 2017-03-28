@@ -1,6 +1,6 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.util.io.JsonWriter
+import com.cedarsoftware.util.io.MetaUtils
 import groovy.transform.CompileStatic
 import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
@@ -8,8 +8,6 @@ import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.reflect.MethodSignature
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
-import java.lang.reflect.Method
 
 /**
  * Before Advice that sets user ID on current thread.
@@ -53,40 +51,18 @@ class NCubeControllerAdvice
         def ret = pjp.proceed()
         long end = System.nanoTime()
         long time = Math.round((end - start) / 1000000.0d)
+        MethodSignature signature = (MethodSignature) pjp.signature
+        String methodName = signature.method.name
+        Object[] args = pjp.args
 
         if (time > 1000)
         {
-            LOG.info("[SLOW ${time}ms] ${getLogMessage(pjp)}")
+            LOG.info("[SLOW ${time}ms] ${MetaUtils.getLogMessage(methodName, args)}")
         }
         else if (LOG.debugEnabled)
         {
-            LOG.debug(getLogMessage(pjp))
+            LOG.debug(MetaUtils.getLogMessage(methodName, args))
         }
         return ret
-    }
-
-    private static String getLogMessage(ProceedingJoinPoint pjp)
-    {
-        MethodSignature signature = (MethodSignature) pjp.signature
-        Method method = signature.method
-        Object[] args = pjp.args
-        StringBuilder sb = new StringBuilder()
-        for (Object arg : args)
-        {
-            sb.append(getJsonStringToMaxLength(arg))
-            sb.append('  ')
-        }
-        String jsonArgs = sb.toString().trim()
-        return "${method.name}(${jsonArgs})"
-    }
-
-    private static String getJsonStringToMaxLength(Object obj)
-    {
-        String arg = JsonWriter.objectToJson(obj, [(JsonWriter.TYPE):false, (JsonWriter.SHORT_META_KEYS):true] as Map)
-        if (arg.length() > 51)
-        {
-            arg = "${arg.substring(0, 50)}..."
-        }
-        return arg
     }
 }

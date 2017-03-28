@@ -72,9 +72,9 @@
     </parent>
 
     <properties>
-        <version.json-io>4.9.10</version.json-io>
+        <version.json-io>4.9.11</version.json-io>
         <version.java-util>1.26.0</version.java-util>
-        <version.json-command-servlet>1.4.4-SNAPSHOT</version.json-command-servlet>
+        <version.json-command-servlet>1.5.0</version.json-command-servlet>
         <version.groovy>2.4.10</version.groovy>
         <version.guava>21.0</version.guava>
         <version.httpclient>4.5.3</version.httpclient>

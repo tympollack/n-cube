@@ -3,6 +3,7 @@ package com.cedarsoftware.util
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import com.cedarsoftware.util.io.MetaUtils
 import groovy.transform.CompileStatic
 import org.apache.http.HttpHost
 import org.apache.http.HttpResponse
@@ -94,19 +95,19 @@ class JsonHttpProxy implements CallableBean
         return httpClient
     }
 
-    Object call(String bean, String method, List args)
+    Object call(String bean, String methodName, List args)
     {
         String jArgs = JsonWriter.objectToJson(args.toArray())
         String jsonArgs = URLEncoder.encode(jArgs, 'UTF-8')
 
         if (LOG.debugEnabled)
         {
-            LOG.debug("${bean}.${method}(${jArgs})")
+            LOG.debug("${bean}.${MetaUtils.getLogMessage(methodName, args.toArray())}")
         }
         long start = System.nanoTime()
 
         HttpClientContext clientContext = HttpClientContext.create()
-        HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${method}")
+        HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${methodName}")
         if (username && password)
         {
             clientContext.credentialsProvider = credsProvider
@@ -153,7 +154,7 @@ class JsonHttpProxy implements CallableBean
             {
                 msg = 'no extra info provided.'
             }
-            throw new RuntimeException("REST call [${bean}.${method}] indicated failure on server: ${msg}")
+            throw new RuntimeException("REST call [${bean}.${methodName}] indicated failure on server: ${msg}")
         }
         return envelope.data
     }
