@@ -1,16 +1,12 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.EnvelopeException
+import com.cedarsoftware.ncube.exception.BranchMergeException
 import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.TestNCubeManager.defaultBootApp
 import static com.cedarsoftware.ncube.TestNCubeManager.defaultSnapshotApp
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.Assert.*
 
 /**
  * NCubeManager Tests
@@ -251,13 +247,14 @@ class TestSecurityApis extends NCubeCleanupBaseTest
             mutableClient.commitBranch(BRANCH1)
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            assert (e.envelopeData[mutableClient.BRANCH_ADDS] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_DELETES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_UPDATES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_RESTORES] as Map).size() == 0
-            assert (e.envelopeData[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            Map data = e.errors
+            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
         }
     }
 }

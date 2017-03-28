@@ -1,13 +1,11 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.EnvelopeException
+import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.util.UniqueIdGenerator
-import org.junit.Ignore
 import org.junit.Test
 
 import java.sql.*
 
-import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
 import static org.junit.Assert.*
 import static org.mockito.Matchers.anyInt
 import static org.mockito.Matchers.anyString
@@ -190,7 +188,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
         assert 0 == new NCubeJdbcPersister().commitCubes(null, defaultSnapshotApp, null, USER_ID, UniqueIdGenerator.uniqueId).size()
     }
 
-    @Ignore
+    @Test
     void testCommitCubeThatDoesntExist()
     {
         createCubeFromResource(defaultSnapshotApp, '2DSimpleJson.json')
@@ -203,9 +201,9 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
             mutableClient.commitBranch(defaultSnapshotApp, dtos.toArray())
             fail()
         }
-        catch (EnvelopeException e)
+        catch (BranchMergeException e)
         {
-            Map data = e.envelopeData as Map
+            Map data = e.errors
             assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
             assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
             assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0

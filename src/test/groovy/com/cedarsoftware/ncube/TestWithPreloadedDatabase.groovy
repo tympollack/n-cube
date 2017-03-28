@@ -5,12 +5,10 @@ import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.util.CdnClassLoader
-import com.cedarsoftware.util.EnvelopeException
 import groovy.transform.CompileStatic
 import org.junit.Before
 import org.junit.Test
 
-import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
 import static org.junit.Assert.*
 
@@ -2242,16 +2240,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         assertNull(mutableClient.getCube(BRANCH1, "TestBranch"))
 
-        try
-        {
-            mutableClient.duplicate(HEAD, BRANCH1, "TestBranch", "TestBranch")
-            assertNotNull(mutableClient.getCube(BRANCH1, "TestBranch"))
-            assertEquals(3, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
-        }
-        catch (EnvelopeException e)
-        {
-            assertEnvelopeExceptionContains(e, 'Unable to duplicate', 'already exists')
-        }
+        mutableClient.duplicate(HEAD, BRANCH1, "TestBranch", "TestBranch")
+        assertNotNull(mutableClient.getCube(BRANCH1, "TestBranch"))
+        assertEquals(3, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
     }
 
     @Test

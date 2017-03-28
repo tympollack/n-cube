@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.controller.NCubeController
-import com.cedarsoftware.util.EnvelopeException
 import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.runner.RunWith
@@ -68,11 +67,6 @@ class NCubeBaseTest implements NCubeConstants
     static NCubeController getNcubeController()
     {
         return NCubeAppContext.getBean(CONTROLLER_BEAN) as NCubeController
-    }
-
-    static void assertEnvelopeExceptionContains(EnvelopeException e, String... contains)
-    {
-        assertContainsIgnoreCase(e.envelopeData as String, contains)
     }
 
     static void assertContainsIgnoreCase(String source, String... contains)

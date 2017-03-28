@@ -24,7 +24,8 @@ import org.junit.Test
 
 @CompileStatic
 @Ignore
-class TestRuntimeAPIs //extends NCubeCleanupBaseTest
+// These tests can only be run when running with web-server.
+class TestRuntimeAPIs extends NCubeCleanupBaseTest
 {
     private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
     private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
@@ -39,15 +40,14 @@ class TestRuntimeAPIs //extends NCubeCleanupBaseTest
     @Test
     void testExecute()
     {
-//        createCubeFromResource(BRANCH1, 'test.execute.json')
-//        def result = call('execute', [BRANCH1, 'test.execute', 'plus', [value: 2.0d, term: 3.0d]])
-//        println result
+        createCubeFromResource(BRANCH1, 'test.execute.json')
+        def result = call('execute', [BRANCH1, 'test.execute', 'plus', [value: 2.0d, term: 3.0d]])
+        println result
     }
 
     private Object call(String method, List args)
     {
-//        NCubeRuntime runtime = mutableClient as NCubeRuntime
-//        runtime.bean.call('ncubeController', method, args)
-        return null // remove this line
+        NCubeRuntime runtime = mutableClient as NCubeRuntime
+        runtime.bean.call('ncubeController', method, args)
     }
 }
