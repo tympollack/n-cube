@@ -4,12 +4,7 @@ import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.UniqueIdGenerator
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -2121,7 +2116,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {
             int rejectSize = rejects.size()
             String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}."
-            ret['_message'] = errorMessage
             throw new BranchMergeException(errorMessage, ret)
         }
         return ret
@@ -2161,7 +2155,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {
             int rejectSize = rejects.size()
             String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}."
-            ret['_message'] = errorMessage
             throw new BranchMergeException(errorMessage, ret)
         }
         return commitRecords
