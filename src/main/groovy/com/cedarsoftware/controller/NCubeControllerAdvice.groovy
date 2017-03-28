@@ -58,7 +58,7 @@ class NCubeControllerAdvice
 
             if (time > 1000)
             {
-                LOG.info("[SLOW] ${getLogMessage(pjp)}")
+                LOG.info("[SLOW ${time}ms] ${getLogMessage(pjp)}")
             }
             else if (LOG.debugEnabled)
             {
