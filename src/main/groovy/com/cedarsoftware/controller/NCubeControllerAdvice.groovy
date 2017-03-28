@@ -45,33 +45,24 @@ class NCubeControllerAdvice
     @Around("execution(* com.cedarsoftware.controller.NCubeController.*(..)) && !execution(* com.cedarsoftware.controller.NCubeController.getUserForDatabase(..))")
     def advise(ProceedingJoinPoint pjp)
     {
-        try
-        {
-            // Place user on ThreadLocal
-            controller.userForDatabase
+        // Place user on ThreadLocal
+        controller.userForDatabase
 
-            long start = System.nanoTime()
-            // Execute method
-            def ret = pjp.proceed()
-            long end = System.nanoTime()
-            long time = Math.round((end - start) / 1000000.0d)
+        long start = System.nanoTime()
+        // Execute method
+        def ret = pjp.proceed()
+        long end = System.nanoTime()
+        long time = Math.round((end - start) / 1000000.0d)
 
-            if (time > 1000)
-            {
-                LOG.info("[SLOW ${time}ms] ${getLogMessage(pjp)}")
-            }
-            else if (LOG.debugEnabled)
-            {
-                LOG.debug(getLogMessage(pjp))
-            }
-            return ret
-        }
-        catch (Exception e)
+        if (time > 1000)
         {
-            // If there were any exceptions, signal controller (which signals command servlet)
-            controller.fail(e)
-            return null
+            LOG.info("[SLOW ${time}ms] ${getLogMessage(pjp)}")
         }
+        else if (LOG.debugEnabled)
+        {
+            LOG.debug(getLogMessage(pjp))
+        }
+        return ret
     }
 
     private static String getLogMessage(ProceedingJoinPoint pjp)
