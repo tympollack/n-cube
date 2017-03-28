@@ -1,7 +1,6 @@
 package com.cedarsoftware.controller
 
 import com.cedarsoftware.ncube.*
-import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.*
@@ -642,7 +641,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
         if (!mutableClient.deleteCubes(appId, cubeNames))
         {
-            markRequestFailed("Cannot delete RELEASE n-cube.")
+            throw new IllegalArgumentException("Cannot delete RELEASE n-cube.")
         }
         return true
     }
@@ -1036,10 +1035,9 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         }
         catch(Exception e)
         {
-            markRequestFailed(getTestCauses(e), e)
             ThreadAwarePrintStream.content
             ThreadAwarePrintStreamErr.content
-            return null
+            throw new IllegalStateException(getTestCauses(e), e)
         }
     }
 
@@ -1227,8 +1225,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         appId = addTenant(appId)
         if (ids == null || ids.length == 0)
         {
-            markRequestFailed("No IDs of cells to cut/clear were given.")
-            return null
+            throw new IllegalArgumentException("No IDs of cells to cut/clear were given.")
         }
 
         NCube ncube = loadCube(appId, cubeName)
@@ -1264,15 +1261,13 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
     {
         if (ArrayUtilities.isEmpty(clipboard))
         {
-            markRequestFailed("Could not paste cells, no data available on clipboard.")
-            return false
+            throw new IllegalArgumentException("Could not paste cells, no data available on clipboard.")
         }
 
         NCube ncube = loadCube(appId, cubeName)
         if (ncube == null)
         {
-            markRequestFailed("Could not paste cells, cube: ${cubeName} not found for app: ${appId}")
-            return false
+            throw new IllegalArgumentException("Could not paste cells, cube: ${cubeName} not found for app: ${appId}")
         }
 
         int len = clipboard.length;
@@ -1310,8 +1305,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
     {
         if (values == null || values.length == 0 || coords == null || coords.length == 0)
         {
-            markRequestFailed("Could not paste cells, values and coordinates must not be empty or length of 0.")
-            return false
+            throw new IllegalArgumentException("Could not paste cells, values and coordinates must not be empty or length of 0.")
         }
 
         NCube ncube = loadCube(appId, cubeName)
@@ -1514,8 +1508,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         NCubeInfoDto dto = mutableClient.getHeadChangesForBranch(appId).find { it.name == cubeName }
         if (dto == null)
         {
-            markRequestFailed("${cubeName} is already up-to-date")
-            return null
+            throw new IllegalStateException("${cubeName} is already up-to-date")
         }
         mutableClient.updateBranch(appId, dto)
     }
@@ -1818,17 +1811,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
     {
         return key.replace('"','')
     }
-
-    private static void markRequestFailed(Object data, Exception e = null)
-    {
-        JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_STATUS, false)
-        JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_FAIL_MESSAGE, data)
-        if (e != null)
-        {
-            JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_EXCEPTION, e)
-        }
-    }
-
+    
     private static Object getAttribute(MBeanServer mbs, String beanName, String attribute)
     {
         try
@@ -1854,41 +1837,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
             map[key] = value
         }
     }
-
-    /**
-     * Indicate to the Ajax servlet (JsonCommandServlet) that the 'status' field should
-     * be set to 'false', and then set the 'data' field to the String of exception
-     * text.
-     * @param e Exception that occurred when calling the service.
-     */
-    protected static void fail(Exception e)
-    {
-        markRequestFailed(getCauses(e), e)
-        if (e instanceof AxisOverlapException ||
-            e instanceof BranchMergeException ||
-            e instanceof CommandCellException ||
-            e instanceof CoordinateNotFoundException ||
-            e instanceof RuleJump ||
-            e instanceof RuleStop)
-        {
-            Throwable t = e
-            while (t.cause != null)
-            {
-                t = t.cause
-            }
-            String msg = t.message
-            if (StringUtilities.isEmpty(msg))
-            {
-                msg = t.class.name
-            }
-            LOG.info("user runtime error: ${msg}".toString())
-        }
-        else
-        {
-            LOG.info("error occurred", e)
-        }
-    }
-
+    
     /**
      * Given an exception, get an HTML version of it.  This version is reversed in order,
      * so that the root cause is first, and then the caller, and so on.
