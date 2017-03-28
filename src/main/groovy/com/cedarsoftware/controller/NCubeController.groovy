@@ -1,36 +1,9 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.Action
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.CellInfo
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.CommandCell
-import com.cedarsoftware.ncube.Delta
-import com.cedarsoftware.ncube.DeltaProcessor
-import com.cedarsoftware.ncube.GroovyExpression
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeAppContext
-import com.cedarsoftware.ncube.NCubeConstants
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeMutableClient
-import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.ReferenceAxisLoader
-import com.cedarsoftware.ncube.ReleaseStatus
-import com.cedarsoftware.ncube.RuleInfo
+import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.InetAddressUtilities
-import com.cedarsoftware.util.PoolInterceptor
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.ThreadAwarePrintStream
-import com.cedarsoftware.util.ThreadAwarePrintStreamErr
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -41,6 +14,8 @@ import com.google.common.util.concurrent.AtomicDouble
 import groovy.transform.CompileStatic
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.actuate.endpoint.MetricsEndpoint
 
 import javax.management.MBeanServer
 import javax.management.ObjectName
@@ -73,6 +48,8 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeController implements BaseController, NCubeConstants, RpmVisualizerConstants
 {
+    @Autowired
+    private MetricsEndpoint metricsEndpoint
     private static final Logger LOG = LoggerFactory.getLogger(NCubeController.class)
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
     private static final Pattern NO_QUOTES_REGEX = ~/"/
@@ -1743,34 +1720,13 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
         // App server name and version
         Map serverStats = [:]
-        putIfNotNull(serverStats, 'User ID', mutableClient.impliedId)
-        putIfNotNull(serverStats, 'Server Info', getAttribute(mbs, 'Catalina:type=Server', 'serverInfo'))
-        putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
-        putIfNotNull(serverStats, 'JVM Route', getAttribute(mbs, 'Catalina:type=Engine', 'jvmRoute'))
 
+        putIfNotNull(serverStats, 'User ID', mutableClient.impliedId)
+        putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
         putIfNotNull(serverStats, 'hostname, servlet', getServletHostname())
         putIfNotNull(serverStats, 'hostname, OS', getInetHostname())
         putIfNotNull(serverStats, 'Context', JsonCommandServlet.servletRequest.get().contextPath)
-        putIfNotNull(serverStats, 'Sessions, active', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + serverStats.Context, 'activeSessions'))
-        putIfNotNull(serverStats, 'Sessions, peak', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + serverStats.Context, 'maxActive'))
-
-        Set<ObjectName> set = mbs.queryNames(new ObjectName('Catalina:type=ThreadPool,name=*'), null)
-        Set<String> connectors = [] as LinkedHashSet
-        set.each {
-            ObjectName objName ->
-                connectors << objName.getKeyProperty('name')
-        }
-
-        for (String conn : connectors)
-        {
-            String cleanKey = cleanKey(conn)
-            putIfNotNull(serverStats, cleanKey + ' t-pool max', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxThreads'))
-            putIfNotNull(serverStats, cleanKey + ' t-pool cur', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadCount'))
-            putIfNotNull(serverStats, cleanKey + ' busy thread', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadsBusy'))
-            putIfNotNull(serverStats, cleanKey + ' max conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxConnections'))
-            putIfNotNull(serverStats, cleanKey + ' curr conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'connectionCount'))
-        }
-
+        
         // OS
         putIfNotNull(serverStats, 'OS', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Name'))
         putIfNotNull(serverStats, 'OS version', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Version'))
@@ -1813,9 +1769,25 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         putIfNotNull(serverStats, 'JDBC Pool active', PoolInterceptor.active.get())
         putIfNotNull(serverStats, 'JDBC Pool idle', PoolInterceptor.idle.get())
 
+        serverStats['----------'] = ''
+        Map metrics = metricsEndpoint.invoke()
+
+        for (Iterator<Map.Entry<String, Object>> it = metrics.entrySet().iterator(); it.hasNext(); )
+        {
+            Map.Entry<String, Object> entry = it.next()
+            String key = entry.key
+            if (key.startsWith("heap") || key.startsWith('nonheap') || key.startsWith('processors') || key.startsWith('mem'))
+            {
+                it.remove()
+            }
+            else
+            {
+                putIfNotNull(serverStats, key, entry.value)
+            }
+        }
+
         putIfNotNull(results, 'serverStats', serverStats)
         putIfNotNull(results, 'compareResults', [:])
-
         return results
     }
 
@@ -1854,7 +1826,11 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         {
             if (value instanceof Integer)
             {
-                value = value.longValue()
+                value = ((Integer)value).longValue()
+            }
+            else if (value instanceof Float)
+            {
+                value = ((Float)value).doubleValue()
             }
             map[key] = value
         }
