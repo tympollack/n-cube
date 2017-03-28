@@ -45,12 +45,12 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
+class NCubeManager implements NCubeMutableClient, NCubeTestServer
 {
     // Maintain cache of 'wildcard' patterns to Compiled Pattern instance
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
-    private static final Logger LOG = LoggerFactory.getLogger(NCubeManagerImpl.class)
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeManager.class)
     private final CacheManager permCacheManager
     
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
@@ -69,7 +69,7 @@ class NCubeManagerImpl implements NCubeMutableClient, NCubeTestServer
 
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
-    NCubeManagerImpl(NCubePersister persister, CacheManager permCacheManager)
+    NCubeManager(NCubePersister persister, CacheManager permCacheManager)
     {
         nCubePersister = persister
         this.permCacheManager = permCacheManager

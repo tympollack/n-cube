@@ -99,7 +99,10 @@ class JsonHttpProxy implements CallableBean
         String jArgs = JsonWriter.objectToJson(args.toArray())
         String jsonArgs = URLEncoder.encode(jArgs, 'UTF-8')
 
-        LOG.debug("${bean}.${method}(${jArgs})")
+        if (LOG.debugEnabled)
+        {
+            LOG.debug("${bean}.${method}(${jArgs})")
+        }
         long start = System.nanoTime()
 
         HttpClientContext clientContext = HttpClientContext.create()
@@ -125,7 +128,10 @@ class JsonHttpProxy implements CallableBean
         EntityUtils.consume(response.entity)
 
         long stop = System.nanoTime()
-        LOG.debug("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
+        if (LOG.debugEnabled)
+        {
+            LOG.debug("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
+        }
 
         Map envelope = JsonReader.jsonToJava(json) as Map
         if (envelope.exception != null)
@@ -145,7 +151,7 @@ class JsonHttpProxy implements CallableBean
             }
             else
             {
-                msg = 'Server indicated failure, no extra info provided.'
+                msg = 'no extra info provided.'
             }
             throw new RuntimeException("REST call [${bean}.${method}] indicated failure on server: ${msg}")
         }

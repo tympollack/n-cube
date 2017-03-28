@@ -31,9 +31,9 @@ import static org.junit.Assert.*
 @Ignore
 class TestSecurityApis extends NCubeCleanupBaseTest
 {
-    private static NCubeManagerImpl getManager()
+    private static NCubeManager getManager()
     {
-        return mutableClient as NCubeManagerImpl
+        return mutableClient as NCubeManager
     }
 
     @Test

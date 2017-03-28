@@ -37,10 +37,6 @@
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="jsonHttpProxy"/>
             <constructor-arg ref="ncubeCacheManager"/>
-            <constructor-arg ref="allowMutableMethods"/>
-        </bean>
-
-        <bean id="allowMutableMethods" class="java.lang.Boolean">
             <constructor-arg value="${ncube.allow.mutable.methods}"/>
         </bean>
 
@@ -69,13 +65,9 @@
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="jsonHttpProxy"/>
             <constructor-arg ref="ncubeCacheManager"/>
-            <constructor-arg ref="allowMutableMethods"/>
-        </bean>
-
-        <bean id="allowMutableMethods" class="java.lang.Boolean">
             <constructor-arg value="${ncube.allow.mutable.methods}"/>
         </bean>
-
+        
         <bean id="jsonHttpProxy" class="com.cedarsoftware.util.JsonHttpProxy">
             <constructor-arg value="${server.scheme}"/>
             <constructor-arg value="${server.host}"/>
@@ -100,7 +92,7 @@
             <constructor-arg value="false"/>
         </bean>
 
-        <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
+        <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManager">
             <constructor-arg ref="persister"/>
             <constructor-arg ref="permCacheManager"/>
         </bean>
@@ -126,7 +118,7 @@
             <constructor-arg value="true"/>
         </bean>
 
-        <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManagerImpl">
+        <bean id="ncubeManager" class="com.cedarsoftware.ncube.NCubeManager">
             <constructor-arg ref="persister"/>
             <constructor-arg ref="permCacheManager"/>
         </bean>

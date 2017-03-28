@@ -37,7 +37,7 @@
 
     <aop:config>
 
-        <aop:pointcut id="ncubeTransactedMethods" expression="execution(* com.cedarsoftware.ncube.NCubeManagerImpl.*(..))"/>
+        <aop:pointcut id="ncubeTransactedMethods" expression="execution(* com.cedarsoftware.ncube.NCubeManager.*(..))"/>
         <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeTransactedMethods"/>
 
     </aop:config>
