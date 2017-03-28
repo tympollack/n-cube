@@ -1004,7 +1004,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
             ruleInfoMain.setSystemErr(ThreadAwarePrintStreamErr.content)
 
             List<GroovyExpression> assertions = test.createAssertions()
-            int i = 0;
+            int i = 0
 
             for (GroovyExpression exp : assertions)
             {
@@ -2168,7 +2168,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         {
             colIds.add((Long)Converter.convert(id, Long.class))
         }
-        return colIds;
+        return colIds
     }
 
     private NCube loadCube(ApplicationID appId, String ncubeName)
