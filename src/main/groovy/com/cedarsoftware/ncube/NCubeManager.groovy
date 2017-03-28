@@ -4,7 +4,12 @@ import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.UniqueIdGenerator
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -621,7 +626,9 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         appId.validate()
         assertPermissions(appId, null)
-        return persister.getBranches(appId)
+        Set<String> realBranches = persister.getBranches(appId)
+        realBranches.add(ApplicationID.HEAD)
+        return realBranches
     }
 
     Integer getBranchCount(ApplicationID appId)
@@ -2274,6 +2281,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
     {
+        if (appId.branch == ApplicationID.HEAD)
+        {
+            return true
+        }
         Map options = [:]
         options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
         options[(SEARCH_EXACT_MATCH_NAME)] = true

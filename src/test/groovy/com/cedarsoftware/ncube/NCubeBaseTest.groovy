@@ -33,8 +33,8 @@ import static org.junit.Assert.assertTrue
 @RunWith(SpringRunner.class)
 @TestPropertySource(properties = ['ncube.allow.mutable.methods=true','logging.level.root=INFO'])
 @ContextConfiguration(classes = NCubeApplication.class, initializers = ConfigFileApplicationContextInitializer.class)
-@ActiveProfiles(profiles = ['client'])  // requires server running
-//@ActiveProfiles(profiles = ['combined-server','test-database'])
+//@ActiveProfiles(profiles = ['client'])  // requires server running
+@ActiveProfiles(profiles = ['combined-server','test-database'])
 @Ignore
 class NCubeBaseTest implements NCubeConstants
 {

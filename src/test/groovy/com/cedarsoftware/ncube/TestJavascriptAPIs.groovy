@@ -1,9 +1,15 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.controller.NCubeController
+import com.cedarsoftware.servlet.JsonCommandServlet
+import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.JsonHttpProxy
 import groovy.transform.CompileStatic
-import org.junit.Ignore
+import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito
+
+import javax.servlet.http.HttpServletRequest
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -24,12 +30,20 @@ import org.junit.Test
  */
 
 @CompileStatic
-@Ignore
-// TODO: Figure out how to run only if active profile = 'client'
 class TestJavascriptAPIs extends NCubeCleanupBaseTest
 {
     private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
     private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
+
+    @Before
+    void setup()
+    {
+        super.setup()
+        if (!NCubeAppContext.clientTest)
+        {
+            JsonCommandServlet.servletRequest.set(Mockito.mock(HttpServletRequest.class))
+        }
+    }
 
     @Test
     void testIsCubeUpToDate()
@@ -98,13 +112,13 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         List<NCubeInfoDto> cubes = runtimeClient.search(BRANCH1, 'TestBranch', null, null)
         assert cubes.size() == 1
         NCubeInfoDto origDto = cubes[0]
-        String origId = origDto.id
+        long origId = Converter.convert(origDto.id, long.class) as long
         NCube foo = runtimeClient.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
         mutableClient.updateCube(foo)
         List<NCubeInfoDto> cubes2 = runtimeClient.search(BRANCH1, 'TestBranch', null, null)
         assert cubes2.size() == 1
         NCubeInfoDto newDto = cubes2[0]
-        String newId = newDto.id
+        long newId = Converter.convert(newDto.id, long.class) as long
 
         List<Delta> result = call('fetchJsonRevDiffs', [newId, origId]) as List
         assert result.size() == 4
@@ -126,9 +140,32 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         assert result.size() == 4
     }
 
+    @Test
+    void testGetMenu()
+    {
+        Map menu = call('getMenu', [BRANCH1]) as Map
+        assert menu.title != null
+    }
+
+    @Test
+    void testExecute()
+    {
+        createCubeFromResource(BRANCH1, 'test.execute.json')
+        def result = call('execute', [BRANCH1, 'test.execute', 'plus', [value: 2.0d, term: 3.0d]])
+        println result
+    }
+
     private Object call(String methodName, List args)
     {
-        JsonHttpProxy proxy = NCubeAppContext.getBean('jsonHttpProxy') as JsonHttpProxy
-        proxy.invokeMethod('call', ['ncubeController', methodName, args])
+        if (NCubeAppContext.clientTest)
+        {
+            JsonHttpProxy proxy = NCubeAppContext.getBean('jsonHttpProxy') as JsonHttpProxy
+            proxy.invokeMethod('call', ['ncubeController', methodName, args])
+        }
+        else
+        {
+            NCubeController controller = NCubeAppContext.getBean(CONTROLLER_BEAN) as NCubeController
+            controller.invokeMethod(methodName, args)
+        }
     }
 }

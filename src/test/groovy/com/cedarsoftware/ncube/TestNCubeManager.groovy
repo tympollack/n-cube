@@ -1453,7 +1453,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assert checkVersions(versions, '1.0.0')
         assert checkVersions(versions, '0.0.0')
 
-        assert 1 == mutableClient.getBranchCount(johnAppId)
+        assert 2 == mutableClient.getBranchCount(johnAppId) //HEAD is always added
     }
 
     @Test
@@ -1661,6 +1661,14 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNull(runtimeClient.systemParams.status)
         assertNull(runtimeClient.systemParams.app)
         assertNull(runtimeClient.systemParams.tenant)
+    }
+
+    @Test
+    void testGetBranches()
+    {
+        Set<String> branches = runtimeClient.getBranches(ApplicationID.testAppId)
+        assert 2 == branches.size()
+        assert branches.contains(ApplicationID.TEST_BRANCH)
     }
 
     @Test
