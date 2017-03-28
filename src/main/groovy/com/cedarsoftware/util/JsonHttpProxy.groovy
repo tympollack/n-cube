@@ -16,11 +16,7 @@ import org.apache.http.conn.routing.HttpRoute
 import org.apache.http.entity.ContentType
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.auth.BasicScheme
-import org.apache.http.impl.client.BasicAuthCache
-import org.apache.http.impl.client.BasicCookieStore
-import org.apache.http.impl.client.BasicCredentialsProvider
-import org.apache.http.impl.client.CloseableHttpClient
-import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.impl.client.*
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.util.EntityUtils
 import org.slf4j.Logger
@@ -132,28 +128,26 @@ class JsonHttpProxy implements CallableBean
         LOG.debug("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
 
         Map envelope = JsonReader.jsonToJava(json) as Map
+        if (envelope.exception != null)
+        {
+            throw envelope.exception
+        }
         if (envelope.status == false)
         {
-            if (envelope.exception != null)
-            {
-                throw envelope.exception
-            }
+            String msg
             if (envelope.data instanceof String)
             {
-                String data = envelope.data as String
-                Object obj = null
-                try
-                {
-                    obj = JsonReader.jsonToJava(data)
-                }
-                catch (Exception ignored)  { }
-                
-                if (obj instanceof Exception)
-                {
-                    throw obj as Exception
-                }
+                msg = envelope.data
             }
-            throw new EnvelopeException("REST call [${bean}.${method}] indicated failure on server:", envelope)
+            else if (envelope.data != null)
+            {
+                msg = envelope.data.toString()
+            }
+            else
+            {
+                msg = 'Server indicated failure, no extra info provided.'
+            }
+            throw new RuntimeException("REST call [${bean}.${method}] indicated failure on server: ${msg}")
         }
         return envelope.data
     }
