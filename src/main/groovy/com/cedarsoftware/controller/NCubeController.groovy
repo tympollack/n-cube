@@ -1,42 +1,10 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.Action
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.CellInfo
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.CommandCell
-import com.cedarsoftware.ncube.Delta
-import com.cedarsoftware.ncube.DeltaProcessor
-import com.cedarsoftware.ncube.GroovyExpression
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeAppContext
-import com.cedarsoftware.ncube.NCubeConstants
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeMutableClient
-import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.ReferenceAxisLoader
-import com.cedarsoftware.ncube.ReleaseStatus
-import com.cedarsoftware.ncube.RuleInfo
-import com.cedarsoftware.ncube.exception.AxisOverlapException
-import com.cedarsoftware.ncube.exception.BranchMergeException
-import com.cedarsoftware.ncube.exception.CommandCellException
-import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
-import com.cedarsoftware.ncube.exception.RuleJump
-import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.InetAddressUtilities
-import com.cedarsoftware.util.PoolInterceptor
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.ThreadAwarePrintStream
-import com.cedarsoftware.util.ThreadAwarePrintStreamErr
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -379,7 +347,8 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         }
 
         List<String> appNames = mutableClient.appNames
-        if (appNames.size() == 0) {
+        if (appNames.size() == 0)
+        {
             ApplicationID defaultAppId = new ApplicationID(tenantName, ApplicationID.DEFAULT_APP, '1.0.0', ReleaseStatus.SNAPSHOT.name(), 'DEFAULT_BRANCH')
             createCube(defaultAppId, 'defaultNewAppCube')
             clearVersionCache(defaultAppId.app)
@@ -1495,20 +1464,8 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
     Object honorCommit(String commitId)
     {
-        try
-        {
-            Map result = mutableClient.honorCommit(commitId)
-            return result
-        }
-        catch (BranchMergeException e)
-        {
-            markRequestFailed(e.message, e)
-            return e.errors
-        }
-        catch (Exception e)
-        {
-            throw e
-        }
+        Map result = mutableClient.honorCommit(commitId)
+        return result
     }
 
     NCube cancelCommit(String commitId)
@@ -1536,37 +1493,13 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         options[(SEARCH_EXACT_MATCH_NAME)] = true
         options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
         List<NCubeInfoDto> list = mutableClient.search(appId, cubeName, null, options)
-        try
-        {
-            return mutableClient.commitBranch(appId, list)
-        }
-        catch (BranchMergeException e)
-        {
-            markRequestFailed(e.message, e)
-            return e.errors
-        }
-        catch (Exception e)
-        {
-            throw e
-        }
+        return mutableClient.commitBranch(appId, list)
     }
 
     Object commitBranch(ApplicationID appId, Object[] infoDtos)
     {
         appId = addTenant(appId)
-        try
-        {
-            return mutableClient.commitBranch(appId, infoDtos)
-        }
-        catch (BranchMergeException e)
-        {
-            markRequestFailed(e.message, e)
-            return e.errors
-        }
-        catch (Exception e)
-        {
-            throw e
-        }
+        return mutableClient.commitBranch(appId, infoDtos)
     }
 
     Integer rollbackBranch(ApplicationID appId, Object[] cubeNames)
