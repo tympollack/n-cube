@@ -26,26 +26,55 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class ThreadAwarePrintStream extends PrintStream
 {
+    private final OutputStream original
+    
+    private static final ThreadLocal<Boolean> redirect = new ThreadLocal<Boolean>() {
+        Boolean initialValue()
+        {
+            return false
+        }
+    }
+
     private static final ThreadLocal<ByteArrayOutputStream> output = new ThreadLocal<ByteArrayOutputStream>() {
-        public ByteArrayOutputStream initialValue()
+        ByteArrayOutputStream initialValue()
         {
             return new ByteArrayOutputStream()
         }
     }
 
-    ThreadAwarePrintStream()
+    ThreadAwarePrintStream(OutputStream original)
     {
         super(output.get())
+        this.original = original
+    }
+
+    void setRedirect(boolean reDir)
+    {
+        redirect.set(reDir)
     }
 
     void write(int b)
     {
-        output.get().write(b)
+        if (redirect.get())
+        {
+            output.get().write(b)
+        }
+        else
+        {
+            original.write(b)
+        }
     }
 
     void write(byte[] buf, int off, int len)
     {
-        output.get().write(buf, off, len)
+        if (redirect.get())
+        {
+            output.get().write(buf, off, len)
+        }
+        else
+        {
+            original.write(buf, off, len)
+        }
     }
 
     static String getContent()

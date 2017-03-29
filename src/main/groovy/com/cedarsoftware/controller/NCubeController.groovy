@@ -69,8 +69,8 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
     NCubeController(NCubeMutableClient mutableClient, boolean allowExecute)
     {
-//        System.err = new ThreadAwarePrintStreamErr()
-//        System.out = new ThreadAwarePrintStream()
+        System.out = new ThreadAwarePrintStream(System.out)
+        System.err = new ThreadAwarePrintStreamErr(System.err)
         this.mutableClient = mutableClient
         this.allowExecute = allowExecute
     }
@@ -972,9 +972,11 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
     Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
     {
-        verifyAllowExecute('runTest')
         try
-        {   // Do not remove try-catch handler here - this API must handle it's own exceptions, instead
+        {
+            verifyAllowExecute('runTest')
+
+            // Do not remove try-catch handler here - this API must handle it's own exceptions, instead
             // of allowing the Around Advice to handle them.
             Properties props = System.properties
             String server = props.getProperty("http.proxyHost")
@@ -995,16 +997,16 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
                 if (value instanceof CommandCell)
                 {
                     CommandCell cmd = (CommandCell) value
+                    redirectOutput(true)
                     coord[key] = cmd.execute(args)
+                    redirectOutput(false)
                 }
             }
 
             Set<String> errors = new LinkedHashSet<>()
+            redirectOutput(true)
             ncube.getCell(coord, output)               // Execute test case
-
-            RuleInfo ruleInfoMain = (RuleInfo) output[(NCube.RULE_EXEC_INFO)]
-            ruleInfoMain.setSystemOut(ThreadAwarePrintStream.content)
-            ruleInfoMain.setSystemErr(ThreadAwarePrintStreamErr.content)
+            redirectOutput(false)
 
             List<GroovyExpression> assertions = test.createAssertions()
             int i = 0
@@ -1019,11 +1021,13 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
                     RuleInfo ruleInfo = new RuleInfo()
                     assertionOutput[(NCube.RULE_EXEC_INFO)] = ruleInfo
                     args.output = assertionOutput
+                    redirectOutput(true)
                     if (!NCube.isTrue(exp.execute(args)))
                     {
                         errors.add("[assertion ${i} failed]: ${exp.cmd}".toString())
                         success = false
                     }
+                    redirectOutput(false)
                 }
                 catch (Exception e)
                 {
@@ -1033,15 +1037,56 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
                     success = false
                 }
             }
-
+            
+            RuleInfo ruleInfoMain = (RuleInfo) output[(NCube.RULE_EXEC_INFO)]
+            ruleInfoMain.setSystemOut(fetchRedirectedOutput())
+            ruleInfoMain.setSystemErr(fetchRedirectedErr())
             ruleInfoMain.setAssertionFailures(errors)
             return ['_message': new TestResultsFormatter(output).format(), '_result' : success]
         }
         catch(Exception e)
         {
-            ThreadAwarePrintStream.content
-            ThreadAwarePrintStreamErr.content
+            fetchRedirectedOutput()
+            fetchRedirectedErr()
             throw new IllegalStateException(getTestCauses(e), e)
+        }
+        finally
+        {
+            redirectOutput(false)
+        }
+    }
+
+    private String fetchRedirectedOutput()
+    {
+        OutputStream outputStream = System.out
+        if (outputStream instanceof ThreadAwarePrintStream)
+        {
+            return ((ThreadAwarePrintStream) outputStream).content
+        }
+        return ''
+    }
+
+    private String fetchRedirectedErr()
+    {
+        OutputStream outputStream = System.err
+        if (outputStream instanceof ThreadAwarePrintStreamErr)
+        {
+            return ((ThreadAwarePrintStreamErr) outputStream).content
+        }
+        return ''
+    }
+
+    private void redirectOutput(boolean redirect)
+    {
+        OutputStream outputStream = System.out
+        if (outputStream instanceof ThreadAwarePrintStream)
+        {
+            ((ThreadAwarePrintStream) outputStream).redirect = redirect
+        }
+        outputStream = System.err
+        if (outputStream instanceof ThreadAwarePrintStreamErr)
+        {
+            ((ThreadAwarePrintStreamErr) outputStream).redirect = redirect
         }
     }
 
