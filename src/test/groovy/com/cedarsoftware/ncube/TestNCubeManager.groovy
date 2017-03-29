@@ -1701,6 +1701,54 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testSysLockSecurity()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        String origUser = mutableClient.userId
+        ApplicationID branchBootAppId = defaultBootApp.asBranch(origUser)
+        Map lockCoord = [(AXIS_SYSTEM): null]
+
+        // create branch
+        mutableClient.copyBranch(branchBootAppId.asHead(), branchBootAppId)
+
+        // update sys lock in branch
+        NCube sysLockCube = mutableClient.getCube(branchBootAppId, SYS_LOCK)
+        sysLockCube.setCell(origUser, lockCoord)
+        mutableClient.updateCube(sysLockCube)
+
+        // commit sys lock to HEAD
+        Object[] cubeInfos = mutableClient.search(branchBootAppId, SYS_LOCK, null, [(SEARCH_ACTIVE_RECORDS_ONLY): true])
+        Map<String, Object> commitResult = mutableClient.commitBranch(branchBootAppId, cubeInfos)
+        assertEquals(1, (commitResult[mutableClient.BRANCH_UPDATES] as Map).size())
+
+        // make sure HEAD took the lock
+        sysLockCube = mutableClient.getCube(branchBootAppId, SYS_LOCK)
+        NCube headSysLockCube = mutableClient.getCube(defaultBootApp, SYS_LOCK)
+        assertEquals(sysLockCube.getCell(lockCoord), headSysLockCube.getCell(lockCoord))
+
+        // try creating a new cube in branch, should get exception
+        NCube testCube = new NCube('test')
+        testCube.applicationID = branchBootAppId
+        mutableClient.createCube(testCube)  // works without error because current user has the lock
+
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        manager.userId = 'garpley'                   // change user
+        try
+        {
+            mutableClient.updateCube(testCube)
+            fail()
+        }
+        catch (SecurityException e)
+        {
+            assertTrue(e.message.contains('Application is not locked by you'))
+        }
+        manager.userId = origUser
+    }
+
+    @Test
     void testBranchPermissionsCubeCreatedOnNewBranch()
     {
         String userId = System.getProperty('user.name')
@@ -1720,13 +1768,132 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testBranchPermissionsFail()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        String origUser = mutableClient.userId
+        String testAxisName = 'testAxis'
+        ApplicationID appId = defaultSnapshotApp.asBranch(origUser)
+
+        //create new branch and make sure of permissions
+        mutableClient.copyBranch(appId.asHead(), appId)
+        NCube branchPermCube = mutableClient.getCube(defaultBootApp.asBranch(origUser), SYS_BRANCH_PERMISSIONS)
+        Axis userAxis = branchPermCube.getAxis(AXIS_USER)
+        List<Column> columnList = userAxis.columnsWithoutDefault
+        assertEquals(1, columnList.size())
+        assertEquals(origUser, columnList.get(0).value)
+
+        //check app permissions cubes
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_PERMISSIONS))
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_USERGROUPS))
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_LOCK))
+
+        //new cube on branch from good user
+        NCube testCube = new NCube('test')
+        testCube.applicationID = appId
+        testCube.addAxis(new Axis(testAxisName, AxisType.DISCRETE, AxisValueType.STRING, true))
+        mutableClient.createCube(testCube)
+
+        //try to create a cube as a different user in that branch
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        try
+        {
+            manager.userId = 'otherUser'
+            testCube.setCell('testval', [(testAxisName): null])
+            mutableClient.updateCube(testCube)
+            fail()
+        }
+        catch (SecurityException e)
+        {
+            assertTrue(e.message.contains('not performed'))
+            assertTrue(e.message.contains(Action.UPDATE.name()))
+            assertTrue(e.message.contains(testCube.name))
+        }
+        manager.userId = origUser
+    }
+
+    @Test
     void testIsAdminPass()
     {
         //without user cube present
-        assertTrue(mutableClient.isAppAdmin(defaultSnapshotApp, true))
-
+        assertTrue(mutableClient.isAppAdmin(defaultSnapshotApp))
         assertNotNull(mutableClient.getCube(defaultBootApp, SYS_USERGROUPS))
-        assertTrue(mutableClient.isAppAdmin(defaultSnapshotApp, true))
+        assertTrue(mutableClient.isAppAdmin(defaultSnapshotApp))
+    }
+
+    @Test
+    void testIsAdminFail()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        String origUser = manager.userId
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_USERGROUPS))
+        manager.userId = 'bad'
+        assert !mutableClient.isAppAdmin(defaultSnapshotApp)
+        manager.userId = origUser
+    }
+
+    @Test
+    void testAppPermissionsFail()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        String origUser = mutableClient.userId
+        String otherUser = 'otherUser'
+        String testAxisName = 'testAxis'
+        ApplicationID branchBootApp = defaultBootApp.asBranch(ApplicationID.TEST_BRANCH)
+
+        //check app permissions cubes
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_PERMISSIONS))
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_USERGROUPS))
+        assertNotNull(mutableClient.getCube(defaultBootApp, SYS_LOCK))
+
+        //set otheruser as having branch permissions
+        NCube branchPermCube = mutableClient.getCube(branchBootApp, SYS_BRANCH_PERMISSIONS)
+        branchPermCube.getAxis(AXIS_USER).addColumn(otherUser)
+        branchPermCube.setCell(true, [(AXIS_USER): otherUser, (AXIS_RESOURCE): null])
+        mutableClient.updateCube(branchPermCube)
+
+        //set otheruser as no app permissions
+        NCube userCube = mutableClient.getCube(branchBootApp, SYS_USERGROUPS)
+        userCube.getAxis(AXIS_USER).addColumn(otherUser)
+        userCube.setCell(true, [(AXIS_USER): otherUser, (AXIS_ROLE): ROLE_READONLY])
+        mutableClient.updateCube(userCube)
+        List<NCubeInfoDto> dtos = mutableClient.search(branchBootApp, userCube.name, null, null)
+        mutableClient.commitBranch(branchBootApp, dtos)
+        NCube headUserCube = mutableClient.getCube(defaultBootApp, SYS_USERGROUPS)
+        assertFalse(headUserCube.getCell([(AXIS_USER): otherUser, (AXIS_ROLE): ROLE_USER]) as Boolean)
+        assertTrue(headUserCube.getCell([(AXIS_USER): otherUser, (AXIS_ROLE): ROLE_READONLY]) as Boolean)
+
+        NCube testCube = new NCube('test')
+        testCube.applicationID = defaultSnapshotApp
+        testCube.addAxis(new Axis(testAxisName, AxisType.DISCRETE, AxisValueType.STRING, true))
+        mutableClient.createCube(testCube)
+
+        //try to update a cube from bad user
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        try
+        {
+            manager.userId = otherUser
+            testCube.setCell('testval', [(testAxisName): null])
+            mutableClient.updateCube(testCube)
+            fail()
+        }
+        catch (SecurityException e)
+        {
+            assertTrue(e.message.contains('not performed'))
+            assertTrue(e.message.contains(Action.UPDATE.name()))
+            assertTrue(e.message.contains(testCube.name))
+        }
+        manager.userId = origUser
     }
 
     @Test

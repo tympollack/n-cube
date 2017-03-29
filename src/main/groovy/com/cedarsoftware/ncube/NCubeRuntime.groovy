@@ -121,9 +121,10 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    void setUserId(String user)
+    String getUserId()
     {
-        // Only the Editor (READ WRITE) implementation should implement this
+        String userId = bean.call(beanName, 'getUserId', []) as String
+        return userId
     }
 
     Boolean updateCube(NCube ncube)
@@ -173,21 +174,9 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    void setFakeId(String fake)
+    Boolean isAppAdmin(ApplicationID appId)
     {
-        verifyAllowMutable('setFakeId')
-        bean.call(beanName, 'setFakeId', [fake])
-    }
-
-    String getImpliedId()
-    {
-        verifyAllowMutable('getImpliedId')
-        bean.call(beanName, 'getImpliedId', [])
-    }
-
-    Boolean isAppAdmin(ApplicationID appId, boolean useRealId)
-    {
-        Boolean result = bean.call(beanName, 'isAppAdmin', [appId, useRealId]) as Boolean
+        Boolean result = bean.call(beanName, 'isAppAdmin', [appId]) as Boolean
         return result
     }
 

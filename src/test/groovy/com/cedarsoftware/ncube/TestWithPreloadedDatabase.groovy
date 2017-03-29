@@ -9,8 +9,21 @@ import groovy.transform.CompileStatic
 import org.junit.Before
 import org.junit.Test
 
-import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
-import static org.junit.Assert.*
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_AXIS_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_BRANCH
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_CUBE_NAME
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_STATUS
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_TENANT
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_VERSION
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNotSame
+import static org.junit.Assert.assertNull
+import static org.junit.Assert.assertSame
+import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -2362,6 +2375,63 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         List dtos2 = mutableClient.getHeadChangesForBranch(BRANCH2)
         assert dtos2.size() == 0    // Nothing for BRANCH2 because cube matched HEAD already
+    }
+
+    @Test
+    void testCommitFailsWithoutPermissions()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        String origUser = mutableClient.userId
+        preloadCubes(BRANCH2, "test.branch.1.json")
+        mutableClient.commitBranch(BRANCH2)
+        mutableClient.copyBranch(HEAD, BRANCH1)
+
+        // cube is updated by someone with access
+        String cubeName = 'TestBranch'
+        NCube testBranchCube = mutableClient.getCube(BRANCH1, cubeName)
+        testBranchCube.setCell('AAA', [Code: 15])
+        mutableClient.updateCube(testBranchCube)
+
+        // set permission on cube to deny commit for normal user
+        ApplicationID branchBoot = BRANCH1.asVersion('0.0.0')
+        NCube sysPermissions = mutableClient.getCube(branchBoot, SYS_PERMISSIONS)
+        sysPermissions.addColumn(AXIS_RESOURCE, cubeName)
+        sysPermissions.setCell(true, [(AXIS_RESOURCE): cubeName, (AXIS_ROLE): ROLE_USER, (AXIS_ACTION): Action.READ.lower()])
+        mutableClient.updateCube(sysPermissions)
+        List<NCubeInfoDto> dtos = runtimeClient.search(branchBoot, SYS_PERMISSIONS, null, null)
+        assert dtos.size() == 1
+        NCubeInfoDto permissionDto = dtos[0]
+        mutableClient.commitBranch(branchBoot, permissionDto)
+
+        // set testUser to have user role on branch
+        NCube sysBranchPermissions = mutableClient.getCube(branchBoot, SYS_BRANCH_PERMISSIONS)
+        String testUser = 'testUser'
+        sysBranchPermissions.addColumn(AXIS_USER, testUser)
+        sysBranchPermissions.setCell(true, [(AXIS_USER): testUser])
+        mutableClient.updateCube(sysBranchPermissions)
+
+        // impersonate testUser, who shouldn't be able to commit the changed cube
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        manager.userId = testUser
+
+        try
+        {
+            mutableClient.commitBranch(BRANCH1)
+            fail()
+        }
+        catch (BranchMergeException e)
+        {
+            Map data = e.errors
+            assert (data[mutableClient.BRANCH_ADDS] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_DELETES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_UPDATES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_RESTORES] as Map).size() == 0
+            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        }
+        manager.userId = origUser
     }
 
     /***** tests for commit and update from our cube matrix *****/

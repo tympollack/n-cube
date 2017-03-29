@@ -30,7 +30,7 @@ interface NCubeMutableClient extends NCubeClient
     public static final String BRANCH_REJECTS = 'rejects'
     public static final String BRANCH_RESTORES = 'restores'
 
-    void setUserId(String user)
+    String getUserId()
 
     Boolean updateCube(NCube ncube)
 
@@ -42,11 +42,7 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean checkPermissions(ApplicationID appId, String resource, String action)
 
-    void setFakeId(String fake)
-
-    String getImpliedId()
-
-    Boolean isAppAdmin(ApplicationID appId, boolean useRealId)
+    Boolean isAppAdmin(ApplicationID appId)
 
     String getAppLockedBy(ApplicationID appId)
 

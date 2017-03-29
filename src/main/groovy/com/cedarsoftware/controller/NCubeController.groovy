@@ -1,9 +1,37 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.Action
+import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisType
+import com.cedarsoftware.ncube.AxisValueType
+import com.cedarsoftware.ncube.CellInfo
+import com.cedarsoftware.ncube.Column
+import com.cedarsoftware.ncube.CommandCell
+import com.cedarsoftware.ncube.Delta
+import com.cedarsoftware.ncube.DeltaProcessor
+import com.cedarsoftware.ncube.GroovyExpression
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeAppContext
+import com.cedarsoftware.ncube.NCubeConstants
+import com.cedarsoftware.ncube.NCubeInfoDto
+import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.NCubeMutableClient
+import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.NCubeTest
+import com.cedarsoftware.ncube.ReferenceAxisLoader
+import com.cedarsoftware.ncube.ReleaseStatus
+import com.cedarsoftware.ncube.RuleInfo
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.InetAddressUtilities
+import com.cedarsoftware.util.PoolInterceptor
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.ThreadAwarePrintStream
+import com.cedarsoftware.util.ThreadAwarePrintStreamErr
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -77,36 +105,27 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
 
     protected String getUserForDatabase()
     {
+        String user = null
         HttpServletRequest request = JsonCommandServlet.servletRequest.get()
-        String smuser = request.getHeader('smuser')
-        String realId = smuser && StringUtilities.hasContent(smuser) ? smuser : System.getProperty('user.name')
-        mutableClient.userId = realId
-
-        String fakeuser = request.getHeader('fakeuser')
-        String appid = request.getHeader('appid')
-        if (fakeuser && appid && StringUtilities.hasContent('fakeuser') && StringUtilities.hasContent('appid'))
+        Enumeration e = request.headerNames
+        while (e.hasMoreElements())
         {
-            String[] appIdParts = appid.split('~')
-            if (appIdParts.length > 1)
+            String headerName = (String) e.nextElement()
+            if ('smuser'.equalsIgnoreCase(headerName))
             {
-                ApplicationID appId = new ApplicationID(tenant, appIdParts[0], appIdParts[1], appIdParts[2], appIdParts[3])
-                if (isAppAdmin(appId, true))
-                {
-                    mutableClient.fakeId = fakeuser
-                }
+                user = request.getHeader(headerName)
+                break
             }
         }
-        else
+
+        if (StringUtilities.isEmpty(user))
         {
-            mutableClient.fakeId = ''
+            user = System.getProperty('user.name')
         }
 
-        return realId
-    }
-
-    protected void setUser(String userId)
-    {
-        mutableClient.userId = userId
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        manager.userId = user
+        return user
     }
 
     // ============================================= Begin API =========================================================
@@ -117,10 +136,10 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         return mutableClient.checkPermissions(appId, resource, action == null ? Action.READ.name() : action)
     }
 
-    Boolean isAppAdmin(ApplicationID appId, boolean useRealId = false)
+    Boolean isAppAdmin(ApplicationID appId)
     {
         appId = addTenant(appId)
-        return mutableClient.isAppAdmin(appId, useRealId)
+        return mutableClient.isAppAdmin(appId)
     }
 
     String getAppLockedBy(ApplicationID appId)
@@ -1766,7 +1785,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         // App server name and version
         Map serverStats = [:]
 
-        putIfNotNull(serverStats, 'User ID', mutableClient.impliedId)
+        putIfNotNull(serverStats, 'User ID', mutableClient.userId)
         putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
         putIfNotNull(serverStats, 'hostname, servlet', getServletHostname())
         putIfNotNull(serverStats, 'hostname, OS', getInetHostname())

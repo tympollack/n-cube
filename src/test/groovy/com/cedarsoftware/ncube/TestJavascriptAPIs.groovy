@@ -41,7 +41,20 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         super.setup()
         if (!NCubeAppContext.clientTest)
         {
-            JsonCommandServlet.servletRequest.set(Mockito.mock(HttpServletRequest.class))
+            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
+            Mockito.when(request.headerNames).thenReturn(new Enumeration<String>() {
+                boolean hasMoreElements()
+                {
+                    return false
+                }
+
+                String nextElement()
+                {
+                    return null
+                }
+            })
+            JsonCommandServlet.servletRequest.set(request)
+
         }
     }
 
