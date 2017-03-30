@@ -1,37 +1,9 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.Action
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.CellInfo
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.CommandCell
-import com.cedarsoftware.ncube.Delta
-import com.cedarsoftware.ncube.DeltaProcessor
-import com.cedarsoftware.ncube.GroovyExpression
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeAppContext
-import com.cedarsoftware.ncube.NCubeConstants
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeManager
-import com.cedarsoftware.ncube.NCubeMutableClient
-import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.ReferenceAxisLoader
-import com.cedarsoftware.ncube.ReleaseStatus
-import com.cedarsoftware.ncube.RuleInfo
+import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.InetAddressUtilities
-import com.cedarsoftware.util.PoolInterceptor
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.ThreadAwarePrintStream
-import com.cedarsoftware.util.ThreadAwarePrintStreamErr
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -44,6 +16,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.actuate.endpoint.MetricsEndpoint
+import org.springframework.web.bind.annotation.RestController
 
 import javax.management.MBeanServer
 import javax.management.ObjectName
@@ -74,7 +47,8 @@ import java.util.regex.Pattern
  *         limitations under the License.
  */
 @CompileStatic
-class NCubeController implements BaseController, NCubeConstants, RpmVisualizerConstants
+@RestController
+class NCubeController implements NCubeConstants, RpmVisualizerConstants
 {
     @Autowired
     private MetricsEndpoint metricsEndpoint
@@ -1763,7 +1737,7 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         NCubeAppContext.testServer.clearTestDatabase()
     }
 
-    Map heartBeat(Map openCubes)
+    Map heartBeat(Map openCubes, boolean showAll = false)
     {
         // If remotely accessing server, use the following to get the MBeanServerConnection...
 //        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://localhost:/jmxrmi")
@@ -1840,13 +1814,19 @@ class NCubeController implements BaseController, NCubeConstants, RpmVisualizerCo
         {
             Map.Entry<String, Object> entry = it.next()
             String key = entry.key
-            if (key.startsWith("heap") || key.startsWith('nonheap') || key.startsWith('processors') || key.startsWith('mem'))
+            if (!(key.startsWith("heap") || key.startsWith('nonheap') || key.startsWith('processors') || key.startsWith('mem')))
             {
-                it.remove()
-            }
-            else
-            {
-                putIfNotNull(serverStats, key, entry.value)
+                if (showAll)
+                {
+                    putIfNotNull(serverStats, key, entry.value)
+                }
+                else
+                {
+                    if (!(key.startsWith('gauge') || key.startsWith('cache') || key.startsWith('counter')))
+                    {
+                        putIfNotNull(serverStats, key, entry.value)
+                    }
+                }
             }
         }
 
