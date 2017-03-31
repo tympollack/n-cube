@@ -174,4 +174,32 @@ class TestCommit extends NCubeCleanupBaseTest
             assertContainsIgnoreCase(e.message, 'invalid', 'id')
         }
     }
+
+    @Test
+    void testHonorCommitByOtherUser()
+    {
+        String origUser = mutableClient.userId
+        String otherUser = 'otherUser'
+
+        // give other user branch permissions
+        ApplicationID tripZero = appId.asVersion('0.0.0')
+        NCube permissions = mutableClient.getCube(tripZero, SYS_BRANCH_PERMISSIONS)
+        permissions.addColumn(AXIS_USER, otherUser)
+        permissions.setCell(true, [(AXIS_USER): otherUser, (AXIS_RESOURCE): null])
+        mutableClient.updateCube(permissions)
+
+        NCube ncube = createCubeFromResource('test.branch.1.json')
+        List<NCubeInfoDto> dtos = mutableClient.search(appId, ncube.name, null, null)
+        String commitId = mutableClient.generateCommitLink(appId, dtos.toArray())
+
+        // change over to other user
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        manager.userId = otherUser
+        mutableClient.honorCommit(commitId)
+
+        List<NCubeInfoDto> headDtos = mutableClient.search(appId.asHead(), ncube.name, null, null)
+        String notes = headDtos[0].notes
+        assertContainsIgnoreCase(notes, otherUser, 'merged pull request', origUser, 'HEAD')
+        manager.userId = origUser
+    }
 }

@@ -1906,10 +1906,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         String status = commitsCube.getCell([(PR_PROP):PR_STATUS])
         String appIdString = commitsCube.getCell([(PR_PROP):PR_APP])
         ApplicationID commitAppId = ApplicationID.convert(appIdString)
+        String requestUser = commitsCube.getCell([(PR_PROP): PR_REQUESTER])
+        String commitUser = commitsCube.getCell([(PR_PROP): PR_MERGER])
         if (status.contains(PR_CLOSED))
         {
-            String requestUser = commitsCube.getCell([(PR_PROP): PR_REQUESTER])
-            String commitUser = commitsCube.getCell([(PR_PROP): PR_MERGER])
             throw new IllegalArgumentException("Commit request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${commitAppId}")
         }
 
@@ -1928,7 +1928,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             }
         }
 
-        Map ret = commitBranchFromRequest(commitAppId, commitDtos)
+        Map ret = commitBranchFromRequest(commitAppId, commitDtos, requestUser)
 
         commitsCube.setCell(PR_COMPLETE, [(PR_PROP):PR_STATUS])
         commitsCube.setCell(getUserId(), [(PR_PROP):PR_MERGER])
@@ -2014,7 +2014,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return honorCommit(commitId)
     }
 
-    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes = null)
+    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes, String requestUser)
     {
         List<NCubeInfoDto> adds = []
         List<NCubeInfoDto> deletes = []
@@ -2079,13 +2079,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             }
         }
 
-        finalUpdates = persister.commitCubes(appId, buildIdList(updates), getUserId(), txId)
+        finalUpdates = persister.commitCubes(appId, buildIdList(updates), getUserId(), requestUser, txId)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
-        ret[BRANCH_ADDS] = persister.commitCubes(appId, buildIdList(adds), getUserId(), txId)
-        ret[BRANCH_DELETES] = persister.commitCubes(appId, buildIdList(deletes), getUserId(), txId)
+        ret[BRANCH_ADDS] = persister.commitCubes(appId, buildIdList(adds), getUserId(), requestUser, txId)
+        ret[BRANCH_DELETES] = persister.commitCubes(appId, buildIdList(deletes), getUserId(), requestUser, txId)
         ret[BRANCH_UPDATES] = finalUpdates
-        ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), getUserId(), txId)
+        ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), getUserId(), requestUser, txId)
         ret[BRANCH_REJECTS] = rejects
 
         if (!rejects.empty)
