@@ -2,10 +2,12 @@ package com.cedarsoftware.config
 
 import com.cedarsoftware.ncube.util.GCacheManager
 import com.cedarsoftware.ncube.util.NCubeRemoval
+import com.cedarsoftware.util.HsqlSchemaCreator
 import groovy.transform.CompileStatic
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 
 /**
  * This class defines allowable actions against persisted n-cubes
@@ -70,5 +72,22 @@ class NCubeConfiguration
     {
         GCacheManager cacheManager = new GCacheManager(getNCubeRemoval(), maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
         return cacheManager
+    }
+
+    @Configuration
+    @Profile('test-database')
+    class TestDatabase
+    {
+        @Bean(name = 'hsqlSetup')
+        HsqlSchemaCreator getSchemaCreator()
+        {
+            HsqlSchemaCreator schemaCreator = new HsqlSchemaCreator(
+                    'org.hsqldb.jdbcDriver',
+                    'jdbc:hsqldb:mem:testdb',
+                    'sa',
+                    '',
+                    '/config/hsqldb-schema.sql')
+            return schemaCreator
+        }
     }
 }
