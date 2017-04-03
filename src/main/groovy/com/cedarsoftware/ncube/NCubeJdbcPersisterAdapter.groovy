@@ -250,10 +250,10 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 "search(${appId}, ${cubeNamePattern}, ${searchValue})")
     }
 
-    List<NCube> getPullRequestCubes()
+    List<NCube> getPullRequestCubes(ApplicationID appId, Date startDate, Date endDate)
     {
-        return (List<NCube>) jdbcOperation({ Connection c -> persister.getPullRequestCubes(c) },
-                "getPullRequestCubes()")
+        return (List<NCube>) jdbcOperation({ Connection c -> persister.getPullRequestCubes(c, appId, startDate, endDate) },
+                "getPullRequestCubes(${appId}, ${startDate}, ${endDate})")
     }
 
     void clearTestDatabase()

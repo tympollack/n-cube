@@ -96,7 +96,7 @@ interface NCubeReadOnlyPersister
      */
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String searchValue, Map options)
 
-    List<NCube> getPullRequestCubes()
+    List<NCube> getPullRequestCubes(ApplicationID appId, Date startDate, Date endDate)
 
     /**
      * Get the list of branches for the given ApplicationID

@@ -106,7 +106,7 @@ interface NCubeMutableClient extends NCubeClient
 
     NCube reopenCommit(String commitId)
 
-    Object[] getCommits()
+    Object[] getCommits(Date startDate, Date endDate)
 
     Map<String, Object> commitBranch(ApplicationID appId)
 

@@ -449,10 +449,10 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return ncube
     }
 
-    Object[] getCommits()
+    Object[] getCommits(Date startDate, Date endDate)
     {
         verifyAllowMutable('getCommits')
-        Object[] result = bean.call(beanName, 'getCommits', []) as Object[]
+        Object[] result = bean.call(beanName, 'getCommits', [startDate, endDate]) as Object[]
         return result
     }
 

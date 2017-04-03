@@ -95,14 +95,16 @@ class NCubeJdbcPersister
         return list
     }
 
-    static List<NCube> getPullRequestCubes(Connection c)
+    static List<NCube> getPullRequestCubes(Connection c, ApplicationID appId, Date startDate, Date endDate)
     {
         List<NCube> cubes = []
-        ApplicationID appId = ApplicationID.SYS_APP_ID
+        ApplicationID sysAppId = new ApplicationID(appId.tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         Map<String, Object> options = new CaseInsensitiveMap<>()
         options[SEARCH_INCLUDE_CUBE_DATA] = true
         options[SEARCH_ACTIVE_RECORDS_ONLY] = true
-        runSelectCubesStatement(c, appId, 'tx.*', options, { ResultSet row -> cubes << buildCube(appId, row) })
+        options[SEARCH_CREATE_DATE_START] = startDate
+        options[SEARCH_CREATE_DATE_END] = endDate
+        runSelectCubesStatement(c, sysAppId, 'tx.*', options, { ResultSet row -> cubes << buildCube(sysAppId, row) })
         return cubes
     }
 
@@ -1172,6 +1174,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         boolean activeRecordsOnly = toBoolean(options[SEARCH_ACTIVE_RECORDS_ONLY])
         boolean deletedRecordsOnly = toBoolean(options[SEARCH_DELETED_RECORDS_ONLY])
         boolean exactMatchName = toBoolean(options[SEARCH_EXACT_MATCH_NAME])
+        Date createDateStart = toTimestamp(options[SEARCH_CREATE_DATE_START])
+        Date createDateEnd = toTimestamp(options[SEARCH_CREATE_DATE_END])
         String methodName = (String)options[METHOD_NAME]
         if (StringUtilities.isEmpty(methodName))
         {
@@ -1191,6 +1195,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         map.name = namePattern
         map.changed = changedRecordsOnly
         map.tenant = padTenant(c, appId.tenant)
+        map.createDateStart = createDateStart
+        map.createDateEnd = createDateEnd
 
         if (hasNamePattern)
         {
@@ -1200,6 +1206,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         String revisionCondition = activeRecordsOnly ? ' AND n.revision_number >= 0' : deletedRecordsOnly ? ' AND n.revision_number < 0' : ''
         String changedCondition = changedRecordsOnly ? ' AND n.changed = :changed' : ''
+        String createDateStartCondition = createDateStart ? 'AND n.create_dt > :createDateStart' : ''
+        String createDateEndCondition = createDateEnd ? 'AND n.create_dt < :createDateEnd' : ''
         String testCondition = includeTestData ? ', n.test_data_bin' : ''
         String cubeCondition = includeCubeData ? ', n.cube_value_bin' : ''
         String notesCondition = includeNotes ? ', n.notes_bin' : ''
@@ -1216,7 +1224,7 @@ FROM n_cube n,
  ${nameCondition1}
  GROUP BY LOWER(n_cube_nm) ) m
 WHERE m.low_name = LOWER(n.n_cube_nm) AND m.max_rev = abs(n.revision_number) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status AND tenant_cd = :tenant AND n.branch_id = :branch
-${revisionCondition} ${changedCondition} ${nameCondition2}"""
+${revisionCondition} ${changedCondition} ${nameCondition2} ${createDateStartCondition} ${createDateEndCondition}"""
 
         if (max >= 1)
         {   // Use pre-closure to fiddle with batch fetchSize and to monitor row count
@@ -1830,6 +1838,15 @@ ORDER BY abs(revision_number) DESC"""
             return false
         }
         return ((Boolean)value).booleanValue()
+    }
+
+    protected static Timestamp toTimestamp(Object value)
+    {
+        if (value == null)
+        {
+            return null
+        }
+        return (value as Date).toTimestamp()
     }
 
     private static String convertPattern(String pattern)

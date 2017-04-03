@@ -4,6 +4,7 @@ import com.cedarsoftware.util.io.JsonReader
 import groovy.transform.CompileStatic
 import org.junit.Test
 
+import static com.cedarsoftware.ncube.NCubeConstants.*
 import static org.junit.Assert.fail
 
 /**
@@ -30,6 +31,7 @@ import static org.junit.Assert.fail
 class TestCommit extends NCubeCleanupBaseTest
 {
     private static ApplicationID appId = ApplicationID.testAppId
+    private static ApplicationID sysAppId = new ApplicationID(ApplicationID.DEFAULT_TENANT, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
 
     @Test
     void testGenerateCommitLink()
@@ -39,7 +41,7 @@ class TestCommit extends NCubeCleanupBaseTest
         String commitId = mutableClient.generateCommitLink(appId, dtos.toArray())
         assert commitId
 
-        NCube commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
+        NCube commitCube = mutableClient.getCube(sysAppId, "tx.${commitId}")
         assert 'open' == commitCube.getCell([property: 'status'])
 
         String appIdStr = commitCube.getCell([property: 'appId'])
@@ -64,12 +66,12 @@ class TestCommit extends NCubeCleanupBaseTest
         String commitId = mutableClient.generateCommitLink(appId, dtos.toArray())
         assert commitId
 
-        NCube commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
+        NCube commitCube = mutableClient.getCube(sysAppId, "tx.${commitId}")
         assert 'open' == commitCube.getCell([property: 'status'])
 
         // cancel commit
         mutableClient.cancelCommit(commitId)
-        commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
+        commitCube = mutableClient.getCube(sysAppId, "tx.${commitId}")
         assert 'closed cancelled' == commitCube.getCell([property: 'status'])
 
         // attempt to cancel a previously cancelled commit
@@ -85,7 +87,7 @@ class TestCommit extends NCubeCleanupBaseTest
 
         // reopen a commit
         mutableClient.reopenCommit(commitId)
-        commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
+        commitCube = mutableClient.getCube(sysAppId, "tx.${commitId}")
         assert 'open' == commitCube.getCell([property: 'status'])
 
         // attempt to reopen a previously reopened commit
@@ -109,7 +111,7 @@ class TestCommit extends NCubeCleanupBaseTest
         mutableClient.generateCommitLink(appId, branchDtos.toArray())
         mutableClient.generateCommitLink(appId, ageDtos.toArray())
 
-        Object[] commits = mutableClient.commits
+        Object[] commits = mutableClient.getCommits(null, null)
         assert 2 == commits.length
     }
 

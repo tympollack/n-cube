@@ -1515,9 +1515,9 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return result
     }
 
-    Object[] getCommits()
+    Object[] getCommits(Date startDate, Date endDate)
     {
-        Object[] commits = mutableClient.commits
+        Object[] commits = mutableClient.getCommits(startDate, endDate)
         return commits
     }
 

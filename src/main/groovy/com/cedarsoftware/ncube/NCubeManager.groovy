@@ -1879,7 +1879,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         String user = getUserId()
 
         NCube commitCube = new NCube("tx.${newId}")
-        commitCube.applicationID = ApplicationID.SYS_APP_ID
+        commitCube.applicationID = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         commitCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
         commitCube.addColumn(PR_PROP, PR_STATUS)
         commitCube.addColumn(PR_PROP, PR_APP)
@@ -1979,7 +1979,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     private NCube loadCommitsCube(String commitId)
     {
-        NCube commitsCube = loadCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
+        NCube commitsCube = loadCube(new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD), "tx.${commitId}")
         if (commitsCube == null)
         {
             throw new IllegalArgumentException("Invalid commit id: ${commitId}")
@@ -1987,10 +1987,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return commitsCube
     }
 
-    Object[] getCommits()
+    Object[] getCommits(Date startDate, Date endDate)
     {
         List<Map> results = []
-        List<NCube> cubes = persister.pullRequestCubes
+        ApplicationID appId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        List<NCube> cubes = persister.getPullRequestCubes(appId, startDate, endDate)
         cubes.sort {it.name}
         for (NCube cube : cubes)
         {
