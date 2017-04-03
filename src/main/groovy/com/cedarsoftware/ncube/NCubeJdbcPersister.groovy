@@ -99,17 +99,10 @@ class NCubeJdbcPersister
     {
         List<NCube> cubes = []
         ApplicationID appId = ApplicationID.SYS_APP_ID
-        Map map = appId as Map
-        map.tenant = padTenant(c, appId.tenant)
-        Sql sql = getSql(c)
-        sql.eachRow(map, """\
-/* getPullRequestCubes */
-SELECT ${CUBE_VALUE_BIN}, sha1
-FROM n_cube
-WHERE n_cube_nm like 'tx.%' AND app_cd = :app AND tenant_cd = :tenant AND version_no_cd = :version AND branch_id = :branch""",
-            { ResultSet row ->
-             cubes << buildCube(appId, row)
-        })
+        Map<String, Object> options = new CaseInsensitiveMap<>()
+        options[SEARCH_INCLUDE_CUBE_DATA] = true
+        options[SEARCH_ACTIVE_RECORDS_ONLY] = true
+        runSelectCubesStatement(c, appId, 'tx.*', options, { ResultSet row -> cubes << buildCube(appId, row) })
         return cubes
     }
 
