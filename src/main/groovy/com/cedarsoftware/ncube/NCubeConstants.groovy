@@ -38,7 +38,6 @@ interface NCubeConstants
     final String SEARCH_FILTER_INCLUDE = 'includeTags'
     final String SEARCH_FILTER_EXCLUDE = 'excludeTags'
 
-    final String SYS_APP = 'sys.app'
     final String SYS_BOOTSTRAP = 'sys.bootstrap'
     final String SYS_PROTOTYPE = 'sys.prototype'
     final String SYS_PERMISSIONS = 'sys.permissions'

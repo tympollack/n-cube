@@ -250,6 +250,12 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 "search(${appId}, ${cubeNamePattern}, ${searchValue})")
     }
 
+    List<NCube> getPullRequestCubes()
+    {
+        return (List<NCube>) jdbcOperation({ Connection c -> persister.getPullRequestCubes(c) },
+                "getPullRequestCubes()")
+    }
+
     void clearTestDatabase()
     {
         jdbcOperation({ Connection c -> persister.clearTestDatabase(c) },

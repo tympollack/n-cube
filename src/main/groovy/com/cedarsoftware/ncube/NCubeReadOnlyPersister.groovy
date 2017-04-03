@@ -96,6 +96,8 @@ interface NCubeReadOnlyPersister
      */
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String searchValue, Map options)
 
+    List<NCube> getPullRequestCubes()
+
     /**
      * Get the list of branches for the given ApplicationID
      * @param appId ApplicationID containing the tenant, app, version, and status values.  The branch field of

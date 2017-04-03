@@ -30,7 +30,6 @@ import static org.junit.Assert.fail
 class TestCommit extends NCubeCleanupBaseTest
 {
     private static ApplicationID appId = ApplicationID.testAppId
-    private static ApplicationID sysApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
 
     @Test
     void testGenerateCommitLink()
@@ -40,7 +39,7 @@ class TestCommit extends NCubeCleanupBaseTest
         String commitId = mutableClient.generateCommitLink(appId, dtos.toArray())
         assert commitId
 
-        NCube commitCube = mutableClient.getCube(sysApp, "tx.${commitId}")
+        NCube commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
         assert 'open' == commitCube.getCell([property: 'status'])
 
         String appIdStr = commitCube.getCell([property: 'appId'])
@@ -65,12 +64,12 @@ class TestCommit extends NCubeCleanupBaseTest
         String commitId = mutableClient.generateCommitLink(appId, dtos.toArray())
         assert commitId
 
-        NCube commitCube = mutableClient.getCube(sysApp, "tx.${commitId}")
+        NCube commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
         assert 'open' == commitCube.getCell([property: 'status'])
 
         // cancel commit
         mutableClient.cancelCommit(commitId)
-        commitCube = mutableClient.getCube(sysApp, "tx.${commitId}")
+        commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
         assert 'closed cancelled' == commitCube.getCell([property: 'status'])
 
         // attempt to cancel a previously cancelled commit
@@ -86,7 +85,7 @@ class TestCommit extends NCubeCleanupBaseTest
 
         // reopen a commit
         mutableClient.reopenCommit(commitId)
-        commitCube = mutableClient.getCube(sysApp, "tx.${commitId}")
+        commitCube = mutableClient.getCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
         assert 'open' == commitCube.getCell([property: 'status'])
 
         // attempt to reopen a previously reopened commit

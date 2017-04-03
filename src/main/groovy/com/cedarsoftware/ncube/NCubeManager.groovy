@@ -1879,7 +1879,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         String user = getUserId()
 
         NCube commitCube = new NCube("tx.${newId}")
-        commitCube.applicationID = new ApplicationID(appId.tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
+        commitCube.applicationID = ApplicationID.SYS_APP_ID
         commitCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
         commitCube.addColumn(PR_PROP, PR_STATUS)
         commitCube.addColumn(PR_PROP, PR_APP)
@@ -1979,8 +1979,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     private NCube loadCommitsCube(String commitId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, 'sys.app', '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        NCube commitsCube = loadCube(sysAppId, "tx.${commitId}")
+        NCube commitsCube = loadCube(ApplicationID.SYS_APP_ID, "tx.${commitId}")
         if (commitsCube == null)
         {
             throw new IllegalArgumentException("Invalid commit id: ${commitId}")
@@ -1991,14 +1990,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     Object[] getCommits()
     {
         List<Map> results = []
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, '0.0.0', ReleaseStatus.SNAPSHOT.toString(), ApplicationID.HEAD)
-        List<NCubeInfoDto> dtos = search(sysAppId, 'tx.', null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
-        dtos.sort {it.name}
-        for (NCubeInfoDto dto : dtos)
+        List<NCube> cubes = persister.pullRequestCubes
+        cubes.sort {it.name}
+        for (NCube cube : cubes)
         {
-            NCube cube = loadCubeById(Long.parseLong(dto.id))
             Map commitInfo = cube.getMap([(PR_PROP):[] as Set])
-            commitInfo.put('txid', dto.name.substring(3))
+            commitInfo.put('txid', cube.name.substring(3))
             results.add(commitInfo)
         }
         return results as Object[]

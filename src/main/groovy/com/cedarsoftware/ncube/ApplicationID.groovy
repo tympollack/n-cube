@@ -35,6 +35,9 @@ class ApplicationID
     public static final String DEFAULT_STATUS = ReleaseStatus.SNAPSHOT.name()
     public static final String HEAD = 'HEAD'
     public static final String TEST_BRANCH = 'TEST'
+    public static final String SYS_APP = 'sys.app'
+    public static final String BOOT_VERSION = '0.0.0'
+    public static final ApplicationID SYS_APP_ID = new ApplicationID(DEFAULT_TENANT, SYS_APP, BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), HEAD)
 
     public static final transient ApplicationID testAppId = new ApplicationID(DEFAULT_TENANT, DEFAULT_APP, DEFAULT_VERSION, DEFAULT_STATUS, TEST_BRANCH)
     public static final Pattern VERSION_REGEX = ~/[.]/
