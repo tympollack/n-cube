@@ -1206,8 +1206,8 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
 
         String revisionCondition = activeRecordsOnly ? ' AND n.revision_number >= 0' : deletedRecordsOnly ? ' AND n.revision_number < 0' : ''
         String changedCondition = changedRecordsOnly ? ' AND n.changed = :changed' : ''
-        String createDateStartCondition = createDateStart ? 'AND n.create_dt > :createDateStart' : ''
-        String createDateEndCondition = createDateEnd ? 'AND n.create_dt < :createDateEnd' : ''
+        String createDateStartCondition = createDateStart ? 'AND n.create_dt >= :createDateStart' : ''
+        String createDateEndCondition = createDateEnd ? 'AND n.create_dt <= :createDateEnd' : ''
         String testCondition = includeTestData ? ', n.test_data_bin' : ''
         String cubeCondition = includeCubeData ? ', n.cube_value_bin' : ''
         String notesCondition = includeNotes ? ', n.notes_bin' : ''
@@ -1842,11 +1842,7 @@ ORDER BY abs(revision_number) DESC"""
 
     protected static Timestamp toTimestamp(Object value)
     {
-        if (value == null)
-        {
-            return null
-        }
-        return (value as Date).toTimestamp()
+        return (value as Date)?.toTimestamp()
     }
 
     private static String convertPattern(String pattern)
