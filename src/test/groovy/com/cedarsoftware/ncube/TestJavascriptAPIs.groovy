@@ -11,6 +11,10 @@ import org.mockito.Mockito
 
 import javax.servlet.http.HttpServletRequest
 
+import static org.junit.Assert.fail
+import static org.junit.Assert.fail
+import static org.junit.Assert.fail
+
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
@@ -166,6 +170,73 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         createCubeFromResource(BRANCH1, 'test.execute.json')
         def result = call('execute', [BRANCH1, 'test.execute', 'plus', [value: 2.0d, term: 3.0d]])
         println result
+    }
+
+    @Test
+    void testMergePullRequestWhenBranchDeleted()
+    {
+        NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, ncube.name, null, null)
+        String prId = mutableClient.generatePullRequestLink(BRANCH1, dtos.toArray())
+
+        mutableClient.deleteBranch(BRANCH1)
+
+        try
+        {
+            call('mergePullRequest', [prId])
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'branch', 'request', 'obsolete', 'requested', 'applicationid')
+            Map<String, Object> pr = mutableClient.pullRequests.first() as Map
+            assert pr[PR_STATUS] == PR_OBSOLETE
+        }
+    }
+
+    @Test
+    void testMergePullRequestCubeNotExist()
+    {
+        NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, ncube.name, null, null)
+        String prId = mutableClient.generatePullRequestLink(BRANCH1, dtos.toArray())
+
+        mutableClient.deleteBranch(BRANCH1)
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
+
+        try
+        {
+            call('mergePullRequest', [prId])
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'cube', 'valid', 'request', 'obsolete', 'requested', 'applicationid')
+            Map<String, Object> pr = mutableClient.pullRequests.first() as Map
+            assert pr[PR_STATUS] == PR_OBSOLETE
+        }
+    }
+
+    @Test
+    void testMergePullRequestCubeChanged()
+    {
+        NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, ncube.name, null, null)
+        String prId = mutableClient.generatePullRequestLink(BRANCH1, dtos.toArray())
+        ncube.setCell('FOO', [Code : 10])
+        mutableClient.updateCube(ncube)
+
+        try
+        {
+            call('mergePullRequest', [prId])
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'cube', 'changed', 'request', 'obsolete', 'requested', 'applicationid')
+            Map<String, Object> pr = mutableClient.pullRequests.first() as Map
+            assert pr[PR_STATUS] == PR_OBSOLETE
+        }
     }
 
     private Object call(String methodName, List args)
