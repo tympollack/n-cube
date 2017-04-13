@@ -72,7 +72,6 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         mutableClient.commitBranch(ncube1.applicationID)
 
         assert !mutableClient.isCubeUpToDate(ncube2.applicationID, ncube2.name)    // Not up-to-date because BRANCH2 created cube (no HEAD sha1) which matches a cube in HEAD
-        mutableClient.commitBranch(ncube2.applicationID)
 
         assert mutableClient.isCubeUpToDate(ncube1.applicationID, ncube1.name)    // same as HEAD, up-to-date
         assert !mutableClient.isCubeUpToDate(ncube2.applicationID, ncube2.name)    // same as HEAD, but no HEAD SHA1

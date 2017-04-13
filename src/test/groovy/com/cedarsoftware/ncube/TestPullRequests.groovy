@@ -41,7 +41,8 @@ class TestPullRequests extends NCubeCleanupBaseTest
         String prId = mutableClient.generatePullRequestLink(appId, dtos.toArray())
         assert prId
 
-        NCube prCube = mutableClient.getCube(sysAppId, "tx.${prId}")
+        String cubeId = mutableClient.search(sysAppId, "tx.${prId}*", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).first().id
+        NCube prCube = mutableClient.loadCubeById(cubeId as long)
         assert 'open' == prCube.getCell([property: 'status'])
 
         String appIdStr = prCube.getCell([property: 'appId'])
@@ -56,6 +57,16 @@ class TestPullRequests extends NCubeCleanupBaseTest
         assert prInfo.changeType == 'C'
         assert prInfo.id
         assert prInfo.head == null
+
+        try
+        {
+            mutableClient.generatePullRequestLink(appId, dtos.toArray())
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'request', 'exists')
+        }
     }
 
     @Test
@@ -66,12 +77,12 @@ class TestPullRequests extends NCubeCleanupBaseTest
         String prId = mutableClient.generatePullRequestLink(appId, dtos.toArray())
         assert prId
 
-        NCube prCube = mutableClient.getCube(sysAppId, "tx.${prId}")
+        String cubeId = mutableClient.search(sysAppId, "tx.${prId}*", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).first().id
+        NCube prCube = mutableClient.loadCubeById(cubeId as long)
         assert 'open' == prCube.getCell([property: 'status'])
 
         // cancel commit
-        mutableClient.cancelPullRequest(prId)
-        prCube = mutableClient.getCube(sysAppId, "tx.${prId}")
+        prCube = mutableClient.cancelPullRequest(prId)
         assert 'closed cancelled' == prCube.getCell([property: 'status'])
 
         // attempt to cancel a previously cancelled commit
@@ -86,8 +97,7 @@ class TestPullRequests extends NCubeCleanupBaseTest
         }
 
         // reopen a commit
-        mutableClient.reopenPullRequest(prId)
-        prCube = mutableClient.getCube(sysAppId, "tx.${prId}")
+        prCube = mutableClient.reopenPullRequest(prId)
         assert 'open' == prCube.getCell([property: 'status'])
 
         // attempt to reopen a previously reopened commit

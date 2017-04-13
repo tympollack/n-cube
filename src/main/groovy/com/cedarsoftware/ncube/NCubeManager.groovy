@@ -1876,8 +1876,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     {
         ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
-        String prInfoJson = commitRecords.empty ? null : JsonWriter.objectToJson(commitRecords)
 
+        if (commitRecords.empty)
+        {
+            throw new IllegalArgumentException('A pull request cannot be created because there are no cubes to be committed.')
+        }
+
+        String prInfoJson = JsonWriter.objectToJson(commitRecords)
         MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
         sha1Digest.update(prInfoJson.bytes)
         String sha1 = StringUtilities.encode(sha1Digest.digest())
