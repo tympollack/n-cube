@@ -12,8 +12,6 @@ import org.mockito.Mockito
 import javax.servlet.http.HttpServletRequest
 
 import static org.junit.Assert.fail
-import static org.junit.Assert.fail
-import static org.junit.Assert.fail
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -239,7 +237,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         }
     }
 
-    private Object call(String methodName, List args)
+    private static Object call(String methodName, List args)
     {
         if (NCubeAppContext.clientTest)
         {

@@ -110,8 +110,6 @@ interface NCubeMutableClient extends NCubeClient
 
     Object[] getPullRequests()
 
-    Object[] getPullRequests(Date startDate)
-
     Object[] getPullRequests(Date startDate, Date endDate)
 
     Map<String, Object> commitBranch(ApplicationID appId)

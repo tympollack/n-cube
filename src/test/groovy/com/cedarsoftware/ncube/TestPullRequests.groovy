@@ -143,67 +143,6 @@ class TestPullRequests extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testMergePullRequestWhenBranchDeleted()
-    {
-        NCube ncube = createCubeFromResource('test.branch.1.json')
-        List<NCubeInfoDto> dtos = mutableClient.search(appId, ncube.name, null, null)
-        String prId = mutableClient.generatePullRequestLink(appId, dtos.toArray())
-
-        mutableClient.deleteBranch(appId)
-
-        try
-        {
-            mutableClient.mergePullRequest(prId)
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'branch', 'request', 'obsolete', 'requested', 'applicationid')
-        }
-    }
-
-    @Test
-    void testMergePullRequestCubeNotExist()
-    {
-        NCube ncube = createCubeFromResource('test.branch.1.json')
-        List<NCubeInfoDto> dtos = mutableClient.search(appId, ncube.name, null, null)
-        String prId = mutableClient.generatePullRequestLink(appId, dtos.toArray())
-
-        mutableClient.deleteBranch(appId)
-        createCubeFromResource('test.branch.age.1.json')
-
-        try
-        {
-            mutableClient.mergePullRequest(prId)
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'cube', 'valid', 'request', 'obsolete', 'requested', 'applicationid')
-        }
-    }
-
-    @Test
-    void testMergePullRequestCubeChanged()
-    {
-        NCube ncube = createCubeFromResource('test.branch.1.json')
-        List<NCubeInfoDto> dtos = mutableClient.search(appId, ncube.name, null, null)
-        String prId = mutableClient.generatePullRequestLink(appId, dtos.toArray())
-        ncube.setCell('FOO', [Code : 10])
-        mutableClient.updateCube(ncube)
-
-        try
-        {
-            mutableClient.mergePullRequest(prId)
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'cube', 'changed', 'request', 'obsolete', 'requested', 'applicationid')
-        }
-    }
-
-    @Test
     void testInvalidId()
     {
         try
