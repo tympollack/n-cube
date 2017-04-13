@@ -8,6 +8,7 @@ import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UniqueIdGenerator
 import com.cedarsoftware.util.io.JsonReader
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
@@ -1872,14 +1874,25 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     String generatePullRequestLink(ApplicationID appId, Object[] infoDtos)
     {
+        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
         String prInfoJson = commitRecords.empty ? null : JsonWriter.objectToJson(commitRecords)
+
+        MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
+        sha1Digest.update(prInfoJson.bytes)
+        String sha1 = StringUtilities.encode(sha1Digest.digest())
+
+        if (search(sysAppId, 'tx.*.' + sha1, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        {
+            throw new IllegalArgumentException('A pull request already exists for this change set.')
+        }
+
         Date time = new Date()
         String newId = time.format('yyyyMMdd.HHmmss.') + String.format('%05d', UniqueIdGenerator.uniqueId % 100000)
         String user = getUserId()
 
-        NCube prCube = new NCube("tx.${newId}")
-        prCube.applicationID = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        NCube prCube = new NCube("tx.${newId}.${sha1}")
+        prCube.applicationID = sysAppId
         prCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
         prCube.addColumn(PR_PROP, PR_STATUS)
         prCube.addColumn(PR_PROP, PR_APP)
@@ -1982,11 +1995,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
     private NCube loadPullRequestCube(String prId)
     {
-        NCube prCube = loadCube(new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD), "tx.${prId}")
-        if (prCube == null)
+        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}*", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        if (!dtos.size())
         {
             throw new IllegalArgumentException("Invalid pull request id: ${prId}")
         }
+        NCube prCube = loadCubeById(dtos.first().id as long)
         return prCube
     }
 
@@ -2004,7 +2019,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                 prInfo.appId = ApplicationID.convert(prInfo.appId as String)
                 prInfo.cubeNames = JsonReader.jsonToJava(prInfo.cubeNames as String)
             }
-            prInfo.txid = cube.name.substring(3)
+            prInfo.txid = cube.name.substring(3, 24)
             results.add(prInfo)
         }
         return results as Object[]
