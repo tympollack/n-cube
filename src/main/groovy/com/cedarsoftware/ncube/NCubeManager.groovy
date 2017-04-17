@@ -1884,16 +1884,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         String prInfoJson = JsonWriter.objectToJson(commitRecords)
         String sha1 = EncryptionUtilities.calculateSHA1Hash(prInfoJson.getBytes('UTF-8'))
 
-        if (search(sysAppId, 'tx.*.' + sha1, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
+        if (search(sysAppId, 'tx.' + sha1, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true]).size())
         {
             throw new IllegalArgumentException('A pull request already exists for this change set.')
         }
 
-        Date time = new Date()
-        String newId = time.format('yyyyMMdd.HHmmss.') + String.format('%05d', UniqueIdGenerator.uniqueId % 100000)
-        String user = getUserId()
-
-        NCube prCube = new NCube("tx.${newId}.${sha1}")
+        NCube prCube = new NCube("tx.${sha1}")
         prCube.applicationID = sysAppId
         prCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
         prCube.addColumn(PR_PROP, PR_STATUS)
@@ -1907,11 +1903,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         prCube.setCell(PR_OPEN, [(PR_PROP):PR_STATUS])
         prCube.setCell(appId.toString(), [(PR_PROP):PR_APP])
         prCube.setCell(prInfoJson, [(PR_PROP):PR_CUBES])
-        prCube.setCell(user, [(PR_PROP):PR_REQUESTER])
-        prCube.setCell(time.format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
+        prCube.setCell(getUserId(), [(PR_PROP):PR_REQUESTER])
+        prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
 
         createCube(prCube)
-        return newId
+        return sha1
     }
 
     Map<String, Object> mergePullRequest(String prId)
@@ -1998,7 +1994,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     private NCube loadPullRequestCube(String prId)
     {
         ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}*", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true])
         if (!dtos.size())
         {
             throw new IllegalArgumentException("Invalid pull request id: ${prId}")
@@ -2012,7 +2008,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         List<Map> results = []
         ApplicationID appId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<NCube> cubes = persister.getPullRequestCubes(appId, startDate, endDate)
-        cubes.sort {it.name}
         for (NCube cube : cubes)
         {
             Map prInfo = cube.getMap([(PR_PROP):[] as Set])
@@ -2021,9 +2016,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                 prInfo.appId = ApplicationID.convert(prInfo.appId as String)
                 prInfo.cubeNames = JsonReader.jsonToJava(prInfo.cubeNames as String)
             }
-            prInfo.txid = cube.name.substring(3, 24)
+            prInfo.txid = cube.name.substring(3)
             results.add(prInfo)
         }
+        results.sort(true, {Map a, Map b -> new Date(b[PR_REQUEST_TIME] as String) <=> new Date(a[PR_REQUEST_TIME] as String)})
         return results as Object[]
     }
 
