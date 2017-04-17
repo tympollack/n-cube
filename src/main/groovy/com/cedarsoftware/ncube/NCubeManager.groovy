@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
 
-import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
@@ -1883,9 +1882,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         }
 
         String prInfoJson = JsonWriter.objectToJson(commitRecords)
-        MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
-        sha1Digest.update(prInfoJson.bytes)
-        String sha1 = StringUtilities.encode(sha1Digest.digest())
+        String sha1 = EncryptionUtilities.calculateSHA1Hash(prInfoJson.getBytes('UTF-8'))
 
         if (search(sysAppId, 'tx.*.' + sha1, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         {
