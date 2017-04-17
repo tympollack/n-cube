@@ -483,7 +483,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         Map prAppIdCoord = [(PR_PROP):PR_APP]
         Map prStatusCoord = [(PR_PROP):PR_STATUS]
-        List<NCube> prCubes = persister.getPullRequestCubes(appId, null, null)
+        Date startDate = new Date() - 60
+        List<NCube> prCubes = persister.getPullRequestCubes(appId, startDate, null)
         for (NCube prCube : prCubes)
         {
             Object prAppIdObj = prCube.getCell(prAppIdCoord)
@@ -1971,7 +1972,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                     NCubeInfoDto dto = it as NCubeInfoDto
                     info.name == dto.name
                 }
-                if (!foundDto) {
+                if (!foundDto)
+                {
                     throw new IllegalStateException("Cube no longer valid; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${info.name}")
                 }
             }
@@ -2036,7 +2038,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             throw new IllegalArgumentException("${exceptionText} Status: ${status}, Requested by: ${requestUser}, ApplicationID: ${prAppId}")
         }
 
-        if (bumpVersion) {
+        if (bumpVersion)
+        {
             Object appIdObj = prCube.getCell([(PR_PROP):PR_APP])
             ApplicationID appId = appIdObj instanceof ApplicationID ? appIdObj as ApplicationID : ApplicationID.convert(appIdObj as String)
             ApplicationID newAppId = appId.asVersion(getLatestVersion(appId))
@@ -2070,7 +2073,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             {
                 prInfo[PR_APP] = ApplicationID.convert(prInfo[PR_APP] as String)
             }
-            if (prInfo[PR_CUBES] instanceof String) {
+            if (prInfo[PR_CUBES] instanceof String)
+            {
                 prInfo[PR_CUBES] = JsonReader.jsonToJava(prInfo[PR_CUBES] as String)
             }
             prInfo[PR_TXID] = cube.name.substring(3)
