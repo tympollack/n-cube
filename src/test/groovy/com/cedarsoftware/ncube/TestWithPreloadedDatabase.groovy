@@ -1247,7 +1247,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube)
 
         // create pull request with version 1.28.0
-        String prId = mutableClient.generatePullRequestLink(BRANCH1, mutableClient.getBranchChangesForHead(BRANCH1))
+        String prId = mutableClient.generatePullRequestHash(BRANCH1, mutableClient.getBranchChangesForHead(BRANCH1))
         Object[] prInfos = mutableClient.pullRequests
         assert 1 == prInfos.size()
         ApplicationID prAppId = (prInfos[0] as Map)[PR_APP] as ApplicationID

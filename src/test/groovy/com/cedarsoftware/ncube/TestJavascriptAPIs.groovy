@@ -174,7 +174,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     {
         NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
         List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, ncube.name, null, null)
-        String prId = mutableClient.generatePullRequestLink(BRANCH1, dtos.toArray())
+        String prId = mutableClient.generatePullRequestHash(BRANCH1, dtos.toArray())
 
         mutableClient.deleteBranch(BRANCH1)
 
@@ -196,7 +196,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     {
         NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
         List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, ncube.name, null, null)
-        String prId = mutableClient.generatePullRequestLink(BRANCH1, dtos.toArray())
+        String prId = mutableClient.generatePullRequestHash(BRANCH1, dtos.toArray())
 
         mutableClient.deleteBranch(BRANCH1)
         createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
@@ -219,7 +219,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     {
         NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
         List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, ncube.name, null, null)
-        String prId = mutableClient.generatePullRequestLink(BRANCH1, dtos.toArray())
+        String prId = mutableClient.generatePullRequestHash(BRANCH1, dtos.toArray())
         ncube.setCell('FOO', [Code : 10])
         mutableClient.updateCube(ncube)
 

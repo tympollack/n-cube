@@ -1910,6 +1910,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             throw new IllegalArgumentException('A pull request cannot be created because there are no cubes to be committed.')
         }
 
+        commitRecords.sort(true, {Map it -> it.id})
         String prInfoJson = JsonWriter.objectToJson(commitRecords)
         String sha1 = EncryptionUtilities.calculateSHA1Hash(prInfoJson.getBytes('UTF-8'))
 
