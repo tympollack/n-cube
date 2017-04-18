@@ -422,7 +422,7 @@ class DeltaProcessor
                 if (delta1.changeType.contains('meta'))
                 {
                     String key = delta1.locatorKey as String
-                    if(delta1.column.getMetaProperty(key) != delta2.column.getMetaProperty(key))
+                    if (delta1.column.getMetaProperty(key) != delta2.column.getMetaProperty(key))
                     {
                         return false
                     }
