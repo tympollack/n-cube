@@ -421,7 +421,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         {
             throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
         }
-        if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        if (!search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
         {
             throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
         }
@@ -446,11 +446,11 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         {
             throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
         }
-        if (search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        if (!search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
         {
             throw new IllegalArgumentException("A SNAPSHOT version ${appId.version} already exists, app: ${appId}")
         }
-        if (search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size() != 0)
+        if (!search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
         {
             throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
         }
@@ -1120,7 +1120,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                 }
             }
         }
-        if (matches.size() == 0)
+        if (matches.empty)
         {
             matches.add(resourcePermissionAxis.defaultColumn)
         }
@@ -1871,7 +1871,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return ApplicationID.DEFAULT_TENANT
     }
 
-    String generatePullRequestLink(ApplicationID appId, Object[] infoDtos)
+    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos)
     {
         ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
@@ -1884,7 +1884,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         String prInfoJson = JsonWriter.objectToJson(commitRecords)
         String sha1 = EncryptionUtilities.calculateSHA1Hash(prInfoJson.getBytes('UTF-8'))
 
-        if (search(sysAppId, 'tx.' + sha1, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true]).size())
+        if (getCube(sysAppId, 'tx.' + sha1))
         {
             throw new IllegalArgumentException('A pull request already exists for this change set.')
         }
@@ -1995,7 +1995,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     {
         ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true])
-        if (!dtos.size())
+        if (dtos.empty)
         {
             throw new IllegalArgumentException("Invalid pull request id: ${prId}")
         }
@@ -2019,7 +2019,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             prInfo.txid = cube.name.substring(3)
             results.add(prInfo)
         }
-        results.sort(true, {Map a, Map b -> new Date(b[PR_REQUEST_TIME] as String) <=> new Date(a[PR_REQUEST_TIME] as String)})
+        results.sort(true, {Map a, Map b -> Converter.convert(b[PR_REQUEST_TIME], Date.class) as Date <=> Converter.convert(a[PR_REQUEST_TIME], Date.class) as Date})
         return results as Object[]
     }
 
@@ -2029,7 +2029,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
      */
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
     {
-        String prId = generatePullRequestLink(appId, inputCubes)
+        String prId = generatePullRequestHash(appId, inputCubes)
         return mergePullRequest(prId)
     }
 
@@ -2285,7 +2285,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
         NCubeInfoDto branchDto = list.first()     // only 1 because we used exact match
         list = search(appId.asHead(), cubeName, null, options)
-        if (list.size() == 0)
+        if (list.empty)
         {   // New n-cube - up-to-date because it does not yet exist in HEAD - the branch n-cube is the Creator.
             return true
         }
@@ -2348,14 +2348,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             diff = DeltaProcessor.getDeltaDescription(branchCube, headCube)
         }
 
-        if (diff.size() > 0)
-        {
-            return null
-        }
-        else
+        if (diff.empty)
         {
             return branchCube
         }
+        return null
     }
 
     private NCubeInfoDto getCubeInfo(ApplicationID appId, NCubeInfoDto dto)
