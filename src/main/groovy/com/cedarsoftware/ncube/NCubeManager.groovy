@@ -230,13 +230,15 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      * @return String version number in the form "major.minor.patch" where each of the
      * values (major, minor, patch) is numeric.
      */
-    String getLatestVersion(String tenant, String app, String releaseStatus)
+    String getLatestVersion(ApplicationID appId)
     {
+        String tenant = appId.tenant
+        String app = appId.app
         ApplicationID.validateTenant(tenant)
         ApplicationID.validateApp(app)
         Map<String, List<String>> versionsMap = persister.getVersions(tenant, app)
         Set<String> versions = new TreeSet<>(new VersionComparator())
-        versions.addAll(versionsMap[releaseStatus])
+        versions.addAll(versionsMap[appId.status])
         return versions.first() as String
     }
 
@@ -427,6 +429,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         }
 
         int rows = persister.releaseCubes(appId, newSnapVer)
+        updateOpenPullRequestVersions(appId, newSnapVer)
         return rows
     }
 
@@ -472,8 +475,33 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         }
         int rows = persister.releaseCubes(appId, newSnapVer)
         persister.copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
+        updateOpenPullRequestVersions(appId, newSnapVer)
         lockApp(appId, false)
         return rows
+    }
+
+    protected void updateOpenPullRequestVersions(ApplicationID appId, String newSnapVer, boolean onlyCurrentBranch = false)
+    {
+        Map prAppIdCoord = [(PR_PROP):PR_APP]
+        Map prStatusCoord = [(PR_PROP):PR_STATUS]
+        Date startDate = new Date() - 60
+        List<NCube> prCubes = persister.getPullRequestCubes(appId, startDate, null)
+        for (NCube prCube : prCubes)
+        {
+            Object prAppIdObj = prCube.getCell(prAppIdCoord)
+            Object prStatus = prCube.getCell(prStatusCoord)
+            ApplicationID prAppId = prAppIdObj instanceof ApplicationID ? prAppIdObj as ApplicationID : ApplicationID.convert(prAppIdObj as String)
+            if (prStatus == PR_OPEN)
+            {
+                boolean shouldChange = onlyCurrentBranch ? prAppId == appId : prAppId.equalsNotIncludingBranch(appId)
+                if (shouldChange)
+                {
+                    prAppId = prAppId.asVersion(newSnapVer)
+                    prCube.setCell(prAppId.toString(), prAppIdCoord)
+                    updateCube(prCube, true)
+                }
+            }
+        }
     }
 
     void changeVersionValue(ApplicationID appId, String newVersion)
@@ -488,6 +516,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         assertPermissions(appId, null, Action.RELEASE)
         assertNotLockBlocked(appId)
         persister.changeVersionValue(appId, newVersion)
+        updateOpenPullRequestVersions(appId, newVersion, true)
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
@@ -1919,9 +1948,14 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         ApplicationID prAppId = ApplicationID.convert(appIdString)
         String requestUser = prCube.getCell([(PR_PROP): PR_REQUESTER])
         String commitUser = prCube.getCell([(PR_PROP): PR_MERGER])
-        if (status.contains(PR_CLOSED))
+
+        if (status.contains(PR_CLOSED) || status == PR_OBSOLETE)
         {
-            throw new IllegalArgumentException("Pull request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${prAppId}")
+            throw new IllegalStateException("Pull request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${prAppId}")
+        }
+        else if (!persister.doCubesExist(prAppId, true, 'detectNewAppId'))
+        {
+            throw new IllegalStateException("Branch no longer exists; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}")
         }
 
         String prInfoJson = prCube.getCell([(PR_PROP):PR_CUBES]) as String
@@ -1934,22 +1968,51 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             prDtos = allDtos.findAll {
                 NCubeInfoDto dto = it as NCubeInfoDto
                 prInfo.find { Map<String, String> info ->
-                    info.name == dto.name && info.id == dto.id
+                    if (info.name == dto.name)
+                    {
+                        if (info.id == dto.id)
+                        {
+                            return info
+                        }
+                        throw new IllegalStateException("Cube has been changed since request was made; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${dto.name}")
+                    }
+                }
+            }
+            prInfo.any { Map<String, String> info ->
+                Object foundDto = prDtos.find {
+                    NCubeInfoDto dto = it as NCubeInfoDto
+                    info.name == dto.name
+                }
+                if (!foundDto)
+                {
+                    throw new IllegalStateException("Cube no longer valid; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${info.name}")
                 }
             }
         }
 
         Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser)
+        ret[PR_APP] = prAppId
+        ret[PR_CUBE] = prCube
 
         fillPullRequestUpdateInfo(prCube, PR_COMPLETE)
         updateCube(prCube, true)
         return ret
     }
 
+    NCube obsoletePullRequest(String prId)
+    {
+        Closure exceptionTest = { String status ->
+            return status == PR_OBSOLETE
+        }
+        String exceptionText = 'Pull request is already obsolete.'
+        NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_OBSOLETE)
+        return prCube
+    }
+
     NCube cancelPullRequest(String prId)
     {
         Closure exceptionTest = { String status ->
-            return status.contains(PR_CLOSED)
+            return status.contains(PR_CLOSED) || status == PR_OBSOLETE
         }
         String exceptionText = 'Pull request is already closed.'
         NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_CANCEL)
@@ -1959,10 +2022,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     NCube reopenPullRequest(String prId)
     {
         Closure exceptionTest = { String status ->
-            return status == PR_COMPLETE || !status.contains(PR_CLOSED)
+            return [PR_COMPLETE, PR_OBSOLETE, PR_OPEN].contains(status)
         }
         String exceptionText = 'Unable to reopen pull request.'
-        NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_OPEN)
+        NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_OPEN, true)
         return prCube
     }
 
@@ -1973,7 +2036,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_MERGE_TIME])
     }
 
-    private NCube updatePullRequest(String prId, Closure exceptionTest, String exceptionText, String newStatus)
+    private NCube updatePullRequest(String prId, Closure exceptionTest, String exceptionText, String newStatus, boolean bumpVersion = false)
     {
         NCube prCube = loadPullRequestCube(prId)
 
@@ -1986,6 +2049,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             throw new IllegalArgumentException("${exceptionText} Status: ${status}, Requested by: ${requestUser}, ApplicationID: ${prAppId}")
         }
 
+        if (bumpVersion)
+        {
+            Object appIdObj = prCube.getCell([(PR_PROP):PR_APP])
+            ApplicationID appId = appIdObj instanceof ApplicationID ? appIdObj as ApplicationID : ApplicationID.convert(appIdObj as String)
+            ApplicationID newAppId = appId.asVersion(getLatestVersion(appId))
+            prCube.setCell(newAppId.toString(), [(PR_PROP):PR_APP])
+        }
         fillPullRequestUpdateInfo(prCube, newStatus)
         updateCube(prCube, true)
         return prCube
@@ -2003,7 +2073,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return prCube
     }
 
-    Object[] getPullRequests(Date startDate, Date endDate)
+    Object[] getPullRequests(Date startDate = null, Date endDate = null)
     {
         List<Map> results = []
         ApplicationID appId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
@@ -2011,12 +2081,15 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         for (NCube cube : cubes)
         {
             Map prInfo = cube.getMap([(PR_PROP):[] as Set])
-            if (!(prInfo.appId instanceof ApplicationID))
+            if (prInfo[PR_APP] instanceof String)
             {
-                prInfo.appId = ApplicationID.convert(prInfo.appId as String)
-                prInfo.cubeNames = JsonReader.jsonToJava(prInfo.cubeNames as String)
+                prInfo[PR_APP] = ApplicationID.convert(prInfo[PR_APP] as String)
             }
-            prInfo.txid = cube.name.substring(3)
+            if (prInfo[PR_CUBES] instanceof String)
+            {
+                prInfo[PR_CUBES] = JsonReader.jsonToJava(prInfo[PR_CUBES] as String)
+            }
+            prInfo[PR_TXID] = cube.name.substring(3)
             results.add(prInfo)
         }
         results.sort(true, {Map a, Map b -> Converter.convert(b[PR_REQUEST_TIME], Date.class) as Date <=> Converter.convert(a[PR_REQUEST_TIME], Date.class) as Date})
