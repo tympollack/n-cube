@@ -2384,7 +2384,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
         branchDelta = DeltaProcessor.getDelta(baseCube, branchCube)
 
-        if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, headDelta, headToBranch))
+        if (DeltaProcessor.areDeltaSetsCompatible(branchDelta, headDelta))
         {
             if (headToBranch)
             {
