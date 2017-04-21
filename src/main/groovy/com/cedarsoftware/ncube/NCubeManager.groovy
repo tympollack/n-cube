@@ -490,7 +490,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         Map prAppIdCoord = [(PR_PROP):PR_APP]
         Map prStatusCoord = [(PR_PROP):PR_STATUS]
         Date startDate = new Date() - 60
-        List<NCube> prCubes = persister.getPullRequestCubes(appId, startDate, null)
+        List<NCube> prCubes = getPullRequestCubes(startDate, null)
         for (NCube prCube : prCubes)
         {
             Object prAppIdObj = prCube.getCell(prAppIdCoord)
@@ -704,6 +704,26 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return cubes
     }
 
+    List<NCube> cubeSearch(ApplicationID appId, String cubeNamePattern, String content, Map options = [:])
+    {
+        ApplicationID.validateAppId(appId)
+
+        if (!options[SEARCH_EXACT_MATCH_NAME])
+        {
+            cubeNamePattern = handleWildCard(cubeNamePattern)
+        }
+
+        content = handleWildCard(content)
+
+        Map permInfo = getPermInfo(appId)
+        List<NCube> cubes = persister.cubeSearch(appId, cubeNamePattern, content, options)
+        if (!permInfo.skipPermCheck)
+        {
+            cubes.removeAll { !fastCheckPermissions(appId, it.name, Action.READ, permInfo) }
+        }
+        return cubes
+    }
+
     /**
      * This API will hand back a List of AxisRef, which is a complete description of a Reference
      * Axis pointer. It includes the Source ApplicationID, source Cube Name, source Axis Name,
@@ -717,14 +737,13 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         assertPermissions(appId, null)
 
         // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
-        List<NCubeInfoDto> list = persister.search(appId, null, "*${REF_APP}*", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCube> list = cubeSearch(appId, null, "*${REF_APP}*", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         List<AxisRef> refAxes = []
 
-        for (NCubeInfoDto dto : list)
+        for (NCube source : list)
         {
             try
             {
-                NCube source = persister.loadCubeById(dto.id as long)
                 for (Axis axis : source.axes)
                 {
                     if (axis.reference)
@@ -758,7 +777,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
             }
             catch (Exception e)
             {
-                LOG.warn("Unable to load cube: ${dto.name}, app: ${dto.applicationID}", e)
+                LOG.warn("Unable to load cube: ${source.name}, app: ${source.applicationID}", e)
             }
         }
         return refAxes
@@ -2132,8 +2151,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     Object[] getPullRequests(Date startDate = null, Date endDate = null)
     {
         List<Map> results = []
-        ApplicationID appId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        List<NCube> cubes = persister.getPullRequestCubes(appId, startDate, endDate)
+        List<NCube> cubes = getPullRequestCubes(startDate, endDate)
         for (NCube cube : cubes)
         {
             Map prInfo = cube.getMap([(PR_PROP):[] as Set])
@@ -2150,6 +2168,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         }
         results.sort(true, {Map a, Map b -> Converter.convert(b[PR_REQUEST_TIME], Date.class) as Date <=> Converter.convert(a[PR_REQUEST_TIME], Date.class) as Date})
         return results as Object[]
+    }
+
+    private List<NCube> getPullRequestCubes(Date startDate, Date endDate)
+    {
+        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_CREATE_DATE_START):startDate, (SEARCH_CREATE_DATE_END):endDate]
+        return cubeSearch(sysAppId, 'tx.*', null, options)
     }
 
     /**
