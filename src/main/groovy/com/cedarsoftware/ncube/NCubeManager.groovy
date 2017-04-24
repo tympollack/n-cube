@@ -665,6 +665,11 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return branches.size()
     }
 
+    String getCubeRawJson(ApplicationID appId, String cubeName)
+    {
+        return persister.loadCubeRawJson(appId, cubeName)
+    }
+
     /**
      *
      * Fetch an array of NCubeInfoDto's where the cube names match the cubeNamePattern (contains) and
