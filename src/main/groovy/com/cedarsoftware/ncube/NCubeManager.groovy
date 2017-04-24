@@ -821,12 +821,13 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
     private boolean validateReferenceAxesAppIds(ApplicationID appId)
     {
+        String snapshot = ReleaseStatus.SNAPSHOT.name()
         List<AxisRef> axisRefs = getReferenceAxes(appId)
         Set<ApplicationID> uniqueAppIds = getReferenceAxesAppIds(axisRefs.toArray(), false)
         Map<String, ApplicationID> checklist = [:]
         for (ApplicationID refAppId : uniqueAppIds)
         {
-            if (refAppId.status == ReleaseStatus.SNAPSHOT.name())
+            if (refAppId.status == snapshot)
             {
                 throw new IllegalStateException("Operation not performed. Axis references pointing to snapshot version, referenced app: ${refAppId}")
             }
