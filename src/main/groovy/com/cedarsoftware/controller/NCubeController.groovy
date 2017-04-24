@@ -208,8 +208,23 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     String getJson(ApplicationID appId, String cubeName, Map options)
     {
         appId = addTenant(appId)
-        NCube ncube = loadCube(appId, cubeName)
-        return formatCube(ncube, options)
+        try
+        {
+            NCube ncube = loadCube(appId, cubeName)
+            return formatCube(ncube, options)
+        }
+        catch(IllegalStateException e)
+        {
+            if (options.mode == 'json')
+            {
+                LOG.error(e.message, e)
+                return mutableClient.getCubeRawJson(appId, cubeName)
+            }
+            else
+            {
+                throw e
+            }
+        }
     }
 
     NCube getCube(ApplicationID appId, String cubeName)
