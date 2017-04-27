@@ -1017,7 +1017,7 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
      * Fast forward branch cube to HEAD cube, because even though it's HEAD_SHA-1 value is out-of-date,
      * the cubes current SHA-1 is the same as the HEAD cube's SHA-1.  Therefore, we can 'scoot' up the
      * cube record's HEAD-SHA-1 value to the same as the HEAD Cube's SHA-1.
-     * In addition, reset the changed flag to 0.
+     * In addition, set the changed flag based on whether SHA-1 matches HEAD SHA-1.
      */
     static boolean updateBranchCubeHeadSha1(Connection c, Long cubeId, String branchSha1, String headSha1)
     {
