@@ -1952,7 +1952,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                     // Fast-Forward branch
                     // Update HEAD SHA-1 on branch directly (no need to insert)
                     NCubeInfoDto branchCube = getCubeInfo(appId, updateCube)
-                    persister.updateBranchCubeHeadSha1((Long) Converter.convert(branchCube.id, Long.class), updateCube.sha1)
+                    persister.updateBranchCubeHeadSha1((Long) Converter.convert(branchCube.id, Long.class), branchCube.sha1, updateCube.sha1)
                     fastforwards.add(updateCube)
                     break
                 case ChangeType.CONFLICT.code:
