@@ -680,10 +680,10 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
     static boolean renameCube(Connection c, ApplicationID appId, String oldName, String newName, String username)
     {
         byte[] oldBytes = null
+        byte[] testData = null
         Long oldRevision = null
         String oldSha1 = null
         String oldHeadSha1 = null
-        byte[] testData = null
 
         Map<String, Object> options = [
                 (SEARCH_INCLUDE_CUBE_DATA):true,
@@ -694,6 +694,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         NCube ncube = null
         runSelectCubesStatement(c, appId, oldName, options, 1, { ResultSet row ->
             oldRevision = row.getLong('revision_number')
+            oldBytes = row.getBytes(CUBE_VALUE_BIN)
             testData = row.getBytes(TEST_DATA_BIN)
             oldSha1 = row.getString('sha1')
             oldHeadSha1 = row.getString('head_sha1')
