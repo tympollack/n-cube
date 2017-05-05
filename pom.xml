@@ -239,6 +239,7 @@
                         </goals>
                         <configuration>
                             <classifier>exec</classifier>
+                            <executable>true</executable>
                         </configuration>
                     </execution>
                 </executions>
