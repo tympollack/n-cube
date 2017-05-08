@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.1
+  * Removed redundant executable flag in pom.xlm related to making a spring boot executable jar.
 * 4.0.0
   * Built as a Spring Boot application
   * NCubeManager converted from having static APIs to being a Spring injected instance (accessible through interface)
