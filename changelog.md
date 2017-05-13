@@ -1,6 +1,8 @@
 ### Revision History
 * 4.0.1
-  * Removed redundant executable flag in pom.xlm related to making a spring boot executable jar.
+  * Removed redundant executable flag in pom.xml related to making a spring boot executable jar.
+  * Added optional beanName to NCubeRuntime constructor
+  * Bug fix: Removed unnecessary URL encoding in JsonHttpProxy  
 * 4.0.0
   * Built as a Spring Boot application
   * NCubeManager converted from having static APIs to being a Spring injected instance (accessible through interface)

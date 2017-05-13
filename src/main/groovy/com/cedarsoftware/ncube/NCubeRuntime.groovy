@@ -67,13 +67,20 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private final boolean allowMutableMethods
     private final String beanName
 
-    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutableMethods)
+    NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutableMethods, String beanName = null)
     {
         this.bean = bean
         this.ncubeCacheManager = ncubeCacheManager
         this.adviceCacheManager = new GCacheManager()
         this.allowMutableMethods = allowMutableMethods
-        this.beanName = NCubeAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
+        if (StringUtilities.hasContent(beanName))
+        {
+            this.beanName = beanName
+        }
+        else
+        {
+            this.beanName = NCubeAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
+        }
     }
 
     /**

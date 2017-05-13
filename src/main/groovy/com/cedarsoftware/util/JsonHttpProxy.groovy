@@ -97,8 +97,7 @@ class JsonHttpProxy implements CallableBean
 
     Object call(String bean, String methodName, List args)
     {
-        String jArgs = JsonWriter.objectToJson(args.toArray())
-        String jsonArgs = URLEncoder.encode(jArgs, 'UTF-8')
+        String jsonArgs = JsonWriter.objectToJson(args.toArray())
 
         if (LOG.debugEnabled)
         {
@@ -118,11 +117,6 @@ class JsonHttpProxy implements CallableBean
             addHeaders(request)
         }
 
-        String poser = System.getProperty('ncube.fakeuser')
-        if (StringUtilities.hasContent(poser))
-        {
-            request.setHeader('fakeuser', poser)
-        }
         request.entity = new StringEntity(jsonArgs, ContentType.APPLICATION_JSON)
         HttpResponse response = httpClient.execute(request, clientContext)
         String json = EntityUtils.toString(response.entity)
