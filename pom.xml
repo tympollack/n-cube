@@ -238,6 +238,7 @@
                             <goal>repackage</goal>
                         </goals>
                         <configuration>
+                            <executable>true</executable>
                             <classifier>exec</classifier>
                         </configuration>
                     </execution>
