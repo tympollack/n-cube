@@ -860,11 +860,23 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return uniqueAppIds
     }
 
-    private void validateReferenceAxesAppIds(ApplicationID appId)
+    private void validateReferenceAxesAppIds(ApplicationID appId, List<NCubeInfoDto> infoDtos = null)
     {
         String snapshot = ReleaseStatus.SNAPSHOT.name()
-        List<AxisRef> axisRefs = getReferenceAxes(appId)
-        Set<ApplicationID> uniqueAppIds = getReferenceAxesAppIds(axisRefs.toArray(), false)
+        List<AxisRef> allAxisRefs = getReferenceAxes(appId)
+        List<AxisRef> checkAxisRefs = allAxisRefs
+        if (infoDtos)
+        {
+            checkAxisRefs = new ArrayList<AxisRef>()
+            for (NCubeInfoDto infoDto : infoDtos)
+            {
+                List<AxisRef> foundAxisRefs = allAxisRefs.findAll { AxisRef axisRef ->
+                    axisRef.srcCubeName == infoDto.name
+                }
+                checkAxisRefs.addAll(foundAxisRefs)
+            }
+        }
+        Set<ApplicationID> uniqueAppIds = getReferenceAxesAppIds(checkAxisRefs.toArray(), false)
         Map<String, ApplicationID> checklist = [:]
         for (ApplicationID refAppId : uniqueAppIds)
         {
@@ -2224,7 +2236,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
      */
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
     {
-        validateReferenceAxesAppIds(appId)
+        validateReferenceAxesAppIds(appId, inputCubes as List<NCubeInfoDto>)
         String prId = generatePullRequestHash(appId, inputCubes)
         return mergePullRequest(prId)
     }
