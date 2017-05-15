@@ -99,18 +99,18 @@ class CdnClassLoader extends GroovyClassLoader
             throw new ClassNotFoundException(name)
         }
 
-//        if (whiteList)
-//        {
-//            for (item in whiteList)
-//            {
-//                if (name.startsWith(item))
-//                {
+        if (whiteList)
+        {
+            for (item in whiteList)
+            {
+                if (name.startsWith(item))
+                {
                     Class clazz = super.findClass(name)
                     return clazz
-//                }
-//            }
-//        }
-//        throw new ClassNotFoundException(name)
+                }
+            }
+        }
+        throw new ClassNotFoundException(name)
     }
 
     private void addURLs(List<String> list)
