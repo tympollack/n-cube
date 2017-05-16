@@ -1,6 +1,8 @@
 ### Revision History
+* 4.0.3
+  * NCubeManager.getReferenceAxes() was incorrectly validating reference versions. 
 * 4.0.2
-  * Changed NCubeRuntime.getResourceAsString() to use Groovy APIs to get stream from Spring Boot executable jar, due to zipfs execption using regular resource APIs.
+  * Changed NCubeRuntime.getResourceAsString() to use Groovy APIs to get stream from Spring Boot executable jar, due to  zipfs execption using regular resource APIs.
 * 4.0.1
   * Removed redundant executable flag in pom.xml related to making a spring boot executable jar.
   * Added optional beanName to NCubeRuntime constructor
