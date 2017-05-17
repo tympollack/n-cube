@@ -1568,7 +1568,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         options[(SEARCH_EXACT_MATCH_NAME)] = true
         options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
         List<NCubeInfoDto> list = mutableClient.search(appId, cubeName, null, options)
-        return mutableClient.commitBranch(appId, list)
+        return mutableClient.commitBranch(appId, list.toArray())
     }
 
     Object commitBranch(ApplicationID appId, Object[] infoDtos)
