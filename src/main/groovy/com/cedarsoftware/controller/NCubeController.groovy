@@ -224,10 +224,15 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         }
         catch(IllegalStateException e)
         {
-            if (options.mode == 'json')
+            if (['json','json-pretty'].contains(options.mode))
             {
                 LOG.error(e.message, e)
-                return mutableClient.getCubeRawJson(appId, cubeName)
+                String json = mutableClient.getCubeRawJson(appId, cubeName)
+                if (options.mode == 'json-pretty')
+                {
+                    return JsonWriter.formatJson(json)
+                }
+                return json
             }
             else
             {

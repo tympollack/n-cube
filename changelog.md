@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.5
+  * Also get raw json for 'json-pretty' mode. 
 * 4.0.4
   * NCubeController.commitCube() was passing an incompatable argument to commitBranch. Fixed bug and added test coverage for commitCube. 
 * 4.0.3
