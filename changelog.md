@@ -1,6 +1,7 @@
 ### Revision History
 * 4.0.5
-  * Also get raw json for 'json-pretty' mode. 
+  * Also get raw json for 'json-pretty' mode.
+  * Update to Spring Boot 1.5.3, Spring 4.3.8, and Groovy 2.4.11
 * 4.0.4
   * NCubeController.commitCube() was passing an incompatable argument to commitBranch. Fixed bug and added test coverage for commitCube. 
 * 4.0.3
