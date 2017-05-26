@@ -1688,7 +1688,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         }
         catch (Exception e)
         {
-            LOG.info('Unable to load sys.menu (sys.menu cube likely not in appId: ' + appId.toString() + ', exception: ' + e.message)
+            LOG.debug('Unable to load sys.menu (sys.menu cube likely not in appId: ' + appId.toString() + ', exception: ' + e.message)
             return ['title':'Enterprise Configurator',
                     'tab-menu':
                             ['n-cube':[html:'html/ntwobe.html',img:'img/letter-n.png'],
