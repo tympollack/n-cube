@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory
 
 import javax.servlet.http.HttpServletRequest
 
+import static com.cedarsoftware.ncube.NCubeConstants.LOG_ARG_LENGTH
+
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
  *         <br>
@@ -101,7 +103,7 @@ class JsonHttpProxy implements CallableBean
 
         if (LOG.debugEnabled)
         {
-            LOG.debug("${bean}.${MetaUtils.getLogMessage(methodName, args.toArray())}")
+            LOG.debug("${bean}.${MetaUtils.getLogMessage(methodName, args.toArray(), LOG_ARG_LENGTH)}")
         }
         long start = System.nanoTime()
 
