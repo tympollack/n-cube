@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_ACCEPTED_DOMAINS
+import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_GENERATED_CLASSES_DIR
 
 /**
  *  @author Ken Partlow (kpartlow@gmail.com)
@@ -41,7 +42,7 @@ class CdnClassLoader extends GroovyClassLoader
      */
     CdnClassLoader(ClassLoader loader, boolean preventRemoteBeanInfo = true, boolean preventRemoteCustomizer = true, List<String> acceptedDomains = null)
     {
-        super(loader, null)
+        super(configureParentClassLoader(loader), null)
         _preventRemoteBeanInfo = preventRemoteBeanInfo
         _preventRemoteCustomizer = preventRemoteCustomizer
 
@@ -61,6 +62,16 @@ class CdnClassLoader extends GroovyClassLoader
         {
             whiteList = acceptedDomains
         }
+    }
+
+    private static ClassLoader configureParentClassLoader(ClassLoader parent) {
+        String classesDir = ncubeRuntime.getSystemDirectory(NCUBE_PARAMS_GENERATED_CLASSES_DIR)
+        if (classesDir)
+        {
+            File classesFile = new File(classesDir)
+            return new URLClassLoader([classesFile.toURI().toURL()] as URL [], parent)
+        }
+        return parent
     }
 
     /**

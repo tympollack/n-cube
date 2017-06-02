@@ -41,6 +41,8 @@ interface NCubeRuntimeClient extends NCubeClient
 
     Map<String, Object> getSystemParams()
 
+    String getSystemDirectory(String key)
+
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
 
     ApplicationID getBootVersion(String tenant, String app)

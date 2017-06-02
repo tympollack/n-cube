@@ -60,6 +60,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private static final Logger LOG = LoggerFactory.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
+    protected volatile ConcurrentMap<String,String> systemDirs = new ConcurrentHashMap<>()
     protected final CallableBean bean
     private final boolean allowMutableMethods
     private final String beanName
@@ -876,6 +877,37 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     void clearSysParams()
     {
         systemParams = null
+        clearSysDirs()
+    }
+
+    String getSystemDirectory(String ncubeParamKey)
+    {
+        if (!systemDirs.containsKey(ncubeParamKey))
+        {
+            String paramValue = getSystemParams()[ncubeParamKey] as String ?: ''
+            try
+            {
+                if (paramValue) {
+                    File baseDir = new File(paramValue as String)
+                    ensureDirectoryExists(baseDir)
+
+                    File expressionDir = new File("${baseDir.path}/ncube/grv/exp")
+                    ensureDirectoryExists(expressionDir)
+                }
+                systemDirs.putIfAbsent(ncubeParamKey, paramValue)
+            }
+            catch (Exception e) {
+                systemDirs.putIfAbsent(ncubeParamKey, '')
+                LOG.error("Failed to create directories with path=${paramValue}", e)
+            }
+        }
+
+        return systemDirs[ncubeParamKey]
+    }
+
+    protected void clearSysDirs()
+    {
+        systemDirs.clear()
     }
 
     //-- Resource APIs -------------------------------------------------------------------------------------------------
@@ -971,5 +1003,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             throw new IllegalArgumentException('NCube cannot be null')
         }
         NCube.validateCubeName(cube.name)
+    }
+
+    protected void ensureDirectoryExists(File dir) {
+        if (!dir.exists() && !dir.isDirectory()) {
+            dir.mkdirs()
+        }
+        if (!dir.exists() || !dir.isDirectory()) {
+            throw new IOException("Failed to create directory=${dir?.path}")
+        }
     }
 }

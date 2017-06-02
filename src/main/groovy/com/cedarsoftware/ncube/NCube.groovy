@@ -969,6 +969,59 @@ class NCube<T>
     }
 
     /**
+     * Pre-compile command cells, meta-properties, and rule conditions that are expressions
+     */
+    def compile()
+    {
+        cells.each { ids, cell ->
+            if(cell instanceof GroovyBase) {
+                compileCell(getCoordinateFromIds(ids), cell as GroovyBase)
+            }
+        }
+
+        metaProps.each { key, value ->
+            if (value instanceof GroovyBase) {
+                compileCell([metaProp:key],value as GroovyBase)
+            }
+        }
+
+        axisList.each { axisName, axis ->
+            axis.columns.each { column ->
+                if (column.value instanceof GroovyBase) {
+                    compileCell([axis:axisName,column:column.columnName],column.value as GroovyBase)
+                }
+
+                if (column.metaProps) {
+                    column.metaProps.each { key, value ->
+                        if (value instanceof GroovyBase) {
+                            compileCell([axis:axisName,column:column.columnName,metaProp:key],value as GroovyBase)
+                        }
+                    }
+                }
+            }
+
+            if (axis.metaProps) {
+                axis.metaProps.each { key, value ->
+                    if (value instanceof GroovyBase) {
+                        compileCell([axis:axisName,metaProp:key],value as GroovyBase)
+                    }
+                }
+            }
+        }
+    }
+
+    private void compileCell(Map input, GroovyBase groovyBase) {
+        try
+        {
+            groovyBase.prepare(groovyBase.cmd ?: groovyBase.url, prepareExecutionContext(input,[:]))
+        }
+        catch (Exception e)
+        {
+            LOG.warn("Failed to compile cell for cube:${this.name} with coords:${input.toString()}",e)
+        }
+    }
+
+    /**
      * Given the passed in column IDs, return the column level default value
      * if one exists or null otherwise.  In the case of intersection, then null
      * is returned, meaning that the n-cube level default cell value will be
