@@ -66,7 +66,7 @@ interface Regexes
 
     Pattern cdnUrlPattern = ~/^\/dyn\/([^\/]+)\/(.*)$/
 
-    Pattern hasClassDefPattern = Pattern.compile('^(|.*?\\s+)class\\s+([a-zA-Z_0-9$\\.]+).*?\\{.*?\\}.*$', Pattern.DOTALL)
+    Pattern hasClassDefPattern = Pattern.compile('^(|.*?\\s*)(package\\s+(?<packageName>[a-zA-Z_0-9$\\.]+))?(|.*?\\s+)?class\\s+(?<className>[a-zA-Z_0-9\\.]+)\\s+extends\\s+([a-zA-Z_0-9\\.]+).*?\\{.*?\\}.*$', Pattern.DOTALL)
 
     Pattern isOraclePattern = ~/(?i)^.*Oracle.*$/
     Pattern isHSQLDBPattern = ~/(?i)^.*HSQL Database Engine Driver.*$/
