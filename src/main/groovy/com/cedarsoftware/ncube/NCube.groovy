@@ -971,7 +971,7 @@ class NCube<T>
     /**
      * Pre-compile command cells, meta-properties, and rule conditions that are expressions
      */
-    def compile()
+    void compile()
     {
         cells.each { ids, cell ->
             if(cell instanceof GroovyBase) {
