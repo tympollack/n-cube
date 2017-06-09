@@ -22,7 +22,6 @@ import java.util.regex.Matcher
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_DEBUG
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERSION
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_GENERATED_CLASSES_DIR
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_GENERATED_SOURCES_DIR
 
 /**
@@ -57,6 +56,7 @@ abstract class GroovyBase extends UrlCommandCell
      * class (URL to groovy), yet have different source code for that class.
      */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
+    private static String generatedSourcesDir
 
     //  Private constructor only for serialization.
     protected GroovyBase() {}
@@ -278,7 +278,7 @@ abstract class GroovyBase extends UrlCommandCell
             boolean isRoot = dollarPos == -1
 
             // Add compiled class to classLoader
-            Class clazz = defineClass(gcLoader, gclass.bytes)
+            Class clazz = defineClass(gcLoader, url == null ? gclass.name : null, gclass.bytes)
             if (clazz == null)
             {   // error defining class - may have already been defined thru another route
                 continue
@@ -295,11 +295,6 @@ abstract class GroovyBase extends UrlCommandCell
                 {
                     dumpGeneratedSource(className,groovySource)
                 }
-            }
-
-            if (url==null)
-            {
-                dumpGeneratedClass(gclass)
             }
         }
 
@@ -326,8 +321,8 @@ abstract class GroovyBase extends UrlCommandCell
      * Writes generated Groovy source to the directory identified by the NCUBE_PARAM:genSrcDir
      * @param groovySource
      */
-    private void dumpGeneratedSource(String className, String groovySource) {
-        String sourcesDir = ncubeRuntime.getSystemDirectory(NCUBE_PARAMS_GENERATED_SOURCES_DIR)
+    private static void dumpGeneratedSource(String className, String groovySource) {
+        String sourcesDir = getGeneratedSourcesDirectory()
         if (!sourcesDir) {
             return
         }
@@ -335,52 +330,92 @@ abstract class GroovyBase extends UrlCommandCell
         File sourceFile = null
         try {
             sourceFile = new File("${sourcesDir}/${className.replace('.',File.separator)}.groovy")
-            ensurePackageDirExists(className, sourceFile)
-            sourceFile.newWriter().withWriter { w -> w << groovySource }
+            if (ensureDirectoryExists(sourceFile.getParent())) {
+                sourceFile.newWriter().withWriter { w -> w << groovySource }
+            }
         }
         catch (Exception e) {
-            LOG.warn("Failed to write source file with path=${sourceFile?.path}",e)
-        }
-    }
-
-    private void ensurePackageDirExists(String className, File outputFile) {
-        if (!Regexes.isNcubeGrvExpClass.matcher(className).matches()) {
-            File parent = outputFile.getParentFile()
-            if (!parent.exists() && !parent.isDirectory()) {
-                parent.mkdirs()
-            }
+            LOG.warn("Failed to write source file with path=${sourceFile.path}",e)
         }
     }
 
     /**
-     * Writes the generated Groovy class to the directory identified by the NCUBE_PARAM:genClsDir
-     * @param gclass GroovyClass identifying name and byte [] of Class to write
+     * Returns directory to use for writing source files, if configured and valid
+     * @return String specifying valid directory or empty string, if not configured or specified directory was not valid
      */
-    private void dumpGeneratedClass(GroovyClass gclass) {
-        String classesDir = ncubeRuntime.getSystemDirectory(NCUBE_PARAMS_GENERATED_CLASSES_DIR)
-        if (!classesDir) {
-            return
+    protected static String getGeneratedSourcesDirectory()
+    {
+        if (generatedSourcesDir==null)
+        {   // default to SystemParams, if not configured
+            setGeneratedSourcesDirectory(ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_SOURCES_DIR] as String ?: '')
         }
 
-        File classFile = null
-        try {
-            classFile = new File("${classesDir}/${gclass.name.replace('.',File.separator)}.class")
-            ensurePackageDirExists(gclass.name,classFile)
-            classFile.newOutputStream().withStream { stream ->
-                stream.write(gclass.bytes)
+        return generatedSourcesDir
+    }
+
+    /**
+     * Controls directory used to store generated sources
+     *
+     * @param sourcesDir String containing directory to log sources to:
+     *      null - will attempt to use value configured in SystemParams
+     *      empty - will disable logging
+     *      valid directory - directory to use for generated sources
+     *   NOTE: if directory cannot be validated, generated sources will be disabled
+     */
+    protected static void setGeneratedSourcesDirectory(String sourcesDir)
+    {
+        try
+        {
+            if (sourcesDir==null)
+            {
+                generatedSourcesDir = null // allows sources to be reloaded
+            }
+            else
+            {
+                generatedSourcesDir = ensureDirectoryExists(sourcesDir) ? sourcesDir : ''
+            }
+
+            if (generatedSourcesDir)
+            {
+                LOG.info("Generated sources configured to use path=${generatedSourcesDir}")
             }
         }
-        catch (Exception e) {
-            LOG.warn("Failed to write class file with path=${classFile?.path}",e)
+        catch (Exception e)
+        {
+            LOG.warn("Unable to set sources directory to ${sourcesDir}", e)
+            generatedSourcesDir = ''
         }
     }
 
-    private static Class defineClass(GroovyClassLoader loader, byte[] byteCode)
+    /**
+     * Validates directory existence
+     * @param dirPath String path of directory to validate
+     * @return true if directory exists; false, otherwise
+     * @throws SecurityException if call to mkdirs encounters an issue
+     */
+    private static boolean ensureDirectoryExists(String dirPath) {
+        if (!dirPath) {
+            return false
+        }
+
+        File dir = new File(dirPath)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        boolean valid = dir.isDirectory()
+        if (!valid)
+        {
+            LOG.warn("Failed to locate or create generated sources directory with path=${dir.path}")
+        }
+        return valid
+    }
+
+    private static Class defineClass(GroovyClassLoader loader, String className, byte [] byteCode)
     {
         // Add compiled class to classLoader
         try
         {
-            Class clazz = loader.defineClass(null, byteCode)
+            Class clazz = loader.defineClass(className, byteCode)
             return clazz
         }
         catch (ThreadDeath t)

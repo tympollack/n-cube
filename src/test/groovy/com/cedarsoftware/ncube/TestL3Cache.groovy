@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.util.CdnClassLoader
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -67,6 +68,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         clearDirectory(singleDir)
 
         configureSysParams(sourcesDir.path,classesDir.path)
+        GroovyBase.setGeneratedSourcesDirectory(null)
     }
 
     private void clearDirectory(File dir) {
@@ -85,6 +87,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         else {
             System.clearProperty('NCUBE_PARAMS')
         }
+        GroovyBase.setGeneratedSourcesDirectory(null)
         super.teardown()
     }
 
@@ -374,16 +377,15 @@ class TestL3Cache extends NCubeCleanupBaseTest
         assertTrue(sourceFile.exists())
         assertTrue(classesFile.exists())
 
-        // ensure directories are not configured
-        assertEquals('',ncubeRuntime.getSystemDirectory(NCUBE_PARAMS_GENERATED_CLASSES_DIR))
-        assertEquals('',ncubeRuntime.getSystemDirectory(NCUBE_PARAMS_GENERATED_SOURCES_DIR))
-
+        // invoke a cell to force compilation
         Map output = [:]
-        testCube.getCell([name:'simple'],output)
+        testCube.getCell([name: 'simple'],output)
 
-        // validate class loaded, but no cache directories created
+        // validate class loaded and ensure source/class directories not configured
         Class expClass = output.simple
         assertEquals(expClass.name,findLoadedClass(expClass).name)
+        assertEquals('',GroovyBase.getGeneratedSourcesDirectory())
+        assertEquals('',getLoaderGeneratedClassesDir())
     }
 
     /**
@@ -392,11 +394,6 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testNoParameters()
     {
-        File sourcesFile = new File ("${targetDir}/NoParams-sources")
-        assertFalse(sourcesFile.exists())
-        File classesFile = new File ("${targetDir}/NoParams-sources")
-        assertFalse(classesFile.exists())
-
         System.clearProperty('NCUBE_PARAMS')
         ncubeRuntime.clearSysParams()
 
@@ -406,8 +403,8 @@ class TestL3Cache extends NCubeCleanupBaseTest
         // validate class loaded, but no cache directories created
         Class expClass = output.simple
         assertEquals(expClass.name,findLoadedClass(expClass).name)
-        assertFalse(sourcesFile.exists())
-        assertFalse(classesFile.exists())
+        assertEquals('',GroovyBase.getGeneratedSourcesDirectory())
+        assertEquals('',getLoaderGeneratedClassesDir())
     }
 
     @Test
@@ -432,6 +429,12 @@ class TestL3Cache extends NCubeCleanupBaseTest
         assertNotEquals(origClass.name,newClass.name)
     }
 
+    private String getLoaderGeneratedClassesDir()
+    {
+        ClassLoader cdnClassLoader = cp.getCell([:]) as CdnClassLoader
+        return cdnClassLoader['generatedClassesDir']
+    }
+
     private void configureSysParams(srcDirPath,clsDirPath)
     {
         ncubeRuntime.clearSysParams()
@@ -453,7 +456,6 @@ class TestL3Cache extends NCubeCleanupBaseTest
         testCube = loadTestCube(L3CacheCubeDef.bytes)
 
         clearDirectory(sourcesDir)
-        ncubeRuntime.clearSysDirs() // force directory check
     }
 
     private NCube loadTestCube(byte [] bytes)
@@ -466,7 +468,6 @@ class TestL3Cache extends NCubeCleanupBaseTest
     }
 
     private boolean verifySourceAndClassFilesExistence(Class clazz, boolean exists=true) {
-//        verifyFileExistence(sourcesDir,clazz,'groovy',exists)
         verifySourceFileExistence(clazz,exists)
         verifyClassFileExistence(clazz,exists)
     }

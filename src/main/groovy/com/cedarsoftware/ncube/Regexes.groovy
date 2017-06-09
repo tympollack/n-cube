@@ -68,8 +68,6 @@ interface Regexes
 
     Pattern hasClassDefPattern = Pattern.compile('^(|.*?\\s*)(package\\s+(?<packageName>[a-zA-Z_0-9$\\.]+))?(|.*?\\s+)?class\\s+(?<className>[a-zA-Z_0-9\\.]+)\\s+extends\\s+([a-zA-Z_0-9\\.]+).*?\\{.*?\\}.*$', Pattern.DOTALL)
 
-    Pattern isNcubeGrvExpClass = Pattern.compile('^ncube.grv.exp.[a-zA-Z_0-9]+')
-
     Pattern isOraclePattern = ~/(?i)^.*Oracle.*$/
     Pattern isHSQLDBPattern = ~/(?i)^.*HSQL Database Engine Driver.*$/
 

@@ -119,6 +119,7 @@ class TestThreading extends NCubeCleanupBaseTest
         System.setProperty("NCUBE_PARAMS", "{\"${NCUBE_PARAMS_GENERATED_SOURCES_DIR}\":\"${srcDirPath}\",\"${NCUBE_PARAMS_GENERATED_CLASSES_DIR}\":\"${clsDirPath}\"}")
         assertEquals(srcDirPath,ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_SOURCES_DIR])
         assertEquals(clsDirPath,ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_CLASSES_DIR])
+        GroovyBase.setGeneratedSourcesDirectory(null)
     }
 
     @After
@@ -130,6 +131,7 @@ class TestThreading extends NCubeCleanupBaseTest
         else {
             System.clearProperty('NCUBE_PARAMS')
         }
+        GroovyBase.setGeneratedSourcesDirectory(null)
         super.teardown()
     }
 
