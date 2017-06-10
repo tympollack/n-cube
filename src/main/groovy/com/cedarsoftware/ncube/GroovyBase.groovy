@@ -544,7 +544,7 @@ abstract class GroovyBase extends UrlCommandCell
                 className = m.group('className')
             }
 
-            if (className == CLASS_NAME_FOR_L2_CALC) {
+            if (className == CLASS_NAME_FOR_L2_CALC || className == null) {
                 className = "N_${cacheKey}"
             }
             fullClassName = packageName==null ? className : "${packageName}.${className}"
