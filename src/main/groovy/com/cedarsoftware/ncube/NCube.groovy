@@ -1,29 +1,16 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.exception.CommandCellException
-import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
-import com.cedarsoftware.ncube.exception.InvalidCoordinateException
-import com.cedarsoftware.ncube.exception.RuleJump
-import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.util.LongHashSet
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.ByteUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.EncryptionUtilities
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.MapUtilities
-import com.cedarsoftware.util.ReflectionUtils
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.lang.reflect.Array
 import java.lang.reflect.Field
@@ -2692,7 +2679,7 @@ class NCube<T>
     /**
      * Create an equivalent n-cube as 'this'.
      */
-    NCube duplicate(String newName)
+    NCube duplicate(String newName = name)
     {
         NCube copy = createCubeFromBytes(cubeAsGzipJsonBytes)
         copy.setName(newName)
