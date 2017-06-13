@@ -2684,6 +2684,7 @@ class NCube<T>
     {
         NCube copy = createCubeFromBytes(cubeAsGzipJsonBytes)
         copy.setName(newName)
+        copy.applicationID = this.applicationID
         return copy
     }
 
