@@ -566,17 +566,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         runSelectCubesStatement(c, appId, cube.name, options, 1, { ResultSet row ->
             rowFound = true
             Long revision = row.getLong("revision_number")
-            byte[] testData = row.getBytes(TEST_DATA_BIN)
-
-            if (revision < 0)
-            {
-                testData = null
-            }
-
+            boolean cubeActive = revision >= 0
+            byte[] testData = cubeActive ? row.getBytes(TEST_DATA_BIN) : null
             String headSha1 = row.getString('head_sha1')
             String oldSha1 = row.getString('sha1')
 
-            if (StringUtilities.equals(oldSha1, cube.sha1()) && revision >= 0)
+            if (cubeActive && oldSha1 == cube.sha1())
             {
                 // SHA-1's are equal and both revision values are positive.  No need for new revision of record.
                 return
