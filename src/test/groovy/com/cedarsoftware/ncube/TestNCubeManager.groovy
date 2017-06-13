@@ -905,6 +905,20 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         }
     }
 
+    @Test
+    void testSaveTestsUpdatesSha1()
+    {
+        createCube()
+        Object[] testData = mutableClient.getTests(defaultSnapshotApp, 'test.Age-Gender')
+        assertNotNull(testData)
+        assert 1 == testData.size()
+        mutableClient.commitBranch(defaultSnapshotApp)
+
+        NCubeTest newTest = new NCubeTest('bar', testData[0].coord as Map, testData[0].expected as CellInfo[])
+        mutableClient.saveTests(defaultSnapshotApp, 'test.Age-Gender', newTest)
+        List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(defaultSnapshotApp)
+        assert 1 == dtos.size()
+    }
 
     @Test
     void testEmptyNCubeMetaProps()

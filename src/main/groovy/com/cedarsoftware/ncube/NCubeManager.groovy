@@ -642,6 +642,10 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName, Action.UPDATE)
         assertNotLockBlocked(appId)
+        NCube cube = loadCube(appId, cubeName)
+        cube.setMetaProperty(NCube.METAPROPERTY_TEST_UPDATED, new Date())
+        cube.clearSha1()
+        updateCube(cube)
         return persister.updateTestData(appId, cubeName, testData)
     }
 
