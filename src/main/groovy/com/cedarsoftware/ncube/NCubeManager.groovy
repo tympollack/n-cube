@@ -643,14 +643,16 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName, Action.UPDATE)
         assertNotLockBlocked(appId)
-        NCube cube = loadCube(appId, cubeName)
-        if (cube) {
-            List<NCubeInfoDto> revs = persister.getRevisions(appId, cubeName, false)
-            String date = new SafeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.sss").format(new Date())
-            cube.setMetaProperty(NCube.METAPROPERTY_TEST_UPDATED, "rev ${revs.first().revision} - $date".toString())
-            cube.clearSha1()
-            updateCube(cube)
+        List<NCube> cubes = cubeSearch(appId, cubeName, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
+        if (!cubes) {
+            throw new IllegalArgumentException("Cannot update test data, cube: ${cubeName} does not exist in app: ${appId}")
         }
+        NCube cube = cubes.first()
+        List<NCubeInfoDto> revs = persister.getRevisions(appId, cubeName, false)
+        String date = CellInfo.dateTimeFormat.format(new Date())
+        cube.setMetaProperty(NCube.METAPROPERTY_TEST_UPDATED, "rev ${revs.first().revision} - $date".toString())
+        cube.clearSha1()
+        updateCube(cube)
         return persister.updateTestData(appId, cubeName, testData)
     }
 
