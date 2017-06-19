@@ -1,5 +1,6 @@
 ### Revision History
 * 4.0.6
+  * Removed Oracle jdbc driver dependency
   * Removed explicit spring dependencies in pom.xml that are consumed transitively via spring-boot-starter-* dependencies
   * Changed log statements for method calls to include 125 (was 50) characters per argument
   * Changed log level from INFO to DEBUG when sys.menu is not found
