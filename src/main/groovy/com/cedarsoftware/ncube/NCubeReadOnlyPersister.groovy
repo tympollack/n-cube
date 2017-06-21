@@ -126,7 +126,7 @@ interface NCubeReadOnlyPersister
      * @return Map of cube names and string of JSON representing the tests for the given cube.
      * @throws IllegalArgumentException if the passed in cubeName does not exist.
      */
-    Map getAppTestData(ApplicationID appId)
+    Map getAppTestData(ApplicationID appId, String username)
 
     /**
      * Fetch the TEST data (in JSON format) for the named n-cube within the given ApplicationID.

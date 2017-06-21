@@ -659,7 +659,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         Map ret = [:]
         ApplicationID.validateAppId(appId)
-        Map appTests = persister.getAppTestData(appId)
+        Map appTests = persister.getAppTestData(appId, getUserId())
         for (Map.Entry cubeTest : appTests.entrySet())
         {
             String cubeName = cubeTest.key

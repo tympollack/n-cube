@@ -1,4 +1,7 @@
 ### Revision History
+* 4.0.7
+  * Add ability to get and run all tests for an app.
+  * Add username to all persister methods.
 * 4.0.6
   * Removed Oracle jdbc driver dependency
   * Removed explicit spring dependencies in pom.xml that are consumed transitively via spring-boot-starter-* dependencies
