@@ -121,6 +121,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return getCubeInternal(appId, cubeName)
     }
 
+    Map getAppTests(ApplicationID appId)
+    {
+        Map result = bean.call(beanName, 'getAppTests', [appId]) as Map
+        return result
+    }
+
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         Object[] result = bean.call(beanName, 'getTests', [appId, cubeName]) as Object[]

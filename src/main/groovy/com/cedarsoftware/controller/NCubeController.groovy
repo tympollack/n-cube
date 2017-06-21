@@ -990,6 +990,37 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         }
     }
 
+    Map runAppTests(ApplicationID appId)
+    {
+        Map ret = [:]
+        appId = addTenant(appId)
+        Map appTests = mutableClient.getAppTests(appId)
+        for (Map.Entry cubeData : appTests)
+        {
+            String cubeName = cubeData.key
+            ret[cubeName] = runTests(appId, cubeName, cubeData.value as Object[])
+        }
+        return ret
+    }
+
+    Map runTests(ApplicationID appId, String cubeName, Object[] tests)
+    {
+        Map ret = [:]
+        for (Object t : tests)
+        {
+            NCubeTest test = t as NCubeTest
+            try
+            {
+                ret[test.name] = runTest(appId, cubeName, test)
+            }
+            catch (Exception e)
+            {
+                ret[test.name] = ['_message':e.message, '_result':e.stackTrace] as Map
+            }
+        }
+        return ret
+    }
+
     Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
     {
         try
@@ -1049,7 +1080,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
                     }
                     redirectOutput(false)
                 }
-                catch (Exception e)
+                catch (Throwable e)
                 {
                     errors.add('[exception]')
                     errors.add('\n')

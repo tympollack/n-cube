@@ -1572,6 +1572,30 @@ AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revi
         return rows == 1
     }
 
+    static Map getAppTestData(Connection c, ApplicationID appId)
+    {
+        Map ret = [:]
+        Map map = appId as Map
+        map.tenant = padTenant(c, appId.tenant)
+        Sql sql = getSql(c)
+
+        String select = """\
+/* getAppTest */
+SELECT n_cube_nm, test_data_bin FROM n_cube
+WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND test_data_bin IS NOT NULL
+ORDER BY abs(revision_number) DESC"""
+
+        sql.eachRow(select, map, 0, 0, { ResultSet row ->
+            String cubeName = row.getString('n_cube_nm')
+            if (!ret.containsKey(cubeName))
+            {
+                ret[cubeName] = new String(row.getBytes(TEST_DATA_BIN), 'UTF-8')
+            }
+        })
+
+        return ret
+    }
+
     static String getTestData(Connection c, ApplicationID appId, String cubeName)
     {
         Map map = appId as Map

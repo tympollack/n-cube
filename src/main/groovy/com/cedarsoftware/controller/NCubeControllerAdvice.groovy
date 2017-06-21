@@ -61,9 +61,9 @@ class NCubeControllerAdvice
         {
             LOG.info("[SLOW - ${time} ms] ${MetaUtils.getLogMessage(methodName, args, LOG_ARG_LENGTH)}")
         }
-        else if (LOG.debugEnabled)
+        else //if (LOG.debugEnabled)
         {
-            LOG.debug(MetaUtils.getLogMessage(methodName, args, LOG_ARG_LENGTH))
+            LOG.info(MetaUtils.getLogMessage(methodName, args, LOG_ARG_LENGTH))
         }
         return ret
     }
