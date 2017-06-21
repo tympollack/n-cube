@@ -990,7 +990,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         }
     }
 
-    Map runAppTests(ApplicationID appId)
+    Map runTests(ApplicationID appId)
     {
         Map ret = [:]
         appId = addTenant(appId)
@@ -1079,6 +1079,10 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
                         success = false
                     }
                     redirectOutput(false)
+                }
+                catch (ThreadDeath t)
+                {
+                    throw t
                 }
                 catch (Throwable e)
                 {
