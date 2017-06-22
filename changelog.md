@@ -2,6 +2,7 @@
 * 4.0.7
   * Add ability to get and run all tests for an app.
   * Add username to all persister methods.
+  * Equivalent primitive values (including Strings and Dates) are folded into one instance (interned) for cells and column values.
 * 4.0.6
   * Removed Oracle jdbc driver dependency
   * Removed explicit spring dependencies in pom.xml that are consumed transitively via spring-boot-starter-* dependencies
