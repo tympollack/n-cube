@@ -655,6 +655,21 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return persister.updateTestData(appId, cubeName, testData, getUserId())
     }
 
+    Map getAppTests(ApplicationID appId)
+    {
+        Map ret = [:]
+        ApplicationID.validateAppId(appId)
+        Map appTests = persister.getAppTestData(appId, getUserId())
+        for (Map.Entry cubeTest : appTests.entrySet())
+        {
+            String cubeName = cubeTest.key
+            assertPermissions(appId, cubeName)
+            List<NCubeTest> tests = NCubeTestReader.convert(cubeTest.value as String)
+            ret[cubeName] = tests
+        }
+        return ret
+    }
+
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         ApplicationID.validateAppId(appId)

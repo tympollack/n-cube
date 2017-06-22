@@ -208,6 +208,12 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 "saveTests(${appId.cacheKey(cubeName)})", username)
     }
 
+    Map getAppTestData(ApplicationID appId, String username)
+    {
+        return (Map) jdbcOperation({ Connection c -> persister.getAppTestData(c, appId) },
+                "getAppTestData(${appId}", username)
+    }
+
     String getTestData(ApplicationID appId, String cubeName, String username)
     {
         return (String) jdbcOperation({ Connection c -> persister.getTestData(c, appId, cubeName) },
