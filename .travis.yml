@@ -5,9 +5,9 @@ addons:
       - oracle-java8-installer
 
 language: java
-dist: trusty
+#dist: trusty
 jdk:
-  - openjdk8
+  - oraclejdk8
 
 install: mvn -B -e install -U -DskipTests=true
 
