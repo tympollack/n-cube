@@ -72,8 +72,8 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
 
     NCubeController(NCubeMutableClient mutableClient, boolean allowExecute)
     {
-//        System.out = new ThreadAwarePrintStream(System.out)
-//        System.err = new ThreadAwarePrintStreamErr(System.err)
+        System.out = new ThreadAwarePrintStream(System.out)
+        System.err = new ThreadAwarePrintStreamErr(System.err)
         this.mutableClient = mutableClient
         this.allowExecute = allowExecute
     }
