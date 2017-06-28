@@ -4998,8 +4998,21 @@ class TestNCube extends NCubeBaseTest
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
         Map queryResult = ncube.mapReduce('key', 'query', 'true')
 
-        assert queryResult.size() == 6
-        assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F'])
+        assert queryResult.size() == 7
+        assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
+    }
+
+    @Test
+    void testSelectWithCommandCell()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'OH\'')
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['G']
+        assert row['foo'] == 'OH'
+        assert row['bar'] == '5 G - bar'
     }
 
     @Test

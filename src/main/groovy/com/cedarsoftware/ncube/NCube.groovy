@@ -1105,7 +1105,7 @@ class NCube<T>
         return result
     }
 
-    Map<String, Map<String, Object>> mapReduce(String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map addlBindings = null)
+    Map<String, Map<String, Object>> mapReduce(String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map addlBindings = [:])
     {
         if(!rowAxisName)
         {
@@ -1127,7 +1127,7 @@ class NCube<T>
         if(axisNames.size() > 2)
         {
             Set<String> otherAxes = axisNames - [rowAxisName, colAxisName]
-            if(!addlBindings || !addlBindings.keySet().containsAll(otherAxes))
+            if(!addlBindings.keySet().containsAll(otherAxes))
             {
                 throw new IllegalArgumentException("Using row axis [${rowAxisName}] and query axis [${colAxisName}] for cube [${this.name}] - bindings for axes ${otherAxes} must be supplied.")
             }
@@ -1154,6 +1154,7 @@ class NCube<T>
         List<Column> whereColumns = colAxis.getColumns()
         Iterator<Column> iter = rowAxis.getColumns().iterator()
         LongHashSet ids = new LongHashSet(boundColumns)
+        Map commandInput = new CaseInsensitiveMap(addlBindings)
         while(iter.hasNext())
         {
             Map queryMap = [:] as Map
@@ -1166,6 +1167,12 @@ class NCube<T>
                 long whereId = whereColumn.id
                 ids << whereId
                 def cellValue = cells[ids]
+                if(cellValue instanceof CommandCell)
+                {
+                    commandInput[rowAxisName] = column.valueThatMatches
+                    commandInput[colAxisName] = whereColumn.valueThatMatches
+                    cellValue = executeExpression([input: commandInput, output: output, ncube: this] as Map, cellValue as CommandCell)
+                }
 
                 if(isColNotDiscrete)
                 {

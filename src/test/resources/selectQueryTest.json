@@ -39,6 +39,11 @@
           "id":1000357445975,
           "type":"string",
           "value":"F"
+        },
+        {
+          "id":1000310503588,
+          "type":"string",
+          "value":"G"
         }
       ]
     },
@@ -72,6 +77,14 @@
       ],
       "type":"string",
       "value":"also test contains"
+    },
+    {
+      "id":[
+        1000310503588,
+        2000143128262
+      ],
+      "type":"string",
+      "value":"OH"
     },
     {
       "id":[
@@ -136,6 +149,14 @@
       ],
       "type":"string",
       "value":"NY"
+    },
+    {
+      "id":[
+        1000310503588,
+        2001400108033
+      ],
+      "type":"exp",
+      "value":"\"${25 / 5} ${input.key} - ${input.query}\".toString()"
     },
     {
       "id":[
