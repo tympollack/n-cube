@@ -1105,8 +1105,7 @@ class NCube<T>
         return result
     }
 
-    Map<String, Map<String, Object>> mapReduce(String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map addlBindings = [:],
-                                               Set columnsToSearch = null, Set columnsToReturn = null)
+    Map mapReduce(String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map addlBindings = [:], Set columnsToSearch = null, Set columnsToReturn = null)
     {
         if(!rowAxisName)
         {
