@@ -5188,6 +5188,59 @@ class TestNCube extends NCubeBaseTest
         }
     }
 
+    @Test
+    void testSelectWithFilterAndReturnSets()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'TX\'', [:], [:], ['foo'] as Set, ['bar'] as Set)
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['E']
+        assert row.size() == 1
+        assert row['bar'] == 'also test contains'
+    }
+
+    @Test
+    void testSelectWithFilterAndReturnSetsColumnInBoth()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'TX\'', [:], [:], ['foo'] as Set, ['foo', 'bar'] as Set)
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['E']
+        assert row.size() == 2
+        assert row['foo'] == 'TX'
+        assert row['bar'] == 'also test contains'
+    }
+
+    @Test
+    void testSelectWithFilterAndReturnSetsNonDiscreteAxis()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryColumnAxisSetTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query', 'input.group2 != \'Y\'', [:], [:], ['group2'] as Set, ['group3'] as Set)
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['location']
+        assert row.size() == 1
+        assert row['group3'] == 'western'
+    }
+
+    @Test
+    void testSelectWithFilterAndReturnSetsRunningCommandCell()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'OH\'', [:], [:], ['foo'] as Set, ['bar'] as Set)
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['G']
+        assert row.size() == 1
+        assert row['bar'] == '5 G - bar'
+    }
+
     // For testing getCube speed()
     @Ignore
     void testGetCubeSpeed()
