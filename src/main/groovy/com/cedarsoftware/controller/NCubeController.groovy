@@ -336,7 +336,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return valuesToCellInfo(col.metaProperties)
     }
 
-    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where, Map output, Map addlBindings, Set columnsToSearch, Set columnsToReturn)
+    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map addlBindings = [:], Set columnsToSearch = [] as Set, Set columnsToReturn = [] as Set)
     {
         verifyAllowExecute('mapReduce')
         appId = addTenant(appId)
