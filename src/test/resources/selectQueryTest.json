@@ -44,6 +44,11 @@
           "id":1000310503588,
           "type":"string",
           "value":"G"
+        },
+        {
+          "id":1000751180043,
+          "type":"string",
+          "value":"H"
         }
       ]
     },
@@ -77,6 +82,14 @@
       ],
       "type":"string",
       "value":"also test contains"
+    },
+    {
+      "id":[
+        1000751180043,
+        2001400108033
+      ],
+      "type":"exp",
+      "url":"com/acme/controllers/MapReduceController.groovy"
     },
     {
       "id":[
@@ -157,6 +170,14 @@
       ],
       "type":"exp",
       "value":"\"${25 / 5} ${input.key} - ${input.query}\".toString()"
+    },
+    {
+      "id":[
+        1000751180043,
+        2000143128262
+      ],
+      "type":"string",
+      "value":"FL"
     },
     {
       "id":[

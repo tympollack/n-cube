@@ -1133,6 +1133,7 @@ class NCube<T>
             whereColumns = colAxis.columns
         }
 
+        GroovyExpression exp = new GroovyExpression(where, null, false)
         LongHashSet ids = new LongHashSet(boundColumns)
         Map commandInput = new CaseInsensitiveMap(addlBindings)
         for(column in rowAxis.columns)
@@ -1152,7 +1153,7 @@ class NCube<T>
                 ids.remove(whereId)
             }
 
-            def result = executeExpression([input: queryMap, output: output, ncube: this] as Map, new GroovyExpression(where, null, false))
+            def result = executeExpression([input: queryMap, output: output, ncube: this] as Map, exp)
             if(isTrue(result))
             {
                 setMapByAxisType(isRowNotDiscrete, rowAxis, column, buildMapReduceResult(colAxis, columnsToReturn, alreadyExecuted, ids, commandInput, output), matchingRows)
