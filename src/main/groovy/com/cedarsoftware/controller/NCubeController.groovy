@@ -336,6 +336,14 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return valuesToCellInfo(col.metaProperties)
     }
 
+    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map addlBindings = [:], Set columnsToSearch = [] as Set, Set columnsToReturn = [] as Set)
+    {
+        verifyAllowExecute('mapReduce')
+        appId = addTenant(appId)
+        NCube ncube = loadCube(appId, cubeName)
+        return ncube.mapReduce(rowAxisName, colAxisName, where, output, addlBindings, columnsToSearch, columnsToReturn)
+    }
+
     private static Map<String, CellInfo> valuesToCellInfo(Map<String, Object> metaProps)
     {
         Map<String, CellInfo> map = [:] as Map
