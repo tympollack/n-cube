@@ -1,6 +1,7 @@
 package com.cedarsoftware.controller
 
 import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
@@ -1019,7 +1020,9 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
     {
         appId = addTenant(appId)
-        return mutableClient.saveTests(appId, cubeName, tests)
+        NCube cube = loadCube(appId, cubeName)
+        cube.testData = tests
+        return mutableClient.updateCube(cube)
     }
 
     NCubeTest createNewTest(ApplicationID appId, String cubeName, String testName)
@@ -1033,10 +1036,9 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         }
 
         Set<String> items = ncube.getRequiredScope([:], [:])
-        int size = items == null ? 0 : items.size()
 
         Map<String, CellInfo> coords = new CaseInsensitiveMap<>()
-        if (size > 0)
+        if (items?.size())
         {
             for (String s : items)
             {
@@ -1640,10 +1642,10 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return mutableClient.mergeDeltas(appId, cubeName, deltaList)
     }
 
-    private List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
+    private List<Delta> getDeltaDescription(NCube newCube, NCube oldCube, Object[] newCubeTests, Object[] oldCubeTests)
     {
-        mutableClient.checkPermissions(newCube.applicationID, newCube.name, Action.READ.name())
-        mutableClient.checkPermissions(oldCube.applicationID, oldCube.name, Action.READ.name())
+        newCube.testData = newCubeTests
+        oldCube.testData = oldCubeTests
         return DeltaProcessor.getDeltaDescription(newCube, oldCube)
     }
 
@@ -1653,7 +1655,9 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         NCube oldCube = mutableClient.loadCubeById(oldCubeId)
         addTenant(newCube.applicationID)
         addTenant(oldCube.applicationID)
-        return getDeltaDescription(newCube, oldCube)
+        Object[] newCubeTests = mutableClient.getTests(newCubeId)
+        Object[] oldCubeTests = mutableClient.getTests(oldCubeId)
+        return getDeltaDescription(newCube, oldCube, newCubeTests, oldCubeTests)
     }
 
     List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
@@ -1662,7 +1666,9 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         ApplicationID oldAppId = new ApplicationID(tenant, oldInfoDto.app, oldInfoDto.version, oldInfoDto.status, oldInfoDto.branch)
         NCube newCube = loadCube(newAppId, newInfoDto.name)
         NCube oldCube = loadCube(oldAppId, oldInfoDto.name)
-        return getDeltaDescription(newCube, oldCube)
+        Object[] newCubeTests = getTests(newAppId, newInfoDto.name)
+        Object[] oldCubeTests = getTests(oldAppId, oldInfoDto.name)
+        return getDeltaDescription(newCube, oldCube, newCubeTests, oldCubeTests)
     }
 
     Object[] getReferenceAxes(ApplicationID appId)

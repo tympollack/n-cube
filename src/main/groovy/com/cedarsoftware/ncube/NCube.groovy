@@ -3,6 +3,8 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.JsonFormatter
+import com.cedarsoftware.ncube.formatters.NCubeTestReader
+import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
@@ -57,6 +59,7 @@ class NCube<T>
     public static final String validCubeNameChars = '0-9a-zA-Z._-'
     public static final String RULE_EXEC_INFO = '_rule'
     public static final String METAPROPERTY_TEST_UPDATED = 'testUpdated'
+    public static final String METAPROPERTY_TEST_DATA = '_testData'
     protected static final byte[] TRUE_BYTES = 't'.bytes
     protected static final byte[] FALSE_BYTES = 'f'.bytes
     private static final byte[] A_BYTES = 'a'.bytes
@@ -3224,6 +3227,77 @@ class NCube<T>
                 case Delta.Location.CELL_META:
                     // TODO - cell meta-properties not yet implemented
                     break
+
+                case Delta.Location.TEST:
+                    List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+
+                    switch (delta.type)
+                    {
+                        case Delta.Type.ADD:
+                            tests.add(delta.destVal as NCubeTest)
+                            break
+                        case Delta.Type.DELETE:
+                            String testName = delta.locId as String
+                            NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                            tests.remove(test)
+                            break
+                    }
+
+                    testData = tests.toArray()
+                    break
+
+                case Delta.Location.TEST_COORD:
+                    List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                    String testName = delta.locId as String
+                    NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                    Map<String, CellInfo> coords = test.coord
+
+                    switch (delta.type)
+                    {
+                        case Delta.Type.ADD:
+                        case Delta.Type.UPDATE:
+                            Map.Entry<String, CellInfo> newCoordEntry = delta.destVal as Map.Entry<String, CellInfo>
+                            coords[newCoordEntry.key] = newCoordEntry.value
+                            break
+                        case Delta.Type.DELETE:
+                            Map.Entry<String, CellInfo> oldCoordEntry = delta.sourceVal as Map.Entry<String, CellInfo>
+                            coords.remove(oldCoordEntry.key)
+                            break
+                    }
+
+                    NCubeTest newTest = new NCubeTest(test.name, coords, test.assertions)
+                    tests.remove(test)
+                    tests.add(newTest)
+                    testData = tests.toArray()
+                    break
+
+                case Delta.Location.TEST_ASSERT:
+                    List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                    String testName = delta.locId as String
+                    NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                    List<CellInfo> assertions = test.assertions.toList()
+                    CellInfo newAssert = delta.destVal as CellInfo
+                    CellInfo oldAssert = delta.sourceVal as CellInfo
+
+                    switch (delta.type)
+                    {
+                        case Delta.Type.ADD:
+                            assertions.add(newAssert)
+                            break
+                        case Delta.Type.UPDATE:
+                            assertions.remove(oldAssert)
+                            assertions.add(newAssert)
+                            break
+                        case Delta.Type.DELETE:
+                            assertions.remove(oldAssert)
+                            break
+                    }
+
+                    NCubeTest newTest = new NCubeTest(test.name, test.coord, assertions.toArray() as CellInfo[])
+                    tests.remove(test)
+                    tests.add(newTest)
+                    testData = tests.toArray()
+                    break
             }
         }
 
@@ -3252,6 +3326,16 @@ class NCube<T>
         }
 
         clearSha1()
+    }
+
+    List<NCubeTest> getTestData()
+    {
+        NCubeTestReader.convert(getMetaProperty(METAPROPERTY_TEST_DATA) as String)
+    }
+
+    void setTestData(Object[] tests)
+    {
+        setMetaProperty(METAPROPERTY_TEST_DATA, new NCubeTestWriter().format(tests))
     }
 
     /**
