@@ -1,6 +1,9 @@
 ### Revision History
 * 4.1.0
   * Separated out server.port property. Renamed server.* properties for JsonHttpProxy to target.*.
+  * Added NCubeTest as part of DeltaProcessor.
+  * Added loadCubeWithTests to get both the cube and its tests together.
+  * Removed saveTests from NCubeManager; this is now wrapped into updateCube in the persister.
 * 4.0.9
   * Bug fix: Separated checkPermissions() and checkMultiplePermissions() from overridden API to two distinct APIs.
 * 4.0.8
