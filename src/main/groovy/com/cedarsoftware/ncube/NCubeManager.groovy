@@ -66,6 +66,13 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         }
     }
 
+    private ThreadLocal<Boolean> isSystemRequest = new ThreadLocal<Boolean>() {
+        Boolean initialValue()
+        {
+            return false
+        }
+    }
+
     private static final List CUBE_MUTATE_ACTIONS = [Action.COMMIT, Action.UPDATE]
 
     NCubeManager(NCubePersister persister, CacheManager permCacheManager)
@@ -534,19 +541,21 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         Map prStatusCoord = [(PR_PROP):PR_STATUS]
         Date startDate = new Date() - 60
         List<NCube> prCubes = getPullRequestCubes(startDate, null)
-        for (NCube prCube : prCubes)
-        {
-            Object prAppIdObj = prCube.getCell(prAppIdCoord)
-            Object prStatus = prCube.getCell(prStatusCoord)
-            ApplicationID prAppId = prAppIdObj instanceof ApplicationID ? prAppIdObj as ApplicationID : ApplicationID.convert(prAppIdObj as String)
-            if (prStatus == PR_OPEN)
+        runSystemRequest {
+            for (NCube prCube : prCubes)
             {
-                boolean shouldChange = onlyCurrentBranch ? prAppId == appId : prAppId.equalsNotIncludingBranch(appId)
-                if (shouldChange)
+                Object prAppIdObj = prCube.getCell(prAppIdCoord)
+                Object prStatus = prCube.getCell(prStatusCoord)
+                ApplicationID prAppId = prAppIdObj instanceof ApplicationID ? prAppIdObj as ApplicationID : ApplicationID.convert(prAppIdObj as String)
+                if (prStatus == PR_OPEN)
                 {
-                    prAppId = prAppId.asVersion(newSnapVer)
-                    prCube.setCell(prAppId.toString(), prAppIdCoord)
-                    updateCube(prCube, true)
+                    boolean shouldChange = onlyCurrentBranch ? prAppId == appId : prAppId.equalsNotIncludingBranch(appId)
+                    if (shouldChange)
+                    {
+                        prAppId = prAppId.asVersion(newSnapVer)
+                        prCube.setCell(prAppId.toString(), prAppIdCoord)
+                        updateCube(prCube, true)
+                    }
                 }
             }
         }
@@ -1057,13 +1066,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             return true
         }
         throw new SecurityException("Operation not performed.  You do not have ${action} permission to ${resource}, app: ${appId}")
-    }
-
-    protected boolean isSystemRequest() {
-        boolean found = new Exception().fillInStackTrace().stackTrace.find { StackTraceElement it ->
-            it.className == NCUBE_MANAGER_CLASS_NAME && SYSTEM_REQUEST_METHOD_NAMES.contains(it.methodName)
-        }
-        return found
     }
 
     protected boolean assertNotLockBlocked(ApplicationID appId)
@@ -1600,6 +1602,24 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     }
 
     /**
+     * Set whether permissions should be checked on the current thread
+     * @param boolean isSystemRequest
+     */
+    void setSystemRequest(boolean isSystemRequest)
+    {
+        this.isSystemRequest.set(isSystemRequest)
+    }
+
+    /**
+     * Retrieve whether permissions should be checked on the current thread
+     * @return boolean
+     */
+    boolean isSystemRequest()
+    {
+        return isSystemRequest.get()
+    }
+
+    /**
      * Add wild card symbol at beginning and at end of string if not already present.
      * Remove wild card symbol if only character present.
      * @return String
@@ -2131,13 +2151,21 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         prCube.setCell(getUserId(), [(PR_PROP):PR_REQUESTER])
         prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
 
-        createPullRequestCube(prCube)
+        runSystemRequest { createCube(prCube) }
         return sha1
     }
 
-    private void createPullRequestCube(NCube prCube)
-    { // this is pulled out to ignore permissions check
-        createCube(prCube)
+    private def runSystemRequest(Closure closure)
+    {
+        try
+        {
+            systemRequest = true
+            return closure()
+        }
+        finally
+        {
+            systemRequest = false
+        }
     }
 
     Map<String, Object> mergePullRequest(String prId)
@@ -2257,20 +2285,21 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             prCube.setCell(newAppId.toString(), [(PR_PROP):PR_APP])
         }
         fillPullRequestUpdateInfo(prCube, newStatus)
-        updateCube(prCube, true)
+        runSystemRequest { updateCube(prCube, true) }
         return prCube
     }
 
     private NCube loadPullRequestCube(String prId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true])
-        if (dtos.empty)
-        {
-            throw new IllegalArgumentException("Invalid pull request id: ${prId}")
-        }
-        NCube prCube = loadCubeById(dtos.first().id as long)
-        return prCube
+        runSystemRequest {
+            ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+            List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_EXACT_MATCH_NAME): true])
+            if (dtos.empty) {
+                throw new IllegalArgumentException("Invalid pull request id: ${prId}")
+            }
+            NCube prCube = loadCubeById(dtos.first().id as long)
+            return prCube
+        } as NCube
     }
 
     Object[] getPullRequests(Date startDate = null, Date endDate = null)
@@ -2299,7 +2328,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     {
         ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_CREATE_DATE_START):startDate, (SEARCH_CREATE_DATE_END):endDate]
-        return cubeSearch(sysAppId, 'tx.*', null, options)
+        runSystemRequest { cubeSearch(sysAppId, 'tx.*', null, options) } as List<NCube>
     }
 
     /**
