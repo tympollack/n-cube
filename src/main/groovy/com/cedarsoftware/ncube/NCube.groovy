@@ -534,7 +534,7 @@ class NCube<T>
         LongHashSet ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
-            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}. Add column(s) before assigning cells.", name)
+            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name}, appId: ${appId} using coordinate: ${coordinate}. Add column(s) before assigning cells.", name)
         }
         return cells[ids] = (T)internValue(value)
     }
@@ -1585,7 +1585,7 @@ class NCube<T>
             if (!copy.containsKey(scopeKey))
             {
                 Set coordinateKeys = coordinate.keySet()
-                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}",
+                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}, appId: ${appId}",
                         name, coordinateKeys, requiredScope)
             }
         }
