@@ -439,7 +439,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     {
         ncubeRuntime.clearSysParams()
 
-        System.setProperty("NCUBE_PARAMS", "{\"${NCUBE_PARAMS_GENERATED_SOURCES_DIR}\":\"${srcDirPath.replace('\\', '\\\\')}\",\"${NCUBE_PARAMS_GENERATED_CLASSES_DIR}\":\"${clsDirPath.replace('\\', '\\\\')}\"}")
+        System.setProperty("NCUBE_PARAMS", """{"${NCUBE_PARAMS_GENERATED_SOURCES_DIR}":"${srcDirPath.replace('\\', '\\\\')}","${NCUBE_PARAMS_GENERATED_CLASSES_DIR}":"${clsDirPath.replace('\\', '\\\\')}"}""")
         assertEquals(srcDirPath,ncubeRuntime.systemParams[NCUBE_PARAMS_GENERATED_SOURCES_DIR])
         assertEquals(clsDirPath,ncubeRuntime.systemParams[NCUBE_PARAMS_GENERATED_CLASSES_DIR])
     }
