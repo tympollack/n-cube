@@ -2277,7 +2277,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
      */
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
     {
-        validateReferenceAxesAppIds(appId, inputCubes as List<NCubeInfoDto>)
         String prId = generatePullRequestHash(appId, inputCubes)
         return mergePullRequest(prId)
     }
@@ -2412,6 +2411,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
+        validateReferenceAxesAppIds(appId, inputCubes as List<NCubeInfoDto>)
         assertNotLockBlocked(appId)
         if (!isMerge)
         {
@@ -2419,7 +2419,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         }
 
         List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
-        if (inputCubes == null)
+        if (!inputCubes)
         {
             return newDtoList
         }
