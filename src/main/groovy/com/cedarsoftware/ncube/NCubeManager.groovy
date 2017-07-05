@@ -763,7 +763,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         Map permInfo = getPermInfo(appId)
         List<NCubeInfoDto> cubes = persister.search(appId, cubeNamePattern, content, options, getUserId())
-        if (!permInfo.skipPermCheck)
+        if (!permInfo.skipPermCheck && !systemRequest)
         {
             cubes.removeAll { !fastCheckPermissions(appId, it.name, Action.READ, permInfo) }
         }
@@ -783,7 +783,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         Map permInfo = getPermInfo(appId)
         List<NCube> cubes = persister.cubeSearch(appId, cubeNamePattern, content, options, getUserId())
-        if (!permInfo.skipPermCheck)
+        if (!permInfo.skipPermCheck && !systemRequest)
         {
             cubes.removeAll { !fastCheckPermissions(appId, it.name, Action.READ, permInfo) }
         }
@@ -1048,11 +1048,18 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     Boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
     {
         action = action ?: Action.READ
-        if (checkPermissions(appId, resource, action.name()))
+        if (systemRequest || checkPermissions(appId, resource, action.name()))
         {
             return true
         }
         throw new SecurityException("Operation not performed.  You do not have ${action} permission to ${resource}, app: ${appId}")
+    }
+
+    protected boolean isSystemRequest() {
+        boolean found = new Exception().fillInStackTrace().stackTrace.find { StackTraceElement it ->
+            it.className == NCUBE_MANAGER_CLASS_NAME && SYSTEM_REQUEST_METHOD_NAMES.contains(it.methodName)
+        }
+        return found
     }
 
     protected boolean assertNotLockBlocked(ApplicationID appId)
@@ -1511,6 +1518,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             return
         }
 
+        boolean isSysApp = appId.app == SYS_APP
+
         NCube appPermCube = new NCube(SYS_PERMISSIONS)
         appPermCube.applicationID = appId
         appPermCube.defaultCellValue = false
@@ -1520,6 +1529,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         resourceAxis.addColumn(SYS_USERGROUPS)
         resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
         resourceAxis.addColumn(SYS_LOCK)
+        if (isSysApp)
+        {
+            resourceAxis.addColumn(SYS_TRANSACTIONS)
+        }
         appPermCube.addAxis(resourceAxis)
 
         Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
@@ -1550,6 +1563,16 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT.lower()])
         appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.COMMIT.lower()])
         appPermCube.setCell(false, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
+
+        if (isSysApp)
+        {
+            appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.RELEASE.lower()])
+            appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT.lower()])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.UPDATE.lower()])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.READ.lower()])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.READ.lower()])
+        }
 
         persister.createCube(appPermCube, getUserId())
     }
@@ -2104,8 +2127,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         prCube.setCell(getUserId(), [(PR_PROP):PR_REQUESTER])
         prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
 
-        createCube(prCube)
+        createPullRequestCube(prCube)
         return sha1
+    }
+
+    private void createPullRequestCube(NCube prCube)
+    { // this is pulled out to ignore permissions check
+        createCube(prCube)
     }
 
     Map<String, Object> mergePullRequest(String prId)
@@ -2163,8 +2191,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         ret[PR_APP] = prAppId
         ret[PR_CUBE] = prCube
 
-        fillPullRequestUpdateInfo(prCube, PR_COMPLETE)
-        updateCube(prCube, true)
+        updatePullRequest(prId, null, null, PR_COMPLETE)
         return ret
     }
 
@@ -2210,7 +2237,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         NCube prCube = loadPullRequestCube(prId)
 
         String status = prCube.getCell([(PR_PROP):PR_STATUS])
-        if (exceptionTest(status))
+        if (exceptionTest && exceptionTest(status))
         {
             String requestUser = prCube.getCell([(PR_PROP): PR_REQUESTER])
             String appIdString = prCube.getCell([(PR_PROP):PR_APP])

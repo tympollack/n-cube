@@ -23,6 +23,9 @@ import groovy.transform.CompileStatic
 @CompileStatic
 interface NCubeConstants
 {
+    final String NCUBE_MANAGER_CLASS_NAME = 'com.cedarsoftware.ncube.NCubeManager'
+    final String[] SYSTEM_REQUEST_METHOD_NAMES = ['getPullRequests','createPullRequestCube','loadPullRequestCube','updatePullRequest','updateOpenPullRequestVersions']
+
     final String ERROR_CANNOT_MOVE_000 = 'Version 0.0.0 is for system configuration and cannot be move.'
     final String ERROR_CANNOT_MOVE_TO_000 = 'Version 0.0.0 is for system configuration and branch cannot be moved to it.'
     final String ERROR_CANNOT_RELEASE_000 = 'Version 0.0.0 is for system configuration and cannot be released.'
@@ -49,6 +52,7 @@ interface NCubeConstants
     final String SYS_USERGROUPS = 'sys.usergroups'
     final String SYS_LOCK = 'sys.lock'
     final String SYS_BRANCH_PERMISSIONS = 'sys.branch.permissions'
+    final String SYS_TRANSACTIONS = 'tx.*'
     final String CLASSPATH_CUBE = 'sys.classpath'
 
     final String ROLE_ADMIN = 'admin'
