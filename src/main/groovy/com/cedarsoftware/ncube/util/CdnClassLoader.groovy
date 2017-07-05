@@ -2,6 +2,7 @@ package com.cedarsoftware.ncube.util
 
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
+import org.codehaus.groovy.control.CompilerConfiguration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -9,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_ACCEPTED_DOMAINS
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_GENERATED_CLASSES_DIR
 
 /**
  *  @author Ken Partlow (kpartlow@gmail.com)
@@ -39,7 +39,7 @@ class CdnClassLoader extends GroovyClassLoader
     private final URL nullUrl = new URL('http://null.com:8080')
     private final List<String> whiteList
 
-    private String generatedClassesDir
+    private static String generatedClassesDir = ''
     private static final Logger LOG = LoggerFactory.getLogger(CdnClassLoader.class)
 
     /**
@@ -67,20 +67,13 @@ class CdnClassLoader extends GroovyClassLoader
         {
             whiteList = acceptedDomains
         }
-
-        // if parent doesn't match loader, the URLClassLoader was injected for generated classes
-        generatedClassesDir = parent == loader ? '' : ((URLClassLoader)parent).getURLs().first().path
-        if (generatedClassesDir)
-        {
-            LOG.info( "Generated classes configured to use path=${generatedClassesDir}")
-        }
     }
 
     /**
      * Injects URLClassLoader as parent to pickup generated classes directory, if configured
      */
     private static ClassLoader configureParentClassLoader(ClassLoader parent) {
-        String classesDir = determineGeneratedClassesDirectory()
+        String classesDir = getGeneratedClassesDirectory()
         if (classesDir)
         {
             File classesFile = new File(classesDir)
@@ -412,25 +405,42 @@ class CdnClassLoader extends GroovyClassLoader
     }
 
     /**
-     * Determines value of generated classes directory from system params
+     * Specifies directory to use for caching Class files generated during Groovy compiles.
+     * If the directory doesn't exist and can't be created, the Class caching will be disabled
+     * @param classesDir String containing relative or absolute path to use for Class caching. A null or empty string will disable caching
      */
-    protected static String determineGeneratedClassesDirectory()
+    static void setGeneratedClassesDirectory(String classesDir)
     {
         try
         {
-            String dirName = ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_CLASSES_DIR] as String ?: ''
-            if (dirName)
+            if (classesDir)
             {
-                File dirFile = new File(dirName)
-                dirName = ensureDirectoryExists(dirFile) ? dirFile.path : ''
+                generatedClassesDir = ensureDirectoryExists(new File(classesDir)) ? classesDir : ''
             }
-            return dirName
+            else
+            {
+                generatedClassesDir = ''
+            }
+
+            if (generatedClassesDir)
+            {
+                LOG.info("Generated classes configured to use path=${generatedClassesDir}")
+            }
         }
         catch (Exception e)
         {
-            LOG.warn("Unable to determine classes directory", e)
-            return ''
+            LOG.warn("Unable to set classes directory to ${classesDir}", e)
+            generatedClassesDir = ''
         }
+    }
+
+    /**
+     * Returns directory to use for Class caching.
+     * @return String path to directory to use for Class caching, if enabled; otherwise, empty string
+     */
+    static String getGeneratedClassesDirectory()
+    {
+        return generatedClassesDir
     }
 
     /**

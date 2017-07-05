@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.StringUtilities
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.junit.After
@@ -44,7 +45,8 @@ class TestThreading extends NCubeCleanupBaseTest
     private NCube cp
 
     private static final Logger LOG = LoggerFactory.getLogger(TestThreading.class)
-    private static String savedNcubeParams = System.getProperty('NCUBE_PARAMS')
+    private static String savedSourcesDir
+    private static String savedClassesDir
 
     @Parameterized.Parameters(name = "{0}")
     static Collection<Object[]> data() {
@@ -86,11 +88,6 @@ class TestThreading extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testQuiet()
-    {
-    }
-
-    @Ignore
     void test()
     {
         runTest testArgs
@@ -106,37 +103,26 @@ class TestThreading extends NCubeCleanupBaseTest
         ncubeRuntime.clearCache(ApplicationID.testAppId)
         ncubeRuntime.addCube(cp)
 
+        savedSourcesDir = GroovyBase.generatedSourcesDirectory
+        savedClassesDir = CdnClassLoader.generatedClassesDirectory
+
         File genSourcesDir = new File('target/generated-sources')
-        if (!genSourcesDir.isDirectory()) {
-            assertFalse("${genSourcesDir.path} should be a directory",genSourcesDir.isDirectory())
-            genSourcesDir.mkdirs()
-        }
-
         File genClassesDir = new File('target/generated-classes')
-        if (!genClassesDir.isDirectory()) {
-            assertFalse("${genClassesDir.path} should be a directory",genClassesDir.isDirectory())
-            genClassesDir.mkdirs()
-        }
 
-        ncubeRuntime.clearSysParams()
         String srcDirPath = genSourcesDir.path
         String clsDirPath = genClassesDir.path
-        System.setProperty("NCUBE_PARAMS", "{\"${NCUBE_PARAMS_GENERATED_SOURCES_DIR}\":\"${srcDirPath}\",\"${NCUBE_PARAMS_GENERATED_CLASSES_DIR}\":\"${clsDirPath}\"}")
-        assertEquals(srcDirPath,ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_SOURCES_DIR])
-        assertEquals(clsDirPath,ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_CLASSES_DIR])
-        GroovyBase.setGeneratedSourcesDirectory(null)
+
+        GroovyBase.generatedSourcesDirectory = srcDirPath
+        CdnClassLoader.generatedClassesDirectory = genClassesDir.path
+        assertEquals(srcDirPath,GroovyBase.generatedSourcesDirectory)
+        assertEquals(clsDirPath,CdnClassLoader.generatedClassesDirectory)
     }
 
     @After
     void tearDown()
     {
-        if (savedNcubeParams) {
-            System.setProperty('NCUBE_PARAMS',savedNcubeParams)
-        }
-        else {
-            System.clearProperty('NCUBE_PARAMS')
-        }
-        GroovyBase.setGeneratedSourcesDirectory(null)
+        GroovyBase.generatedSourcesDirectory = savedSourcesDir
+        CdnClassLoader.generatedClassesDirectory = savedClassesDir
         super.teardown()
     }
 
@@ -386,63 +372,9 @@ class TestThreading extends NCubeCleanupBaseTest
             }
         }
 
-
-//        NCubeManager.clearCache()
-//        NCubeManager.addCube(ApplicationID.testAppId,cp)
-//        NCubeManager.addCube(ApplicationID.testAppId,threadCube)
-//        NCubeManager.addCube(ApplicationID.testAppId,cube)
-
         LOG.debug 'done'
         return cube
     }
-
-    static String cachingDef='''{
-            "ncube": "router",
-            "axes": [
-                {
-                    "name": "nm",
-                    "type": "DISCRETE",
-                    "valueType": "STRING",
-                    "hasDefault": true,
-                    "preferredOrder": 0,
-                    "columns": [
-                        {
-                            "id": "static"
-                        }
-                ]
-                },
-                {
-                    "name": "divId",
-                    "type": "DISCRETE",
-                    "valueType": "STRING",
-                    "hasDefault": true,
-                    "preferredOrder": 0,
-                    "columns": []
-                }
-            ],
-            "cells": [
-                {
-                    "id": [
-                        "static"
-                ],
-                    "type": "string",
-                    "value": "static"
-                },
-                {
-                    "id": [],
-                    "type": "exp",
-                    "value": "def lfn=input.get('nm')
-                    String f=ncube.getApplicationID().cacheKey(ncube.getName())
-                    def cmd=\\"'\\" + lfn + \\"'\\"
-                    GroovyExpression exp = new GroovyExpression(cmd, null, false)
-                    synchronized(f.intern()) {
-                        ncube.addColumn('nm',lfn)
-                        ncube.setCell(exp,input)
-                        return ncube.getCell(input)
-                    }"
-                }
-            ]
-            }'''
 
     static String threadCountDef ='''{
             "ncube": "threadCount",

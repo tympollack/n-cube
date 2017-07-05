@@ -22,7 +22,6 @@ import java.util.regex.Matcher
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_DEBUG
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERSION
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_GENERATED_SOURCES_DIR
 
 /**
  * Base class for Groovy CommandCells.
@@ -56,7 +55,7 @@ abstract class GroovyBase extends UrlCommandCell
      * class (URL to groovy), yet have different source code for that class.
      */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
-    private static String generatedSourcesDir
+    private static String generatedSourcesDir = ''
 
     //  Private constructor only for serialization.
     protected GroovyBase() {}
@@ -343,13 +342,8 @@ abstract class GroovyBase extends UrlCommandCell
      * Returns directory to use for writing source files, if configured and valid
      * @return String specifying valid directory or empty string, if not configured or specified directory was not valid
      */
-    protected static String getGeneratedSourcesDirectory()
+    public static String getGeneratedSourcesDirectory()
     {
-        if (generatedSourcesDir==null)
-        {   // default to SystemParams, if not configured
-            setGeneratedSourcesDirectory(ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_SOURCES_DIR] as String ?: '')
-        }
-
         return generatedSourcesDir
     }
 
@@ -362,17 +356,17 @@ abstract class GroovyBase extends UrlCommandCell
      *      valid directory - directory to use for generated sources
      *   NOTE: if directory cannot be validated, generated sources will be disabled
      */
-    protected static void setGeneratedSourcesDirectory(String sourcesDir)
+    public static void setGeneratedSourcesDirectory(String sourcesDir)
     {
         try
         {
-            if (sourcesDir==null)
+            if (sourcesDir)
             {
-                generatedSourcesDir = null // allows sources to be reloaded
+                generatedSourcesDir = ensureDirectoryExists(sourcesDir) ? sourcesDir : ''
             }
             else
             {
-                generatedSourcesDir = ensureDirectoryExists(sourcesDir) ? sourcesDir : ''
+                generatedSourcesDir = ''
             }
 
             if (generatedSourcesDir)
