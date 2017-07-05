@@ -1,6 +1,7 @@
 ### Revision History
 * 4.1.0
   * Separated out server.port property. Renamed server.* properties for JsonHttpProxy to target.*.
+  * Added appId to a couple InvalidCoordinateExceptions for more clarity in logs
 * 4.0.9
   * Bug fix: Separated checkPermissions() and checkMultiplePermissions() from overridden API to two distinct APIs.
 * 4.0.8
