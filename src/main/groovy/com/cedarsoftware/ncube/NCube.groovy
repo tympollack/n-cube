@@ -1112,11 +1112,11 @@ class NCube<T>
      * Filter rows of an n-cube.  Use this API to fetch a subset of an n-cube, similar to SQL SELECT.
      * @param rowAxisName String name of axis acting as the ROW axis.
      * @param colAxisName String name of axis acting as the COLUMN axis.
-     * @param where String groovy statement block (or expression) written as condition in terms of the columns on the colAxisName.
-     * Example: "(input.state == 'TX' || input.state == 'OH') && (input.attribute == 'fuzzy')".  This will only return rows
-     * where this condition is met ('state' and 'attribute' are two column values from the colAxisName).  The values for each
-     * row in the rowAxis is bound to the where expression for each row.  If the row passes the 'where' condition, it is
-     * included in the output.
+     * @param where String groovy statement block (or expression) written as condition in terms of the columns on the
+     * colAxisName. Example: "(input.state == 'TX' || input.state == 'OH') && (input.attribute == 'fuzzy')".  This will
+     * only return rows where this condition is met ('state' and 'attribute' are two column values from the colAxisName).
+     * The values for each row in the rowAxis is bound to the where expression for each row.  If the row passes the
+     * 'where' condition, it is included in the output.
      * @param output Map the output Map use to write multiple return values to, just like getCell() or at().
      * @param input Map the input Map just like it is used for getCell() or at().  Only needed when there are three (3)
      * or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
@@ -1124,12 +1124,15 @@ class NCube<T>
      * @param columnsToSearch Set which allows reducing the number of columns bound for use in the where clause.  If not
      * specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
      * has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
-     * values accessible to the where clause via input.xxx == 'someValue'.
+     * values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
+     * columns are included in the columnsToSearch.
      * @param columnsToReturn Set of values to indicate which columns to return.  If not specified, the entire 'row' is
      * returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
      * two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
-     * The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified. The mapReduce()
-     * API runs faster when fewer columns are included in the columnsToSearch.
+     * The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
+     * is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
+     * can have it return less column/value pairs in the returned Map if you add only the columns you want returned
+     * here.
      * @return Map of Maps - The outer Map is keyed by the column values of all row columns.  If the row Axis is a discrete
      * axis, then the keys of the map are all the values of the columns.  If a non-discrete axis is used, then the keys
      * are the name meta-key for each column.  If a non-discrete axis is used and there are no name attributes on the columns,
