@@ -1,5 +1,5 @@
 ### Revision History
-* 4.1.0
+* 4.0.10
   * Separated out server.port property. Renamed server.* properties for JsonHttpProxy to target.*.
   * Added NCubeTest as part of DeltaProcessor.
   * Added loadCubeWithTests to get both the cube and its tests together.
