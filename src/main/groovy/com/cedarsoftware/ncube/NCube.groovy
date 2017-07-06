@@ -2631,7 +2631,7 @@ class NCube<T>
         return ncube
     }
 
-    static void healUnamedRules(AxisType type, Object[] columns)
+    private static void healUnamedRules(AxisType type, Object[] columns)
     {
         if (type != AxisType.RULE)
         {
@@ -2659,7 +2659,7 @@ class NCube<T>
         }
     }
 
-    static MapEntry generateRuleName(Set<String> names, int count)
+    private static MapEntry generateRuleName(Set<String> names, int count)
     {
         String name
         while (names.contains(name = "BR${count++}"))
@@ -2783,7 +2783,10 @@ class NCube<T>
         return copy
     }
 
-    NCube createStubCube()
+    /**
+     * Create an 'empty' NCube that matches this NCube, but with no columns on it (same number of axes).
+     */
+    protected NCube createStubCube()
     {
         NCube stub = duplicate(name)
         stub.axes.each { Axis axis ->
