@@ -7,6 +7,7 @@
   * Bug fix: Reference Axes not get checked properly on pull request merge vs straight commit branch.
   * Added appId to a couple InvalidCoordinateExceptions for more clarity in logs
   * Some system requests override user-based permissions, focused mainly around pull requests.
+  * Updated to use Groovy 2.4.12
 * 4.0.9
   * Bug fix: Separated checkPermissions() and checkMultiplePermissions() from overridden API to two distinct APIs.
 * 4.0.8
