@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.formatters.JsonFormatter
+import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -131,11 +132,24 @@ class NCubeJdbcPersister
         return json
     }
 
-    static NCube loadCube(Connection c, ApplicationID appId, String cubeName)
+    static NCube loadCube(Connection c, ApplicationID appId, String cubeName, Map options)
     {
-        Map<String, Object> options = [(SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                       (SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (SEARCH_EXACT_MATCH_NAME): true] as Map
+        if (!options)
+        {
+            options = [:]
+        }
+        if (!options.containsKey(SEARCH_ACTIVE_RECORDS_ONLY))
+        {
+            options[SEARCH_ACTIVE_RECORDS_ONLY] = true
+        }
+        if (!options.containsKey(SEARCH_INCLUDE_CUBE_DATA))
+        {
+            options[SEARCH_INCLUDE_CUBE_DATA] = true
+        }
+        if (!options.containsKey(SEARCH_EXACT_MATCH_NAME))
+        {
+            options[SEARCH_EXACT_MATCH_NAME] = true
+        }
 
         NCube cube = null
         options[METHOD_NAME] = 'loadCube'
@@ -143,15 +157,16 @@ class NCubeJdbcPersister
         return cube
     }
 
-    static NCube loadCubeById(Connection c, long cubeId)
+    static NCube loadCubeById(Connection c, long cubeId, Map options)
     {
+        String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
         Map map = [id: cubeId]
         Sql sql = getSql(c)
         sql.withStatement { Statement stmt -> stmt.fetchSize = 10 }
         NCube cube = null
         sql.eachRow(map, """\
 /* loadCubeById */
-SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, ${CUBE_VALUE_BIN}, sha1
+SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, ${CUBE_VALUE_BIN}, sha1 ${selectTestData}
 FROM n_cube
 WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
             String tenant = row.getString('tenant_cd')
@@ -225,7 +240,7 @@ ORDER BY abs(revision_number) DESC
         List<NCubeInfoDto> records = []
         sql.eachRow(map, sqlStatement, { ResultSet row -> getCubeInfoRecords(appId, null, records, [:], row) })
 
-        if (records.isEmpty())
+        if (records.empty)
         {
             throw new IllegalArgumentException("Cannot fetch revision history for cube: ${cubeName} as it does not exist in app: ${appId}")
         }
@@ -571,7 +586,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             cube.removeMetaProperty(NCube.METAPROPERTY_TEST_DATA)
             if (updatedTestData)
             {
-                cube.setMetaProperty(NCube.METAPROPERTY_TEST_UPDATED, "rev ${getMaxRevision(c, cube.applicationID, cube.name, 'updateCube') + 1}".toString())
+                cube.setMetaProperty(NCube.METAPROPERTY_TEST_UPDATED, UniqueIdGenerator.uniqueId)
             }
         }
 
@@ -1878,6 +1893,16 @@ ORDER BY abs(revision_number) DESC"""
         NCube ncube = NCube.createCubeFromStream(row.getBinaryStream(CUBE_VALUE_BIN))
         ncube.sha1 = row.getString('sha1')
         ncube.applicationID = appId
+        try
+        {
+            byte[] testBytes = row.getBytes(TEST_DATA_BIN)
+            if (testBytes)
+            {
+                String s = new String(testBytes, "UTF-8")
+                ncube.testData = NCubeTestReader.convert(s).toArray()
+            }
+        }
+        catch(GroovyRuntimeException ignore) { /* did not search for test data */ }
         return ncube
     }
 
