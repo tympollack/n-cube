@@ -58,7 +58,7 @@ class GroovyMethod extends GroovyBase
 
     private GroovyMethod() {}
 
-    GroovyMethod(String cmd, String url, boolean cacheable)
+    GroovyMethod(String cmd, String url = null, boolean cacheable = false)
     {
         super(cmd, url, cacheable)
     }

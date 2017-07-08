@@ -59,7 +59,7 @@ abstract class GroovyBase extends UrlCommandCell
     //  Private constructor only for serialization.
     protected GroovyBase() {}
 
-    GroovyBase(String cmd, String url, boolean cache)
+    GroovyBase(String cmd, String url = null, boolean cache = false)
     {
         super(cmd, url, cache)
     }

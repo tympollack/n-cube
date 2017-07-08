@@ -1163,7 +1163,7 @@ class NCube<T>
         Collection<Column> selectList = selectColumns(colAxis, columnsToReturn)
         Collection<Column> whereColumns = selectColumns(colAxis, columnsToSearch)
 
-        GroovyExpression exp = new GroovyExpression(where, null, false)
+        GroovyExpression exp = new GroovyExpression(where)
         LongHashSet ids = new LongHashSet(boundColumns)
         Map commandInput = new CaseInsensitiveMap(input ?: [:])
         Map matchingRows = new CaseInsensitiveMap()
