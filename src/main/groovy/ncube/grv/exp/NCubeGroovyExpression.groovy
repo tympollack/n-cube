@@ -252,7 +252,7 @@ class NCubeGroovyExpression
         {
             target = ncube
         }
-        return target.mapReduce(rowAxisName, colAxisName, where, output, input, columnsToSearch, columnsToReturn)
+        return target.mapReduce(rowAxisName, colAxisName, where, input, output, columnsToSearch, columnsToReturn)
     }
 
     /**

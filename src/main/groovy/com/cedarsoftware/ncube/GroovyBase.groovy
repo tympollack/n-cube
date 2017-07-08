@@ -20,9 +20,7 @@ import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_DEBUG
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERSION
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_GENERATED_SOURCES_DIR
+import static com.cedarsoftware.ncube.NCubeConstants.*
 
 /**
  * Base class for Groovy CommandCells.
@@ -675,37 +673,23 @@ abstract class GroovyBase extends UrlCommandCell
 
     static Set<String> extractImportsAndAnnotations(String text, StringBuilder newGroovy)
     {
-        // imports
-        Matcher m1 = Regexes.importPattern.matcher(text)
         Set<String> extractedLines = new LinkedHashSet<>()
-        while (m1.find())
-        {
-            extractedLines.add(m1.group(0))  // based on Regex pattern - if pattern changes, this could change
-        }
-        m1.reset()
-        String sourceWithoutImports = m1.replaceAll('')
-
-        // @Grapes
-        Matcher m2 = Regexes.grapePattern.matcher(sourceWithoutImports)
-        while (m2.find())
-        {
-            extractedLines.add(m2.group(0))  // based on Regex pattern - if pattern changes, this could change
-        }
-
-        m2.reset()
-        String sourceWithoutGrape = m2.replaceAll('')
-
-        // @Grab, @GrabResolver, @GrabExclude, @GrabConfig
-        Matcher m3 = Regexes.grabPattern.matcher(sourceWithoutGrape)
-        while (m3.find())
-        {
-            extractedLines.add(m3.group(0))  // based on Regex pattern - if pattern changes, this could change
-        }
-
-        m3.reset()
-        String sourceWithoutGrab = m3.replaceAll('')
-
-        newGroovy.append(sourceWithoutGrab)
+        String adjusted = extract(Regexes.importPattern.matcher(text), extractedLines)
+        adjusted = extract(Regexes.grapePattern.matcher(adjusted), extractedLines)
+        adjusted = extract(Regexes.grabPattern.matcher(adjusted), extractedLines)
+        adjusted = extract(Regexes.compileStaticPattern.matcher(adjusted), extractedLines)
+        adjusted = extract(Regexes.typeCheckPattern.matcher(adjusted), extractedLines)
+        newGroovy.append(adjusted)
         return extractedLines
+    }
+
+    static String extract(Matcher matcher, Set<String> extractedLines)
+    {
+        while (matcher.find())
+        {
+            extractedLines.add(matcher.group(0))  // based on Regex pattern - if pattern changes, this could change
+        }
+        matcher.reset()
+        return matcher.replaceAll('')
     }
 }

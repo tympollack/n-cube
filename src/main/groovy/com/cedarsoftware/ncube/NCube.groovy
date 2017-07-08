@@ -342,6 +342,10 @@ class NCube<T>
     List<Advice> getAdvices(String method)
     {
         List<Advice> result = []
+        if (advices.isEmpty())
+        {
+            return result
+        }
         method = "/${method}"
         for (entry in advices.entrySet())
         {
@@ -352,12 +356,15 @@ class NCube<T>
             }
         }
 
-        Collections.sort(result, new Comparator<Advice>() {
-            int compare(Advice a1, Advice a2)
-            {
-                return a1.name.compareToIgnoreCase(a2.name)
-            }
-        })
+        if (!result.empty)
+        {
+            Collections.sort(result, new Comparator<Advice>() {
+                int compare(Advice a1, Advice a2)
+                {
+                    return a1.name.compareToIgnoreCase(a2.name)
+                }
+            })
+        }
 
         return result
     }
@@ -1140,62 +1147,172 @@ class NCube<T>
      * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
      * for each cell in the same column, for when the 'where' condition holds true (groovy true).
      */
-    Map mapReduce(String rowAxisName, String colAxisName, String where = 'true', Map output = [:], Map input = [:], Set columnsToSearch = null, Set columnsToReturn = null)
+    Map mapReduce(String rowAxisName, String colAxisName, String where = 'true', Map input = [:], Map output = [:], Set columnsToSearch = null, Set columnsToReturn = null)
     {
         throwIf(!rowAxisName, new IllegalArgumentException('The row axis name cannot be null'))
         throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
         throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
 
-        Set<Long> boundColumns = hydrateBoundColumns(rowAxisName, colAxisName, input)
+        Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, input)
 
         Axis rowAxis = axisList[rowAxisName]
         Axis colAxis = axisList[colAxisName]
-        boolean isRowNotDiscrete = rowAxis.type != AxisType.DISCRETE
-        boolean isColNotDiscrete = colAxis.type != AxisType.DISCRETE
+        boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
+        boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
-        Map matchingRows = [:] as Map
-        List<Column> whereColumns
-        if (columnsToSearch)
-        {
-            whereColumns = []
-            for (columnToSearch in columnsToSearch)
-            {
-                whereColumns << (isColNotDiscrete ? colAxis.findColumnByName(columnToSearch as String) : colAxis.findColumn(columnToSearch as Comparable))
-            }
-        }
-        else
-        {
-            whereColumns = colAxis.columns
-        }
+        Collection<Column> selectList = selectColumns(colAxis, columnsToReturn)
+        Collection<Column> whereColumns = selectColumns(colAxis, columnsToSearch)
 
         GroovyExpression exp = new GroovyExpression(where, null, false)
         LongHashSet ids = new LongHashSet(boundColumns)
-        Map commandInput = new CaseInsensitiveMap<>(input)
-        for (column in rowAxis.columns)
+        Map commandInput = new CaseInsensitiveMap(input ?: [:])
+        Map matchingRows = new CaseInsensitiveMap()
+        
+        for (row in rowAxis.columns)
         {
-            Map alreadyExecuted = [:] as Map
-            Map queryMap = [:] as Map
-            commandInput[rowAxisName] = column.valueThatMatches
-
-            long colId = column.id
-            ids << colId
-            for (whereColumn in whereColumns)
+            Map resultRow = new CaseInsensitiveMap()
+            commandInput[rowAxisName] = row.valueThatMatches
+            long rowId = row.id
+            ids << rowId
+            
+            for (column in whereColumns)
             {
-                long whereId = whereColumn.id
-                ids << whereId
-                def cellValue = determineCommandCell(ids, commandInput, colAxisName, column, output)
-                setMapByAxisType(isColNotDiscrete, colAxis, whereColumn, cellValue, queryMap, alreadyExecuted)
+                long whereId = column.id
+                ids.add(whereId)
+                commandInput[colAxisName] = column.valueThatMatches
+                resultRow[isColDiscrete ? column.value : column.columnName] = getCellValue(ids, commandInput, output)
                 ids.remove(whereId)
             }
 
-            def result = executeExpression([input: queryMap, output: output, ncube: this] as Map, exp)
-            if (isTrue(result))
+            def whereResult = executeExpression([input: resultRow, output: output, ncube: this] as Map, exp)
+            if (isTrue(whereResult))
             {
-                setMapByAxisType(isRowNotDiscrete, rowAxis, column, buildMapReduceResult(colAxis, columnsToReturn, alreadyExecuted, ids, commandInput, output), matchingRows)
+                def key
+                if (isRowDiscrete)
+                {
+                    key = row.value
+                }
+                else
+                {
+                    if (StringUtilities.isEmpty(row.columnName))
+                    {
+                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
+                    }
+                    key = row.columnName
+                }
+                matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, resultRow, ids, commandInput, output)
             }
-            ids.remove(colId)
+            ids.remove(rowId)
         }
         return matchingRows
+    }
+
+    private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
+    {
+        boolean isDiscrete = axis.type == AxisType.DISCRETE
+        if (!valuesMatchingColumns)
+        {   // If empty or null, then treat as '*' (all columns)
+            valuesMatchingColumns = new CaseInsensitiveSet()
+            for (Column column : axis.columns)
+            {
+                if (isDiscrete)
+                {
+                    valuesMatchingColumns.add(column.value)
+                }
+                else
+                {
+                    if (StringUtilities.isEmpty(column.columnName))
+                    {
+                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
+                    }
+                    valuesMatchingColumns.add(column.columnName)
+                }
+            }
+        }
+        Collection<Column> columns = []
+        for (Object value : valuesMatchingColumns)
+        {
+            Column column
+            if (isDiscrete)
+            {
+                column = axis.findColumn(value as Comparable)
+            }
+            else
+            {
+                column = axis.findColumnByName(value as String)
+            }
+            columns.add(column)
+        }
+        return columns
+    }
+
+    private void throwIf(boolean throwCondition, Exception ex)
+    {
+        if (throwCondition)
+        {
+            throw ex
+        }
+    }
+
+    private Set<Long> bindAdditionalColumns(String rowAxisName, String colAxisName, Map input)
+    {
+        Set<Long> boundColumns = [] as Set
+        Set<String> axisNames = axisList.keySet()
+        if (axisNames.size() > 2)
+        {
+            Set<String> otherAxes = axisNames - [rowAxisName, colAxisName]
+            if (!input.keySet().containsAll(otherAxes))
+            {
+                throw new IllegalArgumentException("Using row axis [${rowAxisName}] and query axis [${colAxisName}] for cube [${this.name}] - bindings for axes ${otherAxes} must be supplied.")
+            }
+
+            for (other in otherAxes)
+            {
+                Axis otherAxis = axisList[other]
+                def value = input[other]
+                Column column = otherAxis.findColumn(value as Comparable)
+                if (!column)
+                {
+                    throw new CoordinateNotFoundException("Column [${value}] not found on axis [${other}] on cube [${this.name}]", name, null, other, value)
+                }
+                boundColumns << column.id
+            }
+        }
+        return boundColumns
+    }
+
+    private def getCellValue(LongHashSet ids, Map input, Map output)
+    {
+        def cellValue = cells[ids]
+        if (cellValue instanceof CommandCell)
+        {
+            cellValue = executeExpression([input: input, output: output, ncube: this] as Map, cellValue as CommandCell)
+        }
+        return cellValue
+    }
+
+    private Map buildMapReduceResultRow(Axis searchAxis, Collection<Column> selectList, Map alreadyExecuted, LongHashSet ids, Map commandInput, Map output)
+    {
+        String axisName = searchAxis.name
+        boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
+        Map result = new CaseInsensitiveMap()
+
+        for (Column column : selectList)
+        {
+            def colValue = isDiscrete ? column.value : column.columnName
+            if (alreadyExecuted.containsKey(colValue))
+            {
+                result[colValue] = alreadyExecuted[colValue]
+                continue
+            }
+            commandInput[axisName] = column.valueThatMatches
+            long colId = column.id
+            ids.add(colId)
+            result[colValue] = getCellValue(ids, commandInput, output)
+            ids.remove(colId)
+        }
+
+        return result
     }
 
     /**
@@ -3697,116 +3814,5 @@ class NCube<T>
             return singletonInstance
         }
         return value
-    }
-
-    private void throwIf(boolean throwCondition, Exception ex)
-    {
-        if(throwCondition)
-        {
-            throw ex
-        }
-    }
-
-    private Set<Long> hydrateBoundColumns(String rowAxisName, String colAxisName, Map addlBindings)
-    {
-        Set<Long> boundColumns = [] as Set
-        Set<String> axisNames = axisList.keySet()
-        if(axisNames.size() > 2)
-        {
-            Set<String> otherAxes = axisNames - [rowAxisName, colAxisName]
-            if(!addlBindings.keySet().containsAll(otherAxes))
-            {
-                throw new IllegalArgumentException("Using row axis [${rowAxisName}] and query axis [${colAxisName}] for cube [${this.name}] - bindings for axes ${otherAxes} must be supplied.")
-            }
-
-            for(other in otherAxes)
-            {
-                Axis otherAxis = axisList[other]
-                def value = addlBindings[other]
-                Column column = otherAxis.findColumn(value as Comparable)
-                if(!column)
-                {
-                    throw new CoordinateNotFoundException("Column [${value}] not found on axis [${other}] on cube [${this.name}]", name, null, other, value)
-                }
-                boundColumns << column.id
-            }
-        }
-        return boundColumns
-    }
-
-    private void setMapByAxisType(boolean isNotDiscrete, Axis axis, Column column, def cellValue, Map queryMap, Map alreadyExecuted = null)
-    {
-        if(isNotDiscrete)
-        {
-            String name = column.columnName
-            if(!name)
-            {
-                throw new IllegalStateException("Axis [${axis.name}] on cube [${this.name}] is not a discrete axis. All columns on a non-discrete axis must be named to be used in select.")
-            }
-            queryMap[name] = cellValue
-            if(alreadyExecuted != null)
-            {
-                alreadyExecuted[name] = cellValue
-            }
-        }
-        else
-        {
-            def value = column.value
-            queryMap[value] = cellValue
-            if(alreadyExecuted != null)
-            {
-                alreadyExecuted[value] = cellValue
-            }
-        }
-    }
-
-    private def determineCommandCell(LongHashSet ids, Map input, String axisName, Column column, Map output)
-    {
-        def cellValue = cells[ids]
-        if(cellValue instanceof CommandCell)
-        {
-            input[axisName] = column.valueThatMatches
-            cellValue = executeExpression([input: input, output: output, ncube: this] as Map, cellValue as CommandCell)
-        }
-        return cellValue
-    }
-
-    private Map buildMapReduceResult(Axis searchAxis, Set columnsToReturn, Map alreadyExecuted, LongHashSet ids, Map commandInput, Map output)
-    {
-        String axisName = searchAxis.name
-        boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
-
-        Map result = [:] as Map
-        if(!columnsToReturn)
-        {
-            List<Column> allColumns = searchAxis.columns
-            for(column in allColumns)
-            {
-                long colId = column.id
-                ids << colId
-                def cellValue = determineCommandCell(ids, commandInput, axisName, column, output)
-                result[isDiscrete ? column.value : column.columnName] = cellValue
-                ids.remove(colId)
-            }
-            return result
-        }
-
-        for(columnToReturn in columnsToReturn)
-        {
-            if(alreadyExecuted.containsKey(columnToReturn))
-            {
-                result[columnToReturn] = alreadyExecuted[columnToReturn]
-                continue
-            }
-            Column column = isDiscrete ? searchAxis.findColumn(columnToReturn as Comparable) : searchAxis.findColumnByName(columnToReturn as String)
-            result[columnToReturn] = isDiscrete ? column.value : column.columnName
-
-            long colId = column.id
-            ids << colId
-            def cellValue = determineCommandCell(ids, commandInput, axisName, column, output)
-            result[columnToReturn] = cellValue
-            ids.remove(colId)
-        }
-        return result
     }
 }

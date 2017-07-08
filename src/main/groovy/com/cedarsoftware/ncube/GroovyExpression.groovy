@@ -89,6 +89,9 @@ import com.cedarsoftware.ncube.proximity.*
 import com.cedarsoftware.ncube.util.*
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.*
+import groovy.transform.CompileStatic 
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
 """)
 
         // Attempt to load sys.prototype cube
@@ -207,11 +210,14 @@ class ${className} extends ${expClassName}
         Map input = getInput(ctx)
         Map output = getOutput(ctx)
         List<Advice> advices = ncube.getAdvices('run')
-        for (Advice advice : advices)
+        if (!advices.empty)
         {
-            if (!advice.before(null, ncube, input, output))
+            for (Advice advice : advices)
             {
-                return null
+                if (!advice.before(null, ncube, input, output))
+                {
+                    return null
+                }
             }
         }
 
