@@ -203,18 +203,16 @@ class ${className} extends ${expClassName}
         return null
     }
 
-    protected Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Throwable
+    protected Object invokeRunMethod(NCubeGroovyExpression instance) throws Throwable
     {
         // If 'around' Advice has been added to n-cube, invoke it before calling Groovy expression's run() method
-        NCube ncube = getNCube(ctx)
-        Map input = getInput(ctx)
-        Map output = getOutput(ctx)
+        NCube ncube = instance.ncube
         List<Advice> advices = ncube.getAdvices('run')
         if (!advices.empty)
         {
             for (Advice advice : advices)
             {
-                if (!advice.before(null, ncube, input, output))
+                if (!advice.before(null, ncube, instance.input, instance.output))
                 {
                     return null
                 }
@@ -244,7 +242,7 @@ class ${className} extends ${expClassName}
             Advice advice = advices.get(i)
             try
             {
-                advice.after(null, ncube, input, output, ret, t)  // pass exception (t) to advice (or null)
+                advice.after(null, ncube, instance.input, instance.output, ret, t)  // pass exception (t) to advice (or null)
             }
             catch (ThreadDeath e)
             {

@@ -120,7 +120,6 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         {
             ncube.addColumn("row", j)
         }
-        Map coord = [:]
 
         Axis attributes = new Axis("attribute", AxisType.DISCRETE, AxisValueType.CISTRING, false)
         ncube.addAxis(attributes)
@@ -165,15 +164,15 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         println("time to setup mapReduce ncube = " + diff)
 
         start = System.nanoTime()
-        ncube.mapReduce('row', 'attribute', "input['hotel'] == 50i", null, null, ['hotel'] as Set)
+        ncube.mapReduce('row', 'attribute', "input.hotel == 50i", null, null, ['hotel'] as Set)
         stop = System.nanoTime()
         diff = (stop - start) / 1000000.0
         println("mapReduce time 1 = " + diff)
 
-        for (int i=0; i < 20; i++)
+        for (int i=0; i < 50; i++)
         {
             start = System.nanoTime()
-            ncube.mapReduce('row', 'attribute', "input['hotel'] == 50i", null, null, ['hotel'] as Set)
+            ncube.mapReduce('row', 'attribute', "input.hotel == 50i", null, null, ['hotel'] as Set)
             stop = System.nanoTime()
             diff = (stop - start) / 1000000.0
             println("mapReduce time ${i + 2} = " + diff)

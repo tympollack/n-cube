@@ -121,17 +121,17 @@ abstract class GroovyBase extends UrlCommandCell
     {
         try
         {
+            NCube ncube = getNCube(ctx)
             Class code = getRunnableCode()
             if (code == null)
             {
-                NCube ncube = getNCube(ctx)
                 throw new IllegalStateException("Code cleared while cell was executing, n-cube: ${ncube.name}, app: ${ncube.applicationID}")
             }
             final NCubeGroovyExpression exp = (NCubeGroovyExpression) code.newInstance()
             exp.input = getInput(ctx)
             exp.output = getOutput(ctx)
-            exp.ncube = getNCube(ctx)
-            return invokeRunMethod(exp, ctx)
+            exp.ncube = ncube
+            return invokeRunMethod(exp)
         }
         catch (InvocationTargetException e)
         {
@@ -142,7 +142,7 @@ abstract class GroovyBase extends UrlCommandCell
     /**
      * Fetch constructor (from cache, if cached) and instantiate GroovyExpression
      */
-    protected abstract Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Throwable
+    protected abstract Object invokeRunMethod(NCubeGroovyExpression instance) throws Throwable
 
     /**
      * Conditionally compile the passed in command.  If it is already compiled, this method
