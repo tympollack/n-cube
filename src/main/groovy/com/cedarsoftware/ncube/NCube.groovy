@@ -1187,24 +1187,30 @@ class NCube<T>
             def whereResult = executeExpression([input: resultRow, output: output, ncube: this] as Map, exp)
             if (isTrue(whereResult))
             {
-                def key
-                if (isRowDiscrete)
-                {
-                    key = row.value
-                }
-                else
-                {
-                    if (StringUtilities.isEmpty(row.columnName))
-                    {
-                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
-                    }
-                    key = row.columnName
-                }
+                Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
                 matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, resultRow, ids, commandInput, output)
             }
             ids.remove(rowId)
         }
         return matchingRows
+    }
+
+    private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
+    {
+        Comparable key
+        if (isRowDiscrete)
+        {
+            key = row.value
+        }
+        else
+        {
+            if (StringUtilities.isEmpty(row.columnName))
+            {
+                throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
+            }
+            key = row.columnName
+        }
+        return key
     }
 
     private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
