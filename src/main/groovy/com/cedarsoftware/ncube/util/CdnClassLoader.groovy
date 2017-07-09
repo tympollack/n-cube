@@ -2,7 +2,6 @@ package com.cedarsoftware.ncube.util
 
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
-import org.codehaus.groovy.control.CompilerConfiguration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -35,7 +34,7 @@ class CdnClassLoader extends GroovyClassLoader
     private final boolean _preventRemoteBeanInfo
     private final boolean _preventRemoteCustomizer
     private final Map<String, URL> resourceCache = new ConcurrentHashMap<>()
-    private final Map<String, Enumeration<URL>> resourcesCache = new ConcurrentHashMap<>()
+    private final Map<String, List<URL>> resourcesCache = new ConcurrentHashMap<>()
     private final URL nullUrl = new URL('http://null.com:8080')
     private final List<String> whiteList
 
@@ -76,8 +75,9 @@ class CdnClassLoader extends GroovyClassLoader
         String classesDir = getGeneratedClassesDirectory()
         if (classesDir)
         {
-            File classesFile = new File(classesDir)
-            return new URLClassLoader([classesFile.toURI().toURL()] as URL [], parent)
+            GroovyClassLoader gcl = new GroovyClassLoader(parent)
+            gcl.addClasspath(classesDir)
+            return gcl
         }
         return parent
     }
@@ -94,7 +94,12 @@ class CdnClassLoader extends GroovyClassLoader
         addURLs(urlList)
     }
 
-    /**
+    @Override
+    protected Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        return loadClass(name, false, true, resolve)
+    }
+
+/**
      * Caches the class, if name is supplied and caching is configured,
      * then delegates to super class to defineClass from raw bytes
      *
@@ -280,21 +285,18 @@ class CdnClassLoader extends GroovyClassLoader
     Enumeration<URL> getResources(String name) throws IOException
     {
 //        println "getResources(${name})"
-        if (resourcesCache.containsKey(name))
+        if (!resourcesCache.containsKey(name))
         {
-            return resourcesCache[name]
-        }
-        if (isLocalOnlyResource(name))
-        {
-            Enumeration<URL> nullEnum = new Enumeration() {
-                boolean hasMoreElements() { return false }
-                URL nextElement() { throw new NoSuchElementException() }
+            if (isLocalOnlyResource(name))
+            {
+                resourcesCache[name] = new ArrayList<>()
             }
-            resourcesCache[name] = nullEnum
-            return nullEnum
+            else
+            {
+                resourcesCache[name] = super.getResources(name).toList()
+            }
         }
-        Enumeration<URL> res = super.getResources(name)
-        return resourcesCache[name] = res
+        return Collections.enumeration(resourcesCache[name])
     }
 
     /**
@@ -348,21 +350,18 @@ class CdnClassLoader extends GroovyClassLoader
     Enumeration<URL> findResources(String name) throws IOException
     {
 //        println "findResources(${name})"
-        if (resourcesCache.containsKey(name))
+        if (!resourcesCache.containsKey(name))
         {
-            return resourcesCache[name]
-        }
-        if (isLocalOnlyResource(name))
-        {
-            Enumeration<URL> nullEnum = new Enumeration() {
-                boolean hasMoreElements() { return false }
-                URL nextElement() { throw new NoSuchElementException() }
+            if (isLocalOnlyResource(name))
+            {
+                resourcesCache[name] = new ArrayList<>()
             }
-            resourcesCache[name] = nullEnum
-            return nullEnum
+            else
+            {
+                resourcesCache[name] = super.findResources(name).toList()
+            }
         }
-        Enumeration<URL> res = super.findResources(name)
-        return resourcesCache[name] = res
+        return Collections.enumeration(resourcesCache[name])
     }
 
     /**

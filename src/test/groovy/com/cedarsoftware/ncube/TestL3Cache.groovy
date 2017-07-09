@@ -40,6 +40,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     private File sourcesDir
     private File classesDir
     private File singleDir
+    private String savedDomains
 
     private static File targetDir
     private static String savedSourcesDir
@@ -59,6 +60,8 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Before
     void setUp()
     {
+        savedDomains = ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS]
+
         sourcesDir = new File("${targetDir.path}/TestL3Cache-sources")
         classesDir = new File("${targetDir.path}/TestL3Cache-classes")
         singleDir = new File ("${targetDir.path}/single-l3cache")
@@ -84,6 +87,14 @@ class TestL3Cache extends NCubeCleanupBaseTest
     {
         GroovyBase.generatedSourcesDirectory = savedSourcesDir
         CdnClassLoader.generatedClassesDirectory = savedClassesDir
+        if (savedDomains)
+        {
+            ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = savedDomains
+        }
+        else
+        {
+            ncubeRuntime.systemParams.remove(NCUBE_ACCEPTED_DOMAINS)
+        }
         super.teardown()
     }
 
@@ -366,6 +377,31 @@ class TestL3Cache extends NCubeCleanupBaseTest
     }
 
     /**
+     * Test verifies that cells using Groovy's grab are handled
+     */
+    @Test
+    void testExpressionWithGrab()
+    {
+        ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = 'org.apache.'
+
+        Map output = [:]
+        testCube.getCell([name:'grab'],output)
+
+        Class expClass = output.grab
+        verifySourceAndClassFilesExistence(expClass)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes()
+        assertTrue(getLoadedClasses().isEmpty())
+        verifyClassFileExistence(expClass)
+
+        output.clear()
+        testCube.getCell([name:'grab'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceFileExistence(expClass,false)
+    }
+
+    /**
      * Test verifies that GroovyMethods are supported using custom package definitions
      */
     @Test
@@ -388,6 +424,142 @@ class TestL3Cache extends NCubeCleanupBaseTest
         testCube.getCell(input,output)
         assertEquals(methodClass.name,findLoadedClass(methodClass).name)
         verifySourceFileExistence(methodClass,false)
+    }
+
+    /**
+     * Test verifies that URLs to classes available from the classpath are not cached, but still supported
+     */
+    @Test
+    void testUrlToClass()
+    {
+        Map output = [:]
+        testCube.getCell([name:'urlToClass'],output)
+
+        Class expClass = output.urlToClass
+        verifySourceAndClassFilesExistence(expClass,false)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes()
+        assertTrue(getLoadedClasses().isEmpty())
+
+        output.clear()
+        testCube.getCell([name:'urlToClass'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceAndClassFilesExistence(expClass,false)
+    }
+
+    /**
+     * Test verifies that URLs to statement blocks available from the classpath are not cached, but still supported
+     */
+    @Test
+    void testUrlToStatementBlock()
+    {
+        Map output = [:]
+        testCube.getCell([name:'urlToBlock'],output)
+
+        Class expClass = output.urlToBlock
+        verifySourceAndClassFilesExistence(expClass,false)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes()
+        assertTrue(getLoadedClasses().isEmpty())
+
+        output.clear()
+        testCube.getCell([name:'urlToBlock'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceAndClassFilesExistence(expClass,false)
+    }
+
+    /**
+     * Test verifies that URLs to external classes are not cached, but still supported
+     */
+    @Test
+    void testUrlToRemoteClass()
+    {
+        reloadCubes('sys.classpath.L3Cache.json')
+        Map output = [:]
+        testCube.getCell([name:'urlToRemoteClass'],output)
+
+        Class expClass = output.urlToRemoteClass
+        verifySourceAndClassFilesExistence(expClass,false)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes('sys.classpath.L3Cache.json')
+        assertTrue(getLoadedClasses().isEmpty())
+
+        output.clear()
+        testCube.getCell([name:'urlToRemoteClass'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceAndClassFilesExistence(expClass,false)
+    }
+
+    /**
+     * Test verifies that URLs to external statement blocks are not cached, but still supported
+     */
+    @Test
+    void testUrlToRemoteStatementBlock()
+    {
+        reloadCubes('sys.classpath.L3Cache.json')
+        Map output = [:]
+        testCube.getCell([name:'urlToRemoteBlock'],output)
+
+        Class expClass = output.urlToRemoteBlock
+        verifySourceAndClassFilesExistence(expClass,false)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes('sys.classpath.L3Cache.json')
+        assertTrue(getLoadedClasses().isEmpty())
+
+        output.clear()
+        testCube.getCell([name:'urlToRemoteBlock'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceAndClassFilesExistence(expClass,false)
+    }
+
+    /**
+     * Test verifies that URLs to external classes, with shortcuts, are not cached, but still supported
+     */
+    @Test
+    void testUrlToRemoteClassWithShortcuts()
+    {
+        reloadCubes('sys.classpath.L3Cache.json')
+        Map output = [:]
+        testCube.getCell([name:'urlToShortcutClass'],output)
+
+        Class expClass = output.urlToShortcutClass
+        verifySourceAndClassFilesExistence(expClass,false)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes('sys.classpath.L3Cache.json')
+        assertTrue(getLoadedClasses().isEmpty())
+
+        output.clear()
+        testCube.getCell([name:'urlToShortcutClass'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceAndClassFilesExistence(expClass,false)
+    }
+
+    /**
+     * Test verifies that URLs to external statement blocks, with shortcuts, are not cached, but still supported
+     */
+    @Test
+    void testUrlToRemoteStatementBlockWithShortcuts()
+    {
+        reloadCubes('sys.classpath.L3Cache.json')
+        Map output = [:]
+        testCube.getCell([name:'urlToShortcutBlock'],output)
+
+        Class expClass = output.urlToShortcutBlock
+        verifySourceAndClassFilesExistence(expClass,false)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+
+        reloadCubes('sys.classpath.L3Cache.json')
+        assertTrue(getLoadedClasses().isEmpty())
+
+        output.clear()
+        testCube.getCell([name:'urlToShortcutBlock'],output)
+        assertEquals(expClass.name,findLoadedClass(expClass).name)
+        verifySourceAndClassFilesExistence(expClass,false)
     }
 
     /**
@@ -491,10 +663,10 @@ class TestL3Cache extends NCubeCleanupBaseTest
         assertEquals(clsDirPath,CdnClassLoader.generatedClassesDirectory)
     }
 
-    private void reloadCubes() {
+    private void reloadCubes(String sysClassPath = 'sys.classpath.tests.json') {
         ncubeRuntime.clearCache()
 
-        cp = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId,'sys.classpath.threading.json')
+        cp = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId,sysClassPath)
         ncubeRuntime.addCube(cp)
 
         proto = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId,'sys.prototype.json')
@@ -541,14 +713,25 @@ class TestL3Cache extends NCubeCleanupBaseTest
 
     private List<Class> getLoadedClasses()
     {
-        GroovyClassLoader gcl = cp.getCell([:]) as GroovyClassLoader
+        ClassLoader classLoader = cp.getCell([:]) as GroovyClassLoader
         Field classesField = ClassLoader.class.getDeclaredField('classes')
         classesField.setAccessible(true)
 
-        if (CdnClassLoader.generatedClassesDirectory)
-            return classesField.get(gcl) + classesField.get(gcl.parent)
-        else
-            return classesField.get(gcl)
+        List<Class> classes = classesField.get(classLoader)
+        while (classLoader != null)
+        {
+            if (!classLoader.toString().contains('Launcher'))
+            {
+                if (classLoader instanceof GroovyClassLoader)
+                {
+                    classes.addAll((classLoader as GroovyClassLoader).getLoadedClasses())
+                }
+                classes.addAll(classesField.get(classLoader))
+            }
+            classLoader=classLoader.parent
+        }
+
+        return classes
     }
 
 
@@ -587,23 +770,40 @@ class TestL3Cache extends NCubeCleanupBaseTest
           "value":"simple-clone"
         },
         {
-          "id":"innerClass",
-          "type":"string"
+          "id":"innerClass"
         },
         {
-          "id":"customClass",
-          "type":"string"
+          "id":"customClass"
         },
         {
-          "id":"customMatchingClass",
-          "type":"string"
+          "id":"customMatchingClass"
         },
         {
-          "id":"customPackage",
-          "type":"string"
+          "id":"customPackage"
         },
         {
           "id":"cellException"
+        },
+        {
+          "id":"grab"
+        },
+        {
+          "id":"urlToClass"
+        },
+        {
+          "id":"urlToBlock"
+        },
+        {
+          "id":"urlToRemoteClass"
+        },
+        {
+          "id":"urlToRemoteBlock"
+        },
+        {
+          "id":"urlToShortcutClass"
+        },
+        {
+          "id":"urlToShortcutBlock"
         }
       ]
     },
@@ -743,6 +943,48 @@ class PackageMethodController extends NCubeGroovyController {
       ],
       "type":"exp",
       "value":"package test"
+    },
+    {
+      "id":[
+        "grab"
+      ],
+      "type":"exp",
+      "value":"import org.apache.commons.collections.primitives.*
+@Grab(group='commons-primitives', module='commons-primitives', version='1.0')
+
+Object ints = new ArrayIntList()
+ints.add(42)
+output.grab = this.class"
+    },
+    {
+      "id":["urlToClass"],
+      "type":"exp",
+      "url":"files/ncube/UrlToClass.groovy"
+    },
+    {
+      "id":["urlToBlock"],
+      "type":"exp",
+      "url":"files/ncube/UrlToBlock.groovy"
+    },
+    {
+      "id":["urlToRemoteClass"],
+      "type":"exp",
+      "url":"files/ncube/UrlToRemoteClass.groovy"
+    },
+    {
+      "id":["urlToRemoteBlock"],
+      "type":"exp",
+      "url":"files/ncube/UrlToRemoteBlock.groovy"
+    },
+    {
+      "id":["urlToShortcutClass"],
+      "type":"exp",
+      "url":"files/ncube/UrlToShortcutClass.groovy"
+    },
+    {
+      "id":["urlToShortcutBlock"],
+      "type":"exp",
+      "url":"files/ncube/UrlToShortcutBlock.groovy"
     }
   ]
 }'''

@@ -464,9 +464,13 @@ abstract class GroovyBase extends UrlCommandCell
                 {
                     String className = url - '.groovy'
                     className = className.replace('/', '.')
-                    output.gclass = gcLoader.loadClass(className,false,true,true)
-                    LOG.trace("Loaded class:${className},url:${url}")
-                    return output
+                    Class loadedClass = gcLoader.loadClass(className,false,true,true)
+                    if (isLoadedClassValid(className,loadedClass))
+                    {
+                        output.gclass = loadedClass
+                        LOG.trace("Loaded class:${className},url:${url}")
+                        return output
+                    }
                 }
                 catch (Exception ignored)
                 { }
@@ -481,9 +485,13 @@ abstract class GroovyBase extends UrlCommandCell
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
             try
             {
-                output.gclass = gcLoader.loadClass(fullClassName,false,true,true)
-                LOG.trace("Loaded inline class:${fullClassName}")
-                return output
+                Class loadedClass = gcLoader.loadClass(fullClassName,false,true,true)
+                if (isLoadedClassValid(fullClassName,loadedClass))
+                {
+                    output.gclass = loadedClass
+                    LOG.trace("Loaded inline class:${fullClassName}")
+                    return output
+                }
             }
             catch (LinkageError error)
             {
@@ -497,6 +505,22 @@ abstract class GroovyBase extends UrlCommandCell
         }
         output.source = expandNCubeShortCuts(buildGroovy(ctx, "N_${L2CacheKey}", output.source as String))
         return output
+    }
+
+    /**
+     * This method ensures that the loaded class is a valid NCubeGroovyExpression.
+     * If any GroovyClassLoaders are in the loader hierarchy, and the source for the
+     * class was in the classpath, the GroovyClassLoader may compile the class. If
+     * the script file is a statement block, it won't be wrapped as NCubeGroovyExpression
+     * and will fail to execute
+     *
+     * @param fullClassName String containing fully qualified classname expecting to match
+     * @param candidateClass Class instance returned from loadClass
+     * @return
+     */
+    private boolean isLoadedClassValid(String fullClassName, Class loadedClass)
+    {
+        return NCubeGroovyExpression.class.isAssignableFrom(loadedClass) && loadedClass.name == fullClassName
     }
 
     /**
