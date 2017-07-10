@@ -115,18 +115,16 @@ class CdnClassLoader extends GroovyClassLoader
     /**
      * Writes the generated Groovy class to the directory identified by the NCUBE_PARAM:genClsDir
      * @param name String of fully qualified name of the class
-     * @param bytes byte [] of Class to write
+     * @param byteCode byte [] of Class to write
      */
-    private void dumpGeneratedClass(String name, byte [] bytes) {
+    private void dumpGeneratedClass(String name, byte [] byteCode) {
         File classFile = null
         try
         {
             classFile = new File("${generatedClassesDir}/${name.replace('.',File.separator)}.class")
             if (ensureDirectoryExists(classFile.getParentFile()))
             {
-                classFile.newOutputStream().withStream { stream ->
-                    stream.write(bytes)
-                }
+                classFile.bytes = byteCode
             }
         }
         catch (Exception e)
