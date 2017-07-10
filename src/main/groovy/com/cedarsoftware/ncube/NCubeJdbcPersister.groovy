@@ -188,7 +188,7 @@ WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
     {
         Map map = appId as Map
         map.cube = buildName(cubeName)
-        map.sha1 = sha1
+        map.sha1 = sha1.toUpperCase()
         map.tenant = padTenant(c, appId.tenant)
         NCube cube = null
         Sql sql = getSql(c)
@@ -196,7 +196,7 @@ WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
 /* loadCubeBySha1 */
 SELECT ${CUBE_VALUE_BIN}, sha1
 FROM n_cube
-WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND tenant_cd = :tenant AND branch_id = :branch AND UPPER(sha1) = UPPER(:sha1)""",
+WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = :sha1""",
                 0, 1, { ResultSet row ->
             cube = buildCube(appId, row)
         })
@@ -1014,8 +1014,8 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev""", 0
 SELECT h.revision_number FROM
 (SELECT revision_number, head_sha1, create_dt FROM n_cube
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
-AND tenant_cd = :tenant AND branch_id = :branch AND UPPER(sha1) = UPPER(head_sha1)) b
-JOIN n_cube h ON UPPER(h.sha1) = UPPER(b.head_sha1)
+AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = head_sha1) b
+JOIN n_cube h ON h.sha1 = b.head_sha1
 WHERE h.app_cd = :app AND h.branch_id = 'HEAD' AND h.tenant_cd = :tenant AND h.create_dt <= b.create_dt
 ORDER BY ABS(b.revision_number) DESC, ABS(h.revision_number) DESC""", 0, 1, { ResultSet row ->
             maxRev = row.getLong('revision_number')
@@ -1035,7 +1035,7 @@ ORDER BY ABS(b.revision_number) DESC, ABS(h.revision_number) DESC""", 0, 1, { Re
 /* rollbackCubes.findRollbackRev */
 SELECT revision_number FROM n_cube
 WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status
-AND tenant_cd = :tenant AND branch_id = :branch AND revision_number >= 0 AND UPPER(sha1) = UPPER(head_sha1)
+AND tenant_cd = :tenant AND branch_id = :branch AND revision_number >= 0 AND sha1 = head_sha1
 ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
             maxRev = row.getLong("revision_number")
         });
@@ -1390,7 +1390,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2} ${createDateStartCond
                     ON LOWER(x.n_cube_nm) = LOWER(y.n_cube_nm) AND ABS(x.revision_number) = y.max_rev
                             WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND branch_id = :branch) m
         WHERE LOWER(m.n_cube_nm) = LOWER(n.n_cube_nm) AND n.app_cd = :app AND n.version_no_cd = :version AND n.status_cd = :status
-                AND n.branch_id = 'HEAD' AND UPPER(n.sha1) = UPPER(m.head_sha1) AND UPPER(m.head_sha1) <> UPPER(m.sha1)"""
+                AND n.branch_id = 'HEAD' AND n.sha1 = m.head_sha1 AND m.head_sha1 <> m.sha1"""
 
         int count = 0
         boolean autoCommit = c.autoCommit
