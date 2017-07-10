@@ -89,6 +89,8 @@ abstract class GroovyBase extends UrlCommandCell
     protected Object fetchResult(Map<String, Object> ctx)
     {
         prepare(cmd ?: url, ctx)
+        clearSourceFromCache(ctx,L2CacheKey)
+
         Object result = executeInternal(ctx)
         return result
     }
@@ -502,7 +504,18 @@ abstract class GroovyBase extends UrlCommandCell
             output.loader = gcLoader
             output.source = cmd
         }
-        output.source = expandNCubeShortCuts(buildGroovy(ctx, "N_${L2CacheKey}", output.source as String))
+
+        String className ="N_${L2CacheKey}"
+        String source = getSourceFromCache(ctx, L2CacheKey)
+        if (source)
+        {
+            output.source = source.replace(CLASS_NAME_FOR_L2_CALC, className)
+        }
+        else
+        {
+            output.source = expandNCubeShortCuts(buildGroovy(ctx, className, output.source as String))
+        }
+
         return output
     }
 
@@ -565,6 +578,7 @@ abstract class GroovyBase extends UrlCommandCell
                 className = "N_${cacheKey}"
             }
             fullClassName = packageName==null ? className : "${packageName}.${className}"
+            addSourceToCache(ctx,cacheKey,content)
         }
         L2CacheKey = cacheKey
     }
@@ -618,6 +632,21 @@ abstract class GroovyBase extends UrlCommandCell
     void getCubeNamesFromCommandText(final Set<String> cubeNames)
     {
         getCubeNamesFromText(cubeNames, cmd)
+    }
+
+    protected static String getSourceFromCache(Map<String, Object> ctx, String cacheKey)
+    {
+        return ctx[cacheKey] as String
+    }
+
+    protected static void addSourceToCache(Map<String, Object> ctx, String cacheKey, String source)
+    {
+        ctx[cacheKey] =  source
+    }
+
+    protected static void clearSourceFromCache(Map<String, Object> ctx, String cacheKey)
+    {
+        ctx.remove(cacheKey)
     }
 
     protected static void getCubeNamesFromText(final Set<String> cubeNames, final String text)

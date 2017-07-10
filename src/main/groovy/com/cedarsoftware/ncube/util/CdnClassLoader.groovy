@@ -94,7 +94,7 @@ class CdnClassLoader extends GroovyClassLoader
         addURLs(urlList)
     }
 
-/**
+    /**
      * Caches the class, if name is supplied and caching is configured,
      * then delegates to super class to defineClass from raw bytes
      *
