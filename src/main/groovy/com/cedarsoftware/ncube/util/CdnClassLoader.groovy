@@ -94,11 +94,6 @@ class CdnClassLoader extends GroovyClassLoader
         addURLs(urlList)
     }
 
-    @Override
-    protected Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        return loadClass(name, false, true, resolve)
-    }
-
 /**
      * Caches the class, if name is supplied and caching is configured,
      * then delegates to super class to defineClass from raw bytes
