@@ -160,6 +160,9 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testCompile()
     {
+        ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = 'org.apache.'
+        reloadCubes('sys.classpath.L3Cache.json')
+
         testCube.compile()
 
         // exercise ncube in a variety of ways to invoke cells and meta properties
