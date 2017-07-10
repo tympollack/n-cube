@@ -160,8 +160,6 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testCompile()
     {
-//        CompileInfo info = testCube.compile() as CompileInfo
-//        println "results = ${info.toString()}, exceptions=${info.getExceptions()}, duration=${info.getDuration()}}"
         testCube.compile()
 
         // exercise ncube in a variety of ways to invoke cells and meta properties

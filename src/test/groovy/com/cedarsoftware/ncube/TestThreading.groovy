@@ -5,7 +5,6 @@ import com.cedarsoftware.util.StringUtilities
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -16,7 +15,8 @@ import org.springframework.test.context.TestContextManager
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
 
 /**
  * @author Greg Morefield (morefigs@hotmail.com)
@@ -85,6 +85,11 @@ class TestThreading extends NCubeCleanupBaseTest
     TestThreading(Map args)
     {
         testArgs = args
+    }
+
+    @Test
+    void testQuiet()
+    {
     }
 
     @Test
