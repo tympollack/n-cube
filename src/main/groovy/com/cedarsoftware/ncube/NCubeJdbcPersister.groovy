@@ -153,7 +153,7 @@ class NCubeJdbcPersister
 
         NCube cube = null
         options[METHOD_NAME] = 'loadCube'
-        runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row -> cube = buildCube(appId, row) })
+        runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row -> cube = buildCube(appId, row, options?.get(SEARCH_INCLUDE_TEST_DATA) as boolean) })
         return cube
     }
 
@@ -175,7 +175,7 @@ WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
             String version = row.getString('version_no_cd')
             String branch = row.getString('branch_id')
             ApplicationID appId = new ApplicationID(tenant, app, version, status, branch)
-            cube = buildCube(appId, row)
+            cube = buildCube(appId, row, options?.get(SEARCH_INCLUDE_TEST_DATA) as boolean)
         })
         if (cube)
         {
@@ -1888,12 +1888,12 @@ ORDER BY abs(revision_number) DESC"""
         }
     }
 
-    protected static NCube buildCube(ApplicationID appId, ResultSet row)
+    protected static NCube buildCube(ApplicationID appId, ResultSet row, boolean includeTestData = false)
     {
         NCube ncube = NCube.createCubeFromStream(row.getBinaryStream(CUBE_VALUE_BIN))
         ncube.sha1 = row.getString('sha1')
         ncube.applicationID = appId
-        try
+        if (includeTestData)
         {
             byte[] testBytes = row.getBytes(TEST_DATA_BIN)
             if (testBytes)
@@ -1902,7 +1902,6 @@ ORDER BY abs(revision_number) DESC"""
                 ncube.testData = NCubeTestReader.convert(s).toArray()
             }
         }
-        catch(GroovyRuntimeException ignore) { /* did not search for test data */ }
         return ncube
     }
 
