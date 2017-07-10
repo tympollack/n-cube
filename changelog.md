@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.11
+  * Performance fix: removed Upper() from SQL statements on SHA-1 columns.
 * 4.0.10
   * Separated out server.port property. Renamed server.* properties for JsonHttpProxy to target.*.
   * Added NCubeTest as part of DeltaProcessor.
