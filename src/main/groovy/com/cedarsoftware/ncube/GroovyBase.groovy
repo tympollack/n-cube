@@ -329,7 +329,7 @@ abstract class GroovyBase extends UrlCommandCell
         try {
             sourceFile = new File("${sourcesDir}/${className.replace('.',File.separator)}.groovy")
             if (ensureDirectoryExists(sourceFile.getParent())) {
-                sourceFile.newWriter().withWriter { w -> w << groovySource }
+                sourceFile.bytes = StringUtilities.getUTF8Bytes(groovySource)
             }
         }
         catch (Exception e) {
