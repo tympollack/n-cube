@@ -21,7 +21,8 @@ import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_DEBUG
+import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERSION
 
 /**
  * Base class for Groovy CommandCells.
@@ -265,12 +266,6 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Class defineClasses(GroovyClassLoader gcLoader, List classes, Map<String, Class> L2Cache, String groovySource)
     {
-        String urlClassName = ''
-        if (url != null)
-        {
-            urlClassName = url - '.groovy'
-            urlClassName = urlClassName.replace('/', '.')
-        }
         int numClasses = classes.size()
         Class root = null
         byte[] mainClassBytes = null
@@ -290,7 +285,7 @@ abstract class GroovyBase extends UrlCommandCell
             }
 
             // Persist class bytes
-            if (className == urlClassName || className == fullClassName || (isRoot && root == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
+            if (className == fullClassName || (isRoot && root == null && NCubeGroovyExpression.isAssignableFrom(clazz)))
             {
                 // return reference to main class
                 root = clazz
@@ -307,7 +302,7 @@ abstract class GroovyBase extends UrlCommandCell
         {
             if (StringUtilities.hasContent(url))
             {
-                throw new IllegalStateException("Unable to locate main compiled class: ${urlClassName}.  Does it not extend NCubeGroovyExpression?")
+                throw new IllegalStateException("Unable to locate main compiled class: ${fullClassName}.  Does it not extend NCubeGroovyExpression?")
             }
             else
             {
@@ -521,7 +516,7 @@ abstract class GroovyBase extends UrlCommandCell
         try
         {
             Class loadedClass = (output.loader as GroovyClassLoader).loadClass(className,false,true,true)
-            if (isLoadedClassValid(className,loadedClass))
+            if (NCubeGroovyExpression.class.isAssignableFrom(loadedClass))
             {
                 output.gclass = loadedClass
                 LOG.trace("Loaded class:${className}")
@@ -536,22 +531,6 @@ abstract class GroovyBase extends UrlCommandCell
         { }
 
         return false
-    }
-
-    /**
-     * This method ensures that the loaded class is a valid NCubeGroovyExpression.
-     * If any GroovyClassLoaders are in the loader hierarchy, and the source for the
-     * class was in the classpath, the GroovyClassLoader may compile the class. If
-     * the script file is a statement block, it won't be wrapped as NCubeGroovyExpression
-     * and will fail to execute
-     *
-     * @param fullClassName String containing fully qualified classname expecting to match
-     * @param candidateClass Class instance returned from loadClass
-     * @return
-     */
-    private boolean isLoadedClassValid(String fullClassName, Class loadedClass)
-    {
-        return NCubeGroovyExpression.class.isAssignableFrom(loadedClass) && loadedClass.name == fullClassName
     }
 
     /**
@@ -580,6 +559,12 @@ abstract class GroovyBase extends UrlCommandCell
             }
             s.append(url)
             content = s.toString()
+
+            if (url != null)
+            {
+                fullClassName = url - '.groovy'
+                fullClassName = fullClassName.replace('/', '.')
+            }
         }
         String cacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
 
