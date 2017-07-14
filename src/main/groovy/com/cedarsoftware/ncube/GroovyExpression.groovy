@@ -77,7 +77,7 @@ class GroovyExpression extends GroovyBase
         // all unexpected tokens in the source being compiled.
         NCube ncube = getNCube(ctx)
         StringBuilder groovy = new StringBuilder("""\
-package ncube.grv.exp
+package ncube
 /**
  * n-cube: ${ncube.name}
  * axes:   ${ncube.axisNames}

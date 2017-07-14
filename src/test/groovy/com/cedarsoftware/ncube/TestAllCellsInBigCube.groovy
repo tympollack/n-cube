@@ -108,7 +108,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         }
     }
 
-    @Test
+    @Ignore
     void testMapReduceLarge()
     {
         long start = System.nanoTime()
