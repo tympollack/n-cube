@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
@@ -252,6 +253,10 @@ abstract class GroovyBase extends UrlCommandCell
         CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
+        if (gcLoader instanceof CdnClassLoader)
+        {
+            compilationUnit.setClassNodeResolver((gcLoader as CdnClassLoader).getClassNodeResolver())
+        }
         compilationUnit.compile(Phases.CLASS_GENERATION)
         Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
         Class generatedClass = defineClasses(gcLoader, compilationUnit.classes, L2Cache, groovySource)
@@ -455,53 +460,39 @@ abstract class GroovyBase extends UrlCommandCell
         else if (isUrlUsed)
         {
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
+            output.loader = gcLoader
+
             if (url.endsWith('.groovy'))
             {
                 // If a class exists already with the same name as the groovy file (substituting slashes for dots),
                 // then attempt to find and return that class without going through the resource location and parsing
                 // code. This can be useful, for example, if a build process pre-builds and load coverage enhanced
                 // versions of the classes.
-                try
+                String className = url - '.groovy'
+                className = className.replace('/', '.')
+                if (addClassToOutput(className,output))
                 {
-                    String className = url - '.groovy'
-                    className = className.replace('/', '.')
-                    Class loadedClass = gcLoader.loadClass(className,false,true,true)
-                    if (isLoadedClassValid(className,loadedClass))
-                    {
-                        output.gclass = loadedClass
-                        LOG.trace("Loaded class:${className},url:${url}")
-                        return output
-                    }
+                    return output
                 }
-                catch (Exception ignored)
-                { }
             }
 
             URL groovySourceUrl = getActualUrl(ctx)
-            output.loader = gcLoader
             output.source = StringUtilities.createUtf8String(UrlUtilities.getContentFromUrl(groovySourceUrl, true))
         }
         else
         {   // inline code
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
-            try
-            {
-                Class loadedClass = gcLoader.loadClass(fullClassName,false,true,true)
-                if (isLoadedClassValid(fullClassName,loadedClass))
-                {
-                    output.gclass = loadedClass
-                    LOG.trace("Loaded inline class:${fullClassName}")
-                    return output
-                }
-            }
-            catch (LinkageError error)
-            {
-                LOG.warn("Failed to load inline class:${fullClassName}. Will attempt to compile",error)
-            }
-            catch (Exception ignored)
-            { }
-
             output.loader = gcLoader
+
+            if (Regexes.grabPattern.matcher(cmd).find() || Regexes.grapePattern.matcher(cmd).find())
+            {
+                // force recompile
+            }
+            else if (addClassToOutput(fullClassName,output))
+            {
+                return output
+            }
+
             output.source = cmd
         }
 
@@ -517,6 +508,34 @@ abstract class GroovyBase extends UrlCommandCell
         }
 
         return output
+    }
+
+    /**
+     * Attempts to load Class and add it to output
+     * @param className String containing fully qualified name of Class
+     * @param output Map which provides 'loader' and will have 'gclass' added, if the Class is found
+     * @return true, if the Class was added to output; otherwise, false
+     */
+    private boolean addClassToOutput(String className, Map output)
+    {
+        try
+        {
+            Class loadedClass = (output.loader as GroovyClassLoader).loadClass(className,false,true,true)
+            if (isLoadedClassValid(className,loadedClass))
+            {
+                output.gclass = loadedClass
+                LOG.trace("Loaded class:${className}")
+                return true
+            }
+        }
+        catch (LinkageError error)
+        {
+            LOG.warn("Failed to load class:${className}. Will attempt to compile",error)
+        }
+        catch (Exception ignored)
+        { }
+
+        return false
     }
 
     /**

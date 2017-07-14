@@ -399,7 +399,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         output.clear()
         testCube.getCell([name:'grab'],output)
         assertEquals(expClass.name,findLoadedClass(expClass).name)
-        verifySourceFileExistence(expClass,false)
+        verifySourceFileExistence(expClass,true)    // verify recompile occurred
     }
 
     /**

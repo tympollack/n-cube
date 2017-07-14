@@ -2,6 +2,13 @@ package com.cedarsoftware.ncube.util
 
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
+import org.codehaus.groovy.GroovyBugError
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.control.ClassNodeResolver
+import org.codehaus.groovy.control.CompilationFailedException
+import org.codehaus.groovy.control.CompilationUnit
+import org.codehaus.groovy.control.SourceUnit
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -37,6 +44,7 @@ class CdnClassLoader extends GroovyClassLoader
     private final Map<String, List<URL>> resourcesCache = new ConcurrentHashMap<>()
     private final URL nullUrl = new URL('http://null.com:8080')
     private final List<String> whiteList
+    private ClassNodeResolver classNodeResolver = new PreferClassNodeResolver()
 
     private static String generatedClassesDir = ''
     private static final Logger LOG = LoggerFactory.getLogger(CdnClassLoader.class)
@@ -75,9 +83,8 @@ class CdnClassLoader extends GroovyClassLoader
         String classesDir = getGeneratedClassesDirectory()
         if (classesDir)
         {
-            GroovyClassLoader gcl = new GroovyClassLoader(parent)
-            gcl.addClasspath(classesDir)
-            return gcl
+            File classesFile = new File(classesDir)
+            return new URLClassLoader([classesFile.toURI().toURL()] as URL [], parent)
         }
         return parent
     }
@@ -454,5 +461,87 @@ class CdnClassLoader extends GroovyClassLoader
             LOG.warn("Failed to locate or create generated classes directory with path=${dir.path}")
         }
         return valid
+    }
+
+    public ClassNodeResolver getClassNodeResolver()
+    {
+        return classNodeResolver
+    }
+
+    static class PreferClassNodeResolver extends ClassNodeResolver
+    {
+        // Map to store cached classes
+        private Map<String,ClassNode> cachedClasses = new ConcurrentHashMap<>();
+
+        /**
+         * Method adapted from ClassNodeResolver.tryAsLoaderClassOrScript, only looking up source if class doesn't exist
+         * @param name
+         * @param compilationUnit
+         * @return
+         */
+        @Override
+        ClassNodeResolver.LookupResult findClassNode(String name, CompilationUnit compilationUnit) {
+            GroovyClassLoader loader = compilationUnit.getClassLoader();
+            Class cls;
+            try {
+                // NOTE: it's important to do no lookup against script files
+                // here since the GroovyClassLoader would create a new CompilationUnit
+                cls = loader.loadClass(name, false, true);
+            } catch (ClassNotFoundException cnfe) {
+                return tryAsScript(name, compilationUnit)
+            } catch (CompilationFailedException cfe) {
+                throw new GroovyBugError("The lookup for "+name+" caused a failed compilaton. There should not have been any compilation from this call.", cfe);
+            }
+
+            ClassNode cn = ClassHelper.make(cls);
+            return new ClassNodeResolver.LookupResult(null,cn);
+        }
+
+        /**
+         * Method adapted from ClassNodeResolver.tryAsScript, only doing script lookup
+         */
+        private static ClassNodeResolver.LookupResult tryAsScript(String name, CompilationUnit compilationUnit) {
+            ClassNodeResolver.LookupResult lr = null;
+
+            if (name.startsWith("java.")) return lr;
+            //TODO: don't ignore inner static classes completely
+            if (name.indexOf('$') != -1) return lr;
+
+            // try to find a script from classpath*/
+            GroovyClassLoader gcl = compilationUnit.getClassLoader();
+            URL url = null;
+            try {
+                url = gcl.getResourceLoader().loadGroovySource(name);
+            } catch (MalformedURLException e) {
+                // fall through and let the URL be null
+            }
+            if (url != null) {
+                SourceUnit su = compilationUnit.addSource(url);
+                return new ClassNodeResolver.LookupResult(su,null);
+            }
+            return lr;
+        }
+
+        /**
+         * caches a ClassNode (taken from ClassNodeResolver.cacheClass)
+         * @param name - the name of the class
+         * @param res - the ClassNode for that name
+         */
+        public void cacheClass(String name, ClassNode res) {
+            cachedClasses.put(name, res);
+        }
+
+        /**
+         * returns whatever is stored in the class cache for the given name (taken from ClassNodeResolver.getFromClassCache)
+         * @param name - the name of the class
+         * @return the result of the lookup, which may be null
+         */
+        public ClassNode getFromClassCache(String name) {
+            // We use here the class cache cachedClasses to prevent
+            // calls to ClassLoader#loadClass. Disabling this cache will
+            // cause a major performance hit.
+            ClassNode cached = cachedClasses.get(name);
+            return cached;
+        }
     }
 }
