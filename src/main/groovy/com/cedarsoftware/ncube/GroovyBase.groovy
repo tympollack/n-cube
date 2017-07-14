@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
@@ -54,7 +55,7 @@ abstract class GroovyBase extends UrlCommandCell
      * class (URL to groovy), yet have different source code for that class.
      */
     private static final ConcurrentMap<ApplicationID, ConcurrentMap<String, Class>> L2_CACHE = new ConcurrentHashMap<>()
-    private static String generatedSourcesDir
+    private static String generatedSourcesDir = ''
 
     //  Private constructor only for serialization.
     protected GroovyBase() {}
@@ -89,6 +90,8 @@ abstract class GroovyBase extends UrlCommandCell
     protected Object fetchResult(Map<String, Object> ctx)
     {
         prepare(cmd ?: url, ctx)
+        clearSourceFromCache(ctx,L2CacheKey)
+
         Object result = executeInternal(ctx)
         return result
     }
@@ -250,6 +253,10 @@ abstract class GroovyBase extends UrlCommandCell
         CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
+        if (gcLoader instanceof CdnClassLoader)
+        {
+            compilationUnit.setClassNodeResolver((gcLoader as CdnClassLoader).getClassNodeResolver())
+        }
         compilationUnit.compile(Phases.CLASS_GENERATION)
         Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
         Class generatedClass = defineClasses(gcLoader, compilationUnit.classes, L2Cache, groovySource)
@@ -329,7 +336,7 @@ abstract class GroovyBase extends UrlCommandCell
         try {
             sourceFile = new File("${sourcesDir}/${className.replace('.',File.separator)}.groovy")
             if (ensureDirectoryExists(sourceFile.getParent())) {
-                sourceFile.newWriter().withWriter { w -> w << groovySource }
+                sourceFile.bytes = StringUtilities.getUTF8Bytes(groovySource)
             }
         }
         catch (Exception e) {
@@ -341,13 +348,8 @@ abstract class GroovyBase extends UrlCommandCell
      * Returns directory to use for writing source files, if configured and valid
      * @return String specifying valid directory or empty string, if not configured or specified directory was not valid
      */
-    protected static String getGeneratedSourcesDirectory()
+    public static String getGeneratedSourcesDirectory()
     {
-        if (generatedSourcesDir==null)
-        {   // default to SystemParams, if not configured
-            setGeneratedSourcesDirectory(ncubeRuntime.getSystemParams()[NCUBE_PARAMS_GENERATED_SOURCES_DIR] as String ?: '')
-        }
-
         return generatedSourcesDir
     }
 
@@ -360,17 +362,17 @@ abstract class GroovyBase extends UrlCommandCell
      *      valid directory - directory to use for generated sources
      *   NOTE: if directory cannot be validated, generated sources will be disabled
      */
-    protected static void setGeneratedSourcesDirectory(String sourcesDir)
+    public static void setGeneratedSourcesDirectory(String sourcesDir)
     {
         try
         {
-            if (sourcesDir==null)
+            if (sourcesDir)
             {
-                generatedSourcesDir = null // allows sources to be reloaded
+                generatedSourcesDir = ensureDirectoryExists(sourcesDir) ? sourcesDir : ''
             }
             else
             {
-                generatedSourcesDir = ensureDirectoryExists(sourcesDir) ? sourcesDir : ''
+                generatedSourcesDir = ''
             }
 
             if (generatedSourcesDir)
@@ -458,49 +460,98 @@ abstract class GroovyBase extends UrlCommandCell
         else if (isUrlUsed)
         {
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
+            output.loader = gcLoader
+
             if (url.endsWith('.groovy'))
             {
                 // If a class exists already with the same name as the groovy file (substituting slashes for dots),
                 // then attempt to find and return that class without going through the resource location and parsing
                 // code. This can be useful, for example, if a build process pre-builds and load coverage enhanced
                 // versions of the classes.
-                try
+                String className = url - '.groovy'
+                className = className.replace('/', '.')
+                if (addClassToOutput(className,output))
                 {
-                    String className = url - '.groovy'
-                    className = className.replace('/', '.')
-                    output.gclass = gcLoader.loadClass(className,false,true,true)
-                    LOG.trace("Loaded class:${className},url:${url}")
                     return output
                 }
-                catch (Exception ignored)
-                { }
             }
 
             URL groovySourceUrl = getActualUrl(ctx)
-            output.loader = gcLoader
             output.source = StringUtilities.createUtf8String(UrlUtilities.getContentFromUrl(groovySourceUrl, true))
         }
         else
         {   // inline code
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
-            try
+            output.loader = gcLoader
+
+            if (Regexes.grabPattern.matcher(cmd).find() || Regexes.grapePattern.matcher(cmd).find())
             {
-                output.gclass = gcLoader.loadClass(fullClassName,false,true,true)
-                LOG.trace("Loaded inline class:${fullClassName}")
+                // force recompile
+            }
+            else if (addClassToOutput(fullClassName,output))
+            {
                 return output
             }
-            catch (LinkageError error)
-            {
-                LOG.warn("Failed to load inline class:${fullClassName}. Will attempt to compile",error)
-            }
-            catch (Exception ignored)
-            { }
 
-            output.loader = gcLoader
             output.source = cmd
         }
-        output.source = expandNCubeShortCuts(buildGroovy(ctx, "N_${L2CacheKey}", output.source as String))
+
+        String className ="N_${L2CacheKey}"
+        String source = getSourceFromCache(ctx, L2CacheKey)
+        if (source)
+        {
+            output.source = source.replace(CLASS_NAME_FOR_L2_CALC, className)
+        }
+        else
+        {
+            output.source = expandNCubeShortCuts(buildGroovy(ctx, className, output.source as String))
+        }
+
         return output
+    }
+
+    /**
+     * Attempts to load Class and add it to output
+     * @param className String containing fully qualified name of Class
+     * @param output Map which provides 'loader' and will have 'gclass' added, if the Class is found
+     * @return true, if the Class was added to output; otherwise, false
+     */
+    private boolean addClassToOutput(String className, Map output)
+    {
+        try
+        {
+            Class loadedClass = (output.loader as GroovyClassLoader).loadClass(className,false,true,true)
+            if (isLoadedClassValid(className,loadedClass))
+            {
+                output.gclass = loadedClass
+                LOG.trace("Loaded class:${className}")
+                return true
+            }
+        }
+        catch (LinkageError error)
+        {
+            LOG.warn("Failed to load class:${className}. Will attempt to compile",error)
+        }
+        catch (Exception ignored)
+        { }
+
+        return false
+    }
+
+    /**
+     * This method ensures that the loaded class is a valid NCubeGroovyExpression.
+     * If any GroovyClassLoaders are in the loader hierarchy, and the source for the
+     * class was in the classpath, the GroovyClassLoader may compile the class. If
+     * the script file is a statement block, it won't be wrapped as NCubeGroovyExpression
+     * and will fail to execute
+     *
+     * @param fullClassName String containing fully qualified classname expecting to match
+     * @param candidateClass Class instance returned from loadClass
+     * @return
+     */
+    private boolean isLoadedClassValid(String fullClassName, Class loadedClass)
+    {
+        return NCubeGroovyExpression.class.isAssignableFrom(loadedClass) && loadedClass.name == fullClassName
     }
 
     /**
@@ -546,6 +597,7 @@ abstract class GroovyBase extends UrlCommandCell
                 className = "N_${cacheKey}"
             }
             fullClassName = packageName==null ? className : "${packageName}.${className}"
+            addSourceToCache(ctx,cacheKey,content)
         }
         L2CacheKey = cacheKey
     }
@@ -599,6 +651,21 @@ abstract class GroovyBase extends UrlCommandCell
     void getCubeNamesFromCommandText(final Set<String> cubeNames)
     {
         getCubeNamesFromText(cubeNames, cmd)
+    }
+
+    protected static String getSourceFromCache(Map<String, Object> ctx, String cacheKey)
+    {
+        return ctx[cacheKey] as String
+    }
+
+    protected static void addSourceToCache(Map<String, Object> ctx, String cacheKey, String source)
+    {
+        ctx[cacheKey] =  source
+    }
+
+    protected static void clearSourceFromCache(Map<String, Object> ctx, String cacheKey)
+    {
+        ctx.remove(cacheKey)
     }
 
     protected static void getCubeNamesFromText(final Set<String> cubeNames, final String text)

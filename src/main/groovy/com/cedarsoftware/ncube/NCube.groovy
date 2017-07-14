@@ -987,30 +987,33 @@ class NCube<T>
     /**
      * Pre-compile command cells, meta-properties, and rule conditions that are expressions
      */
-    void compile()
+    CompileInfo compile()
     {
+        CompileInfo compileInfo = new CompileInfo()
+        compileInfo.setCubeName(this.name)
+
         cells.each { ids, cell ->
             if(cell instanceof GroovyBase) {
-                compileCell(getCoordinateFromIds(ids), cell as GroovyBase)
+                compileCell(getCoordinateFromIds(ids), cell as GroovyBase, compileInfo)
             }
         }
 
         metaProps.each { key, value ->
             if (value instanceof GroovyBase) {
-                compileCell([metaProp:key],value as GroovyBase)
+                compileCell([metaProp:key],value as GroovyBase, compileInfo)
             }
         }
 
         axisList.each { axisName, axis ->
             axis.columns.each { column ->
                 if (column.value instanceof GroovyBase) {
-                    compileCell([axis:axisName,column:column.columnName],column.value as GroovyBase)
+                    compileCell([axis:axisName,column:column.columnName],column.value as GroovyBase, compileInfo)
                 }
 
                 if (column.metaProps) {
                     column.metaProps.each { key, value ->
                         if (value instanceof GroovyBase) {
-                            compileCell([axis:axisName,column:column.columnName,metaProp:key],value as GroovyBase)
+                            compileCell([axis:axisName,column:column.columnName,metaProp:key],value as GroovyBase, compileInfo)
                         }
                     }
                 }
@@ -1019,20 +1022,23 @@ class NCube<T>
             if (axis.metaProps) {
                 axis.metaProps.each { key, value ->
                     if (value instanceof GroovyBase) {
-                        compileCell([axis:axisName,metaProp:key],value as GroovyBase)
+                        compileCell([axis:axisName,metaProp:key],value as GroovyBase, compileInfo)
                     }
                 }
             }
         }
+
+        return compileInfo
     }
 
-    private void compileCell(Map input, GroovyBase groovyBase) {
+    private void compileCell(Map input, GroovyBase groovyBase, CompileInfo compileInfo) {
         try
         {
             groovyBase.prepare(groovyBase.cmd ?: groovyBase.url, prepareExecutionContext(input,[:]))
         }
         catch (Exception e)
         {
+            compileInfo.addException(input,e)
             LOG.warn("Failed to compile cell for cube:${this.name} with coords:${input.toString()}",e)
         }
     }
