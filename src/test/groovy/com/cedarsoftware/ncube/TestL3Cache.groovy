@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.CdnClassLoader
+import org.codehaus.groovy.control.CompilationFailedException
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -163,7 +164,14 @@ class TestL3Cache extends NCubeCleanupBaseTest
         ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = 'org.apache.'
         reloadCubes('sys.classpath.L3Cache.json')
 
-        testCube.compile()
+        CompileInfo compileInfo = testCube.compile()
+        List<Map> exceptions = compileInfo.getExceptions()
+        assertEquals(exceptions.toString(),1,exceptions.size())
+        Map cellException = exceptions.first()
+        assertEquals(cellException.toString(),'test.L3CacheTest',compileInfo.getCubeName())
+        assertEquals(cellException.toString(),'cellException',cellException[CompileInfo.EXCEPTION_COORDINATES]['name'])
+        Exception compileException = cellException[CompileInfo.EXCEPTION_INSTANCE] as Exception
+        assertTrue(cellException.toString(),compileException instanceof CompilationFailedException)
 
         // exercise ncube in a variety of ways to invoke cells and meta properties
         Map output = [:]
