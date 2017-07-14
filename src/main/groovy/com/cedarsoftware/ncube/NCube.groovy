@@ -536,7 +536,7 @@ class NCube<T>
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.")
         }
         clearSha1()
-        return cells.put(getCoordinateKey(coordinate), (T) internValue(value))
+        return cells[getCoordinateKey(coordinate)] = (T) internValue(value)
 
     }
 
@@ -947,7 +947,7 @@ class NCube<T>
 //                LOG.info("  coord Map: " + coordinate)
 //            }
 
-            cellValue = cells.get(colIds)
+            cellValue = cells[colIds]
             if (cellValue == null && !cells.containsKey(colIds))
             {   // No cell, look for default
                 cellValue = (T) getColumnDefault(colIds)
@@ -1184,7 +1184,7 @@ class NCube<T>
         for (row in rowAxis.columns)
         {
             Map resultRow = new CaseInsensitiveMap()
-            commandInput.put(rowAxisName, row.valueThatMatches)
+            commandInput[rowAxisName] = row.valueThatMatches
             long rowId = row.id
             ids.add(rowId)
             
@@ -1192,7 +1192,7 @@ class NCube<T>
             {
                 long whereId = column.id
                 ids.add(whereId)
-                commandInput.put(colAxisName, column.valueThatMatches)
+                commandInput[colAxisName] = column.valueThatMatches
                 resultRow[isColDiscrete ? column.value : column.columnName] = getCellValue(ids, commandInput, output)
                 ids.remove(whereId)
             }
@@ -1201,7 +1201,7 @@ class NCube<T>
             if (isTrue(whereResult))
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
-                matchingRows.put(key, buildMapReduceResultRow(colAxis, selectList, resultRow, ids, commandInput, output))
+                matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, resultRow, ids, commandInput, output)
             }
             ids.remove(rowId)
         }
@@ -1302,7 +1302,7 @@ class NCube<T>
 
     private def getCellValue(Set<Long> ids, Map input, Map output)
     {
-        def cellValue = cells.get(ids)
+        def cellValue = cells[ids]
         if (cellValue instanceof CommandCell)
         {
             cellValue = executeExpression([input: input, output: output, ncube: this] as Map, cellValue as CommandCell)
@@ -1712,7 +1712,7 @@ class NCube<T>
         {
             Axis axis = (Axis) i.next()
             String axisName = axis.name
-            final Comparable value = (Comparable) safeCoord.get(axisName)
+            final Comparable value = (Comparable) safeCoord[axisName]
             final Column column = (Column) axis.findColumn(value)
             if (column == null || column.default)
             {
@@ -1742,8 +1742,16 @@ class NCube<T>
         }
 
         // Duplicate input coordinate
-        final Map copy = new CaseInsensitiveMap<>()
-        copy.putAll(coordinate)
+        Map copy
+
+        if (coordinate instanceof CaseInsensitiveMap)
+        {
+            copy = coordinate
+        }
+        else
+        {
+            copy = new CaseInsensitiveMap<>(coordinate)
+        }
 
         // Ensure required scope is supplied within the input coordinate
         Set<String> requiredScope = getRequiredScope(coordinate, output)
@@ -2016,7 +2024,7 @@ class NCube<T>
      */
     Axis getAxisFromColumnId(long id, boolean columnMustExist = true)
     {
-        Axis axis = idToAxis.get(id.intdiv(Axis.BASE_AXIS_ID).longValue())
+        Axis axis = idToAxis[id.intdiv(Axis.BASE_AXIS_ID).longValue()]
         if (axis == null)
         {
             return null

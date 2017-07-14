@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube.util
 
 import gnu.trove.map.hash.TCustomHashMap
-import gnu.trove.set.hash.TLongHashSet
 import gnu.trove.strategy.HashingStrategy
 import groovy.transform.CompileStatic
 
@@ -55,7 +54,7 @@ class CellMap<V> implements Map<Set<Long>, V>
 
             return a.containsAll(b)
         }
-    })
+    }, 127, 0.9f)
 
     CellMap()
     {
@@ -105,10 +104,9 @@ class CellMap<V> implements Map<Set<Long>, V>
     {
         if (key instanceof LongHashSet)
         {
-            return cells.put(key, value)
+            return cells[key] = value
         }
-        new TLongHashSet()
-        return cells.put(new LongHashSet(key), value)
+        return cells[new LongHashSet(key)] = value
     }
 
     V remove(Object key)
@@ -116,9 +114,9 @@ class CellMap<V> implements Map<Set<Long>, V>
         return cells.remove(key)
     }
 
-    void putAll(Map<? extends Set<Long>, ? extends V> m)
+    void putAll(Map<? extends Set<Long>, ? extends V> map)
     {
-        for (entry in m.entrySet())
+        for (entry in map.entrySet())
         {
             put(entry.key, entry.value)
         }
