@@ -75,5 +75,5 @@ interface Regexes
 
     Pattern rangePattern = ~/\s*([^,]+)[,](.*)\s*$/
 
-    Pattern versionPattern = ~/^.*n-cube-(?<version>[0-9.]+.*)\.jar$/
+    Pattern versionPattern = ~/^.*n-cube-(?<version>[0-9.]+[.-]?[a-zA-Z]*)\.jar.*$/
 }
