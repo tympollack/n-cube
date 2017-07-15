@@ -24,6 +24,7 @@ import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListSet
+import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
@@ -68,7 +69,8 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     private static final ConcurrentMap<String, ConcurrentSkipListSet<String>> appBranches = new ConcurrentHashMap<>()
     private static final Map NO_CELL = [type:null, value:null]
     private static final String EXECUTE_ERROR = 'User code cannot be executed on this server. Attempted method: '
-    private final allowExecute
+    private final boolean allowExecute
+    private final String versionNumber
 
     NCubeController(NCubeMutableClient mutableClient, boolean allowExecute)
     {
@@ -76,6 +78,18 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         System.err = new ThreadAwarePrintStreamErr(System.err)
         this.mutableClient = mutableClient
         this.allowExecute = allowExecute
+        versionNumber = fetchVersionNumber()
+    }
+
+    private String fetchVersionNumber()
+    {
+        String location = System.getProperty('java.class.path')
+        Matcher m = Regexes.versionPattern.matcher(location)
+        if (m.find())
+        {
+            return m.group('version')
+        }
+        return 'Could not extract version from classpath'
     }
 
     protected String getUserForDatabase()
@@ -1710,6 +1724,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         // App server name and version
         Map serverStats = [:]
 
+        putIfNotNull(serverStats, 'n-cube version', versionNumber)
         putIfNotNull(serverStats, 'User ID', mutableClient.userId)
         putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
         putIfNotNull(serverStats, 'hostname, servlet', getServletHostname())
