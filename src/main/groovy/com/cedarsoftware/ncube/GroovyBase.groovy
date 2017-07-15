@@ -28,6 +28,7 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERS
  * Base class for Groovy CommandCells.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
+ *         Greg Morefield (morefigs@hotmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
@@ -247,7 +248,7 @@ abstract class GroovyBase extends UrlCommandCell
         compilerConfiguration.debug = NCubeCodeGenDebug
         compilerConfiguration.defaultScriptExtension = '.groovy'
         // TODO: Research when this can be safely turned on vs having to be turned off
-        //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
+//        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
         // The source unit 'name' below must match what is present in GroovyExpression's 'bun' generator code.
         SourceUnit sourceUnit = new SourceUnit("ncube.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
@@ -464,8 +465,10 @@ abstract class GroovyBase extends UrlCommandCell
                 // versions of the classes.
                 String className = url - '.groovy'
                 className = className.replace('/', '.')
-                if (loadClass(className,ret))
+                Class groovyClass = loadClass(className, gcLoader)
+                if (groovyClass)
                 {
+                    ret.gclass = groovyClass
                     return ret
                 }
             }
@@ -482,9 +485,14 @@ abstract class GroovyBase extends UrlCommandCell
             {
                 // force recompile
             }
-            else if (loadClass(fullClassName,ret))
+            else
             {
-                return ret
+                Class groovyClass = loadClass(fullClassName, gcLoader)
+                if (groovyClass)
+                {
+                    ret.gclass = groovyClass
+                    return ret
+                }
             }
 
             ret.source = cmd
@@ -510,16 +518,15 @@ abstract class GroovyBase extends UrlCommandCell
      * @param output Map which provides 'loader' and will have 'gclass' added, if the Class is found
      * @return true, if the Class was added to output; otherwise, false
      */
-    private static boolean loadClass(String className, Map output)
+    private static Class loadClass(String className, GroovyClassLoader loader)
     {
         try
         {
-            Class loadedClass = (output.loader as GroovyClassLoader).loadClass(className,false,true,true)
+            Class loadedClass = loader.loadClass(className,false,true,true)
             if (NCubeGroovyExpression.class.isAssignableFrom(loadedClass))
             {
-                output.gclass = loadedClass
                 LOG.trace("Loaded class: ${className}")
-                return true
+                return loadedClass
             }
         }
         catch (LinkageError error)
@@ -529,7 +536,7 @@ abstract class GroovyBase extends UrlCommandCell
         catch (Exception ignored)
         { }
 
-        return false
+        return null
     }
 
     /**
