@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.13
+  * Bug fix: Removed "Content-Length" header in JsonHttpProxy. Added ncube.proxy.headersToRemove application.property in case other headers need to be removed.
 * 4.0.12
   * Bug fix: Check for ncubeManager bean before trying to set userId on it
 * 4.0.11
