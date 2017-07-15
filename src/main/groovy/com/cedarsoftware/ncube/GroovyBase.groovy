@@ -133,9 +133,9 @@ abstract class GroovyBase extends UrlCommandCell
                 throw new IllegalStateException("Code cleared while cell was executing, n-cube: ${ncube.name}, app: ${ncube.applicationID}")
             }
             final NCubeGroovyExpression exp = (NCubeGroovyExpression) code.newInstance()
-            exp.input = getInput(ctx)
-            exp.output = getOutput(ctx)
-            exp.ncube = ncube
+            exp.setProperty('input', getInput(ctx))
+            exp.setProperty('output', getOutput(ctx))
+            exp.setProperty('ncube', ncube)
             return invokeRunMethod(exp)
         }
         catch (InvocationTargetException e)
@@ -244,9 +244,23 @@ abstract class GroovyBase extends UrlCommandCell
     protected Class compile(GroovyClassLoader gcLoader, String groovySource, Map<String, Object> ctx)
     {
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration()
+        compilerConfiguration.scriptBaseClass = 'ncube.grv.exp.NCubeGroovyExpression'
         compilerConfiguration.targetBytecode = targetByteCodeVersion
         compilerConfiguration.debug = NCubeCodeGenDebug
         compilerConfiguration.defaultScriptExtension = '.groovy'
+
+        // TODO: Add this back when we are relying on Groovy to create the 'buns' around the script
+//        ImportCustomizer importCustomizer = new ImportCustomizer()
+//        importCustomizer.addStarImports('com.cedarsoftware.ncube',
+//                'com.cedarsoftware.ncube.exception',
+//                'com.cedarsoftware.ncube.formatters',
+//                'com.cedarsoftware.ncube.proximity',
+//                'com.cedarsoftware.ncube.util',
+//                'com.cedarsoftware.util',
+//                'com.cedarsoftware.util.io'
+//        )
+//        compilerConfiguration.addCompilationCustomizers(importCustomizer)
+
         // TODO: Research when this can be safely turned on vs having to be turned off
 //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
@@ -263,6 +277,10 @@ abstract class GroovyBase extends UrlCommandCell
         compilationUnit.compile(Phases.CLASS_GENERATION)
         Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
         Class generatedClass = defineClasses(gcLoader, compilationUnit.classes, L2Cache, groovySource)
+
+        GroovyScriptEngine groovyScriptEngine = new GroovyScriptEngine(gcLoader.URLs)
+        groovyScriptEngine.config = compilerConfiguration
+
         return generatedClass
     }
 

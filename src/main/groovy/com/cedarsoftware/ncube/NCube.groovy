@@ -1039,7 +1039,7 @@ class NCube<T>
         catch (Exception e)
         {
             compileInfo.addException(input,e)
-            LOG.warn("Failed to compile cell for cube:${this.name} with coords:${input.toString()}",e)
+            LOG.warn("Failed to compile cell for cube: ${name} with coords: ${input.toString()}", e)
         }
     }
 
