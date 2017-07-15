@@ -249,14 +249,15 @@ abstract class GroovyBase extends UrlCommandCell
         // TODO: Research when this can be safely turned on vs having to be turned off
         //        compilerConfiguration.optimizationOptions = [(CompilerConfiguration.INVOKEDYNAMIC): Boolean.TRUE]
 
-        SourceUnit sourceUnit = new SourceUnit("ncube.grv.exp.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
+        // The source unit 'name' below must match what is present in GroovyExpression's 'bun' generator code.
+        SourceUnit sourceUnit = new SourceUnit("ncube.N_${L2CacheKey}", groovySource, compilerConfiguration, gcLoader, null)
 
         CompilationUnit compilationUnit = new CompilationUnit(gcLoader)
         compilationUnit.addSource(sourceUnit)
         compilationUnit.configure(compilerConfiguration)
         if (gcLoader instanceof CdnClassLoader)
         {
-            compilationUnit.setClassNodeResolver((gcLoader as CdnClassLoader).getClassNodeResolver())
+            compilationUnit.classNodeResolver = (gcLoader as CdnClassLoader).classNodeResolver
         }
         compilationUnit.compile(Phases.CLASS_GENERATION)
         Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
@@ -274,8 +275,7 @@ abstract class GroovyBase extends UrlCommandCell
         {
             GroovyClass gclass = classes[i] as GroovyClass
             String className = gclass.name
-            def dollarPos = className.indexOf('$')
-            boolean isRoot = dollarPos == -1
+            boolean isRoot = className.indexOf('$') == -1
 
             // Add compiled class to classLoader
             Class clazz = defineClass(gcLoader, url == null ? gclass.name : null, gclass.bytes)
@@ -302,7 +302,7 @@ abstract class GroovyBase extends UrlCommandCell
         {
             if (StringUtilities.hasContent(url))
             {
-                throw new IllegalStateException("Unable to locate main compiled class: ${fullClassName}.  Does it not extend NCubeGroovyExpression?")
+                throw new IllegalStateException("Unable to locate main compiled class: ${fullClassName} at url: ${url}.  Does it not extend NCubeGroovyExpression?")
             }
             else
             {
@@ -319,10 +319,9 @@ abstract class GroovyBase extends UrlCommandCell
 
     /**
      * Writes generated Groovy source to the directory identified by the NCUBE_PARAM:genSrcDir
-     * @param groovySource
      */
     private static void dumpGeneratedSource(String className, String groovySource) {
-        String sourcesDir = getGeneratedSourcesDirectory()
+        String sourcesDir = generatedSourcesDirectory
         if (!sourcesDir) {
             return
         }
@@ -330,7 +329,7 @@ abstract class GroovyBase extends UrlCommandCell
         File sourceFile = null
         try {
             sourceFile = new File("${sourcesDir}/${className.replace('.',File.separator)}.groovy")
-            if (ensureDirectoryExists(sourceFile.getParent())) {
+            if (ensureDirectoryExists(sourceFile.parent)) {
                 sourceFile.bytes = StringUtilities.getUTF8Bytes(groovySource)
             }
         }
@@ -343,7 +342,7 @@ abstract class GroovyBase extends UrlCommandCell
      * Returns directory to use for writing source files, if configured and valid
      * @return String specifying valid directory or empty string, if not configured or specified directory was not valid
      */
-    public static String getGeneratedSourcesDirectory()
+    static String getGeneratedSourcesDirectory()
     {
         return generatedSourcesDir
     }
@@ -357,7 +356,7 @@ abstract class GroovyBase extends UrlCommandCell
      *      valid directory - directory to use for generated sources
      *   NOTE: if directory cannot be validated, generated sources will be disabled
      */
-    public static void setGeneratedSourcesDirectory(String sourcesDir)
+    static void setGeneratedSourcesDirectory(String sourcesDir)
     {
         try
         {
@@ -372,12 +371,12 @@ abstract class GroovyBase extends UrlCommandCell
 
             if (generatedSourcesDir)
             {
-                LOG.info("Generated sources configured to use path=${generatedSourcesDir}")
+                LOG.info("Generated sources configured to use path: ${generatedSourcesDir}")
             }
         }
         catch (Exception e)
         {
-            LOG.warn("Unable to set sources directory to ${sourcesDir}", e)
+            LOG.warn("Unable to set sources directory to: ${sourcesDir}", e)
             generatedSourcesDir = ''
         }
     }
@@ -397,10 +396,10 @@ abstract class GroovyBase extends UrlCommandCell
         if (!dir.exists()) {
             dir.mkdirs()
         }
-        boolean valid = dir.isDirectory()
+        boolean valid = dir.directory
         if (!valid)
         {
-            LOG.warn("Failed to locate or create generated sources directory with path=${dir.path}")
+            LOG.warn("Failed to locate or create generated sources directory with path: ${dir.path}")
         }
         return valid
     }
@@ -445,17 +444,17 @@ abstract class GroovyBase extends UrlCommandCell
     {
         NCube cube = getNCube(ctx)
         boolean isUrlUsed = StringUtilities.hasContent(url)
-        Map output = [:]
+        Map ret = [:]
 
         if (cube.name.toLowerCase().startsWith("sys."))
         {   // No URLs allowed, nor code from sys.classpath when executing these cubes
-            output.loader = (GroovyClassLoader)ncubeRuntime.getLocalClassloader(cube.applicationID)
-            output.source = cmd
+            ret.loader = (GroovyClassLoader)ncubeRuntime.getLocalClassloader(cube.applicationID)
+            ret.source = cmd
         }
         else if (isUrlUsed)
         {
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
-            output.loader = gcLoader
+            ret.loader = gcLoader
 
             if (url.endsWith('.groovy'))
             {
@@ -465,44 +464,44 @@ abstract class GroovyBase extends UrlCommandCell
                 // versions of the classes.
                 String className = url - '.groovy'
                 className = className.replace('/', '.')
-                if (addClassToOutput(className,output))
+                if (loadClass(className,ret))
                 {
-                    return output
+                    return ret
                 }
             }
 
             URL groovySourceUrl = getActualUrl(ctx)
-            output.source = StringUtilities.createUtf8String(UrlUtilities.getContentFromUrl(groovySourceUrl, true))
+            ret.source = StringUtilities.createUtf8String(UrlUtilities.getContentFromUrl(groovySourceUrl, true))
         }
         else
         {   // inline code
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
-            output.loader = gcLoader
+            ret.loader = gcLoader
 
             if (Regexes.grabPattern.matcher(cmd).find() || Regexes.grapePattern.matcher(cmd).find())
             {
                 // force recompile
             }
-            else if (addClassToOutput(fullClassName,output))
+            else if (loadClass(fullClassName,ret))
             {
-                return output
+                return ret
             }
 
-            output.source = cmd
+            ret.source = cmd
         }
 
         String className ="N_${L2CacheKey}"
         String source = getSourceFromCache(ctx, L2CacheKey)
         if (source)
         {
-            output.source = source.replace(CLASS_NAME_FOR_L2_CALC, className)
+            ret.source = source.replace(CLASS_NAME_FOR_L2_CALC, className)
         }
         else
         {
-            output.source = expandNCubeShortCuts(buildGroovy(ctx, className, output.source as String))
+            ret.source = expandNCubeShortCuts(buildGroovy(ctx, className, ret.source as String))
         }
 
-        return output
+        return ret
     }
 
     /**
@@ -511,7 +510,7 @@ abstract class GroovyBase extends UrlCommandCell
      * @param output Map which provides 'loader' and will have 'gclass' added, if the Class is found
      * @return true, if the Class was added to output; otherwise, false
      */
-    private boolean addClassToOutput(String className, Map output)
+    private static boolean loadClass(String className, Map output)
     {
         try
         {
@@ -519,13 +518,13 @@ abstract class GroovyBase extends UrlCommandCell
             if (NCubeGroovyExpression.class.isAssignableFrom(loadedClass))
             {
                 output.gclass = loadedClass
-                LOG.trace("Loaded class:${className}")
+                LOG.trace("Loaded class: ${className}")
                 return true
             }
         }
         catch (LinkageError error)
         {
-            LOG.warn("Failed to load class:${className}. Will attempt to compile",error)
+            LOG.warn("Failed to load class :${className}. Will attempt to compile.",error)
         }
         catch (Exception ignored)
         { }
@@ -537,15 +536,33 @@ abstract class GroovyBase extends UrlCommandCell
      * Compute SHA1 hash for this CommandCell.  The tricky bit here is that the command can be either
      * defined inline or via a URL.  If defined inline, then the command hash is SHA1(command text).  If
      * defined through a URL, then the command hash is SHA1(command URL + GroovyClassLoader URLs.toString).
-     * This is done this way so that every time the same URL is encountered, it does not have to be
-     * reread.
+     * This is done this way so that when the URL is encountered, 1) the source does not have to be fetched, and 2)
+     * to support the same URL (http://foo.com/code.groovy) actually having different source if the classpath
+     * is different (sys.classpath allows different classpaths per scope). Adding the URLs from the class loader
+     * to the URL in terms of SHA-1, makes the same URL, with a different sys.classpath, unique.
      */
     private void computeL2CacheKey(Object data, Map<String, Object> ctx)
     {
-        String content
         if (url == null)
-        {
-            content = expandNCubeShortCuts(buildGroovy(ctx, CLASS_NAME_FOR_L2_CALC, (data != null ? data.toString() : "")))
+        {   // inline statement block (GroovyExpression)
+            String content = expandNCubeShortCuts(buildGroovy(ctx, CLASS_NAME_FOR_L2_CALC, (data != null ? data.toString() : "")))
+            L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
+            String packageName = null
+            String className = null
+
+            Matcher m = Regexes.hasClassDefPattern.matcher(content)
+            if (m.find())
+            {
+                packageName = m.group('packageName')
+                className = m.group('className')
+            }
+
+            if (className == CLASS_NAME_FOR_L2_CALC || className == null)
+            {
+                className = "N_${L2CacheKey}"
+            }
+            fullClassName = packageName==null ? className : "${packageName}.${className}"
+            addSourceToCache(ctx, L2CacheKey, content)
         }
         else
         {   // specified via URL, add classLoader URL strings to URL for SHA-1 source.
@@ -558,36 +575,14 @@ abstract class GroovyBase extends UrlCommandCell
                 s.append('.')
             }
             s.append(url)
-            content = s.toString()
-
-            if (url != null)
-            {
-                fullClassName = url - '.groovy'
-                fullClassName = fullClassName.replace('/', '.')
-            }
+            String content = s.toString()
+            fullClassName = url - '.groovy'
+            fullClassName = fullClassName.replace('/', '.')
+            L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
         }
-        String cacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
-
-        if (url==null) {
-            String packageName
-            String className
-
-            Matcher m = Regexes.hasClassDefPattern.matcher(content)
-            if (m.find()) {
-                packageName = m.group('packageName')
-                className = m.group('className')
-            }
-
-            if (className == CLASS_NAME_FOR_L2_CALC || className == null) {
-                className = "N_${cacheKey}"
-            }
-            fullClassName = packageName==null ? className : "${packageName}.${className}"
-            addSourceToCache(ctx,cacheKey,content)
-        }
-        L2CacheKey = cacheKey
     }
 
-    private GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
+    private static GroovyClassLoader getAppIdClassLoader(Map<String, Object> ctx)
     {
         NCube cube = getNCube(ctx)
         ApplicationID appId = cube.applicationID
@@ -595,12 +590,12 @@ abstract class GroovyBase extends UrlCommandCell
         return gcLoader
     }
 
-    private String getTargetByteCodeVersion()
+    private static String getTargetByteCodeVersion()
     {
         return ncubeRuntime.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
     }
 
-    private boolean isNCubeCodeGenDebug()
+    private static boolean isNCubeCodeGenDebug()
     {
         return 'true'.equalsIgnoreCase(ncubeRuntime.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
     }
@@ -608,28 +603,28 @@ abstract class GroovyBase extends UrlCommandCell
     protected static String expandNCubeShortCuts(String groovy)
     {
         Matcher m = Regexes.groovyAbsRefCubeCellPattern.matcher(groovy)
-        String exp = m.replaceAll('$1go($3, \'$2\')')
+        String exp = m.replaceAll('$1go(${input}, \'${cubeName}\')')
 
         m = Regexes.groovyAbsRefCubeCellPatternA.matcher(exp)
-        exp = m.replaceAll('$1go($3, \'$2\')')
+        exp = m.replaceAll('$1go(${input}, \'${cubeName}\')')
 
         m = Regexes.groovyAbsRefCellPattern.matcher(exp)
-        exp = m.replaceAll('$1go($2)')
+        exp = m.replaceAll('$1go(${input})')
 
         m = Regexes.groovyAbsRefCellPatternA.matcher(exp)
-        exp = m.replaceAll('$1go($2)')
+        exp = m.replaceAll('$1go(${input})')
 
         m = Regexes.groovyRelRefCubeCellPattern.matcher(exp)
-        exp = m.replaceAll('$1at($3,\'$2\')')
+        exp = m.replaceAll('$1at(${input},\'${cubeName}\')')
 
         m = Regexes.groovyRelRefCubeCellPatternA.matcher(exp)
-        exp = m.replaceAll('$1at($3, \'$2\')')
+        exp = m.replaceAll('$1at(${input}, \'${cubeName}\')')
 
         m = Regexes.groovyRelRefCellPattern.matcher(exp)
-        exp = m.replaceAll('$1at($2)')
+        exp = m.replaceAll('$1at(${input})')
 
         m = Regexes.groovyRelRefCellPatternA.matcher(exp)
-        exp = m.replaceAll('$1at($2)')
+        exp = m.replaceAll('$1at(${input})')
         return exp
     }
 
@@ -661,51 +656,35 @@ abstract class GroovyBase extends UrlCommandCell
         }
 
         Matcher m = Regexes.groovyAbsRefCubeCellPattern.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyAbsRefCubeCellPatternA.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyRelRefCubeCellPattern.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyRelRefCubeCellPatternA.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyExplicitCubeRefPattern.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyExplicitJumpPattern.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyExplicitAtPattern.matcher(text)
-        while (m.find())
-        {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
-        }
+        getCubeNames(m, cubeNames)
 
         m = Regexes.groovyExplicitGoPattern.matcher(text)
+        getCubeNames(m, cubeNames)
+    }
+
+    private static void getCubeNames(Matcher m, Set<String> cubeNames)
+    {
         while (m.find())
         {
-            cubeNames.add(m.group(2))  // based on Regex pattern - if pattern changes, this could change
+            cubeNames.add(m.group('cubeName'))  // based on Regex pattern - if pattern changes, this could change
         }
     }
 
