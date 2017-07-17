@@ -2,6 +2,7 @@
 * 4.0.14
   * Added n-cube version to NCubeController.heartBeat()
   * Bug fix: Removed "Content-Length" header in JsonHttpProxy. Added ncube.proxy.headersToRemove application.property in case other headers need to be removed.
+  * Bug fix: Removing the last NCubeTest on an NCube would not save properly.
 * 4.0.13
   * L3 Cache support - dynamically compiled script classes are cached in an L3 cache. The L3 cache survives server restarts and allows the JVM to load already compiled classes without requiring the compilation step.
     * Usage: In the `application.properties` file, if the entry `ncube.classes.dir=/x/y/classes` is set, the L3 cache is activated and compiled scripts will be stored here.
