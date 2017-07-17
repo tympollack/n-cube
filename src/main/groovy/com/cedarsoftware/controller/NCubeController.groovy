@@ -83,13 +83,26 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
 
     private String fetchVersionNumber()
     {
-        String location = System.getProperty('java.class.path')
-        Matcher m = Regexes.versionPattern.matcher(location)
-        if (m.find())
+        try
         {
-            return m.group('version')
+            ClassLoader classLoader = this.class.classLoader
+            Object[] urls = classLoader.invokeMethod('getURLs', [] as Object[]) as Object[]
+            for (url in urls)
+            {
+                String location = url.toString()
+                Matcher m = Regexes.versionPattern.matcher(location)
+                if (m.find())
+                {
+                    return m.group('version')
+                }
+            }
+            return 'Running local on class files'
         }
-        return 'Could not extract version from classpath'
+        catch (Exception e)
+        {
+            LOG.warn('Unable to get classpath', e)
+            return "Exception extracting version from classpath: ${e.message}"
+        }
     }
 
     protected String getUserForDatabase()
