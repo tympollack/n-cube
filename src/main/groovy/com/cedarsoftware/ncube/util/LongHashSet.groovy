@@ -275,9 +275,9 @@ class LongHashSet implements Set<Long>
 //            h += (int) x
 
             // Even better (from Google)
-            x ^= x >> 23
+            x ^= x >> 23L
             x *= 0x2127599bf4325c37L
-            x ^= x >> 47
+            x ^= x >> 47L
             h += x as int
         }
         return hash = h
