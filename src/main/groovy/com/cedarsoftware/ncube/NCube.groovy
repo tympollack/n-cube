@@ -1,25 +1,12 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.exception.CommandCellException
-import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
-import com.cedarsoftware.ncube.exception.InvalidCoordinateException
-import com.cedarsoftware.ncube.exception.RuleJump
-import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.CellMap
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.ByteUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.EncryptionUtilities
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.MapUtilities
-import com.cedarsoftware.util.ReflectionUtils
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -1202,7 +1189,8 @@ class NCube<T>
                 long whereId = column.id
                 ids.add(whereId)
                 commandInput[colAxisName] = column.valueThatMatches
-                resultRow[isColDiscrete ? column.value : column.columnName] = getCellValue(ids, commandInput, output)
+                Object colKey = isColDiscrete ? column.value : column.columnName
+                resultRow[colKey] = getCellValue(ids, commandInput, output)
                 ids.remove(whereId)
             }
 
@@ -1229,7 +1217,7 @@ class NCube<T>
         {
             if (StringUtilities.isEmpty(row.columnName))
             {
-                throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
+                throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
             }
             key = row.columnName
         }
