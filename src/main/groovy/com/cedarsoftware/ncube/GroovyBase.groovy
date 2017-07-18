@@ -92,10 +92,7 @@ abstract class GroovyBase extends UrlCommandCell
     protected Object fetchResult(Map<String, Object> ctx)
     {
         prepare(cmd ?: url, ctx)
-        clearSourceFromCache(ctx,L2CacheKey)
-
-        Object result = executeInternal(ctx)
-        return result
+        return executeInternal(ctx)
     }
 
     protected abstract String buildGroovy(Map<String, Object> ctx, String className, String theirGroovy)
@@ -659,11 +656,6 @@ abstract class GroovyBase extends UrlCommandCell
     protected static void addSourceToCache(Map<String, Object> ctx, String cacheKey, String source)
     {
         ctx[cacheKey] =  source
-    }
-
-    protected static void clearSourceFromCache(Map<String, Object> ctx, String cacheKey)
-    {
-        ctx.remove(cacheKey)
     }
 
     protected static void getCubeNamesFromText(final Set<String> cubeNames, final String text)

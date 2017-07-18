@@ -259,26 +259,7 @@ class LongHashSet implements Set<Long>
 
         for (int i=0; i < len; i++)
         {
-            // do not change the formula below.  It is been hand crafted and tested for performance.
-            // If this does not hash well, ncube breaks down in performance.  The BigCube tests are
-            // greatly slowed down as proper hashing is vital or cells will be really slow to access
-            // when there are a lot of them in the ncube.
-
-            long x = local[i]
-            // Original hash function  (John)
-//            h += (int)(x * 347 ^ (x >>> 32) * 7)
-
-            // Better (from Stack overflow)
-//            x = ((x >> 16) ^ x) * 0x45d9f3b
-//            x = ((x >> 16) ^ x) * 0x45d9f3b
-//            x = ((x >> 16) ^ x)
-//            h += (int) x
-
-            // Even better (from Google)
-            x ^= x >> 23L
-            x *= 0x2127599bf4325c37L
-            x ^= x >> 47L
-            h += x as int
+            h += local[i].hashCode()
         }
         return hash = h
     }
