@@ -222,7 +222,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${version.plugin.surefire}</version>
                 <configuration>
-                    <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+                    <argLine>-Xmx1500m -XX:MaxPermSize=256m</argLine>
                     <forkCount>2</forkCount>
                     <includes>
                         <include>**/*Test*</include>
@@ -358,6 +358,12 @@
             <groupId>com.cedarsoftware</groupId>
             <artifactId>java-util</artifactId>
             <version>${version.java-util}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.sf.trove4j</groupId>
+            <artifactId>trove4j</artifactId>
+            <version>${version.net.sf.trove4j}</version>
         </dependency>
 
         <dependency>
