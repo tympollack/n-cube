@@ -186,7 +186,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (ArrayUtilities.isEmpty(cubeNames))
         {
-            throw new IllegalArgumentException('Error, empty array of cube names passed in to be restored.')
+            throw new IllegalArgumentException("Error, empty array of cube names passed in to be restored, app: ${appId}")
         }
 
         assertNotLockBlocked(appId)
@@ -443,15 +443,15 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         if (ApplicationID.HEAD == appId.branch)
         {
-            throw new IllegalArgumentException('Cannot move the HEAD branch')
+            throw new IllegalArgumentException("Cannot move the HEAD branch, app: ${appId}")
         }
         if ('0.0.0' == appId.version)
         {
-            throw new IllegalStateException(ERROR_CANNOT_MOVE_000)
+            throw new IllegalStateException(ERROR_CANNOT_MOVE_000 + " app: ${appId}")
         }
         if ('0.0.0' == newSnapVer)
         {
-            throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
+            throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000 + "app: ${appId}")
         }
         assertLockedByMe(appId)
         assertPermissions(appId, null, Action.RELEASE)
@@ -470,11 +470,11 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateVersion(newSnapVer)
         if ('0.0.0' == appId.version)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000 + " app: ${appId}")
         }
         if ('0.0.0' == newSnapVer)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000 + " app: ${appId}")
         }
         if (!search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
         {
@@ -498,11 +498,11 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateVersion(newSnapVer)
         if ('0.0.0' == appId.version)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000 + " app: ${appId}")
         }
         if ('0.0.0' == newSnapVer)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000 + " app: ${appId}")
         }
         if (!search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
         {
@@ -2011,7 +2011,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     {
         if (cubeDtos != null && cubeDtos.length == 0)
         {
-            throw new IllegalArgumentException('Nothing selected for update.')
+            throw new IllegalArgumentException("Nothing selected for update, app: ${appId}")
         }
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2095,7 +2095,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                     rejects.add(updateCube)
                     break
                 default:
-                    throw new IllegalArgumentException('No change type on passed in cube to update.')
+                    throw new IllegalArgumentException("No change type on passed in cube to update. n-cube name: ${updateCube.name}, app: ${updateCube.applicationID}")
             }
         }
         finalUpdates = persister.pullToBranch(appId, buildIdList(updates), getUserId(), txId)
@@ -2122,7 +2122,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
         if (commitRecords.empty)
         {
-            throw new IllegalArgumentException('A pull request cannot be created because there are no cubes to be committed.')
+            throw new IllegalArgumentException("A pull request cannot be created because there are no cubes to be committed, app: ${appId}")
         }
 
         commitRecords.sort(true, {Map it -> it.id})
@@ -2131,7 +2131,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
 
         if (getCube(sysAppId, 'tx.' + sha1))
         {
-            throw new IllegalArgumentException('A pull request already exists for this change set.')
+            throw new IllegalArgumentException("A pull request already exists for this change set, app: ${appId}")
         }
 
         NCube prCube = new NCube("tx.${sha1}")
@@ -2674,11 +2674,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         List<NCubeInfoDto> cubeDtos = search(appId, dto.name, null, [(SEARCH_EXACT_MATCH_NAME):true, (SEARCH_ACTIVE_RECORDS_ONLY):false])
         if (cubeDtos.empty)
         {
-            throw new IllegalStateException('Cube ' + dto.name + ' does not exist (' + dto + ')')
+            throw new IllegalStateException("Cube ${dto.name} does not exist (${dto}) in app: ${appId}")
         }
         if (cubeDtos.size() > 1)
         {
-            throw new IllegalStateException('More than one cube return when attempting to load ' + dto.name + ' (' + dto + ')')
+            throw new IllegalStateException("More than one cube return when attempting to load ${dto.name} (${dto}) from app: ${appId}")
         }
         return cubeDtos.first()
     }
