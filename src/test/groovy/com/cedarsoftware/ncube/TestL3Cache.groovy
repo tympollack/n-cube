@@ -156,7 +156,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     void testCompile()
     {
         ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = 'org.apache.'
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
 
         CompileInfo compileInfo = testCube.compile()
         List<Map> exceptions = compileInfo.getExceptions()
@@ -479,7 +479,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testUrlToRemoteClass()
     {
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         Map output = [:]
         testCube.getCell([name:'urlToRemoteClass'],output)
 
@@ -487,7 +487,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         verifySourceAndClassFilesExistence(expClass,false)
         assertEquals(expClass.name,findLoadedClass(expClass).name)
 
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         assertTrue(loadedClasses.empty)
 
         output.clear()
@@ -502,7 +502,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testUrlToRemoteStatementBlock()
     {
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         Map output = [:]
         testCube.getCell([name:'urlToRemoteBlock'],output)
 
@@ -510,7 +510,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         verifySourceAndClassFilesExistence(expClass,false)
         assertEquals(expClass.name,findLoadedClass(expClass).name)
 
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         assertTrue(loadedClasses.empty)
 
         output.clear()
@@ -525,7 +525,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testUrlToRemoteClassWithShortcuts()
     {
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         Map output = [:]
         testCube.getCell([name:'urlToShortcutClass'],output)
 
@@ -533,7 +533,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         verifySourceAndClassFilesExistence(expClass,false)
         assertEquals(expClass.name,findLoadedClass(expClass).name)
 
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         assertTrue(loadedClasses.empty)
 
         output.clear()
@@ -548,7 +548,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
     @Test
     void testUrlToRemoteStatementBlockWithShortcuts()
     {
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         Map output = [:]
         testCube.getCell([name:'urlToShortcutBlock'],output)
 
@@ -556,7 +556,7 @@ class TestL3Cache extends NCubeCleanupBaseTest
         verifySourceAndClassFilesExistence(expClass,false)
         assertEquals(expClass.name,findLoadedClass(expClass).name)
 
-        reloadCubes('sys.classpath.L3Cache.json')
+        reloadCubes('sys.classpath.L3cache.json')
         assertTrue(loadedClasses.empty)
 
         output.clear()
