@@ -96,7 +96,10 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Object fetchResult(final Map<String, Object> ctx)
     {
-        prepare(cmd ?: url, ctx)
+        if (runnableCode == null)
+        {
+            prepare(cmd ?: url, ctx)
+        }
         return executeInternal(ctx)
     }
 
@@ -126,13 +129,13 @@ abstract class GroovyBase extends UrlCommandCell
 
     Object executeInternal(final Map<String, Object> ctx)
     {
-        final NCube ncube = getNCube(ctx)
+        NCube ncube = getNCube(ctx)
         Class code = runnableCode
         if (code == null)
         {
             throw new IllegalStateException("Code cleared while cell was executing, n-cube: ${ncube.name}, app: ${ncube.applicationID}, input: ${getInput(ctx).toString()}")
         }
-        final NCubeGroovyExpression exp = DefaultGroovyMethods.newInstance(code)
+        NCubeGroovyExpression exp = DefaultGroovyMethods.newInstance(code)
         exp.input = getInput(ctx)
         exp.output = getOutput(ctx)
         exp.ncube = ncube
@@ -150,18 +153,12 @@ abstract class GroovyBase extends UrlCommandCell
      */
     void prepare(Object data, Map<String, Object> ctx)
     {
-        // check L1 cache
-        if (getRunnableCode() != null)
-        {   // If the code for the cell has already been compiled, do nothing.
-            return
-        }
-
         TimedSynchronize.synchronize(compileLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to compile cell')
 
         try
         {
             // Double-check after lock obtained
-            if (getRunnableCode() != null)
+            if (runnableCode != null)
             {
                 return
             }

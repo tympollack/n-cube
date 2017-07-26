@@ -6,7 +6,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
@@ -40,7 +39,7 @@ abstract class UrlCommandCell implements CommandCell
     private final String url
     private int hash
     public static final char EXTENSION_SEPARATOR = '.'
-    private AtomicBoolean hasBeenCached = new AtomicBoolean(false)
+    private volatile boolean hasBeenCached = false
     protected def cache
     private Lock hasBeenCachedLock = new ReentrantLock()
     // would prefer this was a final
@@ -94,7 +93,7 @@ abstract class UrlCommandCell implements CommandCell
     // When no L3, use this (also see GroovyBase)
     void clearClassLoaderCache()
     {
-        hasBeenCached.set(false)
+        hasBeenCached = false
         if (cache == null)
         {
             return
@@ -198,13 +197,6 @@ abstract class UrlCommandCell implements CommandCell
         return url == null ? cmd : url
     }
 
-    void failOnErrors()
-    {
-        if (errorMsg != null)
-        {
-            throw new IllegalStateException(errorMsg)
-        }
-    }
 
     void setErrorMessage(String msg)
     {
@@ -243,14 +235,17 @@ abstract class UrlCommandCell implements CommandCell
 
     def execute(Map<String, Object> ctx)
     {
-        failOnErrors()
+        if (errorMsg != null)
+        {
+            throw new IllegalStateException(errorMsg)
+        }
 
-        if (!isCacheable())
+        if (!cacheable)
         {
             return fetchResult(ctx)
         }
 
-        if (hasBeenCached.get())
+        if (hasBeenCached)
         {
             return cache
         }
@@ -259,12 +254,12 @@ abstract class UrlCommandCell implements CommandCell
 
         try
         {
-            if (hasBeenCached.get())
+            if (hasBeenCached)
             {
                 return cache
             }
             cache = fetchResult(ctx)
-            hasBeenCached.set(true)
+            hasBeenCached = true
             return cache
         }
         finally
