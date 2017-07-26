@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
+import com.cedarsoftware.ncube.util.EmbeddedServletContainerListener
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.DeepEquals
 import org.junit.Test
@@ -719,7 +720,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertEquals(2, getCacheSize(customId))
 
         ncubeRuntime.clearCache(customId)
-        NCube testCube = ncubeRuntime.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
+        NCube testCube = createRuntimeCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
         testCube.name = 'sys.mistake'
         mutableClient.createCube(testCube)
 
@@ -749,14 +750,14 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertNotNull(urlClassLoader1)
         assertEquals(1, getCacheSize(customId))
 
-        ncubeRuntime.getNCubeFromResource(customId, 'sys.classpath.tests.json')
+        createRuntimeCubeFromResource(customId, 'sys.classpath.tests.json')
 
         final URLClassLoader urlClassLoader = ncubeRuntime.getUrlClassLoader(customId, [:])
         assertEquals(1, urlClassLoader.URLs.length)
         assertEquals(2, getCacheSize(customId))
 
         ncubeRuntime.clearCache(customId)
-        NCube testCube = ncubeRuntime.getNCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
+        NCube testCube = createRuntimeCubeFromResource(customId, 'sys.classpath.tests.json')        // reload so that it does not attempt to write classLoader cells (which will blow up)
         testCube.name = 'sys.mistake'
         mutableClient.createCube(testCube)
 
@@ -1332,21 +1333,21 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         Map map = [env:'DEV']
         NCube baseCube = mutableClient.getCube(defaultSnapshotApp, 'sys.classpath.base')
 
-        assertEquals('http://files.cedarsoftware.com/tests/ncube/cp1/', baseCube.getCell(map))
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp1/".toString(), baseCube.getCell(map))
         map.env = 'CERT'
-        assertEquals('http://files.cedarsoftware.com/tests/ncube/cp2/', baseCube.getCell(map))
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp2/".toString(), baseCube.getCell(map))
 
         NCube classPathCube = mutableClient.getCube(defaultSnapshotApp, 'sys.classpath')
         URLClassLoader loader = (URLClassLoader) classPathCube.getCell(map)
         assertEquals(1, loader.URLs.length)
-        assertEquals('http://files.cedarsoftware.com/tests/ncube/cp2/', loader.URLs[0].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp2/".toString(), loader.URLs[0].toString())
     }
 
     @Test
     void testResolveRelativeUrl()
     {
         // Sets App classpath to http://files.cedarsoftware.com
-        ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.cedar.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'sys.classpath.cedar.json')
 
         // Rule cube that expects tests/ncube/hello.groovy to be relative to http://files.cedarsoftware.com
         NCube hello = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'resolveRelativeHelloGroovy.json')
@@ -1359,7 +1360,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertEquals('Hello, world.', s)
 
         URL absUrl = ncubeRuntime.getActualUrl(ApplicationID.testAppId, 'tests/ncube/hello.groovy', [:])
-        assertEquals('http://files.cedarsoftware.com/tests/ncube/hello.groovy', absUrl.toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/hello.groovy".toString(), absUrl.toString())
     }
 
     @Test

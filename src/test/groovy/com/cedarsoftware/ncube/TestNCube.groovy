@@ -2291,7 +2291,7 @@ class TestNCube extends NCubeBaseTest
     {
         ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'template1.json')
         ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'template2.json')
-        NCube n1 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
+        NCube n1 = createRuntimeCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
         def coord = [:]
         coord.put("sites", "BinaryFromLocalUrl")
         byte[] localBinaryBytes = (byte[]) n1.getCell(coord)
@@ -3984,7 +3984,7 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testAbsoluteHttpUrlToGroovy()
     {
-        NCube cube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
+        NCube cube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
         def coord = [:]
         coord.put("sites", "AbsoluteHttpUrl")
         String s = (String) cube.getCell(coord)

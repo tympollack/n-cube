@@ -5,6 +5,7 @@ import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.util.CdnClassLoader
+import com.cedarsoftware.ncube.util.EmbeddedServletContainerListener
 import groovy.transform.CompileStatic
 import org.junit.Before
 import org.junit.Test
@@ -6047,7 +6048,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 	{
         preloadCubes(appId, "sys.classpath.system.params.user.overloaded.json", "sys.versions.2.json", "sys.resources.base.url.json")
 
-        // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
+        // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
         testClient.clearSysParams()
 
         // Check DEV
@@ -6056,15 +6057,15 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         System.setProperty('NCUBE_PARAMS', '{"foo", "bar"}')
 
         CdnClassLoader devLoader = cube.getCell([env:"DEV"])
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', devLoader.URLs[0].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', devLoader.URLs[1].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', devLoader.URLs[2].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.31.0-SNAPSHOT/public/".toString(), devLoader.URLs[0].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.31.0-SNAPSHOT/private/".toString(), devLoader.URLs[1].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.31.0-SNAPSHOT/private/groovy/".toString(), devLoader.URLs[2].toString())
 
         // Check INT
         CdnClassLoader intLoader = cube.getCell([env:"INT"])
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', intLoader.URLs[0].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', intLoader.URLs[1].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', intLoader.URLs[2].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.31.0-SNAPSHOT/public/".toString(), intLoader.URLs[0].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.31.0-SNAPSHOT/private/".toString(), intLoader.URLs[1].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.31.0-SNAPSHOT/private/groovy/".toString(), intLoader.URLs[2].toString())
 
         // Check with overload
         cube = mutableClient.getCube(appId, "sys.classpath")
@@ -6102,9 +6103,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
         URLClassLoader loader = cube.getCell([env:"SAND"])
-        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/public/', loader.URLs[0].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/', loader.URLs[1].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/groovy/', loader.URLs[2].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.28.0/public/".toString(), loader.URLs[0].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.28.0/private/".toString(), loader.URLs[1].toString())
+        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/foo/1.28.0/private/groovy/".toString(), loader.URLs[2].toString())
     }
 
     @Test

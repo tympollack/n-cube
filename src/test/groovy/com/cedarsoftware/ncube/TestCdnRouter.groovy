@@ -158,12 +158,12 @@ class TestCdnRouter extends NCubeCleanupBaseTest
 
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, ApplicationID.DEFAULT_APP, ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
         ncubeRuntime.getUrlClassLoader(appId, [:])
-        ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
 
         CdnRouter router = new CdnRouter()
         router.route(request, response)
 
-        verify(response, times(1)).sendError(404, 'Not Found')
+        verify(response, times(1)).sendError(eq(404), anyString())
     }
 
     @Test
@@ -390,7 +390,7 @@ class TestCdnRouter extends NCubeCleanupBaseTest
 
         setDefaultCdnRoutingProvider()
 
-        ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'cdnRouterTest.json')
 
         CdnRouter router = new CdnRouter()
         router.route(request, response)
