@@ -12,6 +12,7 @@ import org.junit.Test
 import org.mockito.Mockito
 
 import javax.servlet.http.HttpServletRequest
+import java.lang.reflect.Method
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
@@ -63,6 +64,45 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
             JsonCommandServlet.servletRequest.set(request)
 
         }
+    }
+
+    @Test
+    void testControllerImplementsInterfaces()
+    {
+        Set<String> allowedRunTimeMethods = [
+                'addCube',
+                'getBootVersion',
+                'getSystemParams',
+                'getTestCauses',
+                'getUrlClassLoader',
+                'getLocalClassloader',
+                'getApplicationID',
+                'getNCubeFromResource',
+                'getNCubesFromResource',
+                'addAdvice',
+                'getActualUrl'
+        ] as Set
+
+        Set<String> runtimeMethods = getMethodNames(NCubeRuntimeClient.class.methods)
+        Set<String> mutableMethods = getMethodNames(NCubeMutableClient.class.methods)
+        Set<String> controllerMethods = getMethodNames(NCubeController.class.methods)
+
+        runtimeMethods.removeAll(allowedRunTimeMethods)
+        runtimeMethods.removeAll(controllerMethods)
+        assert runtimeMethods.empty
+
+        mutableMethods.removeAll(controllerMethods)
+        assert mutableMethods.empty
+    }
+
+    private Set<String> getMethodNames(Method[] methods)
+    {
+        Set<String> methodNames = [] as Set
+        for (Method method : methods)
+        {
+            methodNames.add(method.name)
+        }
+        return methodNames
     }
     
     @Test

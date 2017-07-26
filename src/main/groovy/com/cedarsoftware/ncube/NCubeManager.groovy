@@ -101,12 +101,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      * cache.  Any advices in the manager will be applied to the n-cube.
      * @return NCube of the specified name from the specified AppID, or null if not found.
      */
-    NCube loadCube(ApplicationID appId, String cubeName)
-    {
-        return loadCube(appId, cubeName, null)
-    }
-
-    NCube loadCube(ApplicationID appId, String cubeName, Map options)
+    NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
     {
         assertPermissions(appId, cubeName)
         return loadCubeInternal(appId, cubeName, options)
