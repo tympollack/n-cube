@@ -1,10 +1,14 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.TimedSynchronize
 import groovy.transform.CompileStatic
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 
@@ -38,6 +42,7 @@ abstract class UrlCommandCell implements CommandCell
     public static final char EXTENSION_SEPARATOR = '.'
     private AtomicBoolean hasBeenCached = new AtomicBoolean(false)
     protected def cache
+    private Lock hasBeenCachedLock = new ReentrantLock()
     // would prefer this was a final
     private boolean cacheable
 
@@ -250,9 +255,22 @@ abstract class UrlCommandCell implements CommandCell
             return cache
         }
 
-        cache = fetchResult(ctx)
-        hasBeenCached.set(true)
-        return cache
+        TimedSynchronize.synchronize(hasBeenCachedLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to execute cell')
+
+        try
+        {
+            if (hasBeenCached.get())
+            {
+                return cache
+            }
+            cache = fetchResult(ctx)
+            hasBeenCached.set(true)
+            return cache
+        }
+        finally
+        {
+            hasBeenCachedLock.unlock();
+        }
     }
 
     protected abstract def fetchResult(Map<String, Object> ctx)

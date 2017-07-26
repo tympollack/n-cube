@@ -4,6 +4,7 @@ import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.TimedSynchronize
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
@@ -18,6 +19,9 @@ import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
@@ -52,6 +56,7 @@ abstract class GroovyBase extends UrlCommandCell
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     protected transient String fullClassName  // full name of compiled class
     private volatile transient Class runnableCode = null
+    private Lock compileLock = new ReentrantLock()
     /**
      * This cache is 'per ApplicationID'.  This allows different applications to define the same
      * class (URL to groovy), yet have different source code for that class.
@@ -151,30 +156,47 @@ abstract class GroovyBase extends UrlCommandCell
             return
         }
 
-        if (!L2CacheKey) {
-            computeL2CacheKey(data, ctx)
-        }
-        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
+        TimedSynchronize.synchronize(compileLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to compile cell')
 
-        // check L2 cache
-        if (L2Cache.containsKey(L2CacheKey))
-        {   // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-            setRunnableCode(L2Cache[L2CacheKey])
-            return
-        }
+        try
+        {
+            // Double-check after lock obtained
+            if (getRunnableCode() != null)
+            {
+                return
+            }
 
-        // Pre-compiled check (e.g. source code was pre-compiled and instrumented for coverage)
-        Map ret = getClassLoaderAndSource(ctx)
-        if (ret.gclass instanceof Class)
-        {   // Found class matching URL fileName.groovy already in JVM
-            setRunnableCode(ret.gclass as Class)
-            L2Cache[L2CacheKey] = ret.gclass as Class
-            return
-        }
+            if (!L2CacheKey)
+            {
+                computeL2CacheKey(data, ctx)
+            }
+            Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
 
-        GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
-        String groovySource = ret.source as String
-        compilePrep1(gcLoader, groovySource, ctx)
+            // check L2 cache
+            if (L2Cache.containsKey(L2CacheKey))
+            {
+                // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
+                setRunnableCode(L2Cache[L2CacheKey])
+                return
+            }
+
+            // Pre-compiled check (e.g. source code was pre-compiled and instrumented for coverage)
+            Map ret = getClassLoaderAndSource(ctx)
+            if (ret.gclass instanceof Class)
+            {   // Found class matching URL fileName.groovy already in JVM
+                setRunnableCode(ret.gclass as Class)
+                L2Cache[L2CacheKey] = ret.gclass as Class
+                return
+            }
+
+            GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
+            String groovySource = ret.source as String
+            compilePrep1(gcLoader, groovySource, ctx)
+        }
+        finally
+        {
+            compileLock.unlock()
+        }
     }
 
     /**
