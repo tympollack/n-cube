@@ -154,6 +154,7 @@ abstract class GroovyBase extends UrlCommandCell
     void prepare(Object data, Map<String, Object> ctx)
     {
         TimedSynchronize.synchronize(compileLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to compile cell')
+        ClassLoader originalClassLoader = null
 
         try
         {
@@ -188,63 +189,23 @@ abstract class GroovyBase extends UrlCommandCell
 
             GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
             String groovySource = ret.source as String
-            compilePrep1(gcLoader, groovySource, ctx)
+
+            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
+            // correct class loader to use when inside a container.
+            originalClassLoader = Thread.currentThread().contextClassLoader
+            Thread.currentThread().contextClassLoader = gcLoader
+            compile(gcLoader, groovySource, ctx)
         }
         finally
         {
+            if (originalClassLoader != null)
+            {
+                Thread.currentThread().contextClassLoader = originalClassLoader
+            }
             compileLock.unlock()
         }
     }
-
-    /**
-     * Ensure that the sys.classpath CdnClassLoader is used during compilation.  It has additional
-     * classpath entries that the application developers likely have added.
-     * @return Class the compile Class associated to the main class (root of source passed in)
-     */
-    protected Class compilePrep1(GroovyClassLoader gcLoader, String groovySource, Map<String, Object> ctx)
-    {
-        // Newly encountered source - compile the source and store it in L1, L2, and L3 caches
-        ClassLoader originalClassLoader = Thread.currentThread().contextClassLoader
-        try
-        {
-            // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
-            // correct class loader to use when inside a container.
-            Thread.currentThread().contextClassLoader = gcLoader
-            return compilePrep2(gcLoader, groovySource, ctx)
-        }
-        finally
-        {
-            Thread.currentThread().contextClassLoader = originalClassLoader
-        }
-    }
-
-    /**
-     * Ensure that the the exact same source class is compiled only one at a time.  The second+
-     * concurrent attempts will return the answer from the L2 cache.
-     * @return Class the compile Class associated to the main class (root of source passed in)
-     */
-    protected Class compilePrep2(GroovyClassLoader gcLoader, String groovySource, Map<String, Object> ctx)
-    {
-        Map<String, Class> L2Cache = getAppL2Cache(getNCube(ctx).applicationID)
-        synchronized (lock)
-        {
-            Class clazz = L2Cache[L2CacheKey]
-            if (clazz != null)
-            {   // Another thread defined and persisted the class while this thread was blocked...
-                setRunnableCode(clazz)
-                return clazz
-            }
-
-            clazz = compile(gcLoader, groovySource, ctx)
-            return clazz
-        }
-    }
-
-    protected Object getLock()
-    {
-        return L2CacheKey.intern()
-    }
-
+    
     /**
      * Ensure that the sys.classpath CdnClassLoader is used during compilation.  It has additional
      * classpath entries that the application developers likely have added.

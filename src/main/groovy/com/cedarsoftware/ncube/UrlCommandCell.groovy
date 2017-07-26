@@ -79,44 +79,27 @@ abstract class UrlCommandCell implements CommandCell
         return cacheable
     }
 
-//    void clearClassLoaderCache()
-//    {
-//        // classpath case, lets clear all classes before setting to null.
-//        def localVar = cache
-//        if (localVar instanceof GroovyClassLoader)
-//        {
-//            (localVar as GroovyClassLoader).clearCache()
-//        }
-//        cache = null
-//    }
-
-    // When no L3, use this (also see GroovyBase)
     void clearClassLoaderCache()
     {
+        TimedSynchronize.synchronize(hasBeenCachedLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to clear ClassLoader cache.')
         hasBeenCached = false
-        if (cache == null)
-        {
-            return
-        }
+        def localVar = cache
 
-        synchronized (lock)
+        try
         {
-            if (cache == null)
-            {
-                return
-            }
-
             // classpath case, lets clear all classes before setting to null.
-            if (cache instanceof GroovyClassLoader)
+            if (localVar instanceof GroovyClassLoader)
             {
-                ((GroovyClassLoader)cache).clearCache()
+                ((GroovyClassLoader)localVar).clearCache()
             }
             cache = null
         }
+        finally
+        {
+            hasBeenCachedLock.unlock();
+        }
     }
-
-    protected Object getLock() { return '' }
-
+    
     protected URL getActualUrl(Map<String, Object> ctx)
     {
         for (int i=0; i < 2; i++)
