@@ -26,10 +26,10 @@ import java.util.concurrent.locks.Lock
 @CompileStatic
 class TimedSynchronize
 {
-    static void synchronize(Lock lock, long time, TimeUnit units, String errMsg = "Dead lock detected", int maxAttempts = 100)
+    static void synchronize(Lock lock, long retryInterval, TimeUnit units, String errMsg = "Dead lock detected", int maxAttempts = 100)
     {
         int attempts = 0
-        while (!lock.tryLock(time, units))
+        while (!lock.tryLock(retryInterval, units))
         {
             attempts++
             if (attempts > maxAttempts)
