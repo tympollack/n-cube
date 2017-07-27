@@ -232,7 +232,7 @@ abstract class UrlCommandCell implements CommandCell
             return cache
         }
 
-        TimedSynchronize.synchronize(hasBeenCachedLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to execute cell')
+        TimedSynchronize.synchronize(hasBeenCachedLock, 100, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to execute cell')
 
         try
         {

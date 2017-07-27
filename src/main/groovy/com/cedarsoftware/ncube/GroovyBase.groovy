@@ -153,7 +153,7 @@ abstract class GroovyBase extends UrlCommandCell
      */
     void prepare(Object data, Map<String, Object> ctx)
     {
-        TimedSynchronize.synchronize(compileLock, 200, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to compile cell')
+        TimedSynchronize.synchronize(compileLock, 100, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to compile cell')
         ClassLoader originalClassLoader = null
 
         try
