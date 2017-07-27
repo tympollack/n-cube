@@ -2,6 +2,9 @@
 * 4.0.16-SNAPSHOT
   * Updated NCubeManager exception messages with more information
   * Enhancement: Add default, sorted, and fireAll to addAxis
+  * Test Enhancement: Updated tests to use an embedded Tomcat container for remote urls, replacing files.cedarsoftware.com
+    * This allows tests to be executed without being connected to a network
+    * If the entry `ncube.tests.baseRemoteUrl=http://remote.site.com` is set in `application.properties`, the tests will run against that site instead of the embedded container
 * 4.0.15
   * Bug fix: Updated version fetching code
   * Updated n-cube related application properties to be prefixed with ncube.*

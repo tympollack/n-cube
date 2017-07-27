@@ -90,12 +90,14 @@ class NCubeBaseTest implements NCubeConstants
         return true
     }
 
+    /**
+     * Loads ncube into the runtimeClient, replacing references to ${baseRemoteUrl}, if found in the json
+     */
     static NCube createRuntimeCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
     {
         String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseRemoteUrl\\}',baseRemoteUrl)
         NCube ncube = NCube.fromSimpleJson(json)
         ncube.applicationID = appId
-        ncube.sha1()
         ncubeRuntime.addCube(ncube)
         return ncube
     }

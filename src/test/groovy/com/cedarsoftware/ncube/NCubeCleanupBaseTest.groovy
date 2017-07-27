@@ -46,6 +46,9 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
         testClient.clearSysParams()
     }
 
+    /**
+     * Loads ncube into the mutableClient, replacing references to ${baseRemoteUrl}, if found in the json
+     */
     NCube createCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
     {
         String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseRemoteUrl\\}',baseRemoteUrl)
