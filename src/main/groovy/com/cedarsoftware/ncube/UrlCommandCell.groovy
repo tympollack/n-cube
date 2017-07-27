@@ -32,7 +32,6 @@ import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 @CompileStatic
 abstract class UrlCommandCell implements CommandCell
 {
-    protected static NCubeRuntimeClient ncubeRuntimeClient
     private static final Logger LOG = LoggerFactory.getLogger(UrlCommandCell.class)
     private String cmd
     private volatile transient String errorMsg = null
@@ -111,15 +110,15 @@ abstract class UrlCommandCell implements CommandCell
             catch(Exception e)
             {
                 NCube cube = getNCube(ctx)
+                String where = "url: ${getUrl()}, cube: ${cube.name}, app: ${cube.applicationID}"
                 if (i == 1)
                 {   // Note: Error is marked, it will not be retried in the future
-                    errorMessage = "Invalid URL in cell (malformed or cannot resolve given classpath): " + getUrl() + ", cube: " + cube.name + ", app: " + cube.applicationID
-                    LOG.warn(getClass().simpleName + ': failed 2nd attempt [will NOT retry in future] getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.name + ", app: " + cube.applicationID)
-                    throw new IllegalStateException(errorMessage, e)
+                    LOG.warn("${getClass().simpleName}: failed 2nd attempt [will NOT retry in future] getActualUrl() - unable to resolve against sys.classpath, ${where}")
+                    throw new IllegalStateException("Invalid URL in cell (unable to resolve against sys.classpath), ${where}", e)
                 }
                 else
                 {
-                    LOG.warn(getClass().simpleName + ': retrying getActualUrl() - unable to resolve against sys.classpath, url: ' + getUrl() + ", cube: " + cube.name + ", app: " + cube.applicationID)
+                    LOG.warn("${getClass().simpleName}: retrying getActualUrl() - unable to resolve against sys.classpath, ${where}")
                     Thread.sleep(100)
                 }
             }

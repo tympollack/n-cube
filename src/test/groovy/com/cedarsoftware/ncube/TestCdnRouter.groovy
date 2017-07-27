@@ -14,7 +14,10 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static org.mockito.Mockito.*
+import static org.mockito.Mockito.doThrow
+import static org.mockito.Mockito.times
+import static org.mockito.Mockito.verify
+import static org.mockito.Mockito.when
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -84,7 +87,7 @@ class TestCdnRouter extends NCubeCleanupBaseTest
         CdnRouter router = new CdnRouter()
         router.route(request, response)
 
-        verify(response, times(1)).sendError(500, 'Invalid URL in cell (malformed or cannot resolve given classpath): tests/does/not/exist/index.html, cube: CdnRouterTest, app: NONE/DEFAULT_APP/999.99.9/SNAPSHOT/TEST/')
+        verify(response, times(1)).sendError(500, 'Invalid URL in cell (unable to resolve against sys.classpath), url: tests/does/not/exist/index.html, cube: CdnRouterTest, app: NONE/DEFAULT_APP/999.99.9/SNAPSHOT/TEST/')
     }
 
     @Test
