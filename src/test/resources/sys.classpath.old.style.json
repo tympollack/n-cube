@@ -15,7 +15,7 @@
       "id": [],
       "type": "exp",
       "cache": true,
-      "value": "['${baseUrl}/tests/ncube/cp1']"
+      "value": "['${baseRemoteUrl}/tests/ncube/cp1']"
     }
   ]
 }

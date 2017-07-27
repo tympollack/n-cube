@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.util.EmbeddedServletContainerListener
 import org.junit.Before
 import org.junit.Test
 
@@ -70,7 +69,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
         URLClassLoader loader = ncubeRuntime.getUrlClassLoader(appId, input)
         assertEquals(1, loader.URLs.length)
         assertEquals(2, getCacheSize(appId))
-        assertEquals(new URL("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp1/"), loader.URLs[0])
+        assertEquals(new URL("${baseRemoteUrl}/tests/ncube/cp1/"), loader.URLs[0])
 
         assertEquals(2, getCacheSize(appId))
 
@@ -225,7 +224,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
 
         // Test HtmlFormatter - that it properly handles the URLClassLoader in the sys.classpath cube
         String html = cp1.toHtml()
-        assert html.contains("${EmbeddedServletContainerListener.hostStringAndContext}")
+        assert html.contains("${baseRemoteUrl}")
     }
 
     @Test

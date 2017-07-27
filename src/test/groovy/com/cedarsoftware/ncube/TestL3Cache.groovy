@@ -670,7 +670,6 @@ class TestL3Cache extends NCubeCleanupBaseTest
         ncubeRuntime.clearCache(ApplicationID.testAppId)
 
         cp = createRuntimeCubeFromResource(ApplicationID.testAppId,sysClassPath)
-//        ncubeRuntime.addCube(cp)
 
         proto = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId,'sys.prototype.json')
         ncubeRuntime.addCube(proto)

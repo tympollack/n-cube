@@ -206,7 +206,7 @@ class AdviceTest extends NCubeCleanupBaseTest
     @Test
     void testAdvice()
     {
-        NCube ncube = createCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
 
         Advice advice1 = new Advice() {
             String getName()
@@ -287,7 +287,7 @@ class AdviceTest extends NCubeCleanupBaseTest
     @Test
     void testAdviceSubsetMatching()
     {
-        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'testGroovyMethods.json')
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'testGroovyMethods.json')
 
         Advice advice1 = new Advice() {
             String getName()
@@ -448,7 +448,7 @@ class AdviceTest extends NCubeCleanupBaseTest
         ncubeRuntime.addAdvice(ApplicationID.testAppId, "*.ba*()", advice1)
 
         // Note: advice is added to the manager *ahead* of any cubes being loaded.
-        NCube ncube = createCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, "testGroovyMethods.json")
 
         Map output = [:]
         Map coord = [method:'foo', state:'OH'] as Map
@@ -513,7 +513,7 @@ class AdviceTest extends NCubeCleanupBaseTest
         // These methods are called more than you think.  Internally, these cube call
         // themselves, and those calls too go through the Advice.
         ncubeRuntime.addAdvice(ApplicationID.testAppId, "*.run()", advice1)
-        NCube ncube = createCubeFromResource(ApplicationID.testAppId, "debugExp.json")
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, "debugExp.json")
 
         def output = [:]
         ncube.getCell([Age:10] as Map, output)
@@ -744,7 +744,7 @@ class AdviceTest extends NCubeCleanupBaseTest
         // themselves, and those calls too go through the Advice.
         ncubeRuntime.addAdvice(TestNCubeManager.defaultSnapshotApp, "Test*()", advice2)
 
-        NCube ncube = createCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
+        NCube ncube = ncubeRuntime.getNCubeFromResource(TestNCubeManager.defaultSnapshotApp, "testGroovyMethods.json")
 
         def output = [:]
         try

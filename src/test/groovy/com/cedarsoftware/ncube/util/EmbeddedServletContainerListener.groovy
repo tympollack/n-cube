@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube.util
 
+import com.cedarsoftware.ncube.NCubeBaseTest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -9,39 +10,34 @@ import org.springframework.stereotype.Component
 
 import java.util.regex.Pattern
 
-/**
- * Created by gmorefield on 7/24/17.
- */
 @Component
 class EmbeddedServletContainerListener implements ApplicationListener<EmbeddedServletContainerInitializedEvent>
 {
     private static final Logger LOG = LoggerFactory.getLogger(EmbeddedServletContainerListener.class)
-//    public static int port
+    private static Pattern leadingSlash = ~/^[\/]?/
+    private static Pattern trailingSlash = ~/[\/]?$/
 
     @Value('${server.contextPath}')
     private String contextPath
 
-    static String hostStringAndContext
+    // allow for testing against a remote URL instead of embedded Tomcat (assuming static files available)
+    @Value('${ncube.tests.baseRemoteUrl:}')
+    private String baseRemoteUrl
 
     @Override
     void onApplicationEvent(EmbeddedServletContainerInitializedEvent event) {
-//        EmbeddedServletContainerListener.port = event.embeddedServletContainer.port
-
-        String host = 'localhost'
-        try
+        if (baseRemoteUrl)
         {
-            host = InetAddress.localHost.hostName
+            NCubeBaseTest.baseRemoteUrl = baseRemoteUrl - leadingSlash
         }
-        catch(UnknownHostException ignored)
-        { }
+        else
+        {
+            String host = 'localhost'
+            int port = event.embeddedServletContainer.port
+            String context = contextPath - leadingSlash - trailingSlash
+            NCubeBaseTest.baseRemoteUrl = "http://${host}:${port}/${context}"
+        }
 
-        int port = event.embeddedServletContainer.port
-
-        Pattern leadingSlash = ~/^[\/]?/
-        Pattern trailingSlash = ~/[\/]?$/
-        String context = contextPath - leadingSlash - trailingSlash
-
-        hostStringAndContext = "http://${host}:${port}/${context}"
-        LOG.info("EmbeddedServletContainer configured to listen at: ${hostStringAndContext}")
+        LOG.info("baseRemoteUrl set to: ${NCubeBaseTest.baseRemoteUrl}")
     }
 }

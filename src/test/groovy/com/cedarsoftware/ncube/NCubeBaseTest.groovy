@@ -1,23 +1,15 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.controller.NCubeController
-import com.cedarsoftware.ncube.util.EmbeddedServletContainerListener
 import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.runner.RunWith
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.embedded.EmbeddedServletContainerInitializedEvent
 import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.ApplicationListener
-import org.springframework.context.annotation.Bean
-import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.junit4.SpringRunner
-
-import java.util.concurrent.LinkedBlockingQueue
 
 import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
 import static org.junit.Assert.assertTrue
@@ -49,6 +41,8 @@ import static org.junit.Assert.assertTrue
 @Ignore
 class NCubeBaseTest implements NCubeConstants
 {
+    static String baseRemoteUrl
+
     static NCubeMutableClient getMutableClient()
     {
         String beanName = NCubeAppContext.containsBean(RUNTIME_BEAN) ? RUNTIME_BEAN : MANAGER_BEAN
@@ -98,10 +92,10 @@ class NCubeBaseTest implements NCubeConstants
 
     static NCube createRuntimeCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
     {
-        String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseUrl\\}',EmbeddedServletContainerListener.hostStringAndContext)
+        String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseRemoteUrl\\}',baseRemoteUrl)
         NCube ncube = NCube.fromSimpleJson(json)
         ncube.applicationID = appId
-        ncube.sha1
+        ncube.sha1()
         ncubeRuntime.addCube(ncube)
         return ncube
     }

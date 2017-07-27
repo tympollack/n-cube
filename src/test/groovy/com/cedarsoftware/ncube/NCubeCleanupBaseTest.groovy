@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.util.EmbeddedServletContainerListener
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
@@ -36,9 +35,7 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     void setup()
     {
         NCube cp = createCubeFromResource(TestNCubeManager.defaultSnapshotApp, 'sys.classpath.tests.json')
-//        mutableClient.createCube(cp)
         cp = createCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
-//        mutableClient.createCube(cp)
     }
 
     @After
@@ -51,7 +48,7 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
 
     NCube createCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
     {
-        String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseUrl\\}',EmbeddedServletContainerListener.hostStringAndContext)
+        String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseRemoteUrl\\}',baseRemoteUrl)
         NCube ncube = NCube.fromSimpleJson(json)
         ncube.applicationID = appId
         mutableClient.createCube(ncube)

@@ -3,7 +3,6 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
-import com.cedarsoftware.ncube.util.EmbeddedServletContainerListener
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.DeepEquals
 import org.junit.Test
@@ -1333,14 +1332,14 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         Map map = [env:'DEV']
         NCube baseCube = mutableClient.getCube(defaultSnapshotApp, 'sys.classpath.base')
 
-        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp1/".toString(), baseCube.getCell(map))
+        assertEquals("${baseRemoteUrl}/tests/ncube/cp1/".toString(), baseCube.getCell(map))
         map.env = 'CERT'
-        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp2/".toString(), baseCube.getCell(map))
+        assertEquals("${baseRemoteUrl}/tests/ncube/cp2/".toString(), baseCube.getCell(map))
 
         NCube classPathCube = mutableClient.getCube(defaultSnapshotApp, 'sys.classpath')
         URLClassLoader loader = (URLClassLoader) classPathCube.getCell(map)
         assertEquals(1, loader.URLs.length)
-        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/cp2/".toString(), loader.URLs[0].toString())
+        assertEquals("${baseRemoteUrl}/tests/ncube/cp2/".toString(), loader.URLs[0].toString())
     }
 
     @Test
@@ -1360,7 +1359,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assertEquals('Hello, world.', s)
 
         URL absUrl = ncubeRuntime.getActualUrl(ApplicationID.testAppId, 'tests/ncube/hello.groovy', [:])
-        assertEquals("${EmbeddedServletContainerListener.hostStringAndContext}/tests/ncube/hello.groovy".toString(), absUrl.toString())
+        assertEquals("${baseRemoteUrl}/tests/ncube/hello.groovy".toString(), absUrl.toString())
     }
 
     @Test

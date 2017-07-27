@@ -15,7 +15,7 @@
             "id": [],
             "type": "exp",
             "cache" : true,
-            "value": "new CdnClassLoader(['${baseUrl}'])"
+            "value": "new CdnClassLoader(['${baseRemoteUrl}'])"
         }
     ]
 }
