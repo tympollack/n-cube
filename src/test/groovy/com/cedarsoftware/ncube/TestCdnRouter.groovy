@@ -14,7 +14,9 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
+import static org.mockito.Matchers.anyString
 import static org.mockito.Mockito.doThrow
+import static org.mockito.Mockito.eq
 import static org.mockito.Mockito.times
 import static org.mockito.Mockito.verify
 import static org.mockito.Mockito.when
