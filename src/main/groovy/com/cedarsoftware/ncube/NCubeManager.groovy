@@ -2220,6 +2220,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         }
 
         Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser)
+        validateReferenceAxesAppIds(prAppId.asHead())
         ret[PR_APP] = prAppId
         ret[PR_CUBE] = prCube
 
