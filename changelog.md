@@ -1,5 +1,6 @@
 ### Revision History
 * 4.0.16-SNAPSHOT
+  * Added methods to NCubeController that were previously added to runtime and mutable interfaces. Added test to ensure that methods added to interfaces are also added to the controller in the future.
   * Updated NCubeManager exception messages with more information
   * Enhancement: Add default, sorted, and fireAll to addAxis
   * Test Enhancement: Updated tests to use an embedded Tomcat container for remote urls, replacing files.cedarsoftware.com
