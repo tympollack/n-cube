@@ -146,16 +146,16 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return mutableClient.assertPermissions(appId, resource, action)
     }
 
-    Map checkMultiplePermissions(ApplicationID appId, String resource, String[] actions)
+    Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
     {
         appId = addTenant(appId)
         return mutableClient.checkMultiplePermissions(appId, resource, actions)
     }
 
-    Map checkPermissions(ApplicationID appId, String resource, Object[] actions)
+    Boolean checkPermissions(ApplicationID appId, String resource, String action)
     {
         appId = addTenant(appId)
-        return mutableClient.checkMultiplePermissions(appId, resource, actions as String[])
+        return mutableClient.checkPermissions(appId, resource, action)
     }
 
     Boolean isAppAdmin(ApplicationID appId)
@@ -1538,7 +1538,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return result
     }
 
-    Object[] getPullRequests(Date startDate, Date endDate)
+    Object[] getPullRequests(Date startDate = null, Date endDate = null)
     {
         Object[] pullRequests = mutableClient.getPullRequests(startDate, endDate)
         return pullRequests
@@ -1554,7 +1554,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return mutableClient.commitBranch(appId, list.toArray())
     }
 
-    Object commitBranch(ApplicationID appId, Object[] infoDtos)
+    Object commitBranch(ApplicationID appId, Object[] infoDtos = null)
     {
         appId = addTenant(appId)
         return mutableClient.commitBranch(appId, infoDtos)
@@ -1577,7 +1577,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         mutableClient.updateBranch(appId, dto)
     }
 
-    Object updateBranch(ApplicationID appId, Object[] cubeDtos)
+    Object updateBranch(ApplicationID appId, Object[] cubeDtos = null)
     {
         appId = addTenant(appId)
         Map<String, Object> result = mutableClient.updateBranch(appId, cubeDtos)
@@ -1597,13 +1597,13 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return result
     }
 
-    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         appId = addTenant(appId)
         return mutableClient.acceptTheirs(appId, cubeNames, sourceBranch)
     }
 
-    Integer acceptMine(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
+    Integer acceptMine(ApplicationID appId, Object[] cubeNames, String notNeeded = null)
     {
         appId = addTenant(appId)
         return mutableClient.acceptMine(appId, cubeNames)
@@ -1615,13 +1615,13 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return formatCube(ncube, [mode: mode])
     }
 
-    NCube loadCubeById(long id)
+    NCube loadCubeById(long id, Map options = null)
     {
-        NCube ncube = mutableClient.loadCubeById(id)
+        NCube ncube = mutableClient.loadCubeById(id, options)
         return ncube
     }
 
-    NCube loadCube(ApplicationID appId, String cubeName, Map options)
+    NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
     {
         appId = addTenant(appId)
         NCube ncube = mutableClient.loadCube(appId, cubeName, options)

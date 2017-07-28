@@ -119,12 +119,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      * @param id long n-cube id.
      * @return NCube that has the passed in id.
      */
-    NCube loadCubeById(long id)
-    {
-        return loadCubeById(id, null)
-    }
-
-    NCube loadCubeById(long id, Map options)
+    NCube loadCubeById(long id, Map options = null)
     {
         NCube ncube = persister.loadCubeById(id, options, getUserId())
         assertPermissions(ncube.applicationID, ncube.name, Action.READ)
@@ -726,6 +721,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
     String getCubeRawJson(ApplicationID appId, String cubeName)
     {
+        assertPermissions(appId, cubeName)
         return persister.loadCubeRawJson(appId, cubeName, getUserId())
     }
 
@@ -1117,7 +1113,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         return item?.get()
     }
 
-    Map checkMultiplePermissions(ApplicationID appId, String resource, String[] actions)
+    Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
     {
         Map ret = [:]
         for (String action : actions)
@@ -2216,7 +2212,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
         Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser)
         ret[PR_APP] = prAppId
-        ret[PR_CUBE] = prCube
+        ret[PR_CUBE] = prCube.name
 
         updatePullRequest(prId, null, null, PR_COMPLETE)
         return ret
@@ -2600,6 +2596,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
         NCubeInfoDto headDto = list.first()     // only 1 because we used exact match
         return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
+    }
+
+    void clearCache(ApplicationID appId)
+    {
+        // no-op
     }
 
     // -------------------------------- Non API methods --------------------------------------
