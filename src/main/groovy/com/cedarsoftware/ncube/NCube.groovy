@@ -2177,6 +2177,13 @@ class NCube<T>
         clearSha1()
     }
 
+    void createAxisReference(final ApplicationID refAppId, final String refCubeName, final String axisName)
+    {
+        Axis axis = getAxis(axisName)
+        axis.createReference(refAppId, refCubeName)
+        clearSha1()
+    }
+
     /**
      * Remove transform from a reference axis.
      * @param axisName String name of reference axis.
