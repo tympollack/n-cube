@@ -6,6 +6,7 @@ import com.cedarsoftware.util.ReflectionUtils
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.TimedSynchronize
 import com.cedarsoftware.util.UrlUtilities
+import com.google.common.base.Joiner
 import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
 import org.codehaus.groovy.control.CompilationUnit
@@ -562,14 +563,7 @@ abstract class GroovyBase extends UrlCommandCell
         {   // specified via URL, add classLoader URL strings to URL for SHA-1 source.
             GroovyClassLoader gcLoader = getAppIdClassLoader(ctx)
             URL[] urls = gcLoader.URLs
-            StringBuilder s = new StringBuilder()
-            for (URL url : urls)
-            {
-                s.append(url.toString())
-                s.append('.')
-            }
-            s.append(url)
-            String content = s.toString()
+            String content = "${Joiner.on('|').join(urls)}.${url}"
             fullClassName = url - '.groovy'
             fullClassName = fullClassName.replace('/', '.')
             L2CacheKey = EncryptionUtilities.calculateSHA1Hash(StringUtilities.getUTF8Bytes(content))
