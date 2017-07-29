@@ -109,7 +109,7 @@ import groovy.transform.CompileStatic
 import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 ${addlImports}
-${extractedLines.join('\n')}
+${String.join('\n', extractedLines)}
 class ${className} extends ${expClassName}
 {
     Object run()
