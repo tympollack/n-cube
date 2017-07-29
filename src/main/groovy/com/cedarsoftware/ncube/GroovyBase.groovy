@@ -691,16 +691,14 @@ abstract class GroovyBase extends UrlCommandCell
         }
     }
 
-    static Set<String> extractImportsAndAnnotations(String text, StringBuilder newGroovy)
+    static String extractImportsAndAnnotations(String text, Set<String> extractedLines)
     {
-        Set<String> extractedLines = new LinkedHashSet<>()
         String adjusted = extract(Regexes.importPattern.matcher(text), extractedLines)
         adjusted = extract(Regexes.grapePattern.matcher(adjusted), extractedLines)
         adjusted = extract(Regexes.grabPattern.matcher(adjusted), extractedLines)
         adjusted = extract(Regexes.compileStaticPattern.matcher(adjusted), extractedLines)
         adjusted = extract(Regexes.typeCheckPattern.matcher(adjusted), extractedLines)
-        newGroovy.append(adjusted)
-        return extractedLines
+        return adjusted
     }
 
     static String extract(Matcher matcher, Set<String> extractedLines)
