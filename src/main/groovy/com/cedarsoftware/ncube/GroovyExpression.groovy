@@ -108,8 +108,8 @@ import com.cedarsoftware.util.io.*
 import groovy.transform.CompileStatic 
 import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
-${extractedLines.join('\n')}
 ${addlImports}
+${extractedLines.join('\n')}
 class ${className} extends ${expClassName}
 {
     Object run()
@@ -120,7 +120,7 @@ class ${className} extends ${expClassName}
 """
     }
 
-    NCube getSysPrototype(ApplicationID appId)
+    static NCube getSysPrototype(ApplicationID appId)
     {
         try
         {
@@ -169,6 +169,7 @@ class ${className} extends ${expClassName}
         catch (Exception e)
         {
             handleException(e, "Exception occurred fetching imports from ${SYS_PROTOTYPE}")
+            return ''
         }
     }
 
