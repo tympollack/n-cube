@@ -1,12 +1,24 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.exception.*
+import com.cedarsoftware.ncube.exception.CommandCellException
+import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
+import com.cedarsoftware.ncube.exception.InvalidCoordinateException
+import com.cedarsoftware.ncube.exception.RuleJump
+import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.CellMap
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ByteUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.EncryptionUtilities
+import com.cedarsoftware.util.IOUtilities
+import com.cedarsoftware.util.MapUtilities
+import com.cedarsoftware.util.ReflectionUtils
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -2486,17 +2498,12 @@ class NCube<T>
         String defUrl = jsonNCube.containsKey(DEFAULT_CELL_VALUE_URL) ? getString(jsonNCube, DEFAULT_CELL_VALUE_URL) : null
         boolean defCache = getBoolean(jsonNCube, DEFAULT_CELL_VALUE_CACHE)
         ncube.setDefaultCellValue(CellInfo.parseJsonValue(jsonNCube[DEFAULT_CELL_VALUE], defUrl, defType, defCache))
-
-        if (!jsonNCube.containsKey("axes"))
-        {
-            throw new IllegalArgumentException("Must specify a list of axes for the ncube, under the key 'axes' as [{axis 1}, {axis 2}, ... {axis n}], cube: ${cubeName}")
-        }
-
+        
         Object[] axes = jsonNCube.axes as Object[]
 
-        if (ArrayUtilities.isEmpty(axes))
+        if (axes == null)
         {
-            throw new IllegalArgumentException("Must be at least one axis defined in the JSON format, cube: ${cubeName}")
+            axes = [] as Object[]
         }
 
         Map<Object, Long> userIdToUniqueId = new CaseInsensitiveMap<>()
