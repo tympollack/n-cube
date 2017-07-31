@@ -885,6 +885,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         createCube()
         NCube noTestsCube = new NCube('noTests')
         noTestsCube.applicationID = defaultSnapshotApp
+        noTestsCube.addAxis(new Axis('testAxis', AxisType.DISCRETE, AxisValueType.STRING, true))
         mutableClient.createCube(noTestsCube)
 
         Map testData = mutableClient.getAppTests(defaultSnapshotApp)
@@ -1816,6 +1817,10 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     @Test
     void testSystemIgnoresPermissions()
     {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
         String origUser = mutableClient.userId
         NCube ncube = createCubeFromResource('test.branch.1.json')
         List<NCubeInfoDto> dtos = mutableClient.search(ApplicationID.testAppId, ncube.name, null, null)
