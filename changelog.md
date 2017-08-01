@@ -7,7 +7,8 @@
     * This allows tests to be executed without being connected to a network
     * If the entry `ncube.tests.baseRemoteUrl=http://remote.site.com` is set in `application.properties`, the tests will run against that site instead of the embedded container
   * Bug fix: Merging a pull request with a new cube with an axis reference after other references were updated in HEAD could cause reference version mismatch in HEAD.
-  * Performance: Compiling is slightly faster - code that builds class around user's statement block improved.  
+  * Performance: Compiling is slightly faster - code that builds class around user's statement block improved.
+  * Consumption as a library for a Springboot app simplified.  Overrideable options are easily overridden in the consuming Springboot app's application properties.  All properties start with 'ncube' and modern IDEs will actually suggest available properties when editing the consuming application's `application.properties` file.   
 * 4.0.15
   * Bug fix: Updated version fetching code
   * Updated n-cube related application properties to be prefixed with ncube.*
