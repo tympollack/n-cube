@@ -1,24 +1,12 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.exception.CommandCellException
-import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
-import com.cedarsoftware.ncube.exception.InvalidCoordinateException
-import com.cedarsoftware.ncube.exception.RuleJump
-import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.ncube.exception.*
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.CellMap
-import com.cedarsoftware.util.ByteUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.EncryptionUtilities
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.MapUtilities
-import com.cedarsoftware.util.ReflectionUtils
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -1720,16 +1708,17 @@ class NCube<T>
         {
             Axis axis = (Axis) i.next()
             String axisName = axis.name
-            final Comparable value = (Comparable) safeCoord[axisName]
-            final Column column = (Column) axis.findColumn(value)
+            Comparable value = (Comparable) safeCoord[axisName]
+            Column column = (Column) axis.findColumn(value)
+            
             if (column == null || column.default)
             {
                 trackUnboundAxis(output, name, axisName, value)
-            }
-            if (column == null)
-            {
-                throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
-                        name, coordinate, axisName, value)
+                if (column == null)
+                {
+                    throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
+                            name, coordinate, axisName, value)
+                }
             }
             ids.add(column.id)
         }
@@ -2263,7 +2252,7 @@ class NCube<T>
             }
         }
 
-        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
+        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty(NCubeConstants.OPTIONAL_SCOPE), input, output)
         optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
         return optionalScope
     }
@@ -2316,7 +2305,12 @@ class NCube<T>
      */
     protected Set<String> getDeclaredScope(Map input, Map output)
     {
-        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"), input, output)
+        if (!metaProps.containsKey(NCubeConstants.REQUIRED_SCOPE))
+        {
+            return new CaseInsensitiveSet<>()
+        }
+        Object value = metaProps[NCubeConstants.REQUIRED_SCOPE]
+        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(value, input, output)
         return declaredRequiredScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredRequiredScope)
     }
 
