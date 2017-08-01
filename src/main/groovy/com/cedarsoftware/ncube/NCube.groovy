@@ -688,10 +688,9 @@ class NCube<T>
                                 // the conditionValue becomes 'true' for Default column when ruleAxisBindCount = 0
                                 final Integer count = conditionsFiredCountPerAxis[axisName]
                                 conditionValue = cmd == null ? isZero(count) : executeExpression(ctx, cmd)
-                                final boolean conditionAnswer = isTrue(conditionValue)
-                                cachedConditionValues[boundColumn.id] = conditionAnswer
+                                cachedConditionValues[boundColumn.id] = conditionValue as boolean
 
-                                if (conditionAnswer)
+                                if (conditionValue)
                                 {   // Rule fired
                                     conditionsFiredCountPerAxis[axisName] = count == null ? 1 : count + 1
                                     if (!axis.fireAll)
@@ -714,7 +713,7 @@ class NCube<T>
                             // one rule axis, X, Y, Z on another).  This generates coordinate combinations
                             // (AX, AY, AZ, BX, BY, BZ, CX, CY, CZ).  The condition columns must be run only once, on
                             // subsequent access, the cached result of the condition is used.
-                            if (isTrue(conditionValue))
+                            if (conditionValue)
                             {
                                 binding.bind(axisName, boundColumn)
                             }
@@ -1586,8 +1585,7 @@ class NCube<T>
         while (i.hasNext())
         {
             final StackEntry key = i.next()
-            s.append('-> cell:')
-            s.append(key.toString())
+            s.append("-> cell:${key.toString()}")
             if (i.hasNext())
             {
                 s.append('\n')
@@ -2873,7 +2871,7 @@ class NCube<T>
         {
             return (String) val
         }
-        String clazz = val == null ? "null" : val.class.name
+        String clazz = val == null ? 'null' : val.class.name
         throw new IllegalArgumentException("Expected 'String' for key '${key}' but instead found: ${clazz}")
     }
 
@@ -2893,7 +2891,7 @@ class NCube<T>
             catch(Exception ignored)
             { }
         }
-        String clazz = val == null ? "null" : val.class.name
+        String clazz = val == null ? 'null' : val.class.name
         throw new IllegalArgumentException("Expected 'Long' for key '${key}' but instead found: ${clazz}")
     }
 
@@ -2906,7 +2904,7 @@ class NCube<T>
         }
         if (val instanceof String)
         {
-            return "true".equalsIgnoreCase((String) val)
+            return 'true'.equalsIgnoreCase((String) val)
         }
         if (val == null)
         {
