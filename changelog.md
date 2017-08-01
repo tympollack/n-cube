@@ -1,6 +1,6 @@
 ### Revision History
 * 4.0.17-SNAPSHOT
-  * --
+  * Added getters for `NCubeRuntimeClient` and `NCubeMutableClient` on `NCubeGroovyExpression`
 * 4.0.16    
   * Added methods to `NCubeController` that were previously added to runtime and mutable interfaces. Added test to ensure that methods added to interfaces are also added to the controller in the future.
   * Updated `NCubeManager` exception messages with more information
