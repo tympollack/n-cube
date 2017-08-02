@@ -2185,11 +2185,10 @@ class NCube<T>
     {
         // copy list of columns before axis changes
         Axis axis = getAxis(axisName)
-        List<Column> oldColumns = axis.columns.collect()
+        List<Column> oldColumns = axis.columns
 
         // make copy of the cell map to reference after the axis changes
-        Map<Set<Long>, T> cellMapCopy = [:]
-        cellMapCopy.putAll(cellMap)
+        Map<Set<Long>, T> cellMapCopy = new CellMap(cellMap)
 
         Map args = [:]
         args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
