@@ -564,6 +564,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
     }
 
+    void createReferenceFromAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName)
+    {
+        verifyAllowMutable('createReferenceFromAxis')
+        bean.call(beanName, 'createReferenceFromAxis', [appId, cubeName, axisName, refAppId, refCubeName, refAxisName])
+    }
+
     //-- Run Tests -------------------------------------------------------------------------------------------------
 
     Map runTests(ApplicationID appId)

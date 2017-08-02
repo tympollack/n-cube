@@ -1008,18 +1008,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     {
         appId = addTenant(appId)
         refAppId = addTenant(refAppId)
-
-        NCube cube = mutableClient.getCube(appId, cubeName)
-        Axis axis = cube.getAxis(axisName)
-
-        NCube refCube = new NCube(refCubeName)
-        refCube.applicationID = refAppId
-        refCube.addAxis(axis)
-        refCube.renameAxis(axisName, refAxisName)
-        mutableClient.createCube(refCube)
-
-        cube.createAxisReference(refAppId, refCubeName, axisName)
-        mutableClient.updateCube(cube)
+        mutableClient.createReferenceFromAxis(appId, cubeName, axisName, refAppId, refCubeName, refAxisName)
     }
 
     Boolean renameCube(ApplicationID appId, String oldName, String newName)
