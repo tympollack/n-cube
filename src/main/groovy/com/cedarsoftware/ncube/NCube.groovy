@@ -2225,8 +2225,7 @@ class NCube<T>
                     coord.add(newCoordPart)
                 }
             }
-
-            setCellById(cellMapEntry.value, coord)
+            cells[coord] = (T)internValue(cellMapEntry.value)
         }
     }
 
