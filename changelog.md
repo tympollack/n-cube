@@ -1,6 +1,7 @@
 ### Revision History
-* 4.0.18-SNAPSHOT
-  * Enhancement: Can add a reference to an existing axis so as to not lose cell data.
+* 4.0.18
+  * Enhancement: Create a reference axis from an existing axis
+  * Enhancement: mapReduce() - the 'where' parameter (condition test) can be a Closure or a String.
 * 4.0.17
   * Added getters for `NCubeRuntimeClient` and `NCubeMutableClient` on `NCubeGroovyExpression`
   * Bug fix: updated property defaults in Spring beans configuration

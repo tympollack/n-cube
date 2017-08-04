@@ -3,13 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.EncryptionUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.UniqueIdGenerator
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -90,32 +84,47 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return nCubePersister
     }
 
-    void createReferenceFromAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName)
+    /**
+     * Create a reference axis from an existing axis.  If the reference information is does not point to an
+     * existing n-cube, then a new one will be created.  The source axis will provide the values for the
+     * newly created reference axis.  The source cube will also be updated to have a reference axis.  If
+     * the reference information points to an existing n-cube, then the source cube's axis will be updated to
+     * point to the existing reference axis.  If the new reference axis had fewer or more columns, the cells
+     * in the columns that no longer exist are dropped.  If the referenced axis has columns that did not exist
+     * on the source axis, those newly created cells will be empty.  Finally, for columns that existed on the
+     * original source axis as well as exist on the existing referenced axis, they will be kept.
+     */
+    void createRefAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName)
     {
         NCube cube = getCube(appId, cubeName)
         Axis axis = cube.getAxis(axisName)
 
         NCube refCube = getCube(refAppId, refCubeName)
         if (refCube)
-        { // already exists
-            cube.createExistingAxisReference(axisName, refAppId, refCubeName, refAxisName)
+        {   // referenced to n-cube already exists (merge case)
+            cube.convertExistingAxisToRefAxis(axisName, refAppId, refCubeName, refAxisName)
         }
         else
-        { // create new
-            //copy axis for ref cube
-            Axis refAxis = new Axis(refAxisName, axis.type, axis.valueType, axis.hasDefaultColumn(), axis.columnOrder, axis.id, axis.fireAll)
-            refAxis.updateColumns(axis.columnsWithoutDefault, true)
+        {   // create new
+            // copy axis for ref cube
+            Axis newAxis = new Axis(refAxisName, axis.type, axis.valueType, axis.hasDefaultColumn(), axis.columnOrder, axis.id, axis.fireAll)
+            newAxis.updateColumns(axis.columnsWithoutDefault, true) // using 'updateColumns()' to add-all-columns (keeps same IDs).
 
             refCube = new NCube(refCubeName)
             refCube.applicationID = refAppId
-            refCube.addAxis(refAxis)
-            createCube(refCube)
+            refCube.addAxis(newAxis)
+            createCube(refCube) // newly created reference axis n-cube (the target of a reference axis)
 
-            cube.createNewAxisReference(axisName, refAppId, refCubeName, refAxisName)
+            cube.convertAxisToRefAxis(axisName, refAppId, refCubeName, refAxisName)
         }
         updateCube(cube)
     }
 
+    /**
+     * Load the n-cube with the given name.  This API works identically to loadCube().  It is strongly recommended that
+     * this method should not be called and instead that loadCube() should be called, when it is being called in a
+     * situation where it is known the target is an NCubeManager.
+     */
     NCube getCube(ApplicationID appId, String cubeName)
     {
         return loadCube(appId, cubeName)
