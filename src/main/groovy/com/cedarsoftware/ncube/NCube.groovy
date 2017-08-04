@@ -1203,6 +1203,87 @@ class NCube<T>
         return matchingRows
     }
 
+    /**
+     * Filter rows of an n-cube.  Use this API to fetch a subset of an n-cube, similar to SQL SELECT.
+     * @param rowAxisName String name of axis acting as the ROW axis.
+     * @param colAxisName String name of axis acting as the COLUMN axis.
+     * @param where Closure groovy closure.  Written as condition in terms of the columns on the colAxisName.
+     * Example: { Map input -> (input.state == 'TX' || input.state == 'OH') && (input.attribute == 'fuzzy')}.
+     * This will only return rows where this condition is true ('state' and 'attribute' are two column values from
+     * the colAxisName). The values for each row in the rowAxis is bound to the where expression for each row.  If
+     * the row passes the 'where' condition, it is included in the output.
+     * @param output Map the output Map use to write multiple return values to, just like getCell() or at().
+     * @param input Map the input Map just like it is used for getCell() or at().  Only needed when there are three (3)
+     * or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
+     * bound just as they are in getCell() or at().
+     * @param columnsToSearch Set which allows reducing the number of columns bound for use in the where clause.  If not
+     * specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
+     * has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
+     * values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
+     * columns are included in the columnsToSearch.
+     * @param columnsToReturn Set of values to indicate which columns to return.  If not specified, the entire 'row' is
+     * returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
+     * two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
+     * The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
+     * is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
+     * can have it return less column/value pairs in the returned Map if you add only the columns you want returned
+     * here.
+     * @return Map of Maps - The outer Map is keyed by the column values of all row columns.  If the row Axis is a discrete
+     * axis, then the keys of the map are all the values of the columns.  If a non-discrete axis is used, then the keys
+     * are the name meta-key for each column.  If a non-discrete axis is used and there are no name attributes on the columns,
+     * and exception will be thrown.  The 'value' associated to the key (column value or column name) is a Map record,
+     * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
+     * for each cell in the same column, for when the 'where' condition holds true (groovy true).
+     */
+    Map mapReduce(String rowAxisName, String colAxisName, Closure where, Map input = [:], Map output = [:], Set columnsToSearch = null, Set columnsToReturn = null)
+    {
+        throwIf(!rowAxisName, new IllegalArgumentException('The row axis name cannot be null'))
+        throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
+        throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
+
+        Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, input)
+
+        Axis rowAxis = axisList[rowAxisName]
+        Axis colAxis = axisList[colAxisName]
+        boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
+        boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
+
+        final Collection<Column> selectList = selectColumns(colAxis, columnsToReturn)
+        final Collection<Column> whereColumns = selectColumns(colAxis, columnsToSearch)
+        final Set<Long> ids = new LinkedHashSet<>(boundColumns)
+        final Map commandInput = new CaseInsensitiveMap(input ?: [:])
+        final Map matchingRows = new CaseInsensitiveMap()
+        final Map whereVars = new CaseInsensitiveMap()
+        Map<Set<Long>, T> cellz = cells // local reference (non-field access = faster bytecode)
+
+        for (row in rowAxis.columns)
+        {
+            whereVars.clear()
+            commandInput[rowAxisName] = row.valueThatMatches
+            long rowId = row.id
+            ids.add(rowId)
+
+            for (column in whereColumns)
+            {
+                long whereId = column.id
+                ids.add(whereId)
+                commandInput[colAxisName] = column.valueThatMatches
+                Object colKey = isColDiscrete ? column.value : column.columnName
+                whereVars[colKey] = getCellValue(cellz[ids], commandInput, output)
+                ids.remove(whereId)
+            }
+
+            def whereResult = where.call(whereVars)
+            if (whereResult)
+            {
+                Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
+                matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output)
+            }
+            ids.remove(rowId)
+        }
+        return matchingRows
+    }
+
     private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
     {
         Comparable key

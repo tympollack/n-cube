@@ -9,7 +9,6 @@ import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
-import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
@@ -5234,6 +5233,19 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testMapReduceWithFilterAndReturnSetsRunningCommandCellWithClosure()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query',  { Map input -> input.foo == 'OH' }, [:], [:], ['foo'] as Set, ['bar'] as Set)
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['G']
+        assert row.size() == 1
+        assert row['bar'] == '5 G - bar'
+    }
+
+    @Test
     void testMapReduceFromGroovyExpression()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
@@ -5258,24 +5270,6 @@ class TestNCube extends NCubeBaseTest
         Map row = queryResult['A']
         assert row['foo'] == 'OH'
         assert row['bar'] == 'Ohio'
-    }
-
-    // For testing getCube speed()
-    @Ignore
-    void testGetCubeSpeed()
-    {
-        NCube ncube = NCubeBuilder.discrete1D
-        ncube.applicationID = ApplicationID.testAppId
-        ncubeRuntime.addCube(ncube)
-
-        long start = System.nanoTime()
-        for (int i=0; i < 1000000; i++)
-        {
-            ncubeRuntime.getCube(ApplicationID.testAppId, ncube.name)
-        }
-        long end = System.nanoTime()
-
-        println ((end - start) / 1000000.0d)
     }
 
     // ---------------------------------------------------------------------------------
