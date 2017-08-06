@@ -41,9 +41,9 @@ import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
 @CompileStatic
 class NCubeGroovyExpression
 {
-    Map input
-    Map output
-    NCube ncube
+    public Map input
+    public Map output
+    public NCube ncube
 
     /**
      * Fetch the named n-cube from the NCubeRuntime.  It looks at the same

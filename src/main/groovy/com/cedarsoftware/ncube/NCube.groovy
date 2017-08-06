@@ -1191,6 +1191,7 @@ class NCube<T>
                 ids.remove(whereId)
             }
 
+            whereVars.putAll(input ?: [:])
             ctx['input'] = whereVars
             def whereResult = executeExpression(ctx, exp)
             if (whereResult)
