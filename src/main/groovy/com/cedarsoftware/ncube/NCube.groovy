@@ -1274,6 +1274,7 @@ class NCube<T>
                 ids.remove(whereId)
             }
 
+            whereVars.putAll(input ?: [:])
             def whereResult = where.call(whereVars)
             if (whereResult)
             {

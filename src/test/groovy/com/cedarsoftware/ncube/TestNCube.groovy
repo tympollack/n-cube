@@ -4949,6 +4949,23 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testMapReduceWithBasicQueryAndInput2()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == input.fubar}, [fubar: 'NY'])
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['B']
+        assert row['foo'] == 'NY'
+        assert row['bar'] == 'a string long enough to test contains'
+
+        row = queryResult['F']
+        assert row['foo'] == 'NY'
+        assert row['bar'] == null
+    }
+
+    @Test
     void testMapReduceWithComplexQuery()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
