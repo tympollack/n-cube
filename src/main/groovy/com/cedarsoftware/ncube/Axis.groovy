@@ -1194,10 +1194,6 @@ class Axis
         {
             return null
         }
-        if (value.class.enum)
-        {
-            return value.toString()
-        }
         else if (type == AxisType.DISCRETE)
         {
             return promoteValue(valueType, value)
@@ -1312,11 +1308,6 @@ class Axis
      */
     static Comparable promoteValue(AxisValueType srcValueType, Comparable value)
     {
-        if (value && value.class.enum)
-        {
-            return value.toString()
-        }
-
         if (AxisValueType.STRING == srcValueType || AxisValueType.CISTRING == srcValueType)
         {
             return (Comparable) Converter.convert(value, String.class)
