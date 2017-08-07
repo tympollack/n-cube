@@ -2,6 +2,7 @@
 * 4.0.18
   * Enhancement: Create a reference axis from an existing axis
   * Enhancement: mapReduce() - the 'where' parameter (condition test) can be a Closure or a String.
+  * Bug fix: copy branch only records the most recent appId copied from
 * 4.0.17
   * Added getters for `NCubeRuntimeClient` and `NCubeMutableClient` on `NCubeGroovyExpression`
   * Bug fix: updated property defaults in Spring beans configuration
