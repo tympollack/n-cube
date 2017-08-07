@@ -405,7 +405,13 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         verifyAllowExecute('mapReduce')
         appId = addTenant(appId)
         NCube ncube = getCubeInternal(appId, cubeName)
-        return ncube.mapReduce(rowAxisName, colAxisName, where, input, output, columnsToSearch, columnsToReturn)
+        GroovyShell shell = new GroovyShell()
+        Object whereClosure = shell.evaluate(where)
+        if (!(whereClosure instanceof Closure))
+        {
+            throw new IllegalArgumentException("Passed in 'where' clause: ${where}, is not evaluating to a Closure.  Make sure it is in the form (example): { Map input -> input.state == 'AZ' }")
+        }
+        return ncube.mapReduce(rowAxisName, colAxisName, (Closure)whereClosure, input, output, columnsToSearch, columnsToReturn)
     }
 
     private static Map<String, CellInfo> valuesToCellInfo(Map<String, Object> metaProps)

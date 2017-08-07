@@ -1,13 +1,6 @@
 package ncube.grv.exp
 
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeAppContext
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeMutableClient
-import com.cedarsoftware.ncube.NCubeRuntimeClient
+import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.util.CaseInsensitiveSet
@@ -247,7 +240,7 @@ class NCubeGroovyExpression
      * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
      * for each cell in the same column, for when the 'where' condition holds true (groovy true).
      */
-    Map mapReduce(String rowAxisName, String colAxisName, String where = 'true', Set columnsToSearch = null, Set columnsToReturn = null, String cubeName = null, ApplicationID appId = null)
+    Map mapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Set columnsToSearch = null, Set columnsToReturn = null, String cubeName = null, ApplicationID appId = null)
     {
         NCube target
         if (cubeName)

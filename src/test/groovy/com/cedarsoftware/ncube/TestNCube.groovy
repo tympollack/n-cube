@@ -4918,7 +4918,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithBasicQuery()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'NY\'')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'NY'})
 
         assert queryResult.size() == 2
 
@@ -4933,23 +4933,6 @@ class TestNCube extends NCubeBaseTest
 
     @Test
     void testMapReduceWithBasicQueryAndInput()
-    {
-        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == input.fubar', [fubar: 'NY'])
-
-        assert queryResult.size() == 2
-
-        Map row = queryResult['B']
-        assert row['foo'] == 'NY'
-        assert row['bar'] == 'a string long enough to test contains'
-
-        row = queryResult['F']
-        assert row['foo'] == 'NY'
-        assert row['bar'] == null
-    }
-
-    @Test
-    void testMapReduceWithBasicQueryAndInput2()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
         Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == input.fubar}, [fubar: 'NY'])
@@ -4969,7 +4952,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithComplexQuery()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'IN\' || (input.bar instanceof Number && input.bar < 50)')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'IN' || (input.bar instanceof Number && (input.bar as int )< 50)})
 
         assert queryResult.size() == 2
 
@@ -4986,7 +4969,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithContains()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.bar?.toString()?.contains(\'test contains\')')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.bar?.toString()?.contains('test contains')})
 
         assert queryResult.size() == 2
 
@@ -5003,7 +4986,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithMultipleConditions()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'NY\' && input.bar?.contains(\'a string long enough\')')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'NY' && (input.bar as String)?.contains('a string long enough')})
 
         assert queryResult.size() == 1
 
@@ -5016,7 +4999,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceLookingForEmptyValue()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', '!input.bar')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> !input.bar })
 
         assert queryResult.size() == 1
 
@@ -5029,7 +5012,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceFindAllRows()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'true')
+        Map queryResult = ncube.mapReduce('key', 'query')
 
         assert queryResult.size() == 8
         assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
@@ -5039,7 +5022,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithCommandCell()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'OH\'')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH' })
 
         assert queryResult.size() == 1
 
@@ -5052,7 +5035,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithOtherDimensions()
     {
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryMultiDimTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'OH\'', [bind: 'bindToAValue'], [:])
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH'}, [bind: 'bindToAValue'], [:])
 
         assert queryResult.size() == 1
 
@@ -5068,7 +5051,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('key', 'query', 'input.foo == \'OH\'', [:], [:])
+            ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH'}, [:], [:])
             fail 'Should have thrown an IllegalArgumentException'
         }
         catch(IllegalArgumentException ex)
@@ -5088,7 +5071,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('key', 'query', 'input.foo == \'OH\'', [bind: 'invalid'], [:])
+            ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH'}, [bind: 'invalid'], [:])
             fail 'Should have thrown a CoordinateNotFoundException'
         }
         catch (CoordinateNotFoundException ex)
@@ -5105,7 +5088,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithNonDiscreteRowAxis()
     {
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryRowAxisRangeTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo != \'N/A\' && input.foo != \'Slow\'')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo != 'N/A' && input.foo != 'Slow'})
 
         assert queryResult.size() == 3
 
@@ -5129,7 +5112,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('key', 'query', 'true')
+            ncube.mapReduce('key', 'query')
             fail 'Should have thrown an IllegalStateException'
         }
         catch(IllegalStateException ex)
@@ -5142,7 +5125,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithNonDiscreteColumnAxis()
     {
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryColumnAxisSetTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.group2 != \'Y\'')
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.group2 != 'Y'})
 
         assert queryResult.size() == 1
 
@@ -5159,7 +5142,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('key', 'query', 'true')
+            ncube.mapReduce('key', 'query')
             fail('Should have thrown an IllegalStateException')
         }
         catch(IllegalStateException ex)
@@ -5175,7 +5158,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce(null, 'query', 'input.foo == \'NY\'')
+            ncube.mapReduce(null, 'query',  { Map input -> input.foo == 'NY' })
         }
         catch(IllegalArgumentException ex)
         {
@@ -5190,7 +5173,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('key', null, 'input.foo == \'NY\'')
+            ncube.mapReduce('key', null, { Map input -> input.foo == 'NY'})
         }
         catch(IllegalArgumentException ex)
         {
@@ -5205,7 +5188,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('key', 'query', (String) null)
+            ncube.mapReduce('key', 'query', null)
         }
         catch(IllegalArgumentException ex)
         {
@@ -5217,7 +5200,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithFilterAndReturnSets()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'TX\'', [:], [:], ['foo'] as Set, ['bar'] as Set)
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'TX' }, [:], [:], ['foo'] as Set, ['bar'] as Set)
 
         assert queryResult.size() == 1
 
@@ -5230,7 +5213,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithFilterAndReturnSetsColumnInBoth()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'TX\'', [:], [:], ['foo'] as Set, ['foo', 'bar'] as Set)
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'TX' }, [:], [:], ['foo'] as Set, ['foo', 'bar'] as Set)
 
         assert queryResult.size() == 1
 
@@ -5244,7 +5227,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithFilterAndReturnSetsNonDiscreteAxis()
     {
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryColumnAxisSetTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.group2 != \'Y\'', [:], [:], ['group2'] as Set, ['group3'] as Set)
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.group2 != 'Y'}, [:], [:], ['group2'] as Set, ['group3'] as Set)
 
         assert queryResult.size() == 1
 
@@ -5257,7 +5240,7 @@ class TestNCube extends NCubeBaseTest
     void testMapReduceWithFilterAndReturnSetsRunningCommandCell()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('key', 'query', 'input.foo == \'OH\'', [:], [:], ['foo'] as Set, ['bar'] as Set)
+        Map queryResult = ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH' }, [:], [:], ['foo'] as Set, ['bar'] as Set)
 
         assert queryResult.size() == 1
 
