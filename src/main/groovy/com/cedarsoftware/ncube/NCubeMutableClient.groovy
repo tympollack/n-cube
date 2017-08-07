@@ -42,7 +42,7 @@ interface NCubeMutableClient extends NCubeClient
 
     Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
 
-    Boolean checkPermissions(ApplicationID appId, String resource, String action)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
 
     Boolean isAppAdmin(ApplicationID appId)
 

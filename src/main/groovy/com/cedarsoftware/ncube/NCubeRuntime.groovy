@@ -189,7 +189,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    Boolean checkPermissions(ApplicationID appId, String resource, String action)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
         Boolean result = bean.call(beanName, 'checkPermissions', [appId, resource, action]) as Boolean
         return result

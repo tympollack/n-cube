@@ -1087,7 +1087,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     Boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
     {
         action = action ?: Action.READ
-        if (systemRequest || checkPermissions(appId, resource, action.name()))
+        if (systemRequest || checkPermissions(appId, resource, action))
         {
             return true
         }
@@ -1151,9 +1151,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
     {
         Map ret = [:]
-        for (String action : actions)
+        for (Object item : actions)
         {
-            ret[action] = checkPermissions(appId, resource, action)
+            Action action = item as Action
+            ret[action.name()] = checkPermissions(appId, resource, action)
         }
         return ret
     }
@@ -1166,9 +1167,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
      * @return boolean true if allowed, false if not.  If the permissions cubes restricting access have not yet been
      * added to the same App, then all access is granted.
      */
-    Boolean checkPermissions(ApplicationID appId, String resource, String actionName)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
-        Action action = Action.valueOf(actionName.toUpperCase())
         Cache permCache = permCacheManager.getCache(appId.cacheKey())
         String key = getPermissionCacheKey(resource, action)
         Boolean allowed = checkPermissionCache(permCache, key)
@@ -2375,13 +2375,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         long txId = UniqueIdGenerator.uniqueId
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects, true)
 
-        String commitAction = Action.COMMIT.name()
-        String readAction = Action.READ.name()
         ApplicationID headAppId = appId.asHead()
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
             String cubeName = updateCube.name
-            if (!checkPermissions(headAppId, cubeName, commitAction) || !checkPermissions(appId, cubeName, readAction))
+            if (!checkPermissions(headAppId, cubeName, Action.COMMIT) || !checkPermissions(appId, cubeName, Action.READ))
             {
                 rejects.add(updateCube)
                 continue
@@ -2455,10 +2453,9 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
         ApplicationID headAppId = appId.asHead()
 
-        String commitAction = Action.COMMIT.name()
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!checkPermissions(appId, updateCube.name, commitAction) || updateCube.changeType == ChangeType.CONFLICT.code)
+            if (!checkPermissions(appId, updateCube.name, Action.COMMIT) || updateCube.changeType == ChangeType.CONFLICT.code)
             {
                 rejects.add(updateCube)
             }

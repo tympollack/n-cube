@@ -140,21 +140,31 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return mutableClient.userId
     }
 
-    Boolean assertPermissions(ApplicationID appId, String resource, Action action)
+    Boolean assertPermissions(ApplicationID appId, String resource, String actionName)
     {
         appId = addTenant(appId)
+        Action action = actionName == null ? null : Action.valueOf(actionName.toUpperCase())
         return mutableClient.assertPermissions(appId, resource, action)
     }
 
     Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
     {
+        if (ArrayUtilities.isEmpty(actions))
+        {
+            throw new IllegalArgumentException('Must send at least action to check permissions')
+        }
         appId = addTenant(appId)
+        for (int i = 0; i < actions.length; i++)
+        {
+            actions[i] = Action.valueOf((actions[i] as String).toUpperCase())
+        }
         return mutableClient.checkMultiplePermissions(appId, resource, actions)
     }
 
-    Boolean checkPermissions(ApplicationID appId, String resource, String action)
+    Boolean checkPermissions(ApplicationID appId, String resource, String actionName)
     {
         appId = addTenant(appId)
+        Action action = actionName == null ? null : Action.valueOf(actionName.toUpperCase())
         return mutableClient.checkPermissions(appId, resource, action)
     }
 
@@ -1789,8 +1799,17 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         // App server name and version
         Map serverStats = [:]
 
+        String username
+        try
+        {
+            username = mutableClient.userId
+        }
+        catch (Exception ignored)
+        {
+            username = '--'
+        }
         putIfNotNull(serverStats, 'n-cube version', versionNumber)
-        putIfNotNull(serverStats, 'User ID', mutableClient.userId)
+        putIfNotNull(serverStats, 'User ID', username)
         putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
         putIfNotNull(serverStats, 'hostname, servlet', getServletHostname())
         putIfNotNull(serverStats, 'hostname, OS', getInetHostname())
@@ -1845,7 +1864,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         {
             Map.Entry<String, Object> entry = it.next()
             String key = entry.key
-            if (!(key.startsWith("heap") || key.startsWith('nonheap') || key.startsWith('processors') || key.startsWith('mem')))
+            if (!(key.startsWith('heap') || key.startsWith('nonheap') || key.startsWith('processors') || key.startsWith('mem')))
             {
                 if (showAll)
                 {

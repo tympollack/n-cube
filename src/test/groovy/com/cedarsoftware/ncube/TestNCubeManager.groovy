@@ -1836,12 +1836,12 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assert prId
 
         // assert admin can read prcube
-        assert mutableClient.checkPermissions(sysAppId, "tx.${prId}".toString(), Action.READ.name())
+        assert mutableClient.checkPermissions(sysAppId, "tx.${prId}".toString(), Action.READ)
 
         // assert other user can't read prcube
         NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
         manager.userId = 'otherUser'
-        assert !mutableClient.checkPermissions(sysAppId, "tx.${prId}".toString(), Action.READ.name())
+        assert !mutableClient.checkPermissions(sysAppId, "tx.${prId}".toString(), Action.READ)
 
         try
         {   // make sure other user can still merge the pr (ignoring permissions)

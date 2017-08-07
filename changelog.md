@@ -1,4 +1,9 @@
 ### Revision History
+* 4.0.19-SNAPSHOT
+  * Consumed json-command-servlet 1.5.4
+  * Enhancement: Handle non-json responses from REST calls via `JsonHttpProxy`
+  * Bug fix: Standardize argument types for permissions checking methods
+  * Bug fix: Update `NCube.mapReduce()` to copy input to the execution of the result row fetch 
 * 4.0.18
   * Enhancement: Create a reference axis from an existing axis
   * Enhancement: mapReduce() - the 'where' parameter (condition test) can be a Closure or a String.

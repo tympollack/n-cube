@@ -88,7 +88,9 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         Set<String> allowedMutableMethods = [
                 'getCellAnnotation(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Set)',
                 'getCellAnnotation(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Set, boolean)',
-                'mergeDeltas(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.List)'
+                'mergeDeltas(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.List)',
+                'assertPermissions(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class com.cedarsoftware.ncube.Action)',
+                'checkPermissions(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class com.cedarsoftware.ncube.Action)'
         ] as Set
 
         Set<String> runtimeMethods = getMethods(NCubeRuntimeClient.class.methods)
