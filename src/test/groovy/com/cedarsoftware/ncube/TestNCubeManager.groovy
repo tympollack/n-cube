@@ -1526,11 +1526,21 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     void testCopyBranch()
     {
         ApplicationID copyAppId = defaultSnapshotApp.asBranch('copy')
+        ApplicationID copyAppId2 = defaultSnapshotApp.asBranch('copy2')
         NCube cube = createCubeFromResource(defaultSnapshotApp, 'latlon.json')
 
         mutableClient.copyBranch(defaultSnapshotApp, copyAppId)
-        NCube copiedCube = mutableClient.getCube(copyAppId, cube.name)
-        assertNotNull(copiedCube)
+        List<NCubeInfoDto> dtos = mutableClient.search(copyAppId, cube.name, null, [(SEARCH_INCLUDE_NOTES):true])
+        assert 1 == dtos.size()
+        assertContainsIgnoreCase(dtos[0].notes, copyAppId.toString(), 'copied from', defaultSnapshotApp.toString())
+        println dtos[0].notes
+
+        mutableClient.copyBranch(copyAppId, copyAppId2)
+        dtos = mutableClient.search(copyAppId2, cube.name, null, [(SEARCH_INCLUDE_NOTES):true])
+        assert 1 == dtos.size()
+        assertContainsIgnoreCase(dtos[0].notes, copyAppId2.toString(), 'copied from', copyAppId.toString())
+        assert -1 == dtos[0].notes.indexOf(defaultSnapshotApp.toString())
+        println dtos[0].notes
     }
 
     @Test
