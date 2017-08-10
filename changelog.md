@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.20-SNAPSHOT
+  * Bug fix: Updated `NCube.convertExistingAxisToRefAxis()` to not throw NPE when axis and axis to reference do not have any overlapping columns
 * 4.0.19
   * Consumed json-command-servlet 1.5.4
   * Enhancement: Handle non-json responses from REST calls via `JsonHttpProxy`
