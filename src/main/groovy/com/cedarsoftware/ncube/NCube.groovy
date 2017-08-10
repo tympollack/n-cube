@@ -87,6 +87,7 @@ class NCube<T>
             return new ArrayDeque<>()
         }
     }
+    private static int stackEntryCoordinateValueMaxSize
 
     /**
      * Permanently add Custom Reader / Writer to json-io so that n-cube will use its native JSON
@@ -313,7 +314,12 @@ class NCube<T>
             while (i.hasNext())
             {
                 Map.Entry<String, Object> coordinate = i.next()
-                s.append("${coordinate.key}:${coordinate.value}")
+                String value = coordinate.value.toString()
+                if (value.size() > NCube.stackEntryCoordinateValueMaxSize)
+                {
+                    value = "${value[0..(NCube.stackEntryCoordinateValueMaxSize - 1)]}..."
+                }
+                s.append("${coordinate.key}:${value}")
                 if (i.hasNext())
                 {
                     s.append(',')
@@ -3934,5 +3940,14 @@ class NCube<T>
             return singletonInstance
         }
         return value
+    }
+
+    /**
+     * Sets the max size for coordinate value strings in StackEntry.
+     * @param maxSize int
+     */
+    static void setStackEntryCoordinateValueMaxSize(int maxSize)
+    {
+        stackEntryCoordinateValueMaxSize = maxSize
     }
 }
