@@ -2183,6 +2183,10 @@ class NCube<T>
 
     protected void convertExistingAxisToRefAxis(final String axisName, final ApplicationID refAppId, final String refCubeName, final String refAxisName)
     {
+        if (name == refCubeName && appId == refAppId)
+        {
+            throw new IllegalArgumentException("Axis cube and reference axis cube must be different, app: ${appId}, cube: ${name}, axis: ${axisName}")
+        }
         // copy list of columns before axis changes
         Axis axis = getAxis(axisName)
         if (axis.reference)
@@ -2208,13 +2212,18 @@ class NCube<T>
         Map<Long, Long> oldToNewId = [:]
         for (Column oldCol : oldColumns)
         {   // Locate columns in O(1) to O(log n)
+            Column column
             if (newAxis.type == AxisType.RULE)
             {   // Rule columns are located by ID or rule name ('name' meta-property)
-                oldToNewId[oldCol.id] = newAxis.findColumn(oldCol.columnName).id
+                column = newAxis.findColumn(oldCol.columnName)
             }
             else
             {   // Use value that exists on OLD column to locate NEW column
-                oldToNewId[oldCol.id] = newAxis.findColumn(oldCol.valueThatMatches).id
+                column = newAxis.findColumn(oldCol.valueThatMatches)
+            }
+            if (column != null)
+            {
+                oldToNewId[oldCol.id] = column.id
             }
         }
 
