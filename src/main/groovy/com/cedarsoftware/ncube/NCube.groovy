@@ -315,9 +315,9 @@ class NCube<T>
             {
                 Map.Entry<String, Object> coordinate = i.next()
                 String value = coordinate.value.toString()
-                if (value.size() > NCube.stackEntryCoordinateValueMaxSize)
+                if (value.size() > stackEntryCoordinateValueMaxSize)
                 {
-                    value = "${value[0..(NCube.stackEntryCoordinateValueMaxSize - 1)]}..."
+                    value = "${value[0..(stackEntryCoordinateValueMaxSize - 1)]}..."
                 }
                 s.append("${coordinate.key}:${value}")
                 if (i.hasNext())
