@@ -71,9 +71,9 @@ class JsonHttpProxy implements CallableBean
     private final int numConnections
     private static final Logger LOG = LoggerFactory.getLogger(JsonHttpProxy.class)
 
-    JsonHttpProxy(String scheme, String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
+    JsonHttpProxy(HttpHost httpHost, String context, String username = null, String password = null, int numConnections = 6)
     {
-        httpHost = new HttpHost(hostname, port, scheme)
+        this.httpHost = httpHost
         proxyHost = null
         this.context = context
         this.username = username
