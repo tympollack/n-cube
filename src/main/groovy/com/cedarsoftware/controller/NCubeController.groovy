@@ -1784,7 +1784,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         NCubeAppContext.testServer.clearTestDatabase()
     }
 
-    Map heartBeat(Map openCubes, boolean showAll = false)
+    Map getServerStats(boolean showAll = false)
     {
         // If remotely accessing server, use the following to get the MBeanServerConnection...
 //        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://localhost:/jmxrmi")
@@ -1821,7 +1821,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         putIfNotNull(serverStats, 'hostname, servlet', getServletHostname())
         putIfNotNull(serverStats, 'hostname, OS', getInetHostname())
         putIfNotNull(serverStats, 'Context', JsonCommandServlet.servletRequest.get().contextPath)
-        
+
         // OS
         putIfNotNull(serverStats, 'OS', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Name'))
         putIfNotNull(serverStats, 'OS version', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Version'))
@@ -1888,6 +1888,12 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         }
 
         putIfNotNull(results, 'serverStats', serverStats)
+        return results
+    }
+
+    Map heartBeat(Map openCubes)
+    {
+        Map results = [:]
         putIfNotNull(results, 'compareResults', [:])
         return results
     }
