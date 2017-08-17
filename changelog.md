@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.22-SNAPSHOT
+  * --
 * 4.0.21
   * Enhancement: Included n-cube-editor version number in `NCubeController.health()`
   * Enhancement: Release cubes and version no longer require a new SNAPSHOT to be made.
