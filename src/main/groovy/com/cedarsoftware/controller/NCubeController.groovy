@@ -199,7 +199,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return mutableClient.moveBranch(appId, newSnapVer)
     }
 
-    Integer releaseVersion(ApplicationID appId, String newSnapVer)
+    Integer releaseVersion(ApplicationID appId, String newSnapVer = null)
     {
         appId = addTenant(appId)
         int rowCount = mutableClient.releaseVersion(appId, newSnapVer)
@@ -800,7 +800,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
      * duplicate all the n-cubes in the release, creating new ones in SNAPSHOT status with
      * the version number set to the newSnapVer.
      */
-    Integer releaseCubes(ApplicationID appId, String newSnapVer)
+    Integer releaseCubes(ApplicationID appId, String newSnapVer = null)
     {
         appId = addTenant(appId)
         int rowCount = mutableClient.releaseCubes(appId, newSnapVer)
