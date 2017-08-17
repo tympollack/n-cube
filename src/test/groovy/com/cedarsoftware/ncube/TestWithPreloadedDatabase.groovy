@@ -5663,6 +5663,48 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testMergeNewColumnWithMetaPropertyOnBranch()
+    {
+        String cubeName = 'TestBranch'
+        String axisName = 'Code'
+        Integer colVal = 20
+        String cubeMetaKey = 'cubekey'
+        String cubeMetaVal = 'cubeval'
+        String colMetaKey = 'key'
+        String colMetaVal = 'val'
+
+        preloadCubes(BRANCH1, "test.branch.1.json")
+        mutableClient.commitBranch(BRANCH1)
+        mutableClient.deleteBranch(BRANCH1)
+        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH2))
+
+        NCube cube = mutableClient.getCube(BRANCH1, cubeName)
+        NCube cube2 = mutableClient.getCube(BRANCH2, cubeName)
+
+        // make changes
+        cube.addColumn(axisName, colVal)
+        Column column = cube.getAxis(axisName).findColumn(colVal)
+        column.addMetaProperties([(colMetaKey): colMetaVal as Object])
+        mutableClient.updateCube(cube)
+
+        // make change in other cube / head
+        cube2.addMetaProperties([(cubeMetaKey): cubeMetaVal as Object])
+        mutableClient.updateCube(cube2)
+        mutableClient.commitBranch(cube2.applicationID)
+
+        // update cube1 from head
+        mutableClient.updateBranch(cube.applicationID)
+        cube = mutableClient.getCube(cube.applicationID, cube.name)
+
+        // verify metaproperty on new column stays (bug fix)
+        Column newColumn = cube.getAxis(axisName).findColumn(colVal)
+        assert cubeMetaVal == cube.metaProperties[cubeMetaKey]
+        assert newColumn
+        assert colMetaVal == newColumn.metaProperties[colMetaKey]
+    }
+
+    @Test
     void testAddAxis()
     {
         preloadCubes(BRANCH1, "test.branch.1.json")
