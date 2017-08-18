@@ -1,4 +1,6 @@
 ### Revision History
+* 4.0.23-SNAPSHOT
+  * --
 * 4.0.22
   * Enhancement: Added reliable method to obtain n-cube and n-cube-editor versions
 * 4.0.21
