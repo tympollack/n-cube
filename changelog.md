@@ -1,6 +1,6 @@
 ### Revision History
 * 4.0.23-SNAPSHOT
-  * --
+  * Introduced hidden sys.info n-cube in all n-cube applications. This n-cube will help speed up queries used by `NCubeController` methods `getAppNames()`, `getVersions()` and `getBranches()`. 
 * 4.0.22
   * Enhancement: Added reliable method to obtain n-cube and n-cube-editor versions
 * 4.0.21
