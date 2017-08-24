@@ -1,6 +1,6 @@
 ### Revision History
 * 4.0.24-SNAPSHOT
-  * --
+  * Bug fix: Updated `NCubeRuntime.cacheCube()` to use `putIfAbsent()` so all threads get the same n-cube instance if multiple threads try to cache the same n-cube at the same time
 * 4.0.23
   * Introduced hidden sys.info n-cube in all n-cube applications. This n-cube will help speed up queries used by `NCubeController` methods `getAppNames()`, `getVersions()` and `getBranches()`. 
 * 4.0.22

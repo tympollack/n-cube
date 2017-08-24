@@ -347,8 +347,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         verifyAllowMutable('mergeDeltas')
         NCube ncube = bean.call(beanName, 'mergeDeltas', [appId, cubeName, deltas]) as NCube
-        cacheCube(ncube)
-        return ncube
+        return cacheCube(ncube)
     }
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
@@ -932,13 +931,15 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         prepareCube(ncube)
     }
 
-    private void cacheCube(NCube ncube)
+    private NCube cacheCube(NCube ncube)
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
             Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.cacheKey())
-            cubeCache.put(ncube.name.toLowerCase(), ncube)
+            Cache.ValueWrapper item = cubeCache.putIfAbsent(ncube.name.toLowerCase(), ncube)
+            return item.get() as NCube
         }
+        return ncube
     }
 
     private NCube getCubeInternal(ApplicationID appId, String cubeName)
@@ -969,8 +970,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private NCube prepareCube(NCube cube)
     {
         applyAdvices(cube)
-        cacheCube(cube)
-        return cube
+        return cacheCube(cube)
     }
 
     //-- Advice --------------------------------------------------------------------------------------------------------
@@ -982,7 +982,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         ApplicationID.validateAppId(appId)
         Cache current = adviceCacheManager.getCache(appId.cacheKey())
-        current.put("${advice.name}/${wildcard}".toString(), advice)
+        current.putIfAbsent("${advice.name}/${wildcard}".toString(), advice)
 
         // Apply newly added advice to any fully loaded (hydrated) cubes.
         String regex = StringUtilities.wildcardToRegexString(wildcard)
