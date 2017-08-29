@@ -1817,11 +1817,13 @@ ORDER BY abs(revision_number) DESC"""
         {   // Only read CUBE_VALUE_BIN if needed (searching content or filtering by cube_tags)
             byte[] bytes = IOUtilities.uncompressBytes(row.getBytes(CUBE_VALUE_BIN))
             String cubeData = StringUtilities.createUtf8String(bytes)
+            bytes = null // Clear out early (memory friendly for giant NCubes)
 
             if (includeFilter || excludeFilter)
             {
-                Matcher tagMatcher = cubeData =~ /$CUBE_TAGS(":"|.*?value":")(.*?)"/
-                Set<String> cubeTags = tagMatcher ? getFilter((tagMatcher[0] as List).last()) : new HashSet<String>()
+                Matcher tagMatcher = cubeData =~ /.*"$CUBE_TAGS"\s*:\s*(?:"|\{.*?value":")?(?<tags>.*?)".*/
+                Set<String> cubeTags = tagMatcher ? getFilter(tagMatcher.group('tags')) : new HashSet<String>()
+
                 Closure tagsMatchFilter = { Set<String> filter ->
                     Set<String> copyTags = new CaseInsensitiveSet<>(cubeTags)
                     copyTags.retainAll(filter)
