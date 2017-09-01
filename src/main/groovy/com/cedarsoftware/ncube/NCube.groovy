@@ -26,6 +26,7 @@ import com.cedarsoftware.util.io.MetaUtils
 import groovy.transform.CompileStatic
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.util.FastByteArrayOutputStream
 
 import java.lang.reflect.Array
 import java.lang.reflect.Field
@@ -3902,7 +3903,7 @@ class NCube<T>
      */
     byte[] getCubeAsGzipJsonBytes()
     {
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream()
+        FastByteArrayOutputStream byteOut = new FastByteArrayOutputStream()
         OutputStream gzipOut = null
 
         try
@@ -3918,7 +3919,7 @@ class NCube<T>
         {
             IOUtilities.close(gzipOut)
         }
-        return byteOut.toByteArray()
+        return byteOut.toByteArrayUnsafe()
     }
 
     /**

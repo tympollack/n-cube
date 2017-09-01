@@ -1,5 +1,7 @@
 package com.cedarsoftware.util
 
+import org.springframework.util.FastByteArrayOutputStream
+
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -152,7 +154,7 @@ class JsonHttpProxy implements CallableBean
         request.setHeader(ACCEPT_ENCODING, 'gzip, deflate')
         request.setHeader(CONTENT_TYPE, "application/json; charset=UTF-8")
         request.setHeader(CONTENT_ENCODING, 'gzip')
-        request.entity = new ByteArrayEntity(stream.buffer, 0, stream.size())
+        request.entity = new ByteArrayEntity(stream.toByteArrayUnsafe(), 0, stream.size())
 
         HttpResponse response = httpClient.execute(request, clientContext)
         request.entity = null
