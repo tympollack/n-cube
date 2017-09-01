@@ -123,8 +123,8 @@ class JsonHttpProxy implements CallableBean
     Object call(String bean, String methodName, List args)
     {
         Object[] params = args.toArray()
-        FastByteArrayOutputStream stream = new FastByteArrayOutputStream(1024, 65536)
-        JsonWriter writer = new JsonWriter(new GZIPOutputStream(stream, 32768))
+        FastByteArrayOutputStream stream = new FastByteArrayOutputStream(1024)
+        JsonWriter writer = new JsonWriter(new GZIPOutputStream(stream))
         writer.write(params)
         writer.flush()
         writer.close()

@@ -2574,7 +2574,7 @@ class NCube<T>
         {
             Map options = [:]
             options[JsonReader.USE_MAPS] = true
-            Map jsonNCube = (Map) JsonReader.jsonToJava(stream, options)
+            Map jsonNCube = (Map) JsonReader.jsonToJava(new BufferedInputStream(stream), options)
             return hydrateCube(jsonNCube)
         }
         catch (RuntimeException | ThreadDeath e)
@@ -3851,9 +3851,9 @@ class NCube<T>
      * are JSON content representing an n-cube.  Calling ncube.toFormattedJson() is the source
      * of the JSON format used.
      */
-    static <T> NCube<T> createCubeFromBytes(byte[] bytes)
+    static <T> NCube<T> createCubeFromBytes(byte[] bytes, int pos = 0, int length = bytes.length)
     {
-        return createCubeFromStream(new ByteArrayInputStream(bytes))
+        return createCubeFromStream(new ByteArrayInputStream(bytes, pos, length))
     }
 
     /**
