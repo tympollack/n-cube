@@ -1,4 +1,7 @@
 ### Revision History
+* 4.1.3
+  * consumed java-util 1.29.0
+  * Consumed json-command-servlet 1.6.5
 * 4.1.2
   * Enhancement: Added support for compressed HTTP POST data
   * Consumed json-command-servlet 1.6.4
