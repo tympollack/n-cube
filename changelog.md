@@ -1,6 +1,6 @@
 ### Revision History
-* 4.1.5-SNAPSHOT
-  * --
+* 4.1.5
+  * Enhancement: Added better logging around jdbc connections and more jdbc connection information to `NCubeController.health()`
 * 4.1.4
   * Switched to using Spring's FastByteArrayOutputStream (no synchronized, fast access to internal byte[]) instead of JDK's ByteArrayOutputStream.
 * 4.1.3

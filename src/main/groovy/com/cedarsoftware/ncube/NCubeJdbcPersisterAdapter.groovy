@@ -39,13 +39,20 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
 
     Object jdbcOperation(Closure closure, String msg, String username = 'no user set')
     {
+        long start = System.nanoTime()
         Connection c = connectionProvider.connection
+        long end = System.nanoTime()
+        long time = Math.round((end - start) / 1000000.0d)
+        if (time > 1000)
+        {
+            LOG.info("    [SLOW getting DB connection - ${time} ms] [${username}] ${msg}")
+        }
         try
         {
-            long start = System.nanoTime()
+            start = System.nanoTime()
             Object ret = closure(c)
-            long end = System.nanoTime()
-            long time = Math.round((end - start) / 1000000.0d)
+            end = System.nanoTime()
+            time = Math.round((end - start) / 1000000.0d)
             if (time > 1000)
             {
                 LOG.info("    [SLOW DB - ${time} ms] [${username}] ${msg}")
