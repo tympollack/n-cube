@@ -1,6 +1,9 @@
 ### Revision History
 * 4.1.5
   * Enhancement: Added better logging around jdbc connections and more jdbc connection information to `NCubeController.health()`
+  * Bug fix: Shallow branch copy failed when cube was changed then changed back in a later revision.
+  * Bug fix: Copy branch would not return the correct error message if target branch already existed.
+  * Bug fix: `ApplicationID.validateBranchIsNotHead()` did not match lowercase `head`. 
 * 4.1.4
   * Switched to using Spring's FastByteArrayOutputStream (no synchronized, fast access to internal byte[]) instead of JDK's ByteArrayOutputStream.
 * 4.1.3
