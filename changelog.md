@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.6-SNAPSHOT
+  * --
 * 4.1.5
   * Enhancement: Added better logging around jdbc connections and more jdbc connection information to `NCubeController.health()`
   * Bug fix: Shallow branch copy failed when cube was changed then changed back in a later revision.
