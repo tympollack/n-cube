@@ -56,8 +56,8 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     @Autowired
     private InfoEndpoint infoEndpoint
 
-    @Value('${server.tomcat.max-connections}') int tomcatMaxConnections
-    @Value('${server.tomcat.max-threads}') int tomcatMaxThreads
+    @Value('${server.tomcat.max-connections:1000}') int tomcatMaxConnections
+    @Value('${server.tomcat.max-threads:200}') int tomcatMaxThreads
 
     private static final Logger LOG = LoggerFactory.getLogger(NCubeController.class)
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
