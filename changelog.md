@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.8-SNAPSHOT
+  * --
 * 4.1.7
   * Performance: createCube() / updateCube() now pass gzipped byte[] to storage server.
 * 4.1.6
