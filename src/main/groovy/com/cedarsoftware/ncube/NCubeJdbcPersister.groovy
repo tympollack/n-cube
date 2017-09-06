@@ -133,6 +133,20 @@ class NCubeJdbcPersister
         return json
     }
 
+    static byte[] loadCubeRawJsonBytes(Connection c, ApplicationID appId, String cubeName)
+    {
+        Map<String, Object> options = [(SEARCH_ACTIVE_RECORDS_ONLY): true,
+                                       (SEARCH_INCLUDE_CUBE_DATA): true,
+                                       (SEARCH_EXACT_MATCH_NAME): true] as Map
+
+        byte[] bytes = null
+        options[METHOD_NAME] = 'loadCubeRawJsonBytes'
+        runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
+            bytes = row.getBytes(CUBE_VALUE_BIN)
+        })
+        return bytes
+    }
+    
     static NCube loadCube(Connection c, ApplicationID appId, String cubeName, Map options)
     {
         if (!options)

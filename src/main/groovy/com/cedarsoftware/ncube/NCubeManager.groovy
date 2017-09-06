@@ -805,6 +805,12 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return persister.loadCubeRawJson(appId, cubeName, getUserId())
     }
 
+    byte[] getCubeRawJsonBytes(ApplicationID appId, String cubeName)
+    {
+        assertPermissions(appId, cubeName)
+        return persister.loadCubeRawJsonBytes(appId, cubeName, getUserId())
+    }
+
     /**
      *
      * Fetch an array of NCubeInfoDto's where the cube names match the cubeNamePattern (contains) and

@@ -252,6 +252,13 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return rawJson
     }
 
+    byte[] getCubeRawJsonBytes(ApplicationID appId, String cubeName)
+    {
+        appId = addTenant(appId)
+        byte[] bytes = mutableClient.getCubeRawJsonBytes(appId, cubeName)
+        return bytes
+    }
+
     String getJson(ApplicationID appId, String cubeName, Map options)
     {
         appId = addTenant(appId)

@@ -83,6 +83,12 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 "loadCubeRawJson(${appId.cacheKey(name)})", username)
     }
 
+    byte[] loadCubeRawJsonBytes(ApplicationID appId, String name, String username)
+    {
+        return (byte[]) jdbcOperation({ Connection c -> persister.loadCubeRawJsonBytes(c, appId, name) },
+                "loadCubeRawJsonBytes(${appId.cacheKey(name)})", username)
+    }
+
     NCube loadCubeById(long cubeId, Map options, String username)
     {
         return (NCube) jdbcOperation({ Connection c -> persister.loadCubeById(c, cubeId, options) },
