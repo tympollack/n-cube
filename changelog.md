@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.7-SNAPSHOT
+  * --
 * 4.1.6
   * Enhancement: The `NCube` storage server now ships `NCubes` to the NCE server in compressed `byte[]` form. Reduces CPU load on `NCube` storage servers.
 * 4.1.5
