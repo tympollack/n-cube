@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.9-SNAPSHOT
+  * --
 * 4.1.8
   * NCE timeout to NCUBE updated to wait 420 seconds max, instead of the default 30 seconds.
   * JDBC Query Timeout changed to 300 seconds, up from default of no timeout.
