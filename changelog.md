@@ -1,6 +1,7 @@
 ### Revision History
 * 4.1.9-SNAPSHOT
-  * --
+  * To reduce memory usage, removed code that created servlet session.  It was doing this only to track connected users, not store session data.
+  * Added 'LOG' to NCubeGroovyExpression.
 * 4.1.8
   * NCE timeout to NCUBE updated to wait 420 seconds max, instead of the default 30 seconds.
   * JDBC Query Timeout changed to 300 seconds, up from default of no timeout.
