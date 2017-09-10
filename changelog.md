@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.11
+  * --
 * 4.1.10
   * Removed `LOG` static member from `NCubeGroovyExpression` as it conflicts with existing, derived classes.
 * 4.1.9
