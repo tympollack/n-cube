@@ -1,5 +1,6 @@
 ### Revision History
-* 4.1.13-SNAPSHOT
+* 4.1.13
+  * Enhancement: `JsonHttpProxy` connects the `HttpClient's` inputStream directly to `JsonReader` so that construction of objects from JSON begins immediately as data arrives.
   * Enhancement: Improved performance of `NCubeJdbcPersister.doCubesExist()` by including sys.info in where clause
   * Bug fix: Added `createSysInfoCube()` to `pullToBranch()` in `NCubeJdbcPersister`
 * 4.1.12
