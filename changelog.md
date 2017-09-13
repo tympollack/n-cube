@@ -1,6 +1,7 @@
 ### Revision History
 * 4.1.13-SNAPSHOT
-  * --
+  * Enhancement: Improved performance of `NCubeJdbcPersister.doCubesExist()` by including sys.info in where clause
+  * Bug fix: Added `createSysInfoCube()` to `pullToBranch()` in `NCubeJdbcPersister`
 * 4.1.12
   * Updated tp consume json-command-servlet 1.7.1
 * 4.1.11
