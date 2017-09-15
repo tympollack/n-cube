@@ -151,17 +151,30 @@ class TestNCubeManager extends NCubeCleanupBaseTest
 
         // reading from cache.
         List<NCubeTest> data = mutableClient.loadCube(defaultSnapshotApp, cube.name, [(SEARCH_INCLUDE_TEST_DATA):true]).testData
-        assertTrue(DeepEquals.deepEquals(expectedTests, data))
+        assert DeepEquals.deepEquals(expectedTests, data)
 
         // reload from db
         ncubeRuntime.clearCache(defaultSnapshotApp)
         data = mutableClient.loadCube(defaultSnapshotApp, cube.name, [(SEARCH_INCLUDE_TEST_DATA):true]).testData
-        assertTrue(DeepEquals.deepEquals(expectedTests, data))
+        assert DeepEquals.deepEquals(expectedTests, data)
 
         //  update cube
+        cube.testData = [new NCubeTest('different test', [:], [] as CellInfo[])]
         mutableClient.updateCube(cube)
-        data = mutableClient.loadCube(defaultSnapshotApp, cube.name, [(SEARCH_INCLUDE_TEST_DATA):true]).testData
-        assertTrue(DeepEquals.deepEquals(expectedTests, data))
+        cube = mutableClient.loadCube(defaultSnapshotApp, cube.name, [(SEARCH_INCLUDE_TEST_DATA):true])
+        data = cube.testData
+        assert !DeepEquals.deepEquals(expectedTests, data)
+        assert cube.metaProperties.containsKey(NCube.METAPROPERTY_TEST_UPDATED)
+        String testUpdated = cube.metaProperties[NCube.METAPROPERTY_TEST_UPDATED]
+
+        //  make sure NOT changing tests will NOT update test metaproperty
+        cube.setCell(1.1d, [gender:'male', age:47])
+        mutableClient.updateCube(cube)
+        cube = mutableClient.loadCube(defaultSnapshotApp, cube.name, [(SEARCH_INCLUDE_TEST_DATA):true])
+        List<NCubeTest> newData = cube.testData
+        String newTestUpdated = cube.metaProperties[NCube.METAPROPERTY_TEST_UPDATED]
+        assert DeepEquals.deepEquals(data, newData)
+        assert testUpdated == newTestUpdated
     }
 
     @Test
