@@ -38,7 +38,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     public static ApplicationID defaultSnapshotApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '1.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.TEST_BRANCH)
     public static ApplicationID defaultReleaseApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '1.0.0', ReleaseStatus.RELEASE.name(), ApplicationID.TEST_BRANCH)
     public static ApplicationID defaultBootApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-    public static ApplicationID sysAppId = new ApplicationID(ApplicationID.DEFAULT_TENANT, NCubeConstants.SYS_APP, NCubeConstants.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+    public static ApplicationID sysAppId = new ApplicationID(ApplicationID.DEFAULT_TENANT, NCubeConstants.SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
 
     private static Object[] createTests()
     {
@@ -1796,7 +1796,7 @@ class TestNCubeManager extends NCubeCleanupBaseTest
         assert 1 == attribute.size()
         assert attribute.hasDefaultColumn()
 
-        NCube sysInfo000 = mutableClient.getCube(ApplicationID.testAppId.asVersion(SYS_BOOT_VERSION), SYS_INFO)
+        NCube sysInfo000 = mutableClient.getCube(ApplicationID.testAppId.asBootVersion(), SYS_INFO)
         assert 1 == sysInfo000.numDimensions
         Axis attribute000 = sysInfo000.getAxis(AXIS_ATTRIBUTE)
         assert 1 == attribute000.size()
@@ -1835,13 +1835,13 @@ class TestNCubeManager extends NCubeCleanupBaseTest
     {
         ApplicationID headApp = ApplicationID.testAppId.asHead()
         NCube headSysInfo = mutableClient.getCube(headApp, SYS_INFO)
-        NCube headSysInfo000 = mutableClient.getCube(headApp.asVersion(SYS_BOOT_VERSION), SYS_INFO)
+        NCube headSysInfo000 = mutableClient.getCube(headApp.asBootVersion(), SYS_INFO)
         assert headSysInfo == null
         assert headSysInfo000 != null // sys.info is created in 0.0.0 HEAD when permissions n-cubes are created
 
         mutableClient.commitBranch(ApplicationID.testAppId)
         headSysInfo = mutableClient.getCube(headApp, SYS_INFO)
-        headSysInfo000 = mutableClient.getCube(headApp.asVersion(SYS_BOOT_VERSION), SYS_INFO)
+        headSysInfo000 = mutableClient.getCube(headApp.asBootVersion(), SYS_INFO)
         assert headSysInfo != null
         assert headSysInfo000 != null
     }

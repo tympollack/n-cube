@@ -1,6 +1,8 @@
 ### Revision History
 * 4.1.14-SNAPSHOT
-  * Bug fix: Test updated metaproperty was changing even when test data was not updated. 
+  * Enhancement: Added `asBootVersion()` to `ApplicationID` to avoid repetition.
+  * Bug fix: Test updated metaproperty was changing even when test data was not updated.
+  * Bug fix: `generatePullRequestHash` was not using `runSystemRequest` for one of its calls, forcing a failure when making tx cubes unreadable.
 * 4.1.13
   * Enhancement: `JsonHttpProxy` connects the `HttpClient's` inputStream directly to `JsonReader` so that construction of objects from JSON begins immediately as data arrives.
   * Enhancement: Improved performance of `NCubeJdbcPersister.doCubesExist()` by including sys.info in where clause

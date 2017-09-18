@@ -1447,7 +1447,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         try
         {   // Do not remove try-catch handler in favor of advice handler
             appId = addTenant(appId)
-            ApplicationID bootVersionAppId = appId.asVersion(SYS_BOOT_VERSION).asSnapshot()
+            ApplicationID bootVersionAppId = appId.asBootVersion().asSnapshot()
             NCube menuCube = mutableClient.getCube(bootVersionAppId, 'sys.menu')
             if (menuCube == null)
             {
