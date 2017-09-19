@@ -1659,7 +1659,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return results
     }
 
-    Map heartBeat(Map openCubes)
+    Map heartBeat(Map openCubes = null)
     {
         Map results = [:]
         putIfNotNull(results, 'compareResults', [:])
