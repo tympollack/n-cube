@@ -1,6 +1,7 @@
 package com.cedarsoftware.controller
 
 import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.exception.PullRequestException
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.*
@@ -1305,7 +1306,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         catch (IllegalStateException e)
         {
             mutableClient.obsoletePullRequest(prId)
-            throw e
+            throw new PullRequestException(e.message)
         }
     }
 

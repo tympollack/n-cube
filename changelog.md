@@ -1,6 +1,7 @@
 ### Revision History
 * 4.1.14-SNAPSHOT
   * Enhancement: Added `asBootVersion()` to `ApplicationID` to avoid repetition.
+  * Bug fix: On non-combined server, `mergePullRequest()` now throws `PullRequestException` when marking PR obsolete.
   * Bug fix: Test updated metaproperty was changing even when test data was not updated.
   * Bug fix: `generatePullRequestHash` was not using `runSystemRequest` for one of its calls, forcing a failure when making tx cubes unreadable.
 * 4.1.13
