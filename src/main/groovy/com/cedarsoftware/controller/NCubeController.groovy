@@ -383,7 +383,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return valuesToCellInfo(col.metaProperties)
     }
 
-    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where = 'true', Map input = [:], Map output = [:], Set columnsToSearch = [] as Set, Set columnsToReturn = [] as Set)
+    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where = 'true', Map input = [:], Map output = [:], List columnsToSearch = [] as Set, List columnsToReturn = [])
     {
         verifyAllowExecute('mapReduce')
         appId = addTenant(appId)
@@ -394,7 +394,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         {
             throw new IllegalArgumentException("Passed in 'where' clause: ${where}, is not evaluating to a Closure.  Make sure it is in the form (example): { Map input -> input.state == 'AZ' }")
         }
-        return ncube.mapReduce(rowAxisName, colAxisName, (Closure)whereClosure, input, output, columnsToSearch, columnsToReturn)
+        return ncube.mapReduce(rowAxisName, colAxisName, (Closure)whereClosure, input, output, columnsToSearch as Set, columnsToReturn as Set)
     }
 
     private static Map<String, CellInfo> valuesToCellInfo(Map<String, Object> metaProps)
@@ -1625,9 +1625,16 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         putIfNotNull(serverStats, 'Used memory', (usedMem.round(1)) + ' MB')
         putIfNotNull(serverStats, 'Free memory', (freeMem.round(1)) + ' MB')
 
-        putIfNotNull(serverStats, 'JDBC Pool size', PoolInterceptor.size.get())
-        putIfNotNull(serverStats, 'JDBC Pool active', PoolInterceptor.active.get())
-        putIfNotNull(serverStats, 'JDBC Pool idle', PoolInterceptor.idle.get())
+        if (PoolInterceptor.size.get() < 1)
+        {
+            putIfNotNull(serverStats, 'JDBC Pool', 'n/a')
+        }
+        else
+        {
+            putIfNotNull(serverStats, 'JDBC Pool size', PoolInterceptor.size.get())
+            putIfNotNull(serverStats, 'JDBC Pool active', PoolInterceptor.active.get())
+            putIfNotNull(serverStats, 'JDBC Pool idle', PoolInterceptor.idle.get())
+        }
 
         putIfNotNull(serverStats, 'Tomcat Max Connections', tomcatMaxConnections)
         putIfNotNull(serverStats, 'Tomcat Max Threads', tomcatMaxThreads)
