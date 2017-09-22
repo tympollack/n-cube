@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.15-SNAPSHOT
+  * --
 * 4.1.14
   * Enhancement: Improved error handling when comparing a cube against a branch where it does not exist.
   * Enhancement: Added `ApplicationID.asBootVersion()` to avoid repetition.
