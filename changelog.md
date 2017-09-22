@@ -1,11 +1,12 @@
 ### Revision History
-* 4.1.14-SNAPSHOT
+* 4.1.14
   * Enhancement: Improved error handling when comparing a cube against a branch where it does not exist.
   * Enhancement: Added `ApplicationID.asBootVersion()` to avoid repetition.
   * Bug fix: `NCubeManager.mergePullRequest()` handles merge exceptions by obsoleting the pull request within the transaction boundary.
   * Bug fix: Test updated metaproperty was changing even when test data was not updated.
   * Bug fix: `NCubeManager.generatePullRequestHash()` was not using `runSystemRequest()` for one of its calls, forcing a failure when making tx cubes unreadable.
-  * Removed all remaining references and support of using transforms with a method axis. 
+  * Removed all remaining references and support of using transforms with a method axis.
+  * Enhancement: Consumed json-command-servlet 1.8.0 which provides faster response serialization and uses less memory during the process. 
 * 4.1.13
   * Enhancement: `JsonHttpProxy` connects the `HttpClient's` inputStream directly to `JsonReader` so that construction of objects from JSON begins immediately as data arrives.
   * Enhancement: Improved performance of `NCubeJdbcPersister.doCubesExist()` by including sys.info in where clause
