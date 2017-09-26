@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.16-SNAPSHOT
+  * --
 * 4.1.15
   * Enhancement: Added `NCubeManager.isSysAdmin()` to allow global admin permissions.
   * Enhancement: Cache admin/sysAdmin permissions to eliminate frequent calls.
