@@ -56,6 +56,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     private NCubePersister nCubePersister
     private static final Logger LOG = LoggerFactory.getLogger(NCubeManager.class)
     private final CacheManager permCacheManager
+    private final ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
         String initialValue()
@@ -1519,7 +1520,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
     Boolean isSysAdmin()
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         return isTypeOfAdmin(sysAppId)
     }
 
@@ -1541,14 +1541,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     {
         if (detectNewAppId(appId))
         {
-            createPermissionsCubes(appId)
             createSysAppIfNotExists(appId.tenant)
+            createPermissionsCubes(appId)
         }
     }
 
     protected void createSysAppIfNotExists(String tenant)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         if (detectNewAppId(sysAppId))
         {
             createPermissionsCubes(sysAppId)
@@ -2303,7 +2302,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
     String generatePullRequestHash(ApplicationID appId, Object[] infoDtos)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
 
         if (commitRecords.empty)
@@ -2500,7 +2498,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     private NCube loadPullRequestCube(String prId)
     {
         runSystemRequest {
-            ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
             List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_EXACT_MATCH_NAME): true])
             if (dtos.empty) {
                 throw new IllegalArgumentException("Invalid pull request id: ${prId}, user: ${getUserId()}")
@@ -2528,7 +2525,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
     private List<NCube> getPullRequestCubes(Date startDate, Date endDate)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_CREATE_DATE_START):startDate, (SEARCH_CREATE_DATE_END):endDate]
         runSystemRequest { cubeSearch(sysAppId, 'tx.*', null, options) } as List<NCube>
     }
@@ -2815,6 +2811,14 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     void clearCache(ApplicationID appId)
     {
         // no-op
+    }
+
+    void clearPermCache()
+    {
+        // all permissions are cleared every so often (configuration, currently 2 minutes), but this way we can clear on-demand, mostly for testing
+        permCacheManager.cacheNames.each { String cacheKey ->
+            permCacheManager.getCache(cacheKey).clear()
+        }
     }
 
     // -------------------------------- Non API methods --------------------------------------

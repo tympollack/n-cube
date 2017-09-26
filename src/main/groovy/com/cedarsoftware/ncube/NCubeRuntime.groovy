@@ -490,6 +490,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         bean.call(beanName, 'clearTestDatabase', []) as Boolean
     }
 
+    void clearPermCache()
+    {
+        verifyAllowMutable('clearPermCache')
+        bean.call(beanName, 'clearPermCache', []) as Boolean
+    }
+
     List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
     {
         List<NCubeInfoDto> changes = bean.call(beanName, 'getHeadChangesForBranch', [appId]) as List<NCubeInfoDto>

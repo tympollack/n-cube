@@ -4,6 +4,7 @@
   * Enhancement: Cache admin/sysAdmin permissions to eliminate frequent calls.
   * Bug fix: Fix `NCubeManager.fastCheckPermissions()` to not load cubes when permissions are already cached.
   * Bug fix: Catch `BranchMergeException` during `NCubeManager.mergePullRequest()`, obsolete the pull request and re-throw the exception.
+  * Bug fix: Admin could be cached before test setup permissions cubes properly.
 * 4.1.14
   * Enhancement: Improved error handling when comparing a cube against a branch where it does not exist.
   * Enhancement: Added `ApplicationID.asBootVersion()` to avoid repetition.
