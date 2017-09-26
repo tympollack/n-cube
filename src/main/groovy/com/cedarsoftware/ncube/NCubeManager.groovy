@@ -1149,18 +1149,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         updateCube(ncube)
     }
 
-    void clearTestDatabase()
-    {
-        if (NCubeAppContext.test)
-        {
-            persister.clearTestDatabase(getUserId())
-        }
-        else
-        {
-            throw new IllegalStateException("clearTestDatabase() is only available during testing, user: ${getUserId()}")
-        }
-    }
-
     // ---------------------- Broadcast APIs for notifying other services in cluster of cache changes ------------------
     protected void broadcast(ApplicationID appId)
     {
@@ -2813,11 +2801,29 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         // no-op
     }
 
+    void clearTestDatabase()
+    {
+        if (NCubeAppContext.test)
+        {
+            persister.clearTestDatabase(getUserId())
+        }
+        else
+        {
+            throw new IllegalStateException("clearTestDatabase() is only available during testing, user: ${getUserId()}")
+        }
+    }
+
     void clearPermCache()
     {
-        // all permissions are cleared every so often (configuration, currently 2 minutes), but this way we can clear on-demand, mostly for testing
-        permCacheManager.cacheNames.each { String cacheKey ->
-            permCacheManager.getCache(cacheKey).clear()
+        if (NCubeAppContext.test)
+        {
+            permCacheManager.cacheNames.each { String cacheKey ->
+                permCacheManager.getCache(cacheKey).clear()
+            }
+        }
+        else
+        {
+            throw new IllegalStateException("clearPermCache() is only available during testing, user: ${getUserId()}")
         }
     }
 
