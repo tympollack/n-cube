@@ -1,6 +1,6 @@
 ### Revision History
 * 4.1.16-SNAPSHOT
-  * --
+  * Enhancement: Updated `NCubeRuntime.clearCache()` to take a second argument `Collection<String>` of NCube names which defaults to null. Passing null retains previous functionality, whereas passing NCube names will only evict the specified NCubes from the cache.
 * 4.1.15
   * Enhancement: Added `NCubeManager.isSysAdmin()` to allow global admin permissions.
   * Enhancement: Cache admin/sysAdmin permissions to eliminate frequent calls.
