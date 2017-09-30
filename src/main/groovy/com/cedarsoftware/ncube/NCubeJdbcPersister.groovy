@@ -196,31 +196,6 @@ WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
         throw new IllegalArgumentException("Unable to find cube with id: " + cubeId)
     }
 
-    static NCube loadCube(Connection c, ApplicationID appId, String cubeName, Map options)
-    {
-        if (!options)
-        {
-            options = [:]
-        }
-        if (!options.containsKey(SEARCH_ACTIVE_RECORDS_ONLY))
-        {
-            options[SEARCH_ACTIVE_RECORDS_ONLY] = true
-        }
-        if (!options.containsKey(SEARCH_INCLUDE_CUBE_DATA))
-        {
-            options[SEARCH_INCLUDE_CUBE_DATA] = true
-        }
-        if (!options.containsKey(SEARCH_EXACT_MATCH_NAME))
-        {
-            options[SEARCH_EXACT_MATCH_NAME] = true
-        }
-
-        NCube cube = null
-        options[METHOD_NAME] = 'loadCube'
-        runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row -> cube = buildCube(appId, row, options?.get(SEARCH_INCLUDE_TEST_DATA) as boolean) })
-        return cube
-    }
-
     static NCube loadCubeBySha1(Connection c, ApplicationID appId, String cubeName, String sha1)
     {
         Map map = appId as Map
@@ -949,12 +924,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
      */
     private static void createSysInfoCube(Connection c, ApplicationID appId, String username)
     {
-        NCube sysInfo = loadCube(c, appId, SYS_INFO, null)
-        if (sysInfo != null)
+        Map map = loadCubeRawJsonBytes(c, appId, SYS_INFO, null)
+        if (map != null)
         {
             return
         }
-        sysInfo = new NCube(SYS_INFO)
+        NCube sysInfo = new NCube(SYS_INFO)
         Axis attribute = new Axis(AXIS_ATTRIBUTE, AxisType.DISCRETE, AxisValueType.CISTRING, true)
         sysInfo.addAxis(attribute)
         sysInfo.applicationID = appId
