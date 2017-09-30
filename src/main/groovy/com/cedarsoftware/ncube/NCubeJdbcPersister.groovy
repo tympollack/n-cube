@@ -14,7 +14,6 @@ import com.cedarsoftware.util.UniqueIdGenerator
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
-import org.codehaus.groovy.runtime.IOGroovyMethods
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -118,7 +117,7 @@ class NCubeJdbcPersister
         return cubes
     }
 
-    static Map loadCubeRawJsonBytes(Connection c, ApplicationID appId, String cubeName, Map options)
+    static Map loadCubeRecord(Connection c, ApplicationID appId, String cubeName, Map options)
     {
         if (!options)
         {
@@ -128,17 +127,11 @@ class NCubeJdbcPersister
         String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
         Map record = null
         if (!options.containsKey(SEARCH_ACTIVE_RECORDS_ONLY))
-        {
+        {   // Allow deleted records to be loaded
             options[SEARCH_ACTIVE_RECORDS_ONLY] = true
         }
-        if (!options.containsKey(SEARCH_EXACT_MATCH_NAME))
-        {
-            options[SEARCH_EXACT_MATCH_NAME] = true
-        }
-        if (!options.containsKey(METHOD_NAME))
-        {
-            options[METHOD_NAME] = 'loadCubeRawJsonBytes'
-        }
+        options[SEARCH_EXACT_MATCH_NAME] = true         // must be true, only 1 record returned
+        options[METHOD_NAME] = 'loadCubeRecord'   // this method dictates the method name listed in the query
 
         runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
             record = [:]
@@ -158,7 +151,7 @@ class NCubeJdbcPersister
         return record
     }
 
-    static Map loadCubeRawJsonBytesById(Connection c, long cubeId, Map options)
+    static Map loadCubeRecordById(Connection c, long cubeId, Map options)
     {
         String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
         Map record = null
@@ -166,7 +159,7 @@ class NCubeJdbcPersister
         Sql sql = getSql(c)
         sql.withStatement { Statement stmt -> stmt.fetchSize = 10 }
         sql.eachRow(map, """\
-/* loadCubeRawJsonBytesById */
+/* loadCubeRecordById */
 SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, ${CUBE_VALUE_BIN}, sha1 ${selectTestData}
 FROM n_cube
 WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
@@ -924,7 +917,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
      */
     private static void createSysInfoCube(Connection c, ApplicationID appId, String username)
     {
-        Map map = loadCubeRawJsonBytes(c, appId, SYS_INFO, null)
+        Map map = loadCubeRecord(c, appId, SYS_INFO, null)
         if (map != null)
         {
             return

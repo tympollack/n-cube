@@ -148,7 +148,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
     private NCube loadCubeInternal(ApplicationID appId, String cubeName, Map options = null)
     {
-        Map record = persister.loadCubeRawJsonBytes(appId, cubeName, options, getUserId())
+        Map record = persister.loadCubeRecord(appId, cubeName, options, getUserId())
         NCube ncube = createCubeFromRecord(record)
         return ncube
     }
@@ -823,7 +823,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     private String getCubeRawJson(ApplicationID appId, String cubeName)
     {
         assertPermissions(appId, cubeName)
-        Map record = persister.loadCubeRawJsonBytes(appId, cubeName, null, getUserId())
+        Map record = persister.loadCubeRecord(appId, cubeName, null, getUserId())
         String json = new String(IOUtilities.uncompressBytes(record.bytes as byte[]), "UTF-8")
         return json
     }
@@ -836,7 +836,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     Map getCubeRawJsonBytes(ApplicationID appId, String cubeName, Map options = null)
     {
         assertPermissions(appId, cubeName)
-        Map record = persister.loadCubeRawJsonBytes(appId, cubeName, options, getUserId())
+        Map record = persister.loadCubeRecord(appId, cubeName, options, getUserId())
         return record
     }
 
@@ -848,7 +848,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      */
     private NCube loadCubeById(long id, Map options = null)
     {
-        Map record = persister.loadCubeRawJsonBytesById(id, options, getUserId())
+        Map record = persister.loadCubeRecordById(id, options, getUserId())
         NCube ncube = createCubeFromRecord(record)
         return ncube
     }
@@ -870,7 +870,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
     Map getCubeRawJsonBytesById(long id, Map options = null)
     {
-        Map record = persister.loadCubeRawJsonBytesById(id, options, getUserId())
+        Map record = persister.loadCubeRecordById(id, options, getUserId())
         ApplicationID appId = record.appId as ApplicationID
         if (appId.tenant != tenant)
         {
