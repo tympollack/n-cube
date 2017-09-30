@@ -84,6 +84,8 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean deleteBranch(ApplicationID appId)
 
+    Boolean deleteApp(ApplicationID appId)
+
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)

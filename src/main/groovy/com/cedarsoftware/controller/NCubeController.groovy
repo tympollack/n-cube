@@ -1377,6 +1377,13 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return result
     }
 
+    Boolean deleteApp(ApplicationID appId)
+    {
+        appId = addTenant(appId)
+        Boolean result = mutableClient.deleteApp(appId)
+        return result
+    }
+
     Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch = ApplicationID.HEAD)
     {
         appId = addTenant(appId)

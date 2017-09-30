@@ -1,6 +1,6 @@
 ### Revision History
 * 4.1.17-SNAPSHOT
-  * --
+  * Enhancement: Added `deleteApp` API only for sys admins to remove apps that have no released version.
 * 4.1.16
   * Enhancement: Updated `NCubeRuntime.clearCache()` to take a second argument `Collection<String>` of NCube names which defaults to null. Passing null retains previous functionality, whereas passing NCube names will only evict the specified NCubes from the cache.
   * Consumed json-command-servlet 1.8.2

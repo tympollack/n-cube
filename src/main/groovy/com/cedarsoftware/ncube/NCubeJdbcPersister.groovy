@@ -1597,6 +1597,19 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
         return true
     }
 
+    static boolean deleteApp(Connection c, ApplicationID appId)
+    {
+        Map<String, List<String>> versions = getVersions(c, appId.tenant, appId.app)
+        if (!versions[ReleaseStatus.RELEASE.name()].empty)
+        {
+            throw new IllegalArgumentException("Only applications without a released version can be deleted, app: ${appId}")
+        }
+        Map map = [app: appId.app, tenant: padTenant(c, appId.tenant)]
+        Sql sql = getSql(c);
+        sql.execute(map, "/* deleteApp */ DELETE FROM n_cube WHERE app_cd = :app AND tenant_cd = :tenant AND status_cd = 'SNAPSHOT'")
+        return true
+    }
+
     static int moveBranch(Connection c, ApplicationID appId, String newSnapVer)
     {
         if (ApplicationID.HEAD == appId.branch)

@@ -705,6 +705,16 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return persister.deleteBranch(appId, getUserId())
     }
 
+    Boolean deleteApp(ApplicationID appId)
+    {
+        appId.validate()
+        if (!sysAdmin)
+        {
+            throw new IllegalArgumentException("Only a system administrator can delete apps, app: ${appId}, user: ${getUserId()}")
+        }
+        return persister.deleteApp(appId, getUserId())
+    }
+
     /**
      * Delete the named NCube from the database
      *
