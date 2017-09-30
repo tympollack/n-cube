@@ -2534,6 +2534,18 @@ class NCube<T>
         return toFormattedJson()
     }
 
+    /**
+     * @param ncube NCube to be formatted
+     * @param options Map containing various formatting options.  Valid options, listed in
+     * (String key : String value) format, mode: html, mode: index, mode: pretty, mode: nocells.
+     * 'html' mode is a visual, nice excel-like view.  'index' mode is a different format where
+     * the columns are indexed by name below the axis, as opposed to axis having an array of
+     * columns. 'pretty' mode is the original json format but formatted nicely for viewing.
+     * 'json' mode is the default, but can be explicitly specified.  'nocells' mode is the original
+     * json format but the cells array is empty. The 'pretty' mode can be added to 'index', 'nocells',
+     * or 'json' like this 'index-pretty', 'nocells-pretty', or 'json-index'.
+     * @return String format, generated from the passed in n-cube, based upon passed in options.
+     */
     static String formatCube(NCube ncube, Map options)
     {
         String mode = options.mode

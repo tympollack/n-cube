@@ -744,7 +744,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
     Map getAppTests(ApplicationID appId)
     {
-        Map ret = [:]
+        Map ret = new CaseInsensitiveMap()
         ApplicationID.validateAppId(appId)
         Map appTests = persister.getAppTestData(appId, getUserId())
         for (Map.Entry cubeTest : appTests.entrySet())
