@@ -841,9 +841,10 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     }
 
     /**
-     * Load the n-cube with the specified id.  This is useful in n-cube editors, where a user wants to pick
-     * an older revision and load / compare it.
+     * Load the n-cube with the specified id.
      * @param id long n-cube id.
+     * @param options Map of options using keys from NCubeConstants.SEARCH_*.  Mainly to allow active, deleted, or
+     * both to be searched.
      * @return NCube that has the passed in id.
      */
     private NCube loadCubeById(long id, Map options = null)
@@ -945,7 +946,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         assertPermissions(appId, null)
 
-        List<NCubeInfoDto> list = search(appId, null, "*${REF_APP}*", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        List<NCubeInfoDto> list = search(appId, null, "${REF_APP}", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
         List<AxisRef> refAxes = []
 
         for (NCubeInfoDto source : list)
