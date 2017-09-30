@@ -25,13 +25,7 @@ interface NCubeClient
 {
     NCube getCube(ApplicationID appId, String cubeName)
 
-    NCube loadCubeById(long id)
-
-    NCube loadCubeById(long id, Map options)
-
-    NCube loadCube(ApplicationID appId, String cubeName)
-
-    NCube loadCube(ApplicationID appId, String cubeName, Map options)
+    String getJson(ApplicationID appId, String cubeName, Map options)
 
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
 
@@ -46,8 +40,4 @@ interface NCubeClient
     Object[] getVersions(String app)
 
     Object[] getBranches(ApplicationID appId)
-
-    String getCubeRawJson(ApplicationID appId, String cubeName)
-
-    byte[] getCubeRawJsonBytes(ApplicationID appId, String cubeName)
 }

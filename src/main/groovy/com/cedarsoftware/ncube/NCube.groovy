@@ -2534,6 +2534,32 @@ class NCube<T>
         return toFormattedJson()
     }
 
+    static String formatCube(NCube ncube, Map options)
+    {
+        String mode = options.mode
+        if ('html' == mode)
+        {
+            return ncube.toHtml()
+        }
+
+        Map formatOptions = [:]
+        if (mode.contains('index'))
+        {
+            formatOptions.indexFormat = true
+        }
+        if (mode.contains('nocells'))
+        {
+            formatOptions.nocells = true
+        }
+
+        String json = ncube.toFormattedJson(formatOptions)
+        if (mode.contains('pretty'))
+        {
+            return JsonWriter.formatJson(json)
+        }
+        return json
+    }
+
     // ----------------------------
     // Overall cube management APIs
     // ----------------------------

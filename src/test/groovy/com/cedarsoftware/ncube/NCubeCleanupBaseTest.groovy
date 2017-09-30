@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
@@ -64,5 +65,27 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
             createCubeFromResource(id, name)
         }
         ncubeRuntime.clearCache(id)
+    }
+
+    NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
+    {
+        Map record = mutableClient.getCubeRawJsonBytes(appId, cubeName, options)
+        NCube ncube = createCubeFromRecord(record)
+        return ncube
+    }
+
+    private static NCube createCubeFromRecord(Map record)
+    {
+        if (record == null)
+        {
+            return null
+        }
+        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
+        ncube.applicationID = record.appId as ApplicationID
+        if (record.containsKey('testData'))
+        {
+            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
+        }
+        return ncube
     }
 }

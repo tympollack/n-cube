@@ -81,28 +81,16 @@ class NCubeJdbcPersisterAdapter implements NCubePersister
                 "createCube(${cube.applicationID.cacheKey(cube.name)})", username)
     }
 
-    String loadCubeRawJson(ApplicationID appId, String name, String username)
+    Map loadCubeRawJsonBytes(ApplicationID appId, String name, Map options, String username)
     {
-        return (String) jdbcOperation({ Connection c -> persister.loadCubeRawJson(c, appId, name) },
-                "loadCubeRawJson(${appId.cacheKey(name)})", username)
-    }
-
-    byte[] loadCubeRawJsonBytes(ApplicationID appId, String name, String username)
-    {
-        return (byte[]) jdbcOperation({ Connection c -> persister.loadCubeRawJsonBytes(c, appId, name) },
+        return (Map) jdbcOperation({ Connection c -> persister.loadCubeRawJsonBytes(c, appId, name, options) },
                 "loadCubeRawJsonBytes(${appId.cacheKey(name)})", username)
     }
 
-    NCube loadCubeById(long cubeId, Map options, String username)
+    Map loadCubeRawJsonBytesById(long cubeId, Map options, String username)
     {
-        return (NCube) jdbcOperation({ Connection c -> persister.loadCubeById(c, cubeId, options) },
-                "loadCubeById(${cubeId})", username)
-    }
-
-    NCube loadCube(ApplicationID appId, String name, Map options, String username)
-    {
-        return (NCube) jdbcOperation({ Connection c -> persister.loadCube(c, appId, name, options) },
-                "loadCube(${appId.cacheKey(name)})", username)
+        return (Map) jdbcOperation({ Connection c -> persister.loadCubeRawJsonBytesById(c, cubeId, options) },
+                "loadCubeRawJsonBytesById(${cubeId})", username)
     }
 
     NCube loadCubeBySha1(ApplicationID appId, String name, String sha1, String username)

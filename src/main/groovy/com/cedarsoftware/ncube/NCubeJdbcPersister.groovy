@@ -118,35 +118,84 @@ class NCubeJdbcPersister
         return cubes
     }
 
-    static String loadCubeRawJson(Connection c, ApplicationID appId, String cubeName)
+    static Map loadCubeRawJsonBytes(Connection c, ApplicationID appId, String cubeName, Map options)
     {
-        Map<String, Object> options = [(SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                       (SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (SEARCH_EXACT_MATCH_NAME): true] as Map
+        if (!options)
+        {
+            options = [:]
+        }
+        options[SEARCH_INCLUDE_CUBE_DATA] = true
+        String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
+        Map record = null
+        if (!options.containsKey(SEARCH_ACTIVE_RECORDS_ONLY))
+        {
+            options[SEARCH_ACTIVE_RECORDS_ONLY] = true
+        }
+        if (!options.containsKey(SEARCH_EXACT_MATCH_NAME))
+        {
+            options[SEARCH_EXACT_MATCH_NAME] = true
+        }
+        if (!options.containsKey(METHOD_NAME))
+        {
+            options[METHOD_NAME] = 'loadCubeRawJsonBytes'
+        }
 
-        String json = null
-        options[METHOD_NAME] = 'loadCubeRawJson'
         runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
-            InputStream input = NCube.rawStreamToInputStream(row.getBinaryStream(CUBE_VALUE_BIN))
-            json = IOGroovyMethods.getText(input, 'UTF-8')
+            record = [:]
+            record.cubeName = row.getString('n_cube_nm')
+            record.sha1 = row.getString('sha1')
+            record.appId = appId
+            record.bytes = row.getBytes(CUBE_VALUE_BIN)
+            if (StringUtilities.hasContent(selectTestData))
+            {
+                byte[] testBytes = row.getBytes(TEST_DATA_BIN)
+                if (testBytes)
+                {
+                    record.testData = new String(testBytes, 'UTF-8')
+                }
+            }
         })
-        return json
+        return record
     }
 
-    static byte[] loadCubeRawJsonBytes(Connection c, ApplicationID appId, String cubeName)
+    static Map loadCubeRawJsonBytesById(Connection c, long cubeId, Map options)
     {
-        Map<String, Object> options = [(SEARCH_ACTIVE_RECORDS_ONLY): true,
-                                       (SEARCH_INCLUDE_CUBE_DATA): true,
-                                       (SEARCH_EXACT_MATCH_NAME): true] as Map
-
-        byte[] bytes = null
-        options[METHOD_NAME] = 'loadCubeRawJsonBytes'
-        runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
-            bytes = row.getBytes(CUBE_VALUE_BIN)
+        String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
+        Map record = null
+        Map map = [id: cubeId]
+        Sql sql = getSql(c)
+        sql.withStatement { Statement stmt -> stmt.fetchSize = 10 }
+        sql.eachRow(map, """\
+/* loadCubeRawJsonBytesById */
+SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, ${CUBE_VALUE_BIN}, sha1 ${selectTestData}
+FROM n_cube
+WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
+            String tenant = row.getString('tenant_cd')
+            String status = row.getString('status_cd')
+            String app = row.getString('app_cd')
+            String version = row.getString('version_no_cd')
+            String branch = row.getString('branch_id')
+            record = [:]
+            record.cubeName = row.getString('n_cube_nm')
+            record.sha1 = row.getString('sha1')
+            record.appId = new ApplicationID(tenant, app, version, status, branch)
+            record.bytes = row.getBytes(CUBE_VALUE_BIN)
+            if (StringUtilities.hasContent(selectTestData))
+            {
+                byte[] testBytes = row.getBytes(TEST_DATA_BIN)
+                if (testBytes)
+                {
+                    record.testData = new String(testBytes, 'UTF-8')
+                }
+            }
         })
-        return bytes
+        if (record)
+        {
+            return record
+        }
+        throw new IllegalArgumentException("Unable to find cube with id: " + cubeId)
     }
-    
+
     static NCube loadCube(Connection c, ApplicationID appId, String cubeName, Map options)
     {
         if (!options)
@@ -170,33 +219,6 @@ class NCubeJdbcPersister
         options[METHOD_NAME] = 'loadCube'
         runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row -> cube = buildCube(appId, row, options?.get(SEARCH_INCLUDE_TEST_DATA) as boolean) })
         return cube
-    }
-
-    static NCube loadCubeById(Connection c, long cubeId, Map options)
-    {
-        String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
-        Map map = [id: cubeId]
-        Sql sql = getSql(c)
-        sql.withStatement { Statement stmt -> stmt.fetchSize = 10 }
-        NCube cube = null
-        sql.eachRow(map, """\
-/* loadCubeById */
-SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, ${CUBE_VALUE_BIN}, sha1 ${selectTestData}
-FROM n_cube
-WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
-            String tenant = row.getString('tenant_cd')
-            String status = row.getString('status_cd')
-            String app = row.getString('app_cd')
-            String version = row.getString('version_no_cd')
-            String branch = row.getString('branch_id')
-            ApplicationID appId = new ApplicationID(tenant, app, version, status, branch)
-            cube = buildCube(appId, row, options?.get(SEARCH_INCLUDE_TEST_DATA) as boolean)
-        })
-        if (cube)
-        {
-            return cube
-        }
-        throw new IllegalArgumentException("Unable to find cube with id: " + cubeId)
     }
 
     static NCube loadCubeBySha1(Connection c, ApplicationID appId, String cubeName, String sha1)
@@ -483,7 +505,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 
                 if (revision == null)
                 {
-                    throw new IllegalArgumentException("Cannot restore cube: ${cubeName} as it not deleted in app: ${appId}")
+                    throw new IllegalArgumentException("Cannot restore cube: ${cubeName} as it is not deleted in app: ${appId}")
                 }
             }
             if (count % EXECUTE_BATCH_CONSTANT != 0)
