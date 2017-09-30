@@ -1906,8 +1906,9 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     private NCube getCubeFromDto(NCubeInfoDto dto, Map options = null)
     {
         ApplicationID appId = new ApplicationID(tenant, dto.app, dto.version, dto.status, dto.branch)
-        Map record = mutableClient.getCubeRawJsonBytes(appId, dto.name, null)
+        Map record = mutableClient.getCubeRawJsonBytes(appId, dto.name, options)
         NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
+        ncube.applicationID = appId
         if (record.containsKey('testData'))
         {
             ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
