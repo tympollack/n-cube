@@ -199,12 +199,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     NCube loadCubeById(long id, Map options = null)
     {
         Map record = getCubeRawJsonBytesById(id, options)
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = record.appId as ApplicationID
-        if (record.containsKey('testData'))
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         applyAdvices(ncube)
         return ncube
     }
@@ -212,12 +207,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
     {
         Map record = getCubeRawJsonBytes(appId, cubeName, options)
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = appId
-        if (record.containsKey('testData'))
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         applyAdvices(ncube)
         return ncube
     }

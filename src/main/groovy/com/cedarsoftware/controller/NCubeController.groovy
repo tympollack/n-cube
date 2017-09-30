@@ -1405,12 +1405,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     NCube loadCubeById(long id, Map options = null)
     {
         Map record = mutableClient.getCubeRawJsonBytesById(id, options)
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = record.appId as ApplicationID
-        if (record.testData)
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
     }
 
@@ -1419,12 +1414,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     {
         appId = addTenant(appId)
         Map record = getCubeRawJsonBytes(appId, cubeName, options)
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = appId
-        if (record.testData)
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
     }
 
@@ -1529,20 +1519,10 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
     {
         Map newRecord = mutableClient.getCubeRawJsonBytesById(newCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
-        NCube newCube = NCube.createCubeFromBytes(newRecord.bytes as byte[])
-        newCube.applicationID = newRecord.appId as ApplicationID
-        if (newRecord.containsKey('testData'))
-        {
-            newCube.testData = NCubeTestReader.convert(newRecord.testData as String).toArray()
-        }
+        NCube newCube = NCube.createCubeFromRecord(newRecord)
 
         Map oldRecord = mutableClient.getCubeRawJsonBytesById(oldCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
-        NCube oldCube = NCube.createCubeFromBytes(oldRecord.bytes as byte[])
-        oldCube.applicationID = oldRecord.appId as ApplicationID
-        if (oldRecord.containsKey('testData'))
-        {
-            oldCube.testData = NCubeTestReader.convert(oldRecord.testData as String).toArray()
-        }
+        NCube oldCube = NCube.createCubeFromRecord(oldRecord)
 
         addTenant(newCube.applicationID)
         addTenant(oldCube.applicationID)
@@ -1907,12 +1887,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     {
         ApplicationID appId = new ApplicationID(tenant, dto.app, dto.version, dto.status, dto.branch)
         Map record = mutableClient.getCubeRawJsonBytes(appId, dto.name, options)
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = appId
-        if (record.containsKey('testData'))
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
     }
 

@@ -149,7 +149,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     private NCube loadCubeInternal(ApplicationID appId, String cubeName, Map options = null)
     {
         Map record = persister.loadCubeRecord(appId, cubeName, options, getUserId())
-        NCube ncube = createCubeFromRecord(record)
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
     }
 
@@ -850,22 +850,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     private NCube loadCubeById(long id, Map options = null)
     {
         Map record = persister.loadCubeRecordById(id, options, getUserId())
-        NCube ncube = createCubeFromRecord(record)
-        return ncube
-    }
-
-    private static NCube createCubeFromRecord(Map record)
-    {
-        if (record == null)
-        {
-            return null
-        }
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = record.appId as ApplicationID
-        if (record.containsKey('testData'))
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
     }
 

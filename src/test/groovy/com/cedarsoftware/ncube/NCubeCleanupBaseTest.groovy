@@ -70,22 +70,7 @@ class NCubeCleanupBaseTest extends NCubeBaseTest
     NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
     {
         Map record = mutableClient.getCubeRawJsonBytes(appId, cubeName, options)
-        NCube ncube = createCubeFromRecord(record)
-        return ncube
-    }
-
-    private static NCube createCubeFromRecord(Map record)
-    {
-        if (record == null)
-        {
-            return null
-        }
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = record.appId as ApplicationID
-        if (record.containsKey('testData'))
-        {
-            ncube.testData = NCubeTestReader.convert(record.testData as String).toArray()
-        }
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
     }
 }
