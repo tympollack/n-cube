@@ -1050,8 +1050,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             return null
         }
 
-        NCube ncube = NCube.createCubeFromBytes(record.bytes as byte[])
-        ncube.applicationID = appId
+        NCube ncube = NCube.createCubeFromRecord(record)
         return prepareCube(ncube)
     }
 
