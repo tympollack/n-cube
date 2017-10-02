@@ -41,6 +41,8 @@ class NCubeInfoDto
     public String notes
     public boolean changed
     public String changeType
+    public byte[] bytes
+    public String testData
 
     ApplicationID getApplicationID()
 	{

@@ -1934,9 +1934,26 @@ ORDER BY abs(revision_number) DESC"""
         dto.changed = row.getBoolean(CHANGED)
         dto.sha1 = row.getString('sha1')
         dto.headSha1 = row.getString('head_sha1')
+        if (options[SEARCH_INCLUDE_CUBE_DATA])
+        {
+            dto.bytes =  row.getBytes(CUBE_VALUE_BIN)
+        }
+        if (options[SEARCH_INCLUDE_TEST_DATA])
+        {
+            byte[] testBytes = row.getBytes(TEST_DATA_BIN)
+            if (testBytes)
+            {
+                dto.testData = new String(testBytes, 'UTF-8')
+            }
+        }
         if (SYS_INFO != dto.name)
         {
             list.add(dto)
+        }
+        Closure closure = options[SEARCH_CLOSURE] as Closure
+        if (closure)
+        {
+            closure(dto, options[SEARCH_OUTPUT])
         }
         return dto
     }

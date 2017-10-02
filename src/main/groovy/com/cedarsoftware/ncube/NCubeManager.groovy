@@ -923,13 +923,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         assertPermissions(appId, null)
 
-        List<NCubeInfoDto> list = search(appId, null, "${REF_APP}", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
-        List<AxisRef> refAxes = []
-
-        for (NCubeInfoDto source : list)
-        {
-            Map record = persister.loadCubeRecord(appId, source.name, null, getUserId())
-            String json = new String(IOUtilities.uncompressBytes(record.bytes as byte[]), "UTF-8")
+        Closure getRefAxes = { NCubeInfoDto dto, Object refAxes ->
+            String json = new String(IOUtilities.uncompressBytes(dto.bytes as byte[]), "UTF-8")
 
             //TODO - fix asap!!! call loadCube() which will use new parser
             Map jsonNCube = (Map) JsonReader.jsonToJava(json, [(JsonReader.USE_MAPS): true as Object])
@@ -941,7 +936,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
                 {
                     AxisRef ref = new AxisRef()
                     ref.srcAppId = appId
-                    ref.srcCubeName = source.name
+                    ref.srcCubeName = dto.name
                     ref.srcAxisName = axis.name
 
                     ref.destApp = axis[REF_APP]
@@ -960,10 +955,14 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
                         ref.transformCubeName = axis[TRANSFORM_CUBE_NAME]
                     }
 
-                    refAxes.add(ref)
+                    ((List<AxisRef>)refAxes).add(ref)
                 }
             }
         }
+        List<AxisRef> refAxes = []
+        Map options = [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_CLOSURE): getRefAxes, (SEARCH_OUTPUT): refAxes]
+        search(appId, null, "${REF_APP}", options)
+
         return refAxes
     }
 
