@@ -312,6 +312,18 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
+    NCubeInfoDto promoteRevision(long cubeId)
+    {
+        verifyAllowMutable('promoteRevision')
+        NCubeInfoDto record = bean.call(beanName, 'promoteRevision', [cubeId]) as NCubeInfoDto
+        if (SYS_CLASSPATH.equalsIgnoreCase(record.name))
+        {   // If the sys.classpath cube is changed, then the entire class loader must be dropped.  It will be lazily rebuilt.
+            clearCache(record.applicationID)
+        }
+        clearCache(record.applicationID, [record.name])
+        return record
+    }
+
     List<NCubeInfoDto> getCellAnnotation(ApplicationID appId, String cubeName, Set<Long> ids, boolean ignoreVersion = false)
     {
         List<NCubeInfoDto> result = bean.call(beanName, 'getCellAnnotation', [appId, cubeName, ids, ignoreVersion]) as List

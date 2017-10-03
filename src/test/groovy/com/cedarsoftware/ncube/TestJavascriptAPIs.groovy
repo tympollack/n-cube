@@ -432,6 +432,36 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         }
     }
 
+    @Test
+    void testPromoteRevision()
+    {
+        // setup NCube and verify initial cell value
+        Map coord = [Code: -10]
+        NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        String code = ncube.getCell(coord)
+        assert code == 'ABC'
+
+        // update cell and verify value changed
+        call('updateCellAt', [BRANCH1, ncube.name, coord, new CellInfo('XYZ')])
+        NCubeInfoDto record1 = call('loadCubeRecord', [BRANCH1, ncube.name, [:]]) as NCubeInfoDto
+        ncube = NCube.createCubeFromRecord(record1)
+        code = ncube.getCell(coord)
+        assert code == 'XYZ'
+
+        // get revisions, promote original revision and verify cell value
+        List<NCubeInfoDto> revisions = call('getRevisionHistory', [BRANCH1, ncube.name]) as List
+        assert revisions.size() == 2
+        NCubeInfoDto record0 = revisions.find { it.revision == '0' }
+        long id = Converter.convert(record0.id, Long.class) as long
+        call('promoteRevision', [id])
+        revisions = call('getRevisionHistory', [BRANCH1, ncube.name]) as List
+        assert revisions.size() == 3
+        NCubeInfoDto record2 = call('loadCubeRecord', [BRANCH1, ncube.name, [:]]) as NCubeInfoDto
+        ncube = NCube.createCubeFromRecord(record2)
+        code = ncube.getCell(coord)
+        assert code == 'ABC'
+    }
+
     private static Object call(String methodName, List args)
     {
         if (NCubeAppContext.clientTest)

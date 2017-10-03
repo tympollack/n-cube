@@ -835,12 +835,17 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return mutableClient.renameCube(appId, oldName, newName)
     }
 
-    void promoteRevision(long cubeId)
+    /**
+     * Promote a previous revision of an NCube.
+     * @param cubeId long
+     * @return NCubeInfoDto for the revision of the passed in cubeId, NOT the newly created revision.
+     * NCubeInfDto does not contain bytes or testData
+     * Note: the restored dto and the dto to restore from differ only in revision number
+     */
+    NCubeInfoDto promoteRevision(long cubeId)
     {
-        //TODO - fix asap!!! add API through all layers to do work on storage server side
-        NCubeInfoDto record = mutableClient.loadCubeRecordById(cubeId, [(SEARCH_INCLUDE_TEST_DATA): true])
-        NCube ncube = NCube.createCubeFromRecord(record)
-        mutableClient.updateCube(ncube)
+        NCubeInfoDto record = mutableClient.promoteRevision(cubeId)
+        return record
     }
 
     void saveJson(ApplicationID appId, String json)

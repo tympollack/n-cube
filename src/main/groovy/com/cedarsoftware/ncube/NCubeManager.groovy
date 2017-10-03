@@ -238,6 +238,23 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     }
 
     /**
+     * Promote a previous revision of an NCube.
+     * @param cubeId long
+     * @return NCubeInfoDto for the revision of the passed in cubeId, NOT the newly created revision.
+     * NCubeInfDto does not contain bytes or testData
+     * Note: the restored dto and the dto to restore from differ only in revision number
+     */
+    NCubeInfoDto promoteRevision(long cubeId)
+    {
+        NCubeInfoDto record = loadCubeRecordById(cubeId, [(SEARCH_INCLUDE_TEST_DATA): true])
+        NCube ncube = NCube.createCubeFromRecord(record)
+        updateCube(ncube)
+        record.bytes = null
+        record.testData = null
+        return record
+    }
+
+    /**
      * Get a List<NCubeInfoDto> containing all history for the given cell of a cube.
      */
     List<NCubeInfoDto> getCellAnnotation(ApplicationID appId, String cubeName, Set<Long> ids, boolean ignoreVersion = false)
