@@ -908,9 +908,8 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         appId = addTenant(appId)
-        String tests = mutableClient.getTests(appId, cubeName)
-        List<NCubeTest> testData = NCubeTestReader.convert(tests)
-        return testData.toArray()
+        Object[] tests = mutableClient.getTests(appId, cubeName)
+        return tests
     }
 
     Map getAppTests(ApplicationID appId)
