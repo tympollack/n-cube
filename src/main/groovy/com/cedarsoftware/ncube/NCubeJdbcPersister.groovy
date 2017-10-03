@@ -117,70 +117,54 @@ class NCubeJdbcPersister
         return cubes
     }
 
-    static Map loadCubeRecord(Connection c, ApplicationID appId, String cubeName, Map options)
+    static NCubeInfoDto loadCubeRecord(Connection c, ApplicationID appId, String cubeName, Map options)
     {
         if (!options)
         {
             options = [:]
         }
-        options[SEARCH_INCLUDE_CUBE_DATA] = true
-        String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
-        Map record = null
+        if (!options.containsKey(SEARCH_INCLUDE_CUBE_DATA))
+        {
+            options[SEARCH_INCLUDE_CUBE_DATA] = true
+        }
         if (!options.containsKey(SEARCH_ACTIVE_RECORDS_ONLY))
         {   // Allow deleted records to be loaded
             options[SEARCH_ACTIVE_RECORDS_ONLY] = true
         }
         options[SEARCH_EXACT_MATCH_NAME] = true         // must be true, only 1 record returned
         options[METHOD_NAME] = 'loadCubeRecord'   // this method dictates the method name listed in the query
+        NCubeInfoDto record = null
 
         runSelectCubesStatement(c, appId, cubeName, options, 1, { ResultSet row ->
-            record = [:]
-            record.cubeName = row.getString('n_cube_nm')
-            record.sha1 = row.getString('sha1')
-            record.appId = appId
-            record.bytes = row.getBytes(CUBE_VALUE_BIN)
-            if (StringUtilities.hasContent(selectTestData))
-            {
-                byte[] testBytes = row.getBytes(TEST_DATA_BIN)
-                if (testBytes)
-                {
-                    record.testData = new String(testBytes, 'UTF-8')
-                }
-            }
+            record = createDtoFromRow(row, options)
+            record.tenant = appId.tenant
         })
         return record
     }
 
-    static Map loadCubeRecordById(Connection c, long cubeId, Map options)
+    static NCubeInfoDto loadCubeRecordById(Connection c, long cubeId, Map options)
     {
+        if (!options)
+        {
+            options = [:]
+        }
+        if (!options.containsKey(SEARCH_INCLUDE_CUBE_DATA))
+        {
+            options[SEARCH_INCLUDE_CUBE_DATA] = true
+        }
+        String selectCubeData = options?.get(SEARCH_INCLUDE_CUBE_DATA) ? ",${CUBE_VALUE_BIN}" : ''
         String selectTestData = options?.get(SEARCH_INCLUDE_TEST_DATA) ? ",${TEST_DATA_BIN}" : ''
-        Map record = null
+        NCubeInfoDto record = null
         Map map = [id: cubeId]
         Sql sql = getSql(c)
         sql.withStatement { Statement stmt -> stmt.fetchSize = 10 }
         sql.eachRow(map, """\
 /* loadCubeRecordById */
-SELECT tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, ${CUBE_VALUE_BIN}, sha1 ${selectTestData}
+SELECT n_cube_id, tenant_cd, app_cd, version_no_cd, status_cd, branch_id, n_cube_nm, create_dt, create_hid, revision_number, changed, sha1, head_sha1, notes_bin ${selectCubeData} ${selectTestData}
 FROM n_cube
 WHERE n_cube_id = :id""", 0, 1, { ResultSet row ->
-            String tenant = row.getString('tenant_cd')
-            String status = row.getString('status_cd')
-            String app = row.getString('app_cd')
-            String version = row.getString('version_no_cd')
-            String branch = row.getString('branch_id')
-            record = [:]
-            record.cubeName = row.getString('n_cube_nm')
-            record.sha1 = row.getString('sha1')
-            record.appId = new ApplicationID(tenant, app, version, status, branch)
-            record.bytes = row.getBytes(CUBE_VALUE_BIN)
-            if (StringUtilities.hasContent(selectTestData))
-            {
-                byte[] testBytes = row.getBytes(TEST_DATA_BIN)
-                if (testBytes)
-                {
-                    record.testData = new String(testBytes, 'UTF-8')
-                }
-            }
+            record = createDtoFromRow(row, options)
+            record.tenant = row.getString('tenant_cd')
         })
         if (record)
         {
@@ -917,8 +901,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
      */
     private static void createSysInfoCube(Connection c, ApplicationID appId, String username)
     {
-        Map map = loadCubeRecord(c, appId, SYS_INFO, null)
-        if (map != null)
+        NCubeInfoDto record = loadCubeRecord(c, appId, SYS_INFO, [(SEARCH_INCLUDE_CUBE_DATA): false])
+        if (record != null)
         {
             return
         }
@@ -1293,13 +1277,12 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         String onlyTestDataCondition = onlyTestData ? 'AND n.test_data_bin IS NOT NULL' : ''
         String testCondition = includeTestData ? ', n.test_data_bin' : ''
         String cubeCondition = includeCubeData ? ', n.cube_value_bin' : ''
-        String notesCondition = includeNotes ? ', n.notes_bin' : ''
 
         Sql sql = getSql(c)
 
         String select = """\
 /* ${methodName} */
-SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1 ${testCondition} ${cubeCondition} ${notesCondition}
+SELECT n.n_cube_id, n.n_cube_nm, n.app_cd, n.notes_bin, n.version_no_cd, n.status_cd, n.create_dt, n.create_hid, n.revision_number, n.branch_id, n.changed, n.sha1, n.head_sha1 ${testCondition} ${cubeCondition}
 FROM n_cube n,
 ( SELECT LOWER(n_cube_nm) as low_name, max(abs(revision_number)) AS max_rev
  FROM n_cube
@@ -1913,11 +1896,26 @@ ORDER BY abs(revision_number) DESC"""
             }
         }
 
+        NCubeInfoDto dto = createDtoFromRow(row, options)
+        dto.tenant = appId.tenant
+        if (SYS_INFO != dto.name)
+        {
+            list.add(dto)
+        }
+        Closure closure = options[SEARCH_CLOSURE] as Closure
+        if (closure)
+        {
+            closure(dto, options[SEARCH_OUTPUT])
+        }
+        return dto
+    }
+
+    private static NCubeInfoDto createDtoFromRow(ResultSet row, Map options)
+    {
         NCubeInfoDto dto = new NCubeInfoDto()
         dto.id = row.getString('n_cube_id')
         dto.name = row.getString('n_cube_nm')
-        dto.branch = appId.branch
-        dto.tenant = appId.tenant
+        dto.branch = row.getString('branch_id')
         byte[] notes = null
         try
         {
@@ -1927,7 +1925,7 @@ ORDER BY abs(revision_number) DESC"""
         dto.notes = new String(notes ?: "".bytes, 'UTF-8')
         dto.version = row.getString('version_no_cd')
         dto.status = row.getString('status_cd')
-        dto.app = appId.app
+        dto.app = row.getString('app_cd')
         dto.createDate = new Date(row.getTimestamp('create_dt').time)
         dto.createHid = row.getString('create_hid')
         dto.revision = row.getString('revision_number')
@@ -1936,7 +1934,7 @@ ORDER BY abs(revision_number) DESC"""
         dto.headSha1 = row.getString('head_sha1')
         if (options[SEARCH_INCLUDE_CUBE_DATA])
         {
-            dto.bytes =  row.getBytes(CUBE_VALUE_BIN)
+            dto.bytes = row.getBytes(CUBE_VALUE_BIN)
         }
         if (options[SEARCH_INCLUDE_TEST_DATA])
         {
@@ -1945,15 +1943,6 @@ ORDER BY abs(revision_number) DESC"""
             {
                 dto.testData = new String(testBytes, 'UTF-8')
             }
-        }
-        if (SYS_INFO != dto.name)
-        {
-            list.add(dto)
-        }
-        Closure closure = options[SEARCH_CLOSURE] as Closure
-        if (closure)
-        {
-            closure(dto, options[SEARCH_OUTPUT])
         }
         return dto
     }

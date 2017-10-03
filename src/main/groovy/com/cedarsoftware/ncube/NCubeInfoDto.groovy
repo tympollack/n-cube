@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
 
@@ -66,5 +67,15 @@ class NCubeInfoDto
     void setChanged(boolean state)
     {
         changed = state
+    }
+
+    boolean hasCubeData()
+    {
+        return !ArrayUtilities.isEmpty(bytes)
+    }
+
+    boolean hasTestData()
+    {
+        return StringUtilities.hasContent(testData)
     }
 }
