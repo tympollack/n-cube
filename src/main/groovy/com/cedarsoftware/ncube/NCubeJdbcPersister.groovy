@@ -1235,7 +1235,6 @@ ORDER BY revision_number desc""", 0, 1, { ResultSet row ->
         boolean includeCubeData = toBoolean(options[SEARCH_INCLUDE_CUBE_DATA])
         boolean includeTestData = toBoolean(options[SEARCH_INCLUDE_TEST_DATA])
         boolean onlyTestData = toBoolean(options[SEARCH_ONLY_TEST_DATA])
-        boolean includeNotes = toBoolean(options[SEARCH_INCLUDE_NOTES])
         boolean changedRecordsOnly = toBoolean(options[SEARCH_CHANGED_RECORDS_ONLY])
         boolean activeRecordsOnly = toBoolean(options[SEARCH_ACTIVE_RECORDS_ONLY])
         boolean deletedRecordsOnly = toBoolean(options[SEARCH_DELETED_RECORDS_ONLY])
@@ -1547,7 +1546,7 @@ ${revisionCondition} ${changedCondition} ${nameCondition2} ${createDateStartCond
         Sql sql = getSql(c)
         String select = """\
 /* ${methodName}.runSelectAllCubesInBranch */
-SELECT n_cube_nm, notes_bin, create_dt, create_hid, revision_number, changed, sha1, head_sha1, test_data_bin, ${CUBE_VALUE_BIN}, notes_bin
+SELECT n_cube_nm, notes_bin, create_dt, create_hid, revision_number, changed, sha1, head_sha1, test_data_bin, ${CUBE_VALUE_BIN}
 FROM n_cube
 WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch"""
 
@@ -1578,7 +1577,7 @@ WHERE app_cd = :app AND version_no_cd = :version AND status_cd = :status AND ten
             throw new IllegalArgumentException("Only applications without a released version can be deleted, app: ${appId}")
         }
         Map map = [app: appId.app, tenant: padTenant(c, appId.tenant)]
-        Sql sql = getSql(c);
+        Sql sql = getSql(c)
         sql.execute(map, "/* deleteApp */ DELETE FROM n_cube WHERE app_cd = :app AND tenant_cd = :tenant AND status_cd = 'SNAPSHOT'")
         return true
     }
@@ -2010,7 +2009,7 @@ ORDER BY abs(revision_number) DESC"""
 
     private static String buildNameCondition(String name)
     {
-        return ('LOWER(' + name + ')')
+        return "LOWER(${name})"
     }
 
     private static String buildName(String name)
