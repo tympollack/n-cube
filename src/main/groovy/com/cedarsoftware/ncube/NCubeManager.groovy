@@ -255,6 +255,43 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     }
 
     /**
+     * Get a list of deltas between two NCubes from NCube ids
+     * @param newCubeId long
+     * @param oldCubeId long
+     * @return List<Delta>
+     */
+    List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
+    {
+        Map options = [(SEARCH_INCLUDE_TEST_DATA):true]
+        NCubeInfoDto newRecord = loadCubeRecordById(newCubeId, options)
+        NCube newCube = NCube.createCubeFromRecord(newRecord)
+        NCubeInfoDto oldRecord = loadCubeRecordById(oldCubeId, options)
+        NCube oldCube = NCube.createCubeFromRecord(oldRecord)
+        return DeltaProcessor.getDeltaDescription(newCube, oldCube)
+    }
+
+    /**
+     * Get a list of deltas between two NCubes from NCubeInfoDtos
+     * @param newInfoDto NCubeInfoDto
+     * @param oldInfoDto NCubeInfoDto
+     * @return List<Delta>
+     */
+    List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
+    {
+        Map options = [(SEARCH_INCLUDE_TEST_DATA):true]
+
+        ApplicationID newAppId = new ApplicationID(tenant, newInfoDto.app, newInfoDto.version, newInfoDto.status, newInfoDto.branch)
+        NCubeInfoDto newRecord = loadCubeRecord(newAppId, newInfoDto.name, options)
+        NCube newCube = NCube.createCubeFromRecord(newRecord)
+
+        ApplicationID oldAppId = new ApplicationID(tenant, oldInfoDto.app, oldInfoDto.version, oldInfoDto.status, oldInfoDto.branch)
+        NCubeInfoDto oldRecord = loadCubeRecord(oldAppId, oldInfoDto.name, options)
+        NCube oldCube = NCube.createCubeFromRecord(oldRecord)
+
+        return DeltaProcessor.getDeltaDescription(newCube, oldCube)
+    }
+
+    /**
      * Get a List<NCubeInfoDto> containing all history for the given cell of a cube.
      */
     List<NCubeInfoDto> getCellAnnotation(ApplicationID appId, String cubeName, Set<Long> ids, boolean ignoreVersion = false)

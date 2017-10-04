@@ -324,6 +324,18 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return record
     }
 
+    List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
+    {
+        List<Delta> deltas = bean.call(beanName, 'fetchJsonRevDiffs', [newCubeId, oldCubeId]) as List
+        return deltas
+    }
+
+    List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
+    {
+        List<Delta> deltas = bean.call(beanName, 'fetchJsonBranchDiffs', [newInfoDto, oldInfoDto]) as List
+        return deltas
+    }
+
     List<NCubeInfoDto> getCellAnnotation(ApplicationID appId, String cubeName, Set<Long> ids, boolean ignoreVersion = false)
     {
         List<NCubeInfoDto> result = bean.call(beanName, 'getCellAnnotation', [appId, cubeName, ids, ignoreVersion]) as List

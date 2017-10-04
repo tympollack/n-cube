@@ -1521,24 +1521,14 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
 
     List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
     {
-        //TODO - fix asap!!! do all this work in NCubeManager
-        NCubeInfoDto newRecord = mutableClient.loadCubeRecordById(newCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
-        NCube newCube = NCube.createCubeFromRecord(newRecord)
-
-        NCubeInfoDto oldRecord = mutableClient.loadCubeRecordById(oldCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
-        NCube oldCube = NCube.createCubeFromRecord(oldRecord)
-
-        addTenant(newCube.applicationID)
-        addTenant(oldCube.applicationID)
-        return DeltaProcessor.getDeltaDescription(newCube, oldCube)
+        List<Delta> deltas = mutableClient.fetchJsonRevDiffs(newCubeId, oldCubeId)
+        return deltas
     }
 
     List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
     {
-        Map options = [(SEARCH_INCLUDE_TEST_DATA):true]
-        NCube newCube = getCubeFromDto(newInfoDto, options)
-        NCube oldCube = getCubeFromDto(oldInfoDto, options)
-        return DeltaProcessor.getDeltaDescription(newCube, oldCube)
+        List<Delta> deltas = mutableClient.fetchJsonBranchDiffs(newInfoDto, oldInfoDto)
+        return deltas
     }
 
     Object[] getReferenceAxes(ApplicationID appId)
@@ -1885,14 +1875,6 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
             colIds.add((Long)Converter.convert(id, Long.class))
         }
         return colIds
-    }
-
-    private NCube getCubeFromDto(NCubeInfoDto dto, Map options = null)
-    {
-        ApplicationID appId = new ApplicationID(tenant, dto.app, dto.version, dto.status, dto.branch)
-        NCubeInfoDto record = mutableClient.loadCubeRecord(appId, dto.name, options)
-        NCube ncube = NCube.createCubeFromRecord(record)
-        return ncube
     }
 
     private NCube getCubeInternal(ApplicationID appId, String ncubeName)

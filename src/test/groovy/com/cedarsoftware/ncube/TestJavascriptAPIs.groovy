@@ -270,6 +270,37 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testFetchJsonRevDiffsWrongTenant()
+    {
+        if (NCubeAppContext.clientTest)
+        { // You can't spoof an ApplicationID in a client test. The storage server controller will put the correct one on.
+            return
+        }
+        ApplicationID acme1 = new ApplicationID('Acme', BRANCH1.app, BRANCH1.version, BRANCH1.status, BRANCH1.branch)
+        createCubeFromResource(acme1, 'test.branch.1.json')
+        List<NCubeInfoDto> cubes = ncubeRuntime.search(acme1, 'TestBranch', null, null)
+        assert cubes.size() == 1
+        NCubeInfoDto origDto = cubes[0]
+        long origId = Converter.convert(origDto.id, long.class) as long
+        NCube foo = ncubeRuntime.getNCubeFromResource(acme1, 'test.branch.2.json')
+        mutableClient.updateCube(foo)
+        List<NCubeInfoDto> cubes2 = ncubeRuntime.search(acme1, 'TestBranch', null, null)
+        assert cubes2.size() == 1
+        NCubeInfoDto newDto = cubes2[0]
+        long newId = Converter.convert(newDto.id, long.class) as long
+
+        try
+        {
+            call('fetchJsonRevDiffs', [newId, origId]) as List
+            fail()
+        }
+        catch (SecurityException e)
+        {
+            assertContainsIgnoreCase(e.message, 'not performed', 'permission for cube', 'user:')
+        }
+    }
+
+    @Test
     void testFetchJsonBranchDiffs()
     {
         createCubeFromResource(BRANCH1, 'test.branch.1.json')
