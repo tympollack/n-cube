@@ -131,7 +131,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      */
     NCube getCube(ApplicationID appId, String cubeName)
     {
-        return loadCube(appId, cubeName)
+        assertPermissions(appId, cubeName)
+        return loadCubeInternal(appId, cubeName, null)
     }
 
     /**
@@ -140,12 +141,6 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      * cache.  Any advices in the manager will be applied to the n-cube.
      * @return NCube of the specified name from the specified AppID, or null if not found.
      */
-    private NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
-    {
-        assertPermissions(appId, cubeName)
-        return loadCubeInternal(appId, cubeName, options)
-    }
-    
     NCubeInfoDto loadCubeRecord(ApplicationID appId, String cubeName, Map options = null)
     {
         assertPermissions(appId, cubeName)
@@ -228,7 +223,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(name)
-        NCube ncube = loadCube(appId, name)
+        assertPermissions(appId, name)
+        NCube ncube = loadCubeInternal(appId, name, null)
         if (ncube == null)
         {
             throw new IllegalArgumentException("Could not get referenced cube names, cube: ${name} does not exist in app: ${appId}, user: ${getUserId()}")
@@ -558,7 +554,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      */
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
-        NCube ncube = loadCube(appId, cubeName, [(SEARCH_INCLUDE_TEST_DATA):true])
+        assertPermissions(appId, cubeName)
+        NCube ncube = loadCubeInternal(appId, cubeName, [(SEARCH_INCLUDE_TEST_DATA):true])
         if (ncube == null)
         {
             throw new IllegalArgumentException("No n-cube exists with the name: ${cubeName}, no changes will be merged, app: ${appId}, user: ${getUserId()}")
@@ -1168,9 +1165,9 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
                 {
                     axisRef.with {
                         ApplicationID destAppId = new ApplicationID(srcAppId.tenant, destApp, destVersion, destStatus, destBranch)
-                        assertPermissions(destAppId, null)
-                        NCube target = loadCube(destAppId, destCubeName, null)
-                        
+                        assertPermissions(destAppId, destCubeName)
+                        NCube target = loadCubeInternal(destAppId, destCubeName, null)
+
                         if (target == null)
                         {
                             throw new IllegalArgumentException("""\
@@ -1245,7 +1242,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         NCube.transformMetaProperties(newMetaProperties)
         String resourceName = cubeName + '/' + axisName
         assertPermissions(appId, resourceName, Action.UPDATE)
-        NCube ncube = loadCube(appId, cubeName)
+        assertPermissions(appId, cubeName)
+        NCube ncube = loadCubeInternal(appId, cubeName, null)
         Axis axis = ncube.getAxis(axisName)
         axis.updateMetaProperties(newMetaProperties, cubeName, { Set<Long> colIds ->
             ncube.dropOrphans(colIds, axis.id)

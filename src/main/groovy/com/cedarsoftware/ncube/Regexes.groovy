@@ -4,6 +4,8 @@ import groovy.transform.CompileStatic
 
 import java.util.regex.Pattern
 
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+
 /**
  * Regular Expressions used throughout n-cube implementation.
  *
@@ -74,4 +76,6 @@ interface Regexes
     Pattern isHSQLDBPattern = ~/(?i)^.*HSQL Database Engine Driver.*$/
 
     Pattern rangePattern = ~/\s*([^,]+)[,](.*)\s*$/
+
+    Pattern refAppSearchPattern = ~/${REF_APP}/
 }
