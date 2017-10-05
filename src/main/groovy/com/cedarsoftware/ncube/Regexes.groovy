@@ -37,7 +37,7 @@ interface Regexes
     String bracketMatch = '\\s*\\[.*?:.*?\\]'
     String varMatch = '[^)=]+'
 
-    Pattern importPattern = ~/(?m)^(\s*import\s+[^;\n"'\/ ]+;?)/
+    Pattern importPattern = ~/(?m)^(\s*import\s+(static\s+)?[^;\n"'\/ ]+;?)/
     Pattern grapePattern = ~/(@Grapes\s*?\((?:.*?|\n)+\]\s*?\))/
     Pattern grabPattern = ~/(@(?:Grab|GrabConfig|GrabExclude|GrabResolver)\s*?\(.*?\))/
     Pattern compileStaticPattern = ~/(@(?:CompileStatic)\s+?.*?)/
