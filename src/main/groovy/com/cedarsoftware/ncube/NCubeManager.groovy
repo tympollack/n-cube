@@ -2393,7 +2393,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         return ApplicationID.DEFAULT_TENANT
     }
 
-    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos)
+    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos, String notes = '')
     {
         List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
 
@@ -2427,6 +2427,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         prCube.setCell(prInfoJson, [(PR_PROP):PR_CUBES])
         prCube.setCell(getUserId(), [(PR_PROP):PR_REQUESTER])
         prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
+        prCube.setCell(notes, [(PR_PROP):PR_ID])
 
         runSystemRequest { createCube(prCube) }
         return sha1
@@ -2475,6 +2476,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         ApplicationID prAppId = ApplicationID.convert(appIdString)
         String requestUser = prCube.getCell([(PR_PROP): PR_REQUESTER])
         String commitUser = prCube.getCell([(PR_PROP): PR_MERGER])
+        String prNotes = prCube.getCell([(PR_PROP): PR_ID])
 
         if (status.contains(PR_CLOSED) || status == PR_OBSOLETE)
         {
@@ -2517,7 +2519,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
             }
         }
 
-        Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser)
+        Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser, prId, prNotes)
         validateReferenceAxesAppIds(prAppId.asHead())
         ret[PR_APP] = prAppId
         ret[PR_CUBE] = prCube.name
@@ -2600,6 +2602,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     Object[] getPullRequests(Date startDate = null, Date endDate = null)
     {
         List<Map> results = []
+        if (!startDate) {
+            Calendar c = Calendar.instance
+            c.add(Calendar.DATE, -28)
+            startDate = c.time
+        }
+
         List<NCube> cubes = getPullRequestCubes(startDate, endDate)
         for (NCube cube : cubes)
         {
@@ -2629,7 +2637,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         return mergePullRequest(prId)
     }
 
-    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes, String requestUser)
+    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes, String requestUser, String txId, String notes)
     {
         List<NCubeInfoDto> adds = []
         List<NCubeInfoDto> deletes = []
@@ -2639,7 +2647,6 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         List<NCubeInfoDto> rejects = []
         List<NCubeInfoDto> finalUpdates
 
-        long txId = UniqueIdGenerator.uniqueId
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects, true)
 
         ApplicationID headAppId = appId.asHead()
@@ -2679,7 +2686,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                         NCube cube = mergeCubesIfPossible(branchCube, headCube, false)
                         if (cube != null)
                         {
-                            NCubeInfoDto mergedDto = persister.commitMergedCubeToHead(appId, cube, getUserId(), txId)
+                            NCubeInfoDto mergedDto = persister.commitMergedCubeToHead(appId, cube, getUserId(), txId, notes)
                             merges.add(mergedDto)
                         }
                     }
@@ -2695,13 +2702,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
             }
         }
 
-        finalUpdates = persister.commitCubes(appId, buildIdList(updates), getUserId(), requestUser, txId)
+        finalUpdates = persister.commitCubes(appId, buildIdList(updates), getUserId(), requestUser, txId, notes)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
-        ret[BRANCH_ADDS] = persister.commitCubes(appId, buildIdList(adds), getUserId(), requestUser, txId)
-        ret[BRANCH_DELETES] = persister.commitCubes(appId, buildIdList(deletes), getUserId(), requestUser, txId)
+        ret[BRANCH_ADDS] = persister.commitCubes(appId, buildIdList(adds), getUserId(), requestUser, txId, notes)
+        ret[BRANCH_DELETES] = persister.commitCubes(appId, buildIdList(deletes), getUserId(), requestUser, txId, notes)
         ret[BRANCH_UPDATES] = finalUpdates
-        ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), getUserId(), requestUser, txId)
+        ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), getUserId(), requestUser, txId, notes)
         ret[BRANCH_REJECTS] = rejects
 
         if (!rejects.empty)
