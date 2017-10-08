@@ -65,6 +65,8 @@ class NCubeJdbcPersister
     private static final int FETCH_SIZE = 1000
     private static final String METHOD_NAME = '~method~'
     private static volatile AtomicBoolean isOracle = null
+    private static volatile AtomicBoolean isMySQL = null
+    private static volatile AtomicBoolean isHSQLDB = null
 
     static List<NCubeInfoDto> search(Connection c, ApplicationID appId, String cubeNamePattern, String searchContent, Map<String, Object> options)
     {
@@ -1796,6 +1798,8 @@ AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revi
             statement += ' AND status_cd = :status'
         }
 
+        statement += addLimitingClause(c)
+
         boolean result = false
         sql.eachRow(statement, map, 0, 1, { ResultSet row -> result = true })
         return result
@@ -1808,15 +1812,29 @@ AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch AND revi
         map.tenant = padTenant(c, appId.tenant)
         Sql sql = getSql(c)
         Long rev = null
-        String select = """\
+        String select
+        select = """\
 /* ${methodName}.maxRev */ SELECT revision_number FROM n_cube
 WHERE ${buildNameCondition("n_cube_nm")} = :cube AND app_cd = :app AND version_no_cd = :version AND status_cd = :status AND tenant_cd = :tenant AND branch_id = :branch
-ORDER BY abs(revision_number) DESC"""
+ORDER BY abs(revision_number) DESC ${addLimitingClause(c)}"""
 
         sql.eachRow(select, map, 0, 1, { ResultSet row ->
             rev = row.getLong('revision_number')
         })
         return rev
+    }
+
+    private static String addLimitingClause(Connection c)
+    {
+        if (isOracle(c))
+        {
+            return ' FETCH FIRST 1 ROW ONLY'
+        }
+        else if (isMySQL(c) || isHSQLDB(c))
+        {
+            return ' LIMIT 1'
+        }
+        return ''
     }
 
     protected static NCubeInfoDto getCubeInfoRecords(ApplicationID appId, Pattern searchPattern, List<NCubeInfoDto> list, Map options, ResultSet row)
@@ -2069,8 +2087,8 @@ ORDER BY abs(revision_number) DESC"""
 
         if (isOracle == null)
         {
-            isOracle = new AtomicBoolean(Regexes.isOraclePattern.matcher(c.metaData.driverName).matches())
-            LOG.info('Oracle JDBC driver: ' + isOracle.get())
+            isOracle = new AtomicBoolean(Regexes.isOraclePattern.matcher(c.metaData.driverName).find())
+            LOG.info("Oracle JDBC driver: ${isOracle.get()}")
         }
         return isOracle.get()
     }
@@ -2082,7 +2100,28 @@ ORDER BY abs(revision_number) DESC"""
             return false
         }
 
-        return Regexes.isHSQLDBPattern.matcher(c.metaData.driverName).matches()
+        if (isHSQLDB == null)
+        {
+            isHSQLDB = new AtomicBoolean(Regexes.isHSQLDBPattern.matcher(c.metaData.driverName).find())
+            LOG.info("HSQLDB JDBC driver: ${isHSQLDB.get()}")
+        }
+
+        return isHSQLDB.get()
+    }
+
+    static boolean isMySQL(Connection c)
+    {
+        if (c == null)
+        {
+            return false
+        }
+
+        if (isMySQL == null)
+        {
+            isMySQL = new AtomicBoolean(Regexes.isMySQLPattern.matcher(c.metaData.driverName).find())
+            LOG.info("MySQL JDBC driver: ${isMySQL.get()}")
+        }
+        return isMySQL.get()
     }
 
     /**
