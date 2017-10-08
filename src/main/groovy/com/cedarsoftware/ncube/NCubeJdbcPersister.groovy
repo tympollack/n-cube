@@ -1920,27 +1920,23 @@ ORDER BY abs(revision_number) DESC"""
     private static void blankOutName(byte[] bytes, String cubeName)
     {
         String json
-        if (bytes.length < 1000)
+        if (bytes.length < 4096)
         {
             json = StringUtilities.createUTF8String(bytes)
         }
         else
         {   // Make new String out of partial piece of original (don't want to duplicate giant JSON strings)
-            json = new String(bytes, 0, 1000)
+            json = new String(bytes, 0, 4096)
         }
 
-        int start = json.indexOf(cubeName)
+        int start = json.indexOf("\"${cubeName}\"")
         if (start == -1)
         {
             return
         }
-        int end = json.lastIndexOf(cubeName)
-        if (end == -1)
-        {
-            return
-        }
 
-        for (int i = start; i < end; i++)
+        int end = start + 1 + cubeName.length()
+        for (int i = start + 1; i < end; i++)
         {
             bytes[i] = 45   // UTF-8 / ASCII hyphen
         }
