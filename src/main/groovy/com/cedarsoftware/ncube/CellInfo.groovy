@@ -123,7 +123,7 @@ class CellInfo
         }
         else if (cell instanceof GroovyExpression)
         {
-            GroovyExpression exp = cell as GroovyExpression
+            GroovyExpression exp = (GroovyExpression) cell
             isUrl = StringUtilities.hasContent(exp.url)
             value = isUrl ? exp.url : exp.cmd
             dataType = 'exp'
@@ -131,7 +131,7 @@ class CellInfo
         }
         else if (cell instanceof CellInfo)
         {   // clone
-            CellInfo cellInfo = cell as CellInfo
+            CellInfo cellInfo = (CellInfo) cell
             isUrl = cellInfo.isUrl
             value = cellInfo.value
             dataType = cellInfo.dataType
@@ -154,7 +154,7 @@ class CellInfo
         }
         else if (cell instanceof Date)
         {
-            value = formatForDisplay(cell as Date)
+            value = formatForDisplay((Date)cell)
             dataType = 'date'
         }
         else if (cell instanceof Double)
@@ -169,7 +169,7 @@ class CellInfo
         }
         else if (cell instanceof BigDecimal)
         {
-            value = (cell as BigDecimal).stripTrailingZeros().toPlainString()
+            value = ((BigDecimal)cell).stripTrailingZeros().toPlainString()
             dataType = 'bigdec'
         }
         else if (cell instanceof BigInteger)
@@ -179,7 +179,7 @@ class CellInfo
         }
         else if (cell instanceof byte[])
         {
-            value = StringUtilities.encode(cell as byte[])
+            value = StringUtilities.encode((byte[])cell)
             dataType = 'binary'
         }
         else if (cell instanceof Point2D)
@@ -199,7 +199,7 @@ class CellInfo
         }
         else if (cell instanceof GroovyMethod)
         {
-            GroovyMethod method = cell as GroovyMethod
+            GroovyMethod method = (GroovyMethod)cell
             isUrl = StringUtilities.hasContent(method.url)
             value = isUrl ? method.url : method.cmd
             dataType = 'method'
@@ -207,7 +207,7 @@ class CellInfo
         }
         else if (cell instanceof StringUrlCmd)
         {
-            StringUrlCmd strCmd = cell as StringUrlCmd
+            StringUrlCmd strCmd = (StringUrlCmd)cell
             value = strCmd.url
             dataType = 'string'
             isUrl = true
@@ -215,7 +215,7 @@ class CellInfo
         }
         else if (cell instanceof BinaryUrlCmd)
         {
-            BinaryUrlCmd binCmd = cell as BinaryUrlCmd
+            BinaryUrlCmd binCmd = (BinaryUrlCmd)cell
             value = binCmd.url
             dataType = 'binary'
             isUrl = true
@@ -223,7 +223,7 @@ class CellInfo
         }
         else if (cell instanceof GroovyTemplate)
         {
-            GroovyTemplate templateCmd = cell as GroovyTemplate
+            GroovyTemplate templateCmd = (GroovyTemplate)cell
             isUrl = StringUtilities.hasContent(templateCmd.url)
             value = isUrl ? templateCmd.url : templateCmd.cmd
             dataType = 'template'
@@ -231,7 +231,7 @@ class CellInfo
         }
         else if (cell instanceof Range)
         {
-            Range range = cell as Range
+            Range range = (Range)cell
             isUrl = false
             value = formatForEditing(range)
             dataType = 'range'
@@ -239,7 +239,7 @@ class CellInfo
         }
         else if (cell instanceof RangeSet)
         {
-            RangeSet set = cell as RangeSet
+            RangeSet set = (RangeSet)cell
             isUrl = false
             StringBuilder builder = new StringBuilder()
             int len = set.size()
@@ -562,11 +562,11 @@ class CellInfo
         {
             if ('bigdec' == type)
             {
-                return new BigDecimal(val as double)
+                return new BigDecimal((double)val)
             }
             else if ('float' == type)
             {
-                return (val as Double).floatValue()
+                return ((Double)val).floatValue()
             }
             return val
         }
@@ -582,15 +582,15 @@ class CellInfo
             }
             else if ('byte' == type)
             {
-                return (val as Long).byteValue()
+                return ((Long)val).byteValue()
             }
             else if ('short' == type)
             {
-                return ((val as Long).shortValue())
+                return (((Long)val).shortValue())
             }
             else if ('bigdec' == type)
             {
-                return new BigDecimal(val as long)
+                return new BigDecimal((long)val)
             }
             return val
         }
@@ -600,7 +600,7 @@ class CellInfo
         }
         else if (val instanceof String)
         {
-            val = (val as String).trim()
+            val = ((String)val).trim()
             if (StringUtilities.isEmpty(type))
             {
                 return val
@@ -650,7 +650,7 @@ class CellInfo
             {
                 try
                 {
-                    Date date = Converter.convert(val, Date.class) as Date
+                    Date date = (Date)Converter.convert(val, Date.class)
                     return (date == null) ? val : date
                 }
                 catch (Exception ignored)
@@ -770,7 +770,7 @@ class CellInfo
         }
         else if (o instanceof Boolean)
         {
-            builder.append((o as Boolean) ? 'true' : 'false')
+            builder.append(((Boolean)o) ? 'true' : 'false')
         }
         else if (o instanceof Double)
         {
@@ -789,7 +789,7 @@ class CellInfo
         }
         else if (o instanceof BigDecimal)
         {
-            builder.append((o as BigDecimal).stripTrailingZeros().toPlainString())
+            builder.append(((BigDecimal)o).stripTrailingZeros().toPlainString())
             builder.append('G')
         }
         else if (o instanceof BigInteger)
@@ -833,7 +833,7 @@ class CellInfo
         }
         else if (val instanceof BigDecimal)
         {
-            BigDecimal x = val as BigDecimal
+            BigDecimal x = (BigDecimal)val
             String s = x.stripTrailingZeros().toPlainString()
             if (s.contains("."))
             {
@@ -851,7 +851,7 @@ class CellInfo
         }
         else if (val instanceof Date)
         {
-            return getDateAsString(val as Date)
+            return getDateAsString((Date)val)
         }
         else if (val == null)
         {
@@ -879,8 +879,8 @@ class CellInfo
         }
         else if (val instanceof Range)
         {
-            Range range = val as Range
-            return formatForEditing(range.low) + ', ' + formatForEditing(range.high)
+            Range range = (Range)val
+            return "${formatForEditing(range.low)}, ${formatForEditing(range.high)}"
         }
         return val.toString()
     }
