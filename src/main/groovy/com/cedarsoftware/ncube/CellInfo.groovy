@@ -59,6 +59,86 @@ class CellInfo
     private static final UNSUPPORTED_TYPE = 'bogusType'
     private static final Pattern DECIMAL_REGEX = ~/[.]/
     private static final Pattern HEX_DIGIT = ~/[0-9a-fA-F]+/
+    private static final Map<String, Closure> typeConversion = [:]
+
+    static
+    {
+        Closure stringToString = { Object val, String type, boolean cache -> return val }
+        typeConversion[null] = stringToString
+        typeConversion[''] = stringToString
+        typeConversion['string'] = stringToString
+        typeConversion['boolean'] = { Object val, String type, boolean cache ->
+            String bool = (String)val
+            if ('true'.equalsIgnoreCase(bool) || 'false'.equalsIgnoreCase(bool))
+            {
+                return 'true'.equalsIgnoreCase((String) val)
+            }
+            throw new IllegalArgumentException("Boolean must be 'true' or 'false'.  Case does not matter.")
+        }
+        typeConversion['byte'] = { Object val, String type, boolean cache -> return Converter.convert(val, byte.class) }
+        typeConversion['short'] = { Object val, String type, boolean cache -> return Converter.convert(val, short.class) }
+        typeConversion['int'] = { Object val, String type, boolean cache -> return Converter.convert(val, int.class) }
+        typeConversion['long'] = { Object val, String type, boolean cache -> return Converter.convert(val, long.class) }
+        typeConversion['double'] = { Object val, String type, boolean cache -> return Converter.convert(val, double.class) }
+        typeConversion['float'] = { Object val, String type, boolean cache -> return Converter.convert(val, float.class) }
+        typeConversion['exp'] = { Object val, String type, boolean cache -> return new GroovyExpression((String)val, null, cache) }
+        typeConversion['method'] = { Object val, String type, boolean cache -> return new GroovyMethod((String) val, null, cache) }
+        typeConversion['template'] = { Object val, String type, boolean cache -> return new GroovyTemplate((String)val, null, cache) }
+        Closure stringToDate = { Object val, String type, boolean cache ->
+            try
+            {
+                Date date = (Date)Converter.convert(val, Date.class)
+                return (date == null) ? val : date
+            }
+            catch (Exception ignored)
+            {
+                throw new IllegalArgumentException("Could not parse ${type}': ${val}")
+            }
+        }
+        typeConversion['date'] = stringToDate
+        typeConversion['datetime'] = stringToDate   // synonym for 'date'
+        typeConversion['binary'] = { Object val, String type, boolean cache ->  // convert hex string "10AF3F" as byte[]
+            String hex = (String)val
+            if (hex.length() % 2 != 0)
+            {
+                throw new IllegalArgumentException('Binary (hex) values must have an even number of digits.')
+            }
+            if (!HEX_DIGIT.matcher(hex).matches())
+            {
+                throw new IllegalArgumentException('Binary (hex) values must contain only the numbers 0 thru 9 and letters A thru F.')
+            }
+            return StringUtilities.decode((String) val)
+        }
+        typeConversion['bigint'] = { Object val, String type, boolean cache -> return new BigInteger((String) val) }
+        typeConversion['bigdec'] = { Object val, String type, boolean cache -> return new BigDecimal((String) val) }
+        typeConversion['latlon'] = { Object val, String type, boolean cache ->
+            Matcher m = Regexes.valid2Doubles.matcher((String) val)
+            if (!m.matches())
+            {
+                throw new IllegalArgumentException(String.format('Invalid Lat/Long value (%s)', val))
+            }
+
+            return new LatLon((double)Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+        }
+        typeConversion['point2d'] = { Object val, String type, boolean cache ->
+            Matcher m = Regexes.valid2Doubles.matcher((String) val)
+            if (!m.matches())
+            {
+                throw new IllegalArgumentException(String.format('Invalid Point2D value (%s)', val))
+            }
+            return new Point2D((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
+        }
+        typeConversion['point3d'] = { Object val, String type, boolean cache ->
+            Matcher m = Regexes.valid3Doubles.matcher((String) val)
+            if (!m.matches())
+            {
+                throw new IllegalArgumentException(String.format('Invalid Point3D value (%s)', val))
+            }
+            return new Point3D((double) Converter.convert(m.group(1), double.class),
+                    (double) Converter.convert(m.group(2), double.class),
+                    (double) Converter.convert(m.group(3), double.class))
+        }
+    }
 
     private static final ThreadLocal<DecimalFormat> decimalIntFormat = new ThreadLocal<DecimalFormat>() {
         DecimalFormat initialValue()
@@ -601,126 +681,12 @@ class CellInfo
         else if (val instanceof String)
         {
             val = ((String)val).trim()
-            if (StringUtilities.isEmpty(type))
-            {
-                return val
-            }
-            else if ('boolean' == type)
-            {
-                String bool = (String)val
-                if ('true'.equalsIgnoreCase(bool) || 'false'.equalsIgnoreCase(bool))
-                {
-                    return 'true'.equalsIgnoreCase((String) val)
-                }
-                throw new IllegalArgumentException("Boolean must be 'true' or 'false'.  Case does not matter.")
-            }
-            else if ('byte' == type)
-            {
-                return Converter.convert(val, byte.class)
-            }
-            else if ('short' == type)
-            {
-                return Converter.convert(val, short.class)
-            }
-            else if ('int' == type)
-            {
-                return Converter.convert(val, int.class)
-            }
-            else if ('long' == type)
-            {
-                return Converter.convert(val, long.class)
-            }
-            else if ('double' == type)
-            {
-                return Converter.convert(val, double.class)
-            }
-            else if ('float' == type)
-            {
-                return Converter.convert(val, float.class)
-            }
-            else if ('exp' == type)
-            {
-                return new GroovyExpression((String)val, null, cache)
-            }
-            else if ('method' == type)
-            {
-                return new GroovyMethod((String) val, null, cache)
-            }
-            else if ('date' == type || 'datetime' == type)
-            {
-                try
-                {
-                    Date date = (Date)Converter.convert(val, Date.class)
-                    return (date == null) ? val : date
-                }
-                catch (Exception ignored)
-                {
-                    throw new IllegalArgumentException("Could not parse '" + type + "': " + val)
-                }
-            }
-            else if ('template' == type)
-            {
-                return new GroovyTemplate((String)val, null, cache)
-            }
-            else if ('string' == type)
-            {
-                return val
-            }
-            else if ('binary' == type)
-            {   // convert hex string "10AF3F" as byte[]
-                String hex = (String)val
-                if (hex.length() % 2 != 0)
-                {
-                    throw new IllegalArgumentException('Binary (hex) values must have an even number of digits.')
-                }
-                if (!HEX_DIGIT.matcher(hex).matches())
-                {
-                    throw new IllegalArgumentException('Binary (hex) values must contain only the numbers 0 thru 9 and letters A thru F.')
-                }
-                return StringUtilities.decode((String) val)
-            }
-            else if ('bigint' == type)
-            {
-                return new BigInteger((String) val)
-            }
-            else if ('bigdec' == type)
-            {
-                return new BigDecimal((String)val)
-            }
-            else if ('latlon' == type)
-            {
-                Matcher m = Regexes.valid2Doubles.matcher((String) val)
-                if (!m.matches())
-                {
-                    throw new IllegalArgumentException(String.format('Invalid Lat/Long value (%s)', val))
-                }
-
-                return new LatLon((double)Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
-            }
-            else if ('point2d' == type)
-            {
-                Matcher m = Regexes.valid2Doubles.matcher((String) val)
-                if (!m.matches())
-                {
-                    throw new IllegalArgumentException(String.format('Invalid Point2D value (%s)', val))
-                }
-                return new Point2D((double) Converter.convert(m.group(1), double.class), (double) Converter.convert(m.group(2), double.class))
-            }
-            else if ('point3d' == type)
-            {
-                Matcher m = Regexes.valid3Doubles.matcher((String) val)
-                if (!m.matches())
-                {
-                    throw new IllegalArgumentException(String.format('Invalid Point3D value (%s)', val))
-                }
-                return new Point3D((double) Converter.convert(m.group(1), double.class),
-                        (double) Converter.convert(m.group(2), double.class),
-                        (double) Converter.convert(m.group(3), double.class))
-            }
-            else
+            Closure method = typeConversion[type]
+            if (method == null)
             {
                 throw new IllegalArgumentException("Unknown value: ${type} for 'type' field")
             }
+            return method(val, type, cache)
         }
         else if (val.class.array)
         {   // Legacy support - remove once we drop support for array type (can be done using GroovyExpression).
