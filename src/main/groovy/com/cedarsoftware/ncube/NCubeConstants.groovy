@@ -44,6 +44,7 @@ interface NCubeConstants
     final String SEARCH_OUTPUT = 'output'
     final String SEARCH_ALLOW_SYS_INFO = 'allowSysInfo'
 
+    final String SYS_ADVICE = 'sys.advice'
     final String SYS_APP = 'sys.app'
     final String SYS_BOOTSTRAP = 'sys.bootstrap'
     final String SYS_PROTOTYPE = 'sys.prototype'

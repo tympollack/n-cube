@@ -1,6 +1,6 @@
 ### Revision History
 * 4.1.22-SNAPSHOT
-  * --
+  * Added ability to define advice for an app using `sys.advice` cube.
 * 4.1.21
   * Bug fix: Return `null` from deprecated `NCubeController` methods `getCubeRawJson()` and `getCubeRawJsonBytes()` when `NCube` does not exist.
   * Added better exception and error message for invalid reference axes and transforms.

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
+import org.springframework.cache.guava.GuavaCache
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -969,15 +970,16 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             synchronized (ncubeCacheManager)
             {
+                String cacheKey = appId.cacheKey()
                 // Clear NCube cache
-                Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
+                Cache cubeCache = ncubeCacheManager.getCache(cacheKey)
                 cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
 
                 GroovyBase.clearCache(appId)
                 NCubeGroovyController.clearCache(appId)
 
                 // Clear Advice cache
-                Cache adviceCache = adviceCacheManager.getCache(appId.cacheKey())
+                Cache adviceCache = adviceCacheManager.getCache(cacheKey)
                 adviceCache.clear()
 
                 // Clear ClassLoader cache
@@ -1149,13 +1151,45 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         if (ncube && adviceCacheManager instanceof GCacheManager)
         {
-            ((GCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.cacheKey(), {String key, Object value ->
+            ApplicationID appId = ncube.applicationID
+            String cacheKey = appId.cacheKey()
+            GCacheManager acm = (GCacheManager)adviceCacheManager
+            if (ncube.name != SYS_ADVICE)
+            {
+                addSysAdviceAdvices(acm.getCache(cacheKey), appId)
+            }
+            acm.applyToEntries(cacheKey, {String key, Object value ->
                 final Advice advice = value as Advice
                 final String wildcard = key.replace("${advice.name}/", "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)
                 final Axis axis = ncube.getAxis('method')
                 addAdviceToMatchedCube(advice, Pattern.compile(regex), ncube, axis)
             })
+        }
+    }
+
+    private void addSysAdviceAdvices(Cache cache, ApplicationID appId)
+    {
+        com.google.common.cache.Cache gCache = ((GuavaCache)cache).nativeCache
+        Iterator i = gCache.asMap().entrySet().iterator()
+        if (i.hasNext())
+        {
+            return
+        }
+        NCube sysAdviceCube = getCube(appId, SYS_ADVICE)
+        if (!sysAdviceCube)
+        {
+            return
+        }
+        Axis adviceAxis = sysAdviceCube.getAxis('advice')
+        if (!adviceAxis)
+        {
+            throw new IllegalStateException("sys.advice is malformed for app: ${appId}")
+        }
+        for (Column column : adviceAxis.columns)
+        {
+            Map map = sysAdviceCube.getMap([advice: column.value, attribute: new HashSet()])
+            addAdvice(appId, (String)map.pattern, (Advice)map.expression)
         }
     }
 
