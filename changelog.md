@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.23-SNAPSHOT
+  * Made transitive dependency on logback, optional in pom.xml.  This will stop the dependency from become a dependency to those who consume n-cube as a library.
 * 4.1.22
   * `NCube.fromSimpleJson(inputStream)` has been sped up by about 33% and uses much less memory when loading an n-cube.
   * Replaced a few `search()` calls with `doCubesExist()`.
