@@ -3182,21 +3182,33 @@ class NCube<T>
         cellIdToken[JsonToken.VALUE_NUMBER_INT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
             Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             Long id = parser.valueAsLong
-            Collection colIds = (Collection)input[(PARSE_COL_IDS)]
+            if (!userIdToUniqueId.containsKey(id))
+            {
+                return state
+            }
+            Set colIds = (Set)input[(PARSE_COL_IDS)]
             colIds.add(userIdToUniqueId[id])
             return state
         }
         cellIdToken[JsonToken.VALUE_STRING] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
             Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             String id = parser.text
-            Collection colIds = (Collection)input[(PARSE_COL_IDS)]
+            if (!userIdToUniqueId.containsKey(id))
+            {
+                return state
+            }
+            Set colIds = (Set)input[(PARSE_COL_IDS)]
             colIds.add(userIdToUniqueId[id])
             return state
         }
         cellIdToken[JsonToken.VALUE_NUMBER_FLOAT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
             Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             Double id = parser.valueAsDouble
-            Collection colIds = (Collection)input[(PARSE_COL_IDS)]
+            if (!userIdToUniqueId.containsKey(id))
+            {
+                return state
+            }
+            Set colIds = (Set)input[(PARSE_COL_IDS)]
             colIds.add(userIdToUniqueId[id])
             return state
         }

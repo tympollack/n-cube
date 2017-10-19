@@ -101,7 +101,7 @@ class TestJsonFormatter extends NCubeBaseTest
         println "New time: ${newTime / 1000000.0d} ms"
     }
 
-    @Ignore
+    @Test
     void testCanParse()
     {
         List<String> fileNames = allTestFiles
