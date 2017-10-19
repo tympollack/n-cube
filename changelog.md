@@ -1,6 +1,7 @@
 ### Revision History
-* 4.1.22-SNAPSHOT
-  * Replaced a few search calls with `doCubesExist`.
+* 4.1.22
+  * `NCube.fromSimpleJson(inputStream)` has been sped up by about 33% and uses much less memory when loading an n-cube.
+  * Replaced a few `search()` calls with `doCubesExist()`.
   * Added ability to define advice for an app using `sys.advice` cube.
 * 4.1.21
   * Bug fix: Return `null` from deprecated `NCubeController` methods `getCubeRawJson()` and `getCubeRawJsonBytes()` when `NCube` does not exist.
