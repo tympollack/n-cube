@@ -54,22 +54,23 @@ class TestJsonFormatter extends NCubeBaseTest
     @Ignore
     void testFoo()
     {
-        int runs = 1
+        int runs = 5
         long oldTime = 0
         long newTime = 0
 
         NCube<String> states2 = (NCube<String>) NCubeBuilder.discrete1D
         states2.applicationID = ApplicationID.testAppId.asVersion('1.0.0').asHead().asRelease()
         ncubeRuntime.addCube(states2)
-        File file = new File('/Users/jsnyder4/Development/IdeaProjects/n-cube/src/test/resources/sys.bootstrap.multi.api.json')
+//        File file = new File('/Users/jsnyder4/Development/IdeaProjects/n-cube/src/test/resources/sys.bootstrap.multi.api.json')
 //        File file = new File('/Users/jsnyder4/Development/mdm.WC.gz')
+        File file = new File('/workspace/n-cube/src/test/resources/mdm.WC.gz')
 
         NCube oldCube = null
         NCube newCube = null
 
         for (int i=0; i < runs; i++)
         {
-            InputStream is1 = new BufferedInputStream(new FileInputStream(file), 65536)
+            InputStream is1 = new GZIPInputStream(new FileInputStream(file), 65536)
             long oldStart = System.nanoTime()
 //            oldCube = NCube.fromSimpleJsonOld(is1)
             long oldStop = System.nanoTime()
@@ -77,9 +78,9 @@ class TestJsonFormatter extends NCubeBaseTest
 
 //            println "Goin' from the old to the new!"
 
-            InputStream is2 = new BufferedInputStream(new FileInputStream(file), 65536)
+            InputStream is2 = new BufferedInputStream(new GZIPInputStream(new FileInputStream(file), 65536))
             long newStart  = System.nanoTime()
-//            newCube = NCube.fromSimpleJson(is2)
+            newCube = NCube.fromSimpleJson(is2)
             long newStop = System.nanoTime()
             newTime += (newStop - newStart)
 
@@ -114,19 +115,19 @@ class TestJsonFormatter extends NCubeBaseTest
 //            println "begin parse: ${fileName}"
             try
             {
-//                NCube oldCube = NCube.fromSimpleJsonOld(isOld)
-//                NCube newCube = NCube.fromSimpleJson(isNew)
-//                parsed.add(fileName)
-//                List<Delta> deltas = DeltaProcessor.getDeltaDescription(newCube, oldCube)
-//                if (oldCube == newCube && deltas.size() == 0)
-//                {
-//                    equals.add(fileName)
-//                }
-//                else
-//                {
-//                    println fileName
-//                    println deltas
-//                }
+                NCube oldCube = NCube.fromSimpleJsonOld(isOld)
+                NCube newCube = NCube.fromSimpleJson(isNew)
+                parsed.add(fileName)
+                List<Delta> deltas = DeltaProcessor.getDeltaDescription(newCube, oldCube)
+                if (oldCube == newCube && deltas.size() == 0)
+                {
+                    equals.add(fileName)
+                }
+                else
+                {
+                    println fileName
+                    println deltas
+                }
             }
             catch (Exception e)
             {
@@ -138,32 +139,6 @@ class TestJsonFormatter extends NCubeBaseTest
         println "parsed: ${parsed.size()}"
         println "failed: ${failed.size()}"
         println "equals: ${equals.size()}"
-    }
-
-    @Ignore
-    void testBigFileJackson()
-    {
-        File file = new File('/workspace/n-cube/src/test/resources/foo.gz')
-
-        for (int i=0; i < 3; i++)
-        {
-            println "Test ${i + 1}"
-            InputStream inputStream = new FileInputStream(file)
-            long start = System.nanoTime()
-            NCube.createCubeFromStream(inputStream)
-            long stop = System.nanoTime()
-            long a = stop - start
-            println "  Jackson empty parse time ${a / 1000000}"
-
-            inputStream = new GZIPInputStream(new FileInputStream(file))
-            start = System.nanoTime()
-            JsonReader.jsonToMaps(inputStream, [:])   // read into Map of Map representation in memory
-            stop = System.nanoTime()
-            long b = stop - start
-            println "  json-io to memory time ${b / 1000000}"
-            println "  Improvement: ${b / a} times faster"
-            println()
-        }
     }
 
     @Test

@@ -2680,12 +2680,24 @@ class NCube<T>
     private static final Map<JsonToken, Closure> cellIdToken = [:]
     private static final Map<JsonToken, Closure> cellKeyToken = [:]
     private static final Map<Object, Closure> parserValue = [:]
-
-    private static final Map<String, Closure> ncubeField = [:]
-    private static final Map<String, Closure> axisField = [:]
-    private static final Map<String, Closure> columnField = [:]
-    private static final Map<String, Closure> cellField = [:]
-    private static final Map<String, Closure> cellKeyField = [:]
+    private static final Map<Object, Closure> ncubeField = [:]
+    private static final Map<Object, Closure> axisField = [:]
+    private static final Map<Object, Closure> columnField = [:]
+    private static final Map<Object, Closure> cellField = [:]
+    private static final Map<Object, Closure> cellKeyField = [:]
+    
+    private static final int PARSE_USERID_TO_UNIQUE = 1
+    private static final int PARSE_META_PROPERTY = 2
+    private static final int PARSE_BASE_AXIS_ID = 3
+    private static final int PARSE_NCUBE_PROPS = 4
+    private static final int PARSE_AXIS_OBJ = 5
+    private static final int PARSE_AXIS_PROPS = 6
+    private static final int PARSE_COL_IDS = 7
+    private static final int PARSE_COL_OBJ = 8
+    private static final int PARSE_COL_PROPS = 9
+    private static final int PARSE_CELL_OBJ = 10
+    private static final int PARSE_CELL_PROPS = 11
+    private static final int PARSE_TEMP_COLS = 12
 
     static
     {
@@ -2693,7 +2705,7 @@ class NCube<T>
             Closure method = fieldMap[fieldName]
             if (method == null)
             {
-                method = fieldMap['m3t4Pr0p']
+                method = fieldMap[(PARSE_META_PROPERTY)]
                 state = (Map)method(ncube, state, parser, token, input, fieldName)
             }
             else
@@ -2706,7 +2718,7 @@ class NCube<T>
             Closure method = parserValue[token]
             if (method == null)
             {
-                throw new IllegalStateException("WTF?!?!")
+                throw new IllegalStateException("Unexpected parser state, no method for token: ${token}")
             }
             return method(parser)
         }
@@ -2770,8 +2782,8 @@ class NCube<T>
                 boolean defCache = getBoolean(input, DEFAULT_CELL_VALUE_CACHE)
                 ncube.setDefaultCellValue(CellInfo.parseJsonValue(value, defUrl, defType, defCache))
             }
-            transformMetaProperties((Map)input['ncubeProps'])
-            ncube.addMetaProperties((Map)input['ncubeProps'])
+            transformMetaProperties((Map)input[(PARSE_NCUBE_PROPS)])
+            ncube.addMetaProperties((Map)input[(PARSE_NCUBE_PROPS)])
             ncube.removeMetaProperty('ruleMode')
             ncube.removeMetaProperty('sha1')
             return state
@@ -2811,15 +2823,15 @@ class NCube<T>
             input[DEFAULT_CELL_VALUE_CACHE] = getParserValue(parser, token)
             return state
         }
-        ncubeField['m3t4Pr0p'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
-            ((Map)input['ncubeProps'])[fieldName] = getParserValue(parser, token)
+        ncubeField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+            ((Map)input[(PARSE_NCUBE_PROPS)])[fieldName] = getParserValue(parser, token)
             return state
         }
 
         axisToken[JsonToken.START_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            input['axisMap'] = [:]
-            input['tempColumns'] = []
-            input['axisProps'] = [:]
+            input[(PARSE_AXIS_OBJ)] = [:]
+            input[(PARSE_TEMP_COLS)] = []
+            input[(PARSE_AXIS_PROPS)] = [:]
             return state
         }
         axisToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -2829,26 +2841,27 @@ class NCube<T>
         }
         axisToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
             Axis axis
-            long axisId
-            Map axisMap = (Map)input['axisMap']
-            Map axisProps = (Map)input['axisProps']
+            Map axisObj = (Map)input[(PARSE_AXIS_OBJ)]
+            Map axisProps = (Map)input[(PARSE_AXIS_PROPS)]
             transformMetaProperties(axisProps)
-            AxisType type = (AxisType)axisMap['type']
-            List<Map> tempColumns = (List)input['tempColumns']
-            Map<Object, Long> userIdToUniqueId = (Map)input['userIdToUniqueId']
+            AxisType type = (AxisType)axisObj['type']
+            List<Map> tempColumns = (List)input[(PARSE_TEMP_COLS)]
+            Map<Object, Long> userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             boolean isRef = getBoolean(axisProps, 'isRef')
-            String axisName = (String)axisMap['name']
-            boolean hasDefault = getBoolean(axisMap, 'hasDefault')
+            String axisName = (String)axisObj['name']
+            boolean hasDefault = getBoolean(axisObj, 'hasDefault')
+            Long axisIdLong = axisObj['id']
+            long axisId
 
-            if (axisMap.id)
+            if (axisIdLong)
             {
-                axisId = axisMap.id as Long
+                axisId = axisIdLong
             }
             else
             {    // Older n-cube format with no 'id' on the 'axes' in the JSON
-                long idBase = (long)input['idBase']
+                long idBase = (long)input[(PARSE_BASE_AXIS_ID)]
                 axisId = idBase++
-                input['idBase'] = idBase
+                input[(PARSE_BASE_AXIS_ID)] = idBase
             }
 
             axisProps.remove('id')
@@ -2870,10 +2883,10 @@ class NCube<T>
                 if (tempColumns)
                 {
                     tempColumns.each { Map column ->
-                        Column col = axis.getColumnById((Long)column.id)
+                        Column col = axis.getColumnById((Long)column['id'])
                         if (col)
                         {    // skip deleted columns
-                            Map columnProps = (Map)column['columnProps']
+                            Map columnProps = (Map)column[(PARSE_COL_PROPS)]
                             transformMetaProperties(columnProps)
                             Iterator<Map.Entry<String, Object>> i = columnProps.entrySet().iterator()
                             while (i.hasNext())
@@ -2891,14 +2904,14 @@ class NCube<T>
             }
             else
             {
-                final int preferredOrder = getLong(axisMap, 'preferredOrder').intValue()
+                final int preferredOrder = getLong(axisObj, 'preferredOrder').intValue()
                 boolean fireAll = true
-                if (axisMap.containsKey('fireAll'))
+                if (axisObj.containsKey('fireAll'))
                 {
-                    fireAll = getBoolean(axisMap, 'fireAll')
+                    fireAll = getBoolean(axisObj, 'fireAll')
                 }
 
-                axis = new Axis(axisName, (AxisType)axisMap['type'], (AxisValueType)axisMap['valueType'], (Boolean)axisMap['hasDefault'], preferredOrder, axisId, fireAll)
+                axis = new Axis(axisName, (AxisType)axisObj['type'], (AxisValueType)axisObj['valueType'], (Boolean)axisObj['hasDefault'], preferredOrder, axisId, fireAll)
                 ncube.addAxis(axis)
                 axis.metaProps = new CaseInsensitiveMap<>()
                 axis.metaProps.putAll(axisProps)
@@ -2915,16 +2928,18 @@ class NCube<T>
                 // Temporary - eventually should be removed.  Fixes rule columns with no or non-unique names
                 healUnamedRules(type, tempColumns as Object[])
 
-                for (Map col  : tempColumns)
+                for (Map col : tempColumns)
                 {
                     String colType = (String)col['type']
                     String colName = (String)col['name']
                     String url = (String)col['url']
+                    Map columnProps = (Map)col[(PARSE_COL_PROPS)]
                     boolean cache = getBoolean(col, 'cache')
                     Column colAdded
-                    Long suggestedId = (col['id'] instanceof Long) ? (Long)col['id']: null
+                    Object colId = col['id']
+                    Long suggestedId = (colId instanceof Long) ? (Long)colId: null
 
-                    if (axisMap['type'] == AxisType.DISCRETE || axisMap['type'] == AxisType.NEAREST)
+                    if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
                     {
                         Comparable value = (Comparable)CellInfo.parseJsonValue(col['value'], null, colType, false)
                         colAdded = axis.addColumn(value, colName, suggestedId)
@@ -2951,14 +2966,14 @@ class NCube<T>
                     }
                     else
                     {
-                        throw new IllegalArgumentException("Unsupported Axis Type '${axisMap.type}' for simple JSON input, axis: ${axisName}, cube: ${ncube.name}")
+                        throw new IllegalArgumentException("Unsupported Axis Type '${axisObj.type}' for simple JSON input, axis: ${axisName}, cube: ${ncube.name}")
                     }
-                    transformMetaProperties((Map)col['columnProps'])
-                    colAdded.addMetaProperties((Map)col['columnProps'])
+                    transformMetaProperties(columnProps)
+                    colAdded.addMetaProperties(columnProps)
 
-                    if (col['id'] != null)
+                    if (colId != null)
                     {
-                        userIdToUniqueId[(Object)col['id']] = colAdded.id
+                        userIdToUniqueId[colId] = colAdded.id
                     }
                 }
             }
@@ -2971,31 +2986,31 @@ class NCube<T>
         }
 
         axisField['id'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['id'] = parser.valueAsLong
+            ((Map)input[(PARSE_AXIS_OBJ)])['id'] = parser.valueAsLong
             return state
         }
         axisField['name'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['name'] = parser.text
+            ((Map)input[(PARSE_AXIS_OBJ)])['name'] = parser.text
             return state
         }
         axisField['type'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['type'] = AxisType.valueOf(parser.text)
+            ((Map)input[(PARSE_AXIS_OBJ)])['type'] = AxisType.valueOf(parser.text)
             return state
         }
         axisField['valueType'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['valueType'] = AxisValueType.valueOf(parser.text)
+            ((Map)input[(PARSE_AXIS_OBJ)])['valueType'] = AxisValueType.valueOf(parser.text)
             return state
         }
         axisField['hasDefault'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['hasDefault'] = getParserValue(parser, token)
+            ((Map)input[(PARSE_AXIS_OBJ)])['hasDefault'] = getParserValue(parser, token)
             return state
         }
         axisField['preferredOrder'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['preferredOrder'] = parser.valueAsInt
+            ((Map)input[(PARSE_AXIS_OBJ)])['preferredOrder'] = parser.valueAsInt
             return state
         }
         axisField['fireAll'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['axisMap'])['fireAll'] = getParserValue(parser, token)
+            ((Map)input[(PARSE_AXIS_OBJ)])['fireAll'] = getParserValue(parser, token)
             return state
         }
         axisField['columns'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3005,14 +3020,14 @@ class NCube<T>
             }
             return columnToken
         }
-        axisField['m3t4Pr0p'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
-            ((Map)input['axisProps'])[fieldName] = getParserValue(parser, token)
+        axisField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+            ((Map)input[(PARSE_AXIS_PROPS)])[fieldName] = getParserValue(parser, token)
             return state
         }
 
         columnToken[JsonToken.START_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            input['columnMap'] = [:]
-            input['columnProps'] = [:]
+            input[(PARSE_COL_OBJ)] = [:]
+            input[(PARSE_COL_PROPS)] = [:]
             return state
         }
         columnToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3021,22 +3036,24 @@ class NCube<T>
             return fieldClosure(ncube, state, parser, token, input, columnField, fieldName)
         }
         columnToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            Map axisMap = (Map)input['axisMap']
-            Map column = (Map)input['columnMap']
-            List<Map> tempColumns = (List)input['tempColumns']
-            if (column.value == null)
+            Map column = (Map)input[(PARSE_COL_OBJ)]
+            // Put column's prop map inside column_obj map so that it is together when tempColumns is processed on end axis
+            column[(PARSE_COL_PROPS)] = input[(PARSE_COL_PROPS)]
+            List<Map> tempColumns = (List)input[(PARSE_TEMP_COLS)]
+            tempColumns.add(column)
+            
+            if (column['value'] == null)
             {
-                if (column.id == null)
+                if (column['id'] == null)
                 {
+                    Map axisMap = (Map)input[(PARSE_AXIS_OBJ)]
                     throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: ${axisMap.name}, cube: ${ncube.name}")
                 }
                 else
                 {   // Allows you to skip setting both id and value to the same value.
-                    column.value = column.id
+                    column['value'] = column['id']
                 }
             }
-            column['columnProps'] = input['columnProps']
-            tempColumns.add(column)
             return state
         }
         columnToken[JsonToken.END_ARRAY] = {NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3044,41 +3061,41 @@ class NCube<T>
         }
 
         columnField['id'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['columnMap'])['id'] = getParserValue(parser, token)
+            ((Map)input[(PARSE_COL_OBJ)])['id'] = getParserValue(parser, token)
             return state
         }
         columnField['value'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
             Object key = token
-            if (((Map)input['axisMap'])['type'] == AxisType.SET)
+            if (((Map)input[(PARSE_AXIS_OBJ)])['type'] == AxisType.SET)
             {
                 key = "${AxisType.SET}_${token.name()}".toString()
             }
-            ((Map)input['columnMap'])['value'] = getParserValue(parser, key)
+            ((Map)input[(PARSE_COL_OBJ)])['value'] = getParserValue(parser, key)
             return state
         }
         columnField['name'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['columnMap'])['name'] = parser.text
+            ((Map)input[(PARSE_COL_OBJ)])['name'] = parser.text
             return state
         }
         columnField['url'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['columnMap'])['url'] = parser.text
+            ((Map)input[(PARSE_COL_OBJ)])['url'] = parser.text
             return state
         }
         columnField['type'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['columnMap'])['type'] =  parser.text
+            ((Map)input[(PARSE_COL_OBJ)])['type'] =  parser.text
             return state
         }
         columnField['cache'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['columnMap'])['cache'] = getParserValue(parser, token)
+            ((Map)input[(PARSE_COL_OBJ)])['cache'] = parser.text
             return state
         }
-        columnField['m3t4Pr0p'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
-            ((Map)input['columnProps'])[fieldName] = getParserValue(parser, token)
+        columnField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+            ((Map)input[(PARSE_COL_PROPS)])[fieldName] = getParserValue(parser, token)
             return state
         }
 
         cellToken[JsonToken.START_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            input['cellMap'] = [:]
+            input[(PARSE_CELL_OBJ)] = [:]
             return state
         }
         cellToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3087,13 +3104,25 @@ class NCube<T>
             return fieldClosure(ncube, state, parser, token, input, cellField, fieldName)
         }
         cellToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            Map cellMap = (Map)input['cellMap']
-            Object v = CellInfo.parseJsonValue(cellMap.value, (String)cellMap.url, (String)cellMap.type, getBoolean(cellMap, 'cache'))
-            Set colIds = (Set)input['colIds']
-            JsonObject keys = (JsonObject)input['cellKey']
+            Map cellMap = (Map)input[(PARSE_CELL_OBJ)]
+            Object v = CellInfo.parseJsonValue(cellMap['value'], (String)cellMap['url'], (String)cellMap['type'], getBoolean(cellMap, 'cache'))
+            Set colIds = (Set)input[(PARSE_COL_IDS)]
+            Set<Long> ids = (Set)cellMap['id']
 
-            if (keys)
+            if (ids != null)
             {
+                try
+                {
+                    ncube.setCellById((T)v, ids)
+                }
+                catch (InvalidCoordinateException ignore)
+                {
+                    LOG.debug("Orphaned cell on n-cube: ${ncube.name}, ids: ${colIds}")
+                }
+            }
+            else
+            {
+                Map keys = (Map)input['cellKey']
                 for (entry in keys.entrySet())
                 {
                     keys[entry.key] = CellInfo.parseJsonValue(entry.value, null, null, false)
@@ -3107,18 +3136,6 @@ class NCube<T>
                     LOG.debug("Orphaned cell on n-cube: ${ncube.name}, coord: ${keys}")
                 }
             }
-            else
-            {
-                Set<Long> ids = (Set)cellMap.id
-                try
-                {
-                    ncube.setCellById((T)v, ids)
-                }
-                catch (InvalidCoordinateException ignore)
-                {
-                    LOG.debug("Orphaned cell on n-cube: ${ncube.name}, ids: ${colIds}")
-                }
-            }
             return state
         }
         cellToken[JsonToken.END_ARRAY] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3130,7 +3147,7 @@ class NCube<T>
             {
                 throw new IllegalStateException("Expecting start array '[' for cell id but instead found: ${token}")
             }
-            input['colIds'] = new LinkedHashSet<>()
+            ((Set)input[(PARSE_COL_IDS)]).clear()
             return cellIdToken
         }
         cellField['key'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3142,61 +3159,49 @@ class NCube<T>
             return cellKeyToken
         }
         cellField['value'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['cellMap'])['value'] = getParserValue(parser, token)
+            ((Map)input[(PARSE_CELL_OBJ)])['value'] = getParserValue(parser, token)
             return state
         }
         cellField['type'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['cellMap'])['type'] = parser.text
+            ((Map)input[(PARSE_CELL_OBJ)])['type'] = parser.text
             return state
         }
         cellField['url'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['cellMap'])['url'] = parser.text
+            ((Map)input[(PARSE_CELL_OBJ)])['url'] = parser.text
             return state
         }
         cellField['cache'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['cellMap'])['cache'] = parser.text
+            ((Map)input[(PARSE_CELL_OBJ)])['cache'] = parser.text
             return state
         }
 
         cellIdToken[JsonToken.END_ARRAY] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            ((Map)input['cellMap'])['id'] = (Set)input['colIds']
+            ((Map)input[(PARSE_CELL_OBJ)])['id'] = input[(PARSE_COL_IDS)]
             return cellToken
         }
         cellIdToken[JsonToken.VALUE_NUMBER_INT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            Map userIdToUniqueId = (Map)input['userIdToUniqueId']
-            Set colIds = (Set)input['colIds']
+            Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             Long id = parser.valueAsLong
-            if (!userIdToUniqueId.containsKey(id))
-            {
-                return state
-            }
+            Collection colIds = (Collection)input[(PARSE_COL_IDS)]
             colIds.add(userIdToUniqueId[id])
             return state
         }
         cellIdToken[JsonToken.VALUE_STRING] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            Map userIdToUniqueId = (Map)input['userIdToUniqueId']
-            Set colIds = (Set)input['colIds']
+            Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             String id = parser.text
-            if (!userIdToUniqueId.containsKey(id))
-            {
-                return state
-            }
+            Collection colIds = (Collection)input[(PARSE_COL_IDS)]
             colIds.add(userIdToUniqueId[id])
             return state
         }
         cellIdToken[JsonToken.VALUE_NUMBER_FLOAT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
-            Map userIdToUniqueId = (Map)input['userIdToUniqueId']
-            Set colIds = (Set)input['colIds']
+            Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
             Double id = parser.valueAsDouble
-            if (!userIdToUniqueId.containsKey(id))
-            {
-                return state
-            }
+            Collection colIds = (Collection)input[(PARSE_COL_IDS)]
             colIds.add(userIdToUniqueId[id])
             return state
         }
 
-        cellKeyToken[JsonToken.END_OBJECT] = {NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+        cellKeyToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
             return cellToken
         }
         cellKeyToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
@@ -3205,7 +3210,7 @@ class NCube<T>
             return fieldClosure(ncube, state, parser, token, input, cellKeyField, fieldName)
         }
 
-        cellKeyField['m3t4Pr0p'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+        cellKeyField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
             Closure method = parserValue[token]
             if (method == null)
             {
@@ -3214,7 +3219,6 @@ class NCube<T>
             ((JsonObject)input['cellKey'])[fieldName] = method(parser)
             return state
         }
-
     }
 
     private static <T> NCube<T> parseJsonPrint(JsonParser parser)
@@ -3238,12 +3242,13 @@ class NCube<T>
         Map state = ncubeToken
         NCube<T> ncube = new NCube('tmp')
         Map input = [
-                idBase: 1L,
-                userIdToUniqueId: new CaseInsensitiveMap<>(),
-                ncubeProps: [:],
-                axisProps: [:],
-                columnProps: [:],
-                cellProps: [:]
+                (PARSE_BASE_AXIS_ID): 1L,
+                (PARSE_USERID_TO_UNIQUE): new CaseInsensitiveMap(),
+                (PARSE_NCUBE_PROPS): [:],
+                (PARSE_AXIS_PROPS): [:],
+                (PARSE_COL_PROPS): [:],
+                (PARSE_CELL_PROPS): [:],
+                (PARSE_COL_IDS): new LinkedHashSet()
         ]
 
         while (!parser.closed)
@@ -3350,7 +3355,7 @@ class NCube<T>
                 if (columns)
                 {
                     columns.each { Map column ->
-                        Column col = newAxis.getColumnById((Long)column.id)
+                        Column col = newAxis.getColumnById((long)column['id'])
                         if (col)
                         {    // skip deleted columns
                             Iterator<Map.Entry<String, Object>> i = column.entrySet().iterator()
