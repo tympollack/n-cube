@@ -78,7 +78,7 @@ class TestJsonFormatter extends NCubeBaseTest
 
 //            println "Goin' from the old to the new!"
 
-            InputStream is2 = new BufferedInputStream(new GZIPInputStream(new FileInputStream(file), 65536))
+            InputStream is2 = new GZIPInputStream(new FileInputStream(file), 65536)
             long newStart  = System.nanoTime()
             newCube = NCube.fromSimpleJson(is2)
             long newStop = System.nanoTime()
