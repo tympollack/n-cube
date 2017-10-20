@@ -49,7 +49,7 @@ class NCubeConfiguration
     @Value('${ncube.perm.cache.concurrency:16}') int concurrencyPermCache
 
     @Value('${ncube.allow.mutable.methods:false}') boolean allowMutableMethods
-    @Value('${ncube.accepted.domains}') String ncubeAcceptedDomains
+    @Value('${ncube.accepted.domains:}') String ncubeAcceptedDomains
     @Value('${ncube.target.scheme:http}') String scheme
     @Value('${ncube.target.host:localhost}') String host
     @Value('${ncube.target.port:9000}') int port
