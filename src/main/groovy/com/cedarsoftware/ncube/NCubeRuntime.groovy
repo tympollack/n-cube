@@ -11,6 +11,7 @@ import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
@@ -18,6 +19,7 @@ import org.springframework.cache.guava.GuavaCache
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
@@ -41,16 +43,18 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestClient
+class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestClient, DisposableBean
 {
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
+    private static AtomicInteger instanceCount = new AtomicInteger(0)
     private static final Logger LOG = LoggerFactory.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
     protected final CallableBean bean
+    private volatile boolean alive = true
     private final boolean allowMutableMethods
     private final String beanName
     @Value('${ncube.cache.refresh.min:75}') int cacheRefreshIntervalMin
@@ -71,7 +75,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
         
         def refresh = {
-            while (true)
+            while (alive)
             {
                 Thread.sleep(1000 * 60 * cacheRefreshIntervalMin)
                 GCacheManager cacheManager = (GCacheManager) ncubeCacheManager
@@ -104,9 +108,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             }
         }
         Thread t = new Thread(refresh)
-        t.name = 'NcubeCacheRefresher'
+        t.name = "NcubeCacheRefresher${instanceCount.incrementAndGet()}"
         t.daemon = true
         t.start()
+    }
+
+    void destroy() throws Exception
+    {
+        alive = false
     }
 
     /**

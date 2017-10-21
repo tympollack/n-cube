@@ -2925,7 +2925,7 @@ class NCube<T>
                 }
 
                 // Temporary - eventually should be removed.  Fixes rule columns with no or non-unique names
-                healUnamedRules(type, tempColumns as Object[])
+                healUnamedRules(type, tempColumns)
 
                 for (Map col : tempColumns)
                 {
@@ -3416,7 +3416,7 @@ class NCube<T>
                 }
 
                 // Temporary - eventually should be removed.  Fixes rule columns with no or non-unique names
-                healUnamedRules(type, columns)
+                healUnamedRules(type, columns as List)
 
                 // Read columns
                 for (col in columns)
@@ -3594,7 +3594,7 @@ class NCube<T>
         return ncube
     }
 
-    private static void healUnamedRules(AxisType type, Object[] columns)
+    private static void healUnamedRules(AxisType type, List columns)
     {
         if (type != AxisType.RULE)
         {
@@ -3606,7 +3606,7 @@ class NCube<T>
 
         for (Object col : columns)
         {
-            Map column = col as Map
+            Map column = (Map)col
             String name = column.name
             if (!name || names.contains(name))
             {
