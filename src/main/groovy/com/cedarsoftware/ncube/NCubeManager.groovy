@@ -574,22 +574,27 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
             if ([Delta.Location.AXIS, Delta.Location.AXIS_META, Delta.Location.COLUMN, Delta.Location.COLUMN_META].contains(delta.location))
             {
                 String axisName
-                switch (delta.location)
+                if (delta.location == Delta.Location.AXIS)
                 {
-                    case Delta.Location.AXIS:
-                        axisName = ((delta.sourceVal ?: delta.destVal) as Axis).name
-                        break
-                    case Delta.Location.AXIS_META:
-                    case Delta.Location.COLUMN:
-                        axisName = delta.locId as String
-                        break
-                    case Delta.Location.COLUMN_META:
-                        axisName = (delta.locId as Map<String, Object>).axis
-                        break
-                    default:
-                        throw new IllegalArgumentException("Invalid properties on delta, no changes will be merged, app: ${appId}, cube: ${cubeName}, user: ${getUserId()}")
+                    axisName = ((delta.sourceVal ?: delta.destVal) as Axis).name
                 }
-                assertPermissions(appId, cubeName + '/' + axisName, Action.UPDATE)
+                else if (delta.location == Delta.Location.AXIS_META)
+                {
+                    axisName = delta.locId as String
+                }
+                else if (delta.location == Delta.Location.COLUMN)
+                {
+                    axisName = delta.locId as String
+                }
+                else if (delta.location == Delta.Location.COLUMN_META)
+                {
+                    axisName = (delta.locId as Map<String, Object>).axis
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Invalid properties on delta, no changes will be merged, app: ${appId}, cube: ${cubeName}, user: ${getUserId()}")
+                }
+                assertPermissions(appId, "${cubeName}/${axisName}", Action.UPDATE)
             }
         }
 

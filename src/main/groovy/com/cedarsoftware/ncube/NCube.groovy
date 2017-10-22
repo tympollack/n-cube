@@ -4096,263 +4096,241 @@ class NCube<T>
         List<Delta> columnReorders = []
         for (Delta delta : deltas)
         {
-            switch (delta.location)
+            if (delta.location == Delta.Location.NCUBE)
             {
-                case Delta.Location.NCUBE:
-                    switch (delta.locId)
-                    {
-                        case 'NAME':
-                            name = delta.destVal
-                            break
+                if ('NAME'.equals(delta.locId))
+                {
+                    name = delta.destVal
+                }
+                else if ('DEFAULT_CELL'.equals(delta.locId))
+                {
+                    CellInfo cellInfo = delta.destVal as CellInfo
+                    Object cellValue = cellInfo.isUrl ?
+                            CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
+                            CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
+                    setDefaultCellValue((T) cellValue)
+                }
+            }
+            else if (delta.location == Delta.Location.CELL)
+            {
+                Set<Long> coords = delta.locId as Set<Long>
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    setCellById((T) (delta.destVal as CellInfo).recreate(), coords)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    removeCellById(coords)
+                }
+            }
+            else if (delta.location == Delta.Location.NCUBE_META)
+            {
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    MapEntry entry = delta.destVal as MapEntry
+                    setMetaProperty(entry.key as String, entry.value)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    MapEntry entry = delta.sourceVal as MapEntry
+                    removeMetaProperty(entry.key as String)
+                }
+            }
+            else if (delta.location == Delta.Location.AXIS)
+            {
+                Axis receiverAxis = delta.sourceVal as Axis
+                Axis transmitterAxis = delta.destVal as Axis
 
-                        case 'DEFAULT_CELL':
-                            CellInfo cellInfo = delta.destVal as CellInfo
-                            Object cellValue = cellInfo.isUrl ?
-                                    CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
-                                    CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
-                            setDefaultCellValue((T) cellValue)
-                            break
+                if (delta.type == Delta.Type.ADD)
+                {
+                    if (getAxis(transmitterAxis.name) == null)
+                    {   // Only add if not already there.
+                        addAxis(transmitterAxis)
                     }
+                }
+                else if (delta.type == Delta.Type.UPDATE)
+                {
+                    if (receiverAxis)
+                    {
+                        receiverAxis.columnOrder = transmitterAxis.columnOrder
+                        receiverAxis.fireAll = transmitterAxis.fireAll
+                    }
+                }
+                if (delta.type == Delta.Type.DELETE)
+                {
+                    deleteAxis(receiverAxis.name)
+                }
+            }
+            else if (delta.location == Delta.Location.AXIS_META)
+            {
+                Axis axis = getAxis(delta.locId as String)
+                if (!axis)
+                {
                     break
+                }
 
-                case Delta.Location.NCUBE_META:
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            MapEntry entry = delta.destVal as MapEntry
-                            setMetaProperty(entry.key as String, entry.value)
-                            break
-
-                        case Delta.Type.DELETE:
-                            MapEntry entry = delta.sourceVal as MapEntry
-                            removeMetaProperty(entry.key as String)
-                            break
-                    }
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    MapEntry entry = delta.destVal as MapEntry
+                    axis.setMetaProperty(entry.key as String, entry.value)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    MapEntry entry = delta.sourceVal as MapEntry
+                    axis.removeMetaProperty(entry.key as String)
+                }
+            }
+            else if (delta.location == Delta.Location.COLUMN)
+            {
+                String axisName = delta.locId as String
+                Axis axis = getAxis(axisName)
+                if (!axis)
+                {   // axis not found
                     break
+                }
 
-                case Delta.Location.AXIS:
-                    Axis receiverAxis = delta.sourceVal as Axis
-                    Axis transmitterAxis = delta.destVal as Axis
-
-                    switch (delta.type)
+                if (delta.type == Delta.Type.ADD)
+                {
+                    Column column = delta.destVal as Column
+                    if (column.default)
                     {
-                        case Delta.Type.ADD:
-                            if (getAxis(transmitterAxis.name) == null)
-                            {   // Only add if not already there.
-                                addAxis(transmitterAxis)
-                            }
-                            break
-
-                        case Delta.Type.UPDATE:
-                            if (receiverAxis)
-                            {
-                                receiverAxis.columnOrder = transmitterAxis.columnOrder
-                                receiverAxis.fireAll = transmitterAxis.fireAll
-                            }
-                            break
-
-                        case Delta.Type.DELETE:
-                            deleteAxis(receiverAxis.name)
-                            break
+                        if (!axis.hasDefaultColumn())
+                        {
+                            addColumn(axisName, null, column.columnName)
+                        }
                     }
+                    else
+                    {
+                        Column existingCol = axis.locateDeltaColumn(column)
+                        if (!existingCol || existingCol.default)
+                        {   // Only add column if it is not already there
+                            addColumn(axisName, column.value, column.columnName, column.id)
+                        }
+                    }
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    Column column = delta.sourceVal as Column
+                    Column existingCol = axis.locateDeltaColumn(column)
+                    if (axis.type == AxisType.RULE)
+                    {
+                        deleteColumn(axisName, existingCol.columnName ?: existingCol.id as Long)
+                    }
+                    else
+                    {
+                        deleteColumn(axisName, existingCol.value)
+                    }
+                }
+                else if (delta.type == Delta.Type.UPDATE)
+                {
+                    Column oldCol = delta.sourceVal as Column
+                    Column newCol = delta.destVal as Column
+                    Column existingCol = axis.locateDeltaColumn(oldCol)
+                    if (existingCol)
+                    {
+                        updateColumn(existingCol.id, newCol.value)
+                    }
+                }
+                else if (delta.type == Delta.Type.ORDER)
+                {
+                    columnReorders.add(delta)
+                }
+            }
+            else if (delta.location == Delta.Location.COLUMN_META)
+            {
+                Map<String, Object> helperId = delta.locId as Map<String, Object>
+                Axis axis = getAxis(helperId.axis as String)
+                if (!axis)
+                {
                     break
-
-                case Delta.Location.AXIS_META:
-                    Axis axis = getAxis(delta.locId as String)
-                    if (!axis)
-                    {
-                        break
-                    }
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            MapEntry entry = delta.destVal as MapEntry
-                            axis.setMetaProperty(entry.key as String, entry.value)
-                            break
-                        case Delta.Type.DELETE:
-                            MapEntry entry = delta.sourceVal as MapEntry
-                            axis.removeMetaProperty(entry.key as String)
-                            break
-                    }
+                }
+                Column column = axis.locateDeltaColumn(helperId.column as Column)
+                if (!column)
+                {
                     break
+                }
+                MapEntry oldPair = delta.sourceVal as MapEntry
+                MapEntry newPair = delta.destVal as MapEntry
 
-                case Delta.Location.COLUMN:
-                    String axisName = delta.locId as String
-                    Axis axis = getAxis(axisName)
-                    if (!axis)
-                    {   // axis not found
-                        break
-                    }
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                            Column column = delta.destVal as Column
-                            if (column.default)
-                            {
-                                if (!axis.hasDefaultColumn())
-                                {
-                                    addColumn(axisName, null, column.columnName)
-                                }
-                            }
-                            else
-                            {
-                                Column existingCol = axis.locateDeltaColumn(column)
-                                if (!existingCol || existingCol.default)
-                                {   // Only add column if it is not already there
-                                    addColumn(axisName, column.value, column.columnName, column.id)
-                                }
-                            }
-                            break
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    column.setMetaProperty(newPair.key as String, newPair.value)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    column.removeMetaProperty(oldPair.key as String)
+                }
+            }
+            else if (delta.location == Delta.Location.CELL_META)
+            {
+                // TODO - cell meta-properties not yet implemented
+            }
+            else if (delta.location == Delta.Location.TEST)
+            {
+                List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
 
-                        case Delta.Type.DELETE:
-                            Column column = delta.sourceVal as Column
-                            Column existingCol = axis.locateDeltaColumn(column)
-                            if (axis.type == AxisType.RULE)
-                            {
-                                deleteColumn(axisName, existingCol.columnName ?: existingCol.id as Long)
-                            }
-                            else
-                            {
-                                deleteColumn(axisName, existingCol.value)
-                            }
-                            break
-
-                        case Delta.Type.UPDATE:
-                            Column oldCol = delta.sourceVal as Column
-                            Column newCol = delta.destVal as Column
-                            Column existingCol = axis.locateDeltaColumn(oldCol)
-                            if (existingCol)
-                            {
-                                updateColumn(existingCol.id, newCol.value)
-                            }
-                            break
-
-                        case Delta.Type.ORDER:
-                            columnReorders.add(delta)
-                            break
-                    }
-                    break
-
-                case Delta.Location.COLUMN_META:
-                    Map<String, Object> helperId = delta.locId as Map<String, Object>
-                    Axis axis = getAxis(helperId.axis as String)
-                    if (!axis)
-                    {
-                        break
-                    }
-                    Column column = axis.locateDeltaColumn(helperId.column as Column)
-                    if (!column)
-                    {
-                        break
-                    }
-                    MapEntry oldPair = delta.sourceVal as MapEntry
-                    MapEntry newPair = delta.destVal as MapEntry
-
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            column.setMetaProperty(newPair.key as String, newPair.value)
-                            break
-
-                        case Delta.Type.DELETE:
-                            column.removeMetaProperty(oldPair.key as String)
-                            break
-                    }
-                    break
-
-                case Delta.Location.CELL:
-                    Set<Long> coords = delta.locId as Set<Long>
-
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            setCellById((T) (delta.destVal as CellInfo).recreate(), coords)
-                            break
-
-                        case Delta.Type.DELETE:
-                            removeCellById(coords)
-                            break
-                    }
-                    break
-
-                case Delta.Location.CELL_META:
-                    // TODO - cell meta-properties not yet implemented
-                    break
-
-                case Delta.Location.TEST:
-                    List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
-
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                            tests.add(delta.destVal as NCubeTest)
-                            break
-                        case Delta.Type.DELETE:
-                            String testName = delta.locId as String
-                            NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
-                            tests.remove(test)
-                            break
-                    }
-
-                    testData = tests.toArray()
-                    break
-
-                case Delta.Location.TEST_COORD:
-                    List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                if (delta.type == Delta.Type.ADD)
+                {
+                    tests.add(delta.destVal as NCubeTest)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
                     String testName = delta.locId as String
                     NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
-                    Map<String, CellInfo> coords = test.coord
-
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            Map.Entry<String, CellInfo> newCoordEntry = delta.destVal as Map.Entry<String, CellInfo>
-                            coords[newCoordEntry.key] = newCoordEntry.value
-                            break
-                        case Delta.Type.DELETE:
-                            Map.Entry<String, CellInfo> oldCoordEntry = delta.sourceVal as Map.Entry<String, CellInfo>
-                            coords.remove(oldCoordEntry.key)
-                            break
-                    }
-
-                    NCubeTest newTest = new NCubeTest(test.name, coords, test.assertions)
                     tests.remove(test)
-                    tests.add(newTest)
-                    testData = tests.toArray()
-                    break
+                }
+                testData = tests.toArray()
+            }
+            else if (delta.location == Delta.Location.TEST_COORD)
+            {
+                List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                String testName = delta.locId as String
+                NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                Map<String, CellInfo> coords = test.coord
 
-                case Delta.Location.TEST_ASSERT:
-                    List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
-                    String testName = delta.locId as String
-                    NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
-                    List<CellInfo> assertions = test.assertions.toList()
-                    CellInfo newAssert = delta.destVal as CellInfo
-                    CellInfo oldAssert = delta.sourceVal as CellInfo
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    Map.Entry<String, CellInfo> newCoordEntry = delta.destVal as Map.Entry<String, CellInfo>
+                    coords[newCoordEntry.key] = newCoordEntry.value
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    Map.Entry<String, CellInfo> oldCoordEntry = delta.sourceVal as Map.Entry<String, CellInfo>
+                    coords.remove(oldCoordEntry.key)
+                }
 
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                            assertions.add(newAssert)
-                            break
-                        case Delta.Type.UPDATE:
-                            assertions.remove(oldAssert)
-                            assertions.add(newAssert)
-                            break
-                        case Delta.Type.DELETE:
-                            assertions.remove(oldAssert)
-                            break
-                    }
+                NCubeTest newTest = new NCubeTest(test.name, coords, test.assertions)
+                tests.remove(test)
+                tests.add(newTest)
+                testData = tests.toArray()
+            }
+            else if (delta.location == Delta.Location.TEST_ASSERT)
+            {
+                List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                String testName = delta.locId as String
+                NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                List<CellInfo> assertions = test.assertions.toList()
+                CellInfo newAssert = delta.destVal as CellInfo
+                CellInfo oldAssert = delta.sourceVal as CellInfo
 
-                    NCubeTest newTest = new NCubeTest(test.name, test.coord, assertions.toArray() as CellInfo[])
-                    tests.remove(test)
-                    tests.add(newTest)
-                    testData = tests.toArray()
-                    break
+                if (delta.type == Delta.Type.ADD)
+                {
+                    assertions.add(newAssert)
+                }
+                else if (delta.type == Delta.Type.UPDATE)
+                {
+                    assertions.remove(oldAssert)
+                    assertions.add(newAssert)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    assertions.remove(oldAssert)
+                }
+
+                NCubeTest newTest = new NCubeTest(test.name, test.coord, assertions.toArray() as CellInfo[])
+                tests.remove(test)
+                tests.add(newTest)
+                testData = tests.toArray()
             }
         }
 
