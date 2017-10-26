@@ -1151,7 +1151,7 @@ class NCube<T>
 
         for (column in columns)
         {
-            coord[axisName] = column.valueThatMatches
+            coord[axisName] = wildcardAxis.getValueToLocateColumn(column)
             result[column.value] = getCell(coord, output, defaultValue)
         }
 
@@ -1214,7 +1214,7 @@ class NCube<T>
         for (row in rowAxis.columns)
         {
             whereVars.clear()
-            commandInput[rowAxisName] = row.valueThatMatches
+            commandInput[rowAxisName] = rowAxis.getValueToLocateColumn(row)
             long rowId = row.id
             ids.add(rowId)
 
@@ -1222,7 +1222,7 @@ class NCube<T>
             {
                 long whereId = column.id
                 ids.add(whereId)
-                commandInput[colAxisName] = column.valueThatMatches
+                commandInput[colAxisName] = colAxis.getValueToLocateColumn(column)
                 Object colKey = isColDiscrete ? column.value : column.columnName
                 whereVars[colKey] = getCellValue(cellz[ids], commandInput, output)
                 ids.remove(whereId)
@@ -2264,15 +2264,8 @@ class NCube<T>
         Map<Long, Long> oldToNewId = [:]
         for (Column oldCol : oldColumns)
         {   // Locate columns in O(1) to O(log n)
-            Column column
-            if (newAxis.type == AxisType.RULE)
-            {   // Rule columns are located by ID or rule name ('name' meta-property)
-                column = newAxis.findColumn(oldCol.columnName)
-            }
-            else
-            {   // Use value that exists on OLD column to locate NEW column
-                column = newAxis.findColumn(oldCol.valueThatMatches)
-            }
+            // Use value that exists on OLD column to locate NEW column
+            Column column = newAxis.findColumn(axis.getValueToLocateColumn(oldCol))
             if (column != null)
             {
                 oldToNewId[oldCol.id] = column.id
@@ -3754,7 +3747,7 @@ class NCube<T>
         NCube stub = duplicate(name)
         stub.axes.each { Axis axis ->
             axis.columns.each { Column column ->
-                stub.deleteColumn(axis.name, column.valueThatMatches)
+                stub.deleteColumn(axis.name, axis.getValueToLocateColumn(column))
             }
         }
         return stub
@@ -4434,26 +4427,8 @@ class NCube<T>
             {
                 continue
             }
-            Object value
-            if (axis.type == AxisType.RULE)
-            {   // Favor rule name first, then use column ID if no rule name exists.
-                Column column = axis.getColumnById(colId)
-                String name = column.columnName
-                if (name != null)
-                {
-                    value = name
-                }
-                else
-                {
-                    value = colId
-                }
-            }
-            else
-            {
-                Column column = axis.getColumnById(colId)
-                value = column.valueThatMatches
-            }
-            coord[axis.name] = value
+            Column column = axis.getColumnById(colId)
+            coord[axis.name] = axis.getValueToLocateColumn(column)
         }
         return coord
     }
