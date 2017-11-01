@@ -2699,6 +2699,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         List<NCubeInfoDto> restores = []
         List<NCubeInfoDto> rejects = []
         List<NCubeInfoDto> finalUpdates
+        String userId = getUserId()
 
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects, true)
 
@@ -2739,7 +2740,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                         NCube cube = mergeCubesIfPossible(branchCube, headCube, false)
                         if (cube != null)
                         {
-                            NCubeInfoDto mergedDto = persister.commitMergedCubeToHead(appId, cube, getUserId(), txId, notes)
+                            NCubeInfoDto mergedDto = persister.commitMergedCubeToHead(appId, cube, userId, requestUser, txId, notes)
                             merges.add(mergedDto)
                         }
                     }
@@ -2751,23 +2752,23 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                     rejects.add(updateCube)
                     break
                 default:
-                    throw new IllegalArgumentException("No change type on passed in cube to commit, user: ${getUserId()}")
+                    throw new IllegalArgumentException("No change type on passed in cube to commit, user: ${userId}")
             }
         }
 
-        finalUpdates = updates.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(updates), getUserId(), requestUser, txId, notes)
+        finalUpdates = updates.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(updates), userId, requestUser, txId, notes)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
-        ret[BRANCH_ADDS] = adds.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(adds), getUserId(), requestUser, txId, notes)
-        ret[BRANCH_DELETES] = deletes.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(deletes), getUserId(), requestUser, txId, notes)
+        ret[BRANCH_ADDS] = adds.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(adds), userId, requestUser, txId, notes)
+        ret[BRANCH_DELETES] = deletes.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(deletes), userId, requestUser, txId, notes)
         ret[BRANCH_UPDATES] = finalUpdates
-        ret[BRANCH_RESTORES] = restores.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(restores), getUserId(), requestUser, txId, notes)
+        ret[BRANCH_RESTORES] = restores.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(restores), userId, requestUser, txId, notes)
         ret[BRANCH_REJECTS] = rejects
 
         if (!rejects.empty)
         {
             int rejectSize = rejects.size()
-            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}, user: ${getUserId()}"
+            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}, user: ${userId}"
             throw new BranchMergeException(errorMessage, ret)
         }
         return ret

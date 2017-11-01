@@ -1,9 +1,12 @@
 ### Revision History
 * 4.1.23-SNAPSHOT
+  * Bug fix: Fix issues with default cell url and default values on default columns in NCube.fromSimpleJson.
   * Bug fix: Tests were not merged if the branch cube was changed.
+  * `create_hid` on database records when merging pull requests now shows the requested user instead of merging user.
   * `create_hid` on database records when copying branches now shows current user instead of copied user id.
   * Accepted domains for the CdnClassLoader is now an application property instead of part of `NCUBE_PARAMS`.
   * Made transitive dependency on logback, optional in pom.xml.  This will stop the dependency from become a dependency to those who consume n-cube as a library.
+  * Improved speed when parsing cells
 * 4.1.22
   * `NCube.fromSimpleJson(inputStream)` has been sped up by about 33% and uses much less memory when loading an n-cube.
   * Replaced a few `search()` calls with `doCubesExist()`.
