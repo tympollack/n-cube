@@ -198,7 +198,7 @@ ORDER BY abs(revision_number) DESC
 
     static NCubeInfoDto insertCube(Connection c, ApplicationID appId, String name, Long revision, byte[] cubeData,
                                    byte[] testData, String notes, boolean changed, String sha1, String headSha1,
-                                   String username, String methodName, String requestUser = null) throws SQLException
+                                   String username, String methodName) throws SQLException
     {
         PreparedStatement s = null
         try
@@ -221,8 +221,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             s.setString(10, headSha1)
             Timestamp now = nowAsTimestamp()
             s.setTimestamp(11, now)
-            String user = requestUser ?: username
-            s.setString(12, user)
+            s.setString(12, username)
             s.setBytes(13, cubeData)
             s.setBytes(14, testData)
             String note = createNote(username, now, notes)
@@ -241,7 +240,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             dto.status = appId.status
             dto.branch = appId.branch
             dto.createDate = now
-            dto.createHid = user
+            dto.createHid = username
             dto.notes = note
             dto.revision = Long.toString(revision)
 
@@ -799,7 +798,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
             byte[] cubeData = cube.cubeAsGzipJsonBytes
             String sha1 = cube.sha1()
 
-            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, noteText, false, sha1, null, username, methodName, requestUser)
+            insertCube(c, headAppId, cube.name, maxRevision, cubeData, testData, noteText, false, sha1, null, username, methodName)
             result = insertCube(c, appId, cube.name, revision > 0 ? ++revision : --revision, cubeData, testData, noteText, false, sha1, sha1, username,  methodName)
         })
         return result
@@ -873,7 +872,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 if (changeType)
                 {
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
-                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, noteText, false, sha1, null, username, 'commitCubes', requestUser)
+                    NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, noteText, false, sha1, null, username, 'commitCubes')
                     Map map1 = [head_sha1: sha1, create_dt: now, id: cubeId]
                     sql1.executeUpdate(map1, commitStmt)
                     dto.changed = false
