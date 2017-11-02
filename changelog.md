@@ -1,5 +1,6 @@
 ### Revision History
 * 4.1.23-SNAPSHOT
+  * Enhancement: `NCube.mapReduce()` now allows a defaultValue to be passed in (similar to `getCell()`), and the execution stack is maintained just like `getCell()`, and axes with default columns do not need to have input bound to them.
   * Moved search logic from `NCubeController` to `NCubeRuntime`.
   * Disallow search closure from NCE server.
   * Storage server can cache for the life of one operation to prevent the same cubes being loaded from reference axes.

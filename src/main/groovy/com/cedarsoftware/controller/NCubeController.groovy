@@ -190,6 +190,12 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     Object[] search(ApplicationID appId, String cubeNamePattern = null, String content = null, Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true])
     {
         appId = addTenant(appId)
+        if (options && options.containsKey(SEARCH_CLOSURE))
+        {
+            options.remove(SEARCH_CLOSURE)
+            options.remove(SEARCH_OUTPUT)
+        }
+
         List<NCubeInfoDto> cubeInfos = mutableClient.search(appId, cubeNamePattern, content, options)
         return cubeInfos as Object[]
     }

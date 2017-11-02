@@ -191,11 +191,6 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             cubeNamePattern = cubeNamePattern.trim()
         }
-        if (options && options.containsKey(SEARCH_CLOSURE))
-        {
-            options.remove(SEARCH_CLOSURE)
-            options.remove(SEARCH_OUTPUT)
-        }
         List<NCubeInfoDto> cubeInfos = (List<NCubeInfoDto>) bean.call(beanName, 'search', [appId, cubeNamePattern, content, options])
         Collections.sort(cubeInfos, new Comparator<NCubeInfoDto>() {
             int compare(NCubeInfoDto info1, NCubeInfoDto info2)

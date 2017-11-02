@@ -196,6 +196,10 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     @Test
     void testRuntimeSearchRemovesExistingSearchClosure()
     {
+        if (!NCubeAppContext.clientTest)
+        {
+            return
+        }
         NCube cube = NCubeBuilder.discrete1D
         cube.applicationID = BRANCH1
         mutableClient.createCube(cube)
@@ -209,8 +213,6 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, cube.name, null, options)
         assert 1 == dtos.size()
         assert cubeList.empty
-        assert !options.containsKey(SEARCH_CLOSURE)
-        assert !options.containsKey(SEARCH_OUTPUT)
     }
 
     @Test
