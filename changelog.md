@@ -1,5 +1,7 @@
 ### Revision History
 * 4.1.23-SNAPSHOT
+  * Moved search logic from `NCubeController` to `NCubeRuntime`.
+  * Disallow search closure from NCE server.
   * Storage server can cache for the life of one operation to prevent the same cubes being loaded from reference axes.
   * Bug fix: Fix issues with default cell url and default values on default columns in NCube.fromSimpleJson.
   * Bug fix: Tests were not merged if the branch cube was changed.
