@@ -2798,7 +2798,7 @@ class NCube<T>
                 if (token == JsonToken.START_OBJECT)
                 {
                     Set<Long> colIds = null
-                    JsonObject jsonObject = null
+                    Map keyMapId = null
                     Object value = null
                     String type = null
                     String url = null
@@ -2883,17 +2883,17 @@ class NCube<T>
                             }
                             else
                             {
-                                for (entry in jsonObject.entrySet())
+                                for (entry in keyMapId.entrySet())
                                 {
-                                    jsonObject[entry.key] = CellInfo.parseJsonValue(entry.value, null, null, false)
+                                    keyMapId[entry.key] = CellInfo.parseJsonValue(entry.value, null, null, false)
                                 }
                                 try
                                 {
-                                    ncube.setCell(v, jsonObject)
+                                    ncube.setCell(v, keyMapId)
                                 }
                                 catch (CoordinateNotFoundException ignore)
                                 {
-                                    LOG.debug("Orphaned cell on n-cube: ${ncube.name}, coord: ${jsonObject}")
+                                    LOG.debug("Orphaned cell on n-cube: ${ncube.name}, coord: ${keyMapId}")
                                 }
                             }
                             break
@@ -2917,7 +2917,7 @@ class NCube<T>
                             {
                                 throw new IllegalStateException("Expecting start object '{' for cell key but instead found: ${token}")
                             }
-                            jsonObject = new JsonObject()
+                            keyMapId = new CaseInsensitiveMap<>()
                             token = parser.nextToken()
                             while (!parser.closed)
                             {
@@ -2925,7 +2925,7 @@ class NCube<T>
                                 {
                                     String keyName = parser.text
                                     token = parser.nextToken()
-                                    jsonObject[keyName] = getParserValue(parser, token)
+                                    keyMapId[keyName] = getParserValue(parser, token)
                                     token = parser.nextToken()
                                 }
                                 else if (JsonToken.END_OBJECT == token)
