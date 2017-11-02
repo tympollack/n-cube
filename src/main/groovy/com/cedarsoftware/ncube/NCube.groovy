@@ -1230,12 +1230,15 @@ class NCube<T>
 
             whereVars.putAll(input ?: [:])
             def whereResult
-            if (where.maximumNumberOfParameters==1) {
+            if (where.maximumNumberOfParameters == 1)
+            {
                 whereResult = where.call(whereVars)
             }
-            else {
+            else
+            {
                 whereResult = where.call(whereVars,commandInput)
             }
+            
             if (whereResult)
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
