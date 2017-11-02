@@ -816,7 +816,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
         Sql sql = getSql(c)
         Sql sql1 = getSql(c)
         def map = [:]
-        Timestamp now = nowAsTimestamp()
         String searchStmt = "/* commitCubes */ SELECT n_cube_nm, revision_number, cube_value_bin, test_data_bin, sha1 FROM n_cube WHERE n_cube_id = :id"
         String commitStmt = "/* commitCubes */ UPDATE n_cube set head_sha1 = :head_sha1, changed = 0, create_dt = :create_dt WHERE n_cube_id = :id"
         String noteText = "merged pull request from [${requestUser}], txId: [${txId}], ${PR_NOTES_PREFIX}${notes}"
@@ -873,7 +872,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 {
                     byte[] testData = row.getBytes(TEST_DATA_BIN)
                     NCubeInfoDto dto = insertCube(c, headAppId, cubeName, maxRevision, jsonBytes, testData, noteText, false, sha1, null, username, 'commitCubes')
-                    Map map1 = [head_sha1: sha1, create_dt: now, id: cubeId]
+                    Map map1 = [head_sha1: sha1, create_dt: nowAsTimestamp(), id: cubeId]
                     sql1.executeUpdate(map1, commitStmt)
                     dto.changed = false
                     dto.changeType = changeType
@@ -1016,8 +1015,7 @@ AND tenant_cd = :tenant AND branch_id = :branch AND revision_number = :rev"""
         map.cube = buildName(cubeName)
         map.tenant = padTenant(c, appId.tenant)
         Long maxRev = null
-
-        sql.eachRow(map, """\
+        String stmt = """\
 /* rollbackCubes.findRollbackRevisionStatus */
 SELECT h.revision_number FROM
 (SELECT revision_number, head_sha1, create_dt FROM n_cube
@@ -1025,7 +1023,9 @@ WHERE ${buildNameCondition('n_cube_nm')} = :cube AND app_cd = :app AND version_n
 AND tenant_cd = :tenant AND branch_id = :branch AND sha1 = head_sha1) b
 JOIN n_cube h ON h.sha1 = b.head_sha1
 WHERE h.app_cd = :app AND h.branch_id = 'HEAD' AND h.tenant_cd = :tenant AND h.create_dt <= b.create_dt
-ORDER BY ABS(b.revision_number) DESC, ABS(h.revision_number) DESC""", 0, 1, { ResultSet row ->
+ORDER BY ABS(b.revision_number) DESC, ABS(h.revision_number) DESC"""
+
+        sql.eachRow(map, stmt, 0, 1, { ResultSet row ->
             maxRev = row.getLong('revision_number')
         });
         return maxRev != null && maxRev >= 0
