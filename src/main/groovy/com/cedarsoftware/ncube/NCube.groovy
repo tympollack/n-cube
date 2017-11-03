@@ -1183,6 +1183,10 @@ class NCube<T>
      * is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
      * can have it return less column/value pairs in the returned Map if you add only the columns you want returned
      * here.
+     * @param defaultValue Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.  Optional.
      * @return Map of Maps - The outer Map is keyed by the column values of all row columns.  If the row Axis is a discrete
      * axis, then the keys of the map are all the values of the columns.  If a non-discrete axis is used, then the keys
      * are the name meta-key for each column.  If a non-discrete axis is used and there are no name attributes on the columns,
@@ -1209,7 +1213,6 @@ class NCube<T>
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = new CaseInsensitiveMap()
         final Map whereVars = new CaseInsensitiveMap()
-        Map<Set<Long>, T> cellz = cells // local reference (non-field access = faster bytecode)
 
         for (row in rowAxis.columns)
         {
@@ -1229,16 +1232,8 @@ class NCube<T>
             }
 
             whereVars.putAll(input ?: [:])
-            def whereResult
-            if (where.maximumNumberOfParameters == 1)
-            {
-                whereResult = where.call(whereVars)
-            }
-            else
-            {
-                whereResult = where.call(whereVars,commandInput)
-            }
-            
+            def whereResult = where.maximumNumberOfParameters == 1 ? where.call(whereVars) : where.call(whereVars, commandInput)
+
             if (whereResult)
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)

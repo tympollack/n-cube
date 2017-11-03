@@ -190,7 +190,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     Object[] search(ApplicationID appId, String cubeNamePattern = null, String content = null, Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true])
     {
         appId = addTenant(appId)
-        if (options && options.containsKey(SEARCH_CLOSURE))
+        if (options)
         {
             options.remove(SEARCH_CLOSURE)
             options.remove(SEARCH_OUTPUT)
@@ -385,7 +385,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         return valuesToCellInfo(col.metaProperties)
     }
 
-    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where = 'true', Map input = [:], Map output = [:], Set columnsToSearch = [] as Set, Set columnsToReturn = [] as Set)
+    Map mapReduce(ApplicationID appId, String cubeName, String rowAxisName, String colAxisName, String where = 'true', Map input = [:], Map output = [:], Set columnsToSearch = [] as Set, Set columnsToReturn = [] as Set, Object defaultValue = null)
     {
         verifyAllowExecute('mapReduce')
         appId = addTenant(appId)
@@ -396,7 +396,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         {
             throw new IllegalArgumentException("Passed in 'where' clause: ${where}, is not evaluating to a Closure.  Make sure it is in the form (example): { Map input -> input.state == 'AZ' }")
         }
-        return ncube.mapReduce(rowAxisName, colAxisName, (Closure)whereClosure, input, output, columnsToSearch, columnsToReturn)
+        return ncube.mapReduce(rowAxisName, colAxisName, (Closure)whereClosure, input, output, columnsToSearch, columnsToReturn, defaultValue)
     }
 
     private static Map<String, CellInfo> valuesToCellInfo(Map<String, Object> metaProps)
