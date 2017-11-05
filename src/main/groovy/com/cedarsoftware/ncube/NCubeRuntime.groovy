@@ -1068,6 +1068,23 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         prepareCube(ncube, true)
     }
 
+    /**
+     * @return boolean true if the named cube is cached in the Runtime cache, false otherwise.  If the name is
+     * of a non-existent cube, the return value will be false.
+     */
+    boolean isCached(ApplicationID appId, String cubeName)
+    {
+        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey(cubeName))
+        String loName = cubeName.toLowerCase()
+        Cache.ValueWrapper wrapper = cubeCache.get(loName)
+        if (wrapper != null)
+        {
+            def value = wrapper.get()
+            return value instanceof NCube
+        }
+        return false
+    }
+    
     private NCube cacheCube(NCube ncube, boolean force = false)
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
@@ -1091,7 +1108,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
                     }
                     else
                     {
-                        LOG.info('Updating n-cube cache entry on an non-existing cube (cached = false) to an n-cube.')
+                        LOG.info('Updating n-cube cache entry on a non-existing cube (cached = false) to an n-cube.')
                         cubeCache.put(loName, ncube)
                     }
                 }

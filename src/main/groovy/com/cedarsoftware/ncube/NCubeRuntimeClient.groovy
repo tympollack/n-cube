@@ -27,6 +27,8 @@ interface NCubeRuntimeClient extends NCubeClient
 
     void clearCache(ApplicationID appId, Collection<String> cubeNames)
 
+    boolean isCached(ApplicationID appId, String cubeName)
+
     URL getActualUrl(ApplicationID appId, String url, Map input)
 
     String getUrlContent(ApplicationID appId, String url, Map input)
