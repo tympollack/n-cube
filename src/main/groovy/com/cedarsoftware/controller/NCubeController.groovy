@@ -1917,7 +1917,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         Set<Long> colIds = new HashSet<>()
         for (Object id : ids)
         {
-            colIds.add((Long)Converter.convert(id, Long.class))
+            colIds.add(Converter.convertToLong(id))
         }
         return colIds
     }

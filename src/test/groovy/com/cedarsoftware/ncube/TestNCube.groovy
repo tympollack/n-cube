@@ -5448,6 +5448,60 @@ class TestNCube extends NCubeBaseTest
         assert 'C1' == x
     }
 
+    @Test
+    void testGetCells()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'getCellsTest.json')
+        Object[] ids = [
+                [1000000000001, 2000000000001],
+                ['1000000000001', '2000000000002'],
+                [1000000000002, 2000000000001],
+                [1000000000002, 2000000000002]
+        ] as Object[]
+        Map input = [:]     // proves that no input still gets axis names bound (gender and age show up in inputUsed)
+        Map output = [:]
+        Object[] cellValues = ncube.getCells(ids, input, output, 13)
+        assert cellValues.length == 4
+
+        List list1 = cellValues[0] as List
+        List id1 = list1[0]
+        assert id1[0] == 1000000000001
+        assert id1[1] == 2000000000001
+        Map info1 = list1[1]
+        assert info1.type == 'boolean'
+        assert info1.value == 'true'
+
+        List list2 = cellValues[1] as List
+        List id2 = list2[0]
+        assert id2[0] == '1000000000001'       // proves that cell IDs can be Strings, longs, etc. (converter.convertToLong used internally)
+        assert id2[1] == '2000000000002'
+        Map info2 = list2[1]
+        assert info2.type == 'long'
+        assert info2.value == '10'
+
+        List list3 = cellValues[2] as List
+        List id3 = list3[0]
+        assert id3[0] == 1000000000002
+        assert id3[1] == 2000000000001
+        Map info3 = list3[1]
+        assert info3.type == 'boolean'
+        assert info3.value == 'true'
+
+        List list4 = cellValues[3] as List
+        List id4 = list4[0]
+        assert id4[0] == 1000000000002
+        assert id4[1] == 2000000000002
+        Map info4 = list4[1]
+        assert info4.type == 'int'
+        assert info4.value == '13'     // proves passed in 'defaultValue' for cell works
+
+        RuleInfo ruleInfo = ncube.getRuleInfo(output)
+        assert output.cell11 == true
+        assert output.cell21 == true    // prove same output used for all cells
+        assert ruleInfo.getInputKeysUsed().containsAll(['gender', 'age'])
+        assert ruleInfo.getInputKeysUsed().size() == 2
+    }
+
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 
