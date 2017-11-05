@@ -5192,13 +5192,9 @@ class TestNCube extends NCubeBaseTest
             ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH'}, [:], [:])
             fail 'Should have thrown an IllegalArgumentException'
         }
-        catch(IllegalArgumentException ex)
+        catch(IllegalArgumentException e)
         {
-            String message = ex.message
-            assert message.contains('row axis [key]')
-            assert message.contains('query axis [query]')
-            assert message.contains('bindings for axes [bind]')
-            assert message.contains('must be supplied')
+            assertContainsIgnoreCase(e.message,'row axis', 'query axis', 'Test.Select.MultiDimension', 'bind')
         }
     }
 
@@ -5212,13 +5208,9 @@ class TestNCube extends NCubeBaseTest
             ncube.mapReduce('key', 'query', { Map input -> input.foo == 'OH'}, [bind: 'invalid'], [:])
             fail 'Should have thrown a CoordinateNotFoundException'
         }
-        catch (CoordinateNotFoundException ex)
+        catch (CoordinateNotFoundException e)
         {
-            String message = ex.message
-            assert message.contains('Column [invalid]')
-            assert message.contains('axis [bind]')
-            assert message.contains('not found')
-            assert message.contains('cube [Test.Select.MultiDimension]')
+            assertContainsIgnoreCase(e.message,'invalid', 'not found', 'bind', 'Test.Select.MultiDimension')
         }
     }
 

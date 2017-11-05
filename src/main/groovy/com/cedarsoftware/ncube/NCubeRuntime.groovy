@@ -140,35 +140,14 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      * ]
      * </pre>
      */
-    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input)
+    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Map output = [:], Object defaultValue = null)
     {
-//        NCube ncube = getCubeInternal(appId, cubeName)
-//        Object[] ret = new Object[idArrays.length]
-//        Set key = new HashSet()
-//        int idx = 0
-//
-//        for (coord in idArrays)
-//        {
-//            for (item in coord)
-//            {
-//                key.add(Converter.convert(item, Long.class))
-//            }
-//            if (ncube.containsCellById(key))
-//            {
-//                ncube.getCellById()
-//                CellInfo cellInfo = new CellInfo(ncube.getCellById())
-//                cellInfo.collapseToUiSupportedTypes()
-//                ret[idx++] = [coord, cellInfo as Map]
-//            }
-//            else
-//            {
-//                ret[idx++] = [coord, [type:null, value:null]]
-//            }
-//            key.clear()
-//        }
-//
-//        return ret
-        return null
+        NCube ncube = getCubeInternal(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Unable to fetch requested cells. NCube: ${cubeName} not found, app: ${appId}")
+        }
+        return ncube.getCells(idArrays, input, output, defaultValue)
     }
 
     /**

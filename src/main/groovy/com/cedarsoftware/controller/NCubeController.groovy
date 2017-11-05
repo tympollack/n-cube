@@ -1060,12 +1060,12 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
      * ]
      * </pre>
      */
-    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input)
+    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Object defaultValue = null)
     {
         verifyAllowExecute("getCells")
         appId = addTenant(appId)
         NCubeRuntimeClient client = (NCubeRuntimeClient) mutableClient
-        Object[] ret = client.getCells(appId, cubeName, idArrays, input)
+        Object[] ret = client.getCells(appId, cubeName, idArrays, input, [:], defaultValue)
         return ret
     }
 
@@ -1095,6 +1095,10 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     {
         appId = addTenant(appId)
         NCube ncube = getCubeInternal(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Unable to fetch requested cells. NCube: ${cubeName} not found, app: ${appId}")
+        }
         Object[] ret = new Object[idArrays.length]
         Set key = new HashSet()
         int idx = 0
