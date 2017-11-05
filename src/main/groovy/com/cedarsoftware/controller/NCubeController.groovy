@@ -1107,7 +1107,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         {
             for (item in coord)
             {
-                key.add(Converter.convert(item, Long.class))
+                key.add(Converter.convertToLong(item))
             }
             if (ncube.containsCellById(key))
             {
@@ -1818,7 +1818,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
             {
                 try
                 {
-                    return Converter.convert(value, Long.class)
+                    return Converter.convertToLong(value)
                 }
                 catch (Exception ignored) { }
             }
@@ -1833,7 +1833,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
         // Try as a date (the code below supports numerous different date formats)
         try
         {
-            return Converter.convert(value, Date.class)
+            return Converter.convertToDate(value)
         }
         catch (Exception ignored) { }
 
@@ -1877,7 +1877,7 @@ class NCubeController implements NCubeConstants, RpmVisualizerConstants
     private static Map columnToMap(Column col)
     {
         Map map = [:]
-        map.id = Converter.convert(col.id, String.class)  // Stringify Long ID (Javascript safe if quoted)
+        map.id = Converter.convertToString(col.id)  // Stringify Long ID (Javascript safe if quoted)
         map.'@type' = Column.class.name
         if (col.metaProperties.size() > 0)
         {
