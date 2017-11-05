@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.25-SNAPSHOT
+  * --
 * 4.1.24
   * Enhancement: `NCube.getCells()` API added to support *Values* mode (default is *Formulas* mode).
   * Enhancement: `NCubeRuntime.isCached()` API added to allow testing whether an n-cube is cached.  Useful in unit tests. 
