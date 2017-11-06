@@ -1074,7 +1074,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      */
     boolean isCached(ApplicationID appId, String cubeName)
     {
-        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey(cubeName))
+        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
         String loName = cubeName.toLowerCase()
         Cache.ValueWrapper wrapper = cubeCache.get(loName)
         if (wrapper != null)
