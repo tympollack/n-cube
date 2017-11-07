@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.26-SNAPSHOT
+  * --
 * 4.1.25
   * Bug fix: `NCubeRuntime.isCached()` (just added) was giving incorrect results.  Test and fix added.
 * 4.1.24
