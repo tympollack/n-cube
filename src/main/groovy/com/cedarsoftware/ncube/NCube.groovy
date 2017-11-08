@@ -703,7 +703,6 @@ class NCube<T>
         final int dimensions = numDimensions
         final String[] axisNames = axisList.keySet().toArray(new String[dimensions])
         Map ctx = prepareExecutionContext(input, output)
-        Set zap = null
 
         while (run)
         {
@@ -718,7 +717,6 @@ class NCube<T>
                 while (true)
                 {
                     final Binding binding = new Binding(name, depth)
-                    zap = new CaseInsensitiveSet()
 
                     for (axis in axisList.values())
                     {
@@ -728,11 +726,6 @@ class NCube<T>
                         if (axis.type == AxisType.RULE)
                         {
                             Object conditionValue
-                            if (!input.containsKey(axisName))
-                            {
-                                input[axisName] = boundColumn.columnName
-                                zap.add(axisName)
-                            }
                             if (!cachedConditionValues.containsKey(boundColumn.id))
                             {   // Has the condition on the Rule axis been run this execution?  If not, run it and cache it.
                                 CommandCell cmd = (CommandCell) boundColumn.value
@@ -787,7 +780,6 @@ class NCube<T>
                         bindings.add(binding)
                         lastStatementValue = executeAssociatedStatement(input, output, ruleInfo, binding)
                     }
-                    zap.each { input.remove(it) }
 
                     // Step #3 increment counters (variable radix increment)
                     if (!incrementVariableRadixCount(counters, selectedColumns, axisNames))
@@ -803,13 +795,11 @@ class NCube<T>
             {
                 // ends this execution cycle
                 ruleInfo.ruleStopThrown()
-                zap?.each { input.remove(it) }
             }
             catch (RuleJump e)
             {
                 input = e.coord
                 run = true
-                zap?.each { input.remove(it) }
             }
         }
 
