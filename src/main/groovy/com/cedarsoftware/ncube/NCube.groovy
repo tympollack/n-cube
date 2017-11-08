@@ -1622,8 +1622,14 @@ class NCube<T>
             }
             key = ensureFullCoordinate(key)
             ensureInputBindings(commandInput, key)
-            def value = getCellById(key, commandInput, output, defaultValue)
-            CellInfo cellInfo = new CellInfo(value)
+            CellInfo cellInfo
+            try {
+                def value = getCellById(key, commandInput, output, defaultValue)
+                cellInfo = new CellInfo(value)
+            } catch (Exception e) {
+                cellInfo = new CellInfo(e.message)
+                LOG.error(e.message, e)
+            }
             ret[idx++] = [coord, cellInfo as Map]
         }
 
