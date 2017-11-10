@@ -844,6 +844,19 @@ class NCube<T>
         try
         {
             final Set<Long> colIds = binding.idCoordinate
+            for (Long id : binding.idCoordinate)
+            {
+                Axis axis = getAxisFromColumnId(id)
+                if (axis != null && axis.type == AxisType.RULE)
+                {
+                    Column column = axis.getColumnById(id)
+                    if (column != null && !input.containsKey(axis.name))
+                    {   // Rule name is not bound - temporarily bind it during rule statement execution
+                        input[axis.name] = "${column.columnName}"
+                    }
+                }
+            }
+
             T statementValue = getCellById(colIds, input, output)
             binding.value = statementValue
             return statementValue
@@ -874,6 +887,24 @@ class NCube<T>
             }
             binding.value = "[${msg}]"
             throw e
+        }
+        finally
+        {
+            for (Long id : binding.idCoordinate)
+            {
+                Axis axis = getAxisFromColumnId(id)
+                if (axis != null && axis.type == AxisType.RULE)
+                {
+                    Column column = axis.getColumnById(id)
+                    if (column != null)
+                    {   // Rule name is not bound - temporarily bind it during rule statement execution
+                        if (input[axis.name] instanceof GString)
+                        {
+                            input.remove(axis.name)
+                        }
+                    }
+                }
+            }
         }
     }
 

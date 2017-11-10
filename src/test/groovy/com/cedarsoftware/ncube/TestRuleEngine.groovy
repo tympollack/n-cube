@@ -39,7 +39,10 @@ class TestRuleEngine extends NCubeBaseTest
         ncube.getCell(input, output)
         output.remove('_rule')
         output.remove('return')
-        println output
+        assert output['use Test1']
+        assert output['default Test1']
+        assert output['use Test2']
+        assert output['default Test2']
     }
 
     // This test also tests ID-based ncube's specified in simple JSON format
