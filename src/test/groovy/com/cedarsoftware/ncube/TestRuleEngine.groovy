@@ -36,14 +36,44 @@ class TestRuleEngine extends NCubeBaseTest
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'ruleUsingAtandUse.json')
         Map input = [type:'USE']
         Map output = [:]
+        output.steps = []
         ncube.getCell(input, output)
         output.remove('_rule')
         output.remove('return')
-        assert output['use Test1']
-        assert output['default Test1']
-        assert output['use Test2']
-        assert output['default Test2']
+        List steps = (List)output.steps
+        assert 'use Test1' == steps[0]
+        assert 'default Test1' == steps[1]
+        assert 'use Test2' == steps[2]
+        assert 'default Test2' == steps[3]
+
+        input = [type:'AT']
+        output.steps = []
+        ncube.getCell(input, output)
+        output.remove('_rule')
+        output.remove('return')
+        steps = (List)output.steps
+        assert 'at Test1' == steps[0]
+        assert 'default Test1' == steps[1]
+        assert 'default Test2' == steps[2]
+        assert 'at Test2' == steps[3]
+        assert 'default Test1' == steps[4]
+        assert 'default Test2' == steps[5]
+
+        input = [type:'GO']
+        output.steps = []
+        ncube.getCell(input, output)
+        output.remove('_rule')
+        output.remove('return')
+        steps = (List)output.steps
+        assert 'go Test1' == steps[0]
+        assert 'default Test1' == steps[1]
+        assert 'default Test2' == steps[2]
+        assert 'go Test2' == steps[3]
+        assert 'default Test1' == steps[4]
+        assert 'default Test2' == steps[5]
+
     }
+
 
     // This test also tests ID-based ncube's specified in simple JSON format
     @Test

@@ -1706,14 +1706,23 @@ class NCube<T>
             key = ensureFullCoordinate(key)
             ensureInputBindings(commandInput, key)
             CellInfo cellInfo
-            try {
+            try
+            {
                 def value = getCellById(key, commandInput, output, defaultValue)
-                cellInfo = new CellInfo(value)
-            } catch (Exception e) {
-                cellInfo = new CellInfo(e.message)
-                LOG.error(e.message, e)
+                try
+                {
+                    cellInfo = new CellInfo(value)
+                    ret[idx++] = [coord, cellInfo as Map]
+                }
+                catch (Exception e)
+                {
+                    ret[idx++] = value.toString()
+                }
             }
-            ret[idx++] = [coord, cellInfo as Map]
+            catch (Exception e)
+            {
+                ret[idx++] = "err: ${e.message}".toString()
+            }
         }
 
         return ret
