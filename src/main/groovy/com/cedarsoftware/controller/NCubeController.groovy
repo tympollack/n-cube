@@ -1616,13 +1616,13 @@ class NCubeController implements NCubeConstants
     }
 
     @SuppressWarnings("GroovyUnusedDeclaration")
-    static void clearTestDatabase()
+    void clearTestDatabase()
     {
         NCubeAppContext.testServer.clearTestDatabase()
     }
 
     @SuppressWarnings("GroovyUnusedDeclaration")
-    static void clearPermCache()
+    void clearPermCache()
     {
         NCubeAppContext.testServer.clearPermCache()
     }
