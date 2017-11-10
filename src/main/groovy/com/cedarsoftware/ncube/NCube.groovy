@@ -1249,6 +1249,58 @@ class NCube<T>
         return matchingRows
     }
 
+    Map hyperMapReduce(String colAxisName, Closure where = { true }, Map input = [:], Map output = [:], Set columnsToSearch = null, Set columnsToReturn = null, Object defaultValue = null)
+    {
+        throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
+        throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
+
+        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
+        Set<String> axisNames = axisList.keySet()
+        Set<String> searchAxes = axisNames - colAxisName - input.keySet()
+        String rowAxisName = searchAxes.first()
+        Set<String> otherAxes = searchAxes - rowAxisName
+        Map result
+        if (otherAxes.empty)
+        {
+            result = mapReduce(rowAxisName, colAxisName, where, commandInput, output, columnsToSearch, columnsToReturn, defaultValue)
+        }
+        else
+        {
+            result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, commandInput, output, columnsToSearch, columnsToReturn, defaultValue)
+        }
+        return result
+    }
+
+    private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map input, Map output, Set columnsToSearch, Set columnsToReturn, Object defaultValue)
+    {
+        Map ret = [:]
+        String axisName = axes.first()
+        List<Column> columns = getAxis(axisName).columns
+        Set<String> otherAxes = axes - axisName
+        boolean noMoreAxes = otherAxes.empty
+        for (Column column : columns)
+        {
+            Map result
+            input[axisName] = column.value
+            if (noMoreAxes)
+            {
+                result = mapReduce(rowAxisName, colAxisName, where, input, output, columnsToSearch, columnsToReturn, defaultValue)
+                for (Map.Entry resultEntry : result)
+                {
+                    Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
+                    inputVal[rowAxisName] = resultEntry.key
+                    ret[inputVal] = resultEntry.value
+                }
+            }
+            else
+            {
+                result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, input, output, columnsToSearch, columnsToReturn, defaultValue)
+                ret.putAll(result)
+            }
+        }
+        return ret
+    }
+
     private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
     {
         Comparable key

@@ -1,5 +1,6 @@
 ### Revision History
 * 4.1.26-SNAPSHOT
+  * Add `NCube.hyperMapReduce` that allows mapReduce with multiple unknown axis values.
   * Add global menu `sys.menu.global` in `sys.app` which provides a template for all apps across the system. Application-specific menus override properties of the global menu.
 * 4.1.25
   * Bug fix: `NCubeRuntime.isCached()` (just added) was giving incorrect results.  Test and fix added.
