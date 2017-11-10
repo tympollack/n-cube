@@ -5088,6 +5088,133 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testHyperMapReduceWithComplexQuery()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.hyperMapReduce('query', { Map input -> input.foo == 'IN' || (input.bar instanceof Number && (input.bar as int )< 50)})
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['C']
+        assert row['foo'] == 'IN'
+        assert row['bar'] == 'something random'
+
+        row = queryResult['D']
+        assert row['foo'] == 'KY'
+        assert row['bar'] == 33
+
+        ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryMultiDimTestWithDefCol.json')
+        Set set = new HashSet()
+        queryResult = ncube.hyperMapReduce('query', { Map input, Map map ->
+            set.add(map.key)
+            input.foo == 'def-A-foo'
+        }, [:])
+
+        assert queryResult.size() == 1
+        assert set.contains('A')
+        assert set.contains('B')
+        assert set.size() == 2
+    }
+
+    @Test
+    void testHyperMapReduceWithLargeCube()
+    {
+        long start, stop
+        Map queryResult
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'mapReduceLargeCube.json')
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] })
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with no axes on input = " + (stop - start))
+        assert 14 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'AllOther'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage on input = " + (stop - start))
+        assert 5 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [sourceRisk: 'Building'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with sourceRisk on input = " + (stop - start))
+        assert 13 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [risk: 'PremisesOperations'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with risk on input = " + (stop - start))
+        assert 4 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [field: 'RateFactors'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with field on input = " + (stop - start))
+        assert 2 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'CommercialGeneralLiabilityCoverage', sourceRisk: 'Building'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage, sourceRisk on input = " + (stop - start))
+        assert 3 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'CommercialGeneralLiabilityCoverage', risk: 'PremisesOperations'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage, risk on input = " + (stop - start))
+        assert 4 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'CommercialGeneralLiabilityCoverage', field: 'coverages'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage, field on input = " + (stop - start))
+        assert 1 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [sourceRisk: 'Building', risk: 'ProductsCompletedOperations'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with sourceRisk, risk on input = " + (stop - start))
+        assert 10 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [sourceRisk: 'Building', field: 'Rates'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with sourceRisk, field on input = " + (stop - start))
+        assert 2 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [risk: 'ProductsCompletedOperations', field: 'Rates'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with risk, field on input = " + (stop - start))
+        assert 2 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'CommercialGeneralLiabilityCoverage', sourceRisk: 'CGLOperations', risk: 'PremisesOperations'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage, sourceRisk, risk on input = " + (stop - start))
+        assert 1 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'CommercialGeneralLiabilityCoverage', sourceRisk: 'CGLOperations', field: 'Limits'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage, sourceRisk, field on input = " + (stop - start))
+        assert 0 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [coverage: 'CommercialGeneralLiabilityCoverage', risk: 'PremisesOperations', field: 'coverages'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with coverage, risk, field on input = " + (stop - start))
+        assert 1 == queryResult.size()
+
+        start = System.currentTimeMillis()
+        queryResult = ncube.hyperMapReduce('trait', { Map input -> input['r:exists'] }, [sourceRisk: 'Building', risk: 'PremisesOperations', field: 'deductibles'])
+        stop = System.currentTimeMillis()
+        println("HyperMapReduce on large cube with sourceRisk, risk, field on input = " + (stop - start))
+        assert 1 == queryResult.size()
+    }
+
+    @Test
     void testMapReduceWithContains()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
