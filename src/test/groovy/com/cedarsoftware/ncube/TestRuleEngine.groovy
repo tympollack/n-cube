@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.util.CaseInsensitiveMap
+import groovy.transform.CompileStatic
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
@@ -27,7 +28,7 @@ import static org.junit.Assert.*
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-
+@CompileStatic
 class TestRuleEngine extends NCubeBaseTest
 {
     @Test
@@ -83,7 +84,7 @@ class TestRuleEngine extends NCubeBaseTest
         Axis state = ncube.getAxis 'state'
         assert state.columns[0].id != 10
 
-        Map input = [vehiclePrice: 5000.0, driveAge: 22, gender: 'male', vehicleCylinders: 8, state: 'TX']
+        Map<String, Object> input = [vehiclePrice: 5000.0, driveAge: 22, gender: 'male', vehicleCylinders: 8, state: 'TX'] as Map
         Map output = [:]
         Object out = ncube.getCell(input, output)
         assert out == 10
@@ -91,7 +92,7 @@ class TestRuleEngine extends NCubeBaseTest
 
         try
         {
-            input.state = "BOGUS"
+            input['state'] = "BOGUS"
             ncube.getCell(input, output)
             fail("should not make it here")
         }
@@ -159,7 +160,7 @@ class TestRuleEngine extends NCubeBaseTest
         optScope = ncube2.getOptionalScope([:], [:])
         assert 1 == optScope.size()
 
-        def coord = [age: 18, state: 'OH']
+        def coord = [age: 18, state: 'OH'] as Map
         Map output = [:]
         ncube2.getCell(coord, output)
         assert 5.0 == output.premium
