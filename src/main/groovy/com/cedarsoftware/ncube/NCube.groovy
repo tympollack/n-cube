@@ -35,6 +35,7 @@ import org.springframework.util.FastByteArrayOutputStream
 
 import java.lang.reflect.Array
 import java.lang.reflect.Field
+import java.security.AccessControlException
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -1716,16 +1717,33 @@ class NCube<T>
                 }
                 catch (Exception e)
                 {
-                    ret[idx++] = value.toString()
+                    cellInfo = new CellInfo(value.toString())    // Convert non-logical primitive to String
+                    ret[idx++] = [coord, cellInfo as Map]
                 }
             }
             catch (Exception e)
             {
-                ret[idx++] = "err: ${e.message}".toString()
+                cellInfo = new CellInfo("err: ${getExceptionMessage(getDeepestException(e))}".toString())
+                ret[idx++] = [coord, cellInfo as Map]
             }
         }
 
         return ret
+    }
+
+    private static String getExceptionMessage(Throwable t)
+    {
+        return t.message ?: t.class.name
+    }
+
+    private static Throwable getDeepestException(Throwable e)
+    {
+        while (e.cause != null)
+        {
+            e = e.cause
+        }
+
+        return e
     }
 
     /**

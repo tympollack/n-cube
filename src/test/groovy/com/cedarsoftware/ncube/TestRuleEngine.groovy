@@ -71,9 +71,7 @@ class TestRuleEngine extends NCubeBaseTest
         assert 'go Test2' == steps[3]
         assert 'default Test1' == steps[4]
         assert 'default Test2' == steps[5]
-
     }
-
 
     // This test also tests ID-based ncube's specified in simple JSON format
     @Test

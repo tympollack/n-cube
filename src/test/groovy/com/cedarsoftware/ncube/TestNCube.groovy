@@ -5583,12 +5583,14 @@ class TestNCube extends NCubeBaseTest
                 [1000000000001, 2000000000001],
                 ['1000000000001', '2000000000002'],
                 [1000000000002, 2000000000001],
-                [1000000000002, 2000000000002]
+                [1000000000002, 2000000000002],
+                [1000000000002, 2000000000003],
+                [1000000000001, 2000000000003]
         ] as Object[]
         Map input = [:]     // proves that no input still gets axis names bound (gender and age show up in inputUsed)
         Map output = [:]
         Object[] cellValues = ncube.getCells(ids, input, output, 13)
-        assert cellValues.length == 4
+        assert cellValues.length == 6
 
         List list1 = cellValues[0] as List
         List id1 = list1[0]
@@ -5621,6 +5623,22 @@ class TestNCube extends NCubeBaseTest
         Map info4 = list4[1]
         assert info4.type == 'int'
         assert info4.value == '13'     // proves passed in 'defaultValue' for cell works
+
+        List list5 = cellValues[4] as List
+        List id5 = list5[0]
+        assert id5[0] == 1000000000002
+        assert id5[1] == 2000000000003
+        Map info5 = list5[1]
+        assert info5.type == 'string'
+        assert info5.value == '[a, b, c]'     // proves passed in 'defaultValue' for cell works
+
+        List list6 = cellValues[5] as List
+        List id6 = list6[0]
+        assert id6[0] == 1000000000001
+        assert id6[1] == 2000000000003
+        Map info6 = list6[1]
+        assert info6.type == 'string'
+        assertContainsIgnoreCase((String)info6.value, 'err: Cannot invoke method next() on null object')
 
         RuleInfo ruleInfo = ncube.getRuleInfo(output)
         assert output.cell11 == true
