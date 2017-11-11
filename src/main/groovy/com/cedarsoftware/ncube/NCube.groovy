@@ -1281,7 +1281,7 @@ class NCube<T>
     }
 
     /**
-     * Use mapReduce() [select] on n-dimensional n-cube where n >= 2.  Axes other than the where clause can be left off, or
+     * Use hyperMapReduce() [select] on n-dimensional n-cube where n >= 2.  Axes other than the where clause can be left off, or
      * can have a value specifically bound to them (reducing search time).
      * @param colAxisName String name of axis acting as the COLUMN axis.
      * @param where Closure groovy closure.  Written as condition in terms of the columns on the colAxisName.
