@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.27
+  * --
 * 4.1.26
   * Add `NCube.hyperMapReduce` that allows mapReduce with multiple unknown axis values.
   * Add global menu `sys.menu.global` in `sys.app` which provides a template for all apps across the system. Application-specific menus override properties of the global menu.
