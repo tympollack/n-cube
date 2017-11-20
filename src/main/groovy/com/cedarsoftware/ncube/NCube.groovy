@@ -78,6 +78,9 @@ class NCube<T>
     public static final String RULE_EXEC_INFO = '_rule'
     public static final String METAPROPERTY_TEST_UPDATED = 'testUpdated'
     public static final String METAPROPERTY_TEST_DATA = '_testData'
+    public static final String MAP_REDUCE_COLUMNS_TO_SEARCH = 'columnsToSearch'
+    public static final String MAP_REDUCE_COLUMNS_TO_RETURN = 'columnsToReturn'
+    public static final String MAP_REDUCE_DEFAULT_VALUE = 'defaultValue'
     protected static final byte[] TRUE_BYTES = 't'.bytes
     protected static final byte[] FALSE_BYTES = 'f'.bytes
     private static final byte[] A_BYTES = 'a'.bytes
@@ -1230,34 +1233,33 @@ class NCube<T>
      * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
      * for each cell in the same column, for when the 'where' condition holds true (groovy true).
      */
-    Map mapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map input = [:], Map output = [:], Set columnsToSearch = null, Set columnsToReturn = null, Object defaultValue = null)
+    private Map internalMapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map options = [:])
     {
-        throwIf(!rowAxisName, new IllegalArgumentException('The row axis name cannot be null'))
-        throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
-        throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
-
-        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
+        Map input = options.input as Map ?: [:]
+        Map output = options.output as Map ?: [:]
+        Object defaultValue = options[MAP_REDUCE_DEFAULT_VALUE]
+        Collection<Column> selectList = options.selectList as Collection
+        Collection<Column> whereColumns = options.whereColumns as Collection
+        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
 
-        Axis rowAxis = axisList[rowAxisName]
-        Axis colAxis = axisList[colAxisName]
+        Axis rowAxis = getAxis(rowAxisName)
+        Axis colAxis = getAxis(colAxisName)
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
-        final Collection<Column> selectList = selectColumns(colAxis, columnsToReturn)
-        final Collection<Column> whereColumns = selectColumns(colAxis, columnsToSearch)
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = new CaseInsensitiveMap()
         final Map whereVars = new CaseInsensitiveMap()
 
-        for (row in rowAxis.columns)
+        for (Column row : rowAxis.columns)
         {
             whereVars.clear()
             commandInput[rowAxisName] = rowAxis.getValueToLocateColumn(row)
             long rowId = row.id
             ids.add(rowId)
 
-            for (column in whereColumns)
+            for (Column column : whereColumns)
             {
                 long whereId = column.id
                 ids.add(whereId)
@@ -1267,8 +1269,8 @@ class NCube<T>
                 ids.remove(whereId)
             }
 
-            whereVars.putAll(input ?: [:])
-            def whereResult = where.maximumNumberOfParameters == 1 ? where.call(whereVars) : where.call(whereVars, commandInput)
+            whereVars.putAll(input)
+            def whereResult = where.maximumNumberOfParameters == 1 ? where(whereVars) : where(whereVars, commandInput)
 
             if (whereResult)
             {
@@ -1281,7 +1283,7 @@ class NCube<T>
     }
 
     /**
-     * Use hyperMapReduce() [select] on n-dimensional n-cube where n >= 2.  Axes other than the where clause can be left off, or
+     * Use mapReduce() [select] on n-dimensional n-cube where n >= 2.  Axes other than the where clause can be left off, or
      * can have a value specifically bound to them (reducing search time).
      * @param colAxisName String name of axis acting as the COLUMN axis.
      * @param where Closure groovy closure.  Written as condition in terms of the columns on the colAxisName.
@@ -1311,50 +1313,71 @@ class NCube<T>
      *                     then it will be returned.  Optional.
      * @return Map containing the input bindings per matching 'where' row.
      */
-    Map hyperMapReduce(String colAxisName, Closure where = { true }, Map input = [:], Map output = [:], Set columnsToSearch = null, Set columnsToReturn = null, Object defaultValue = null)
+    Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:])
     {
         throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
+        throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
 
-        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
+        Axis colAxis = axisList[colAxisName]
+        Map input = options.input as Map ?: [:]
+        Set columnsToSearch = options[MAP_REDUCE_COLUMNS_TO_SEARCH] as Set
+        Set columnsToReturn = options[MAP_REDUCE_COLUMNS_TO_RETURN] as Set
+
+        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
+        Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
+        commandOpts.input = commandInput
+        commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
+        commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
+
+        String rowAxisName
         Set<String> searchAxes = axisNames - colAxisName - input.keySet()
-        String rowAxisName = searchAxes.first()
+        if (searchAxes.empty)
+        {
+            searchAxes = axisNames - colAxisName
+            rowAxisName = searchAxes.first()
+        }
+        else
+        {
+            searchAxes.sort { getAxis(it).columns.size() }
+            rowAxisName = searchAxes.last() // take axis with most columns first
+        }
         Set<String> otherAxes = searchAxes - rowAxisName
         Map result
         if (otherAxes.empty)
         {
-            result = mapReduce(rowAxisName, colAxisName, where, commandInput, output, columnsToSearch, columnsToReturn, defaultValue)
+            result = internalMapReduce(rowAxisName, colAxisName, where, commandOpts)
         }
         else
         {
-            result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, commandInput, output, columnsToSearch, columnsToReturn, defaultValue)
+            result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, commandOpts)
         }
         return result
     }
 
-    private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map input, Map output, Set columnsToSearch, Set columnsToReturn, Object defaultValue)
+    private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map options)
     {
         Map ret = new CaseInsensitiveMap()
-        String axisName = axes.first()
+        String axisName = axes.last() // take axis with most columns first
         List<Column> columns = getAxis(axisName).columns
         Set<String> otherAxes = axes - axisName
         boolean noMoreAxes = otherAxes.empty
         for (Column column : columns)
         {
             Map result
-            input[axisName] = column.value
+            (options.input as Map)[axisName] = column.value
             if (noMoreAxes)
             {
-                result = mapReduce(rowAxisName, colAxisName, where, input, output, columnsToSearch, columnsToReturn, defaultValue)
+                result = internalMapReduce(rowAxisName, colAxisName, where, options)
+                Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(options.input as Map))
                 for (Map.Entry resultEntry : result)
                 {
-                    Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
                     inputVal[rowAxisName] = resultEntry.key
                     ret[inputVal] = resultEntry.value
                 }
             }
             else
             {
-                result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, input, output, columnsToSearch, columnsToReturn, defaultValue)
+                result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, options)
                 ret.putAll(result)
             }
         }
@@ -1428,9 +1451,14 @@ class NCube<T>
 
     private Set<Long> bindAdditionalColumns(String rowAxisName, String colAxisName, Map input)
     {
-        Set<Long> boundColumns = [] as Set
+        if (axisList.size() <= 2)
+        {
+            return [] as Set
+        }
         Set<String> axisNames = axisList.keySet()
-        if (axisNames.size() > 2)
+        Set<String> otherAxisNames = axisNames - [rowAxisName, colAxisName]
+        Set<String> inputAxisNames = input.keySet()
+        if (!inputAxisNames.containsAll(otherAxisNames))
         {
             Set<String> otherAxes = axisNames - [rowAxisName, colAxisName]
             Set<String> otherAxesWithDefaults = otherAxes.findAll { String axisName ->
@@ -1439,20 +1467,21 @@ class NCube<T>
 
             if (!input.keySet().containsAll(otherAxes - otherAxesWithDefaults))
             {
-                throw new IllegalArgumentException("Using row axis: ${rowAxisName} and query axis: ${colAxisName} for cube: ${this.name} - bindings for axes: ${otherAxes} must be supplied.")
+                throw new IllegalArgumentException("Using row axis: ${rowAxisName} and query axis: ${colAxisName} for cube: ${this.name} - bindings for axes: ${otherAxisNames} must be supplied.")
             }
+        }
 
-            for (other in otherAxes)
+        Set<Long> boundColumns = [] as Set
+        for (String axisName : otherAxisNames)
+        {
+            Axis otherAxis = getAxis(axisName)
+            def value = input[axisName]
+            Column column = otherAxis.findColumn((Comparable)value)
+            if (!column)
             {
-                Axis otherAxis = axisList[other]
-                def value = input[other]
-                Column column = otherAxis.findColumn((Comparable)value)
-                if (!column)
-                {
-                    throw new CoordinateNotFoundException("Column: ${value} not found on axis: ${other} on cube: ${name}", name, null, other, value)
-                }
-                boundColumns << column.id
+                throw new CoordinateNotFoundException("Column: ${value} not found on axis: ${axisName} on cube: ${name}", name, null, axisName, value)
             }
+            boundColumns << column.id
         }
         return boundColumns
     }
