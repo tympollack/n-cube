@@ -1235,11 +1235,11 @@ class NCube<T>
      */
     private Map internalMapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map options = [:])
     {
-        Map input = options.input as Map ?: [:]
-        Map output = options.output as Map ?: [:]
+        Map input = (Map) options.input ?: [:]
+        Map output = (Map) options.output ?: [:]
         Object defaultValue = options[MAP_REDUCE_DEFAULT_VALUE]
-        Collection<Column> selectList = options.selectList as Collection
-        Collection<Column> whereColumns = options.whereColumns as Collection
+        Collection<Column> selectList = (Collection) options.selectList
+        Collection<Column> whereColumns = (Collection) options.whereColumns
         final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
 
@@ -1317,11 +1317,12 @@ class NCube<T>
     {
         throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
         throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
+        throwIf(!options, new IllegalArgumentException('Options cannot be null'))
 
         Axis colAxis = axisList[colAxisName]
-        Map input = options.input as Map ?: [:]
-        Set columnsToSearch = options[MAP_REDUCE_COLUMNS_TO_SEARCH] as Set
-        Set columnsToReturn = options[MAP_REDUCE_COLUMNS_TO_RETURN] as Set
+        Map input = (Map)options.input ?: [:]
+        Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
+        Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
 
         final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
         Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
@@ -1362,7 +1363,8 @@ class NCube<T>
         Set<String> otherAxes = axes - axisName
         boolean noMoreAxes = otherAxes.empty
         Map input = (Map) options.input
-        
+        Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
+
         for (Column column : columns)
         {
             Map result
@@ -1370,7 +1372,6 @@ class NCube<T>
             if (noMoreAxes)
             {
                 result = internalMapReduce(rowAxisName, colAxisName, where, options)
-                Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
                 for (Map.Entry resultEntry : result)
                 {
                     inputVal[rowAxisName] = resultEntry.key
