@@ -1361,14 +1361,16 @@ class NCube<T>
         List<Column> columns = getAxis(axisName).columns
         Set<String> otherAxes = axes - axisName
         boolean noMoreAxes = otherAxes.empty
+        Map input = (Map) options.input
+        
         for (Column column : columns)
         {
             Map result
-            (options.input as Map)[axisName] = column.value
+            input[axisName] = column.value
             if (noMoreAxes)
             {
                 result = internalMapReduce(rowAxisName, colAxisName, where, options)
-                Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(options.input as Map))
+                Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
                 for (Map.Entry resultEntry : result)
                 {
                     inputVal[rowAxisName] = resultEntry.key

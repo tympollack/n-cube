@@ -109,6 +109,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         }
     }
 
+    // Uncomment for mapReduce() performance testing
     @Test
     void testMapReduceLarge()
     {
@@ -181,7 +182,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         for (int i=0; i < 3; i++)
         {
             start = System.nanoTime()
-            ncube.mapReduce('attribute', { Map input -> input.hotel == 50i }, options)
+            ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)
             stop = System.nanoTime()
             diff = (stop - start) / 1000000.0
             println("mapReduce no input time ${i + 1} = " + diff)
@@ -191,19 +192,17 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         for (int i=0; i < 3; i++)
         {
             start = System.nanoTime()
-            ncube.mapReduce('attribute', { Map input -> input.hotel == 50i }, options)
+            ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)
             stop = System.nanoTime()
             diff = (stop - start) / 1000000.0
             println("mapReduce row:1 time ${i + 1} = " + diff)
         }
     }
 
-
     private static Object setRandomValue(NCube ncube, Random random, int i, String colName)
     {
         ncube.setCell(StringUtilities.getRandomString(random, 5, 8), [key: i, row:1, attribute: colName])
     }
-
 
     // Uncomment for memory size testing
     @Test
