@@ -1317,7 +1317,6 @@ class NCube<T>
     {
         throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
         throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
-        throwIf(!options, new IllegalArgumentException('Options cannot be null'))
 
         Axis colAxis = axisList[colAxisName]
         Map input = (Map)options.input ?: [:]
@@ -1363,7 +1362,6 @@ class NCube<T>
         Set<String> otherAxes = axes - axisName
         boolean noMoreAxes = otherAxes.empty
         Map input = (Map) options.input
-        Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
 
         for (Column column : columns)
         {
@@ -1371,6 +1369,7 @@ class NCube<T>
             input[axisName] = column.value
             if (noMoreAxes)
             {
+                Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
                 result = internalMapReduce(rowAxisName, colAxisName, where, options)
                 for (Map.Entry resultEntry : result)
                 {
