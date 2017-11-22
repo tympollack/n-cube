@@ -1122,16 +1122,19 @@ class NCube<T>
             }
             else
             {
-                Axis axis = getAxisFromColumnId(colId)
+                Axis axis = getAxisFromColumnId(colId, false)
                 if (axis == null)
                 {   // bad column id, continue check rest of column ids
                     continue
                 }
                 Column boundCol = axis.getColumnById(colId)
-                defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-                if (columnDefaultCache != null)
+                if (boundCol != null)
                 {
-                    columnDefaultCache[colId] = defColValue
+                    defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+                    if (columnDefaultCache != null && !columnDefaultCache.containsKey(colId))
+                    {   // If not already cached, cache it
+                        columnDefaultCache[colId] = defColValue
+                    }
                 }
             }
             if (defColValue != null)
