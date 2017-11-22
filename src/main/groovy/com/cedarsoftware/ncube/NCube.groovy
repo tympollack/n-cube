@@ -977,7 +977,7 @@ class NCube<T>
             // Form fully qualified cell lookup (NCube name + coordinate)
             // Add fully qualified coordinate to ThreadLocal execution stack
             final StackEntry entry = new StackEntry(name, coordinate)
-            stackFrame.push(entry)
+            stackFrame.addFirst(entry)
             pushed = true
             T cellValue
 
@@ -1042,7 +1042,7 @@ class NCube<T>
         {	// Unwind stack: always remove if stacked pushed, even if Exception has been thrown
             if (pushed)
             {
-                stackFrame.pop()
+                stackFrame.removeFirst()
             }
         }
     }
@@ -1252,14 +1252,18 @@ class NCube<T>
         final Map matchingRows = new CaseInsensitiveMap()
         final Map whereVars = new CaseInsensitiveMap(input)
 
-        for (Column row : rowAxis.columns)
+        Iterator<Column> rowColIter = rowAxis.columns.iterator()
+        while (rowColIter.hasNext())
         {
+            Column row = rowColIter.next()
             commandInput[rowAxisName] = rowAxis.getValueToLocateColumn(row)
             long rowId = row.id
             ids.add(rowId)
 
-            for (Column column : whereColumns)
+            Iterator<Column> whereColIter = whereColumns.iterator()
+            while (whereColIter.hasNext())
             {
+                Column column = whereColIter.next()
                 long whereId = column.id
                 ids.add(whereId)
                 commandInput[colAxisName] = colAxis.getValueToLocateColumn(column)
@@ -1368,8 +1372,10 @@ class NCube<T>
         boolean noMoreAxes = otherAxes.empty
         Map input = (Map) options.input
 
-        for (Column column : columns)
+        Iterator<Column> i = columns.iterator()
+        while (i.hasNext())
         {
+            Column column = i.next()
             input[axisName] = column.value
             if (noMoreAxes)
             {
@@ -1400,7 +1406,7 @@ class NCube<T>
             // Form fully qualified cell lookup (NCube name + coordinate)
             // Add fully qualified coordinate to ThreadLocal execution stack
             final StackEntry entry = new StackEntry(name, coordinate)
-            stackFrame.push(entry)
+            stackFrame.addFirst(entry)
             pushed = true
             T cellValue
             if (cells.containsKey(colIds))
@@ -1409,8 +1415,10 @@ class NCube<T>
             }
             else
             {   // No cell, look for default
-                for (long colId : colIds)
+                Iterator<Long> i = colIds.iterator()
+                while (i.hasNext())
                 {
+                    long colId = i.next()
                     def metaValue
                     if (colDefaultCache.containsKey(colId))
                     {
@@ -1454,7 +1462,7 @@ class NCube<T>
         {	// Unwind stack: always remove if stacked pushed, even if Exception has been thrown
             if (pushed)
             {
-                stackFrame.pop()
+                stackFrame.removeFirst()
             }
         }
     }
