@@ -110,8 +110,8 @@ class TestAllCellsInBigCube extends NCubeBaseTest
     }
 
     // Uncomment for mapReduce() performance testing
-    @Test
     @Ignore
+    @Test
     void testMapReduceLarge()
     {
         long start = System.nanoTime()

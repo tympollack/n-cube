@@ -961,13 +961,15 @@ class NCube<T>
      * one exists (under Column's meta-key: 'DEFAULT_CELL'). If no column-level
      * default is specified (no non-null value provided), then the NCube level default
      * is chosen (if it exists). If no NCube level default is specified, then the
-     * defaultValue passed in is used, if it is non-null.
+     * defaultValue passed in is used, if it is non-null. The default value cache
+     * should only be used with mapReduce because of its repeated calculation of each
+     * column on all axes.
      * REQUIRED: The coordinate passed to this method must have already been run
      * through validateCoordinate(), which duplicates the coordinate and ensures the
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    protected T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null)
+    protected T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -1013,17 +1015,10 @@ class NCube<T>
             cellValue = cells[colIds]
             if (cellValue == null && !cells.containsKey(colIds))
             {   // No cell, look for default
-                cellValue = (T) getColumnDefault(colIds)
+                cellValue = (T) getColumnDefault(colIds, columnDefaultCache)
                 if (cellValue == null)
                 {   // No Column Default, try NCube default, and finally passed in default
-                    if (defaultCellValue != null)
-                    {
-                        cellValue = defaultCellValue
-                    }
-                    else
-                    {
-                        cellValue = (T) defaultValue
-                    }
+                    cellValue = defaultCellValue == null ? (T) defaultValue : defaultCellValue
                 }
             }
 
@@ -1032,7 +1027,7 @@ class NCube<T>
                 Map ctx = prepareExecutionContext(coordinate, output)
                 return (T) executeExpression(ctx, (CommandCell)cellValue)
             }
-            else
+            else if (columnDefaultCache == null)
             {
                 trackInputKeysUsed(coordinate, output)
             }
@@ -1110,21 +1105,35 @@ class NCube<T>
      * Given the passed in column IDs, return the column level default value
      * if one exists or null otherwise.  In the case of intersection, then null
      * is returned, meaning that the n-cube level default cell value will be
-     * returned at intersections.
+     * returned at intersections. The default value cache should only be used
+     * with mapReduce because of its repeated calculation of each column on all axes.
      */
-    def getColumnDefault(Set<Long> colIds)
+    def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
     {
         def colDef = null
-
-        for (colId in colIds)
+        Iterator<Long> i = colIds.iterator()
+        while (i.hasNext())
         {
-            Axis axis = getAxisFromColumnId(colId)
-            if (axis == null)
-            {   // bad column id, continue check rest of column ids
-                continue
+            long colId = i.next()
+            def metaValue
+            if (columnDefaultCache && columnDefaultCache.containsKey(colId))
+            {
+                metaValue = columnDefaultCache[colId]
             }
-            Column boundCol = axis.getColumnById(colId)
-            def metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+            else
+            {
+                Axis axis = getAxisFromColumnId(colId)
+                if (axis == null)
+                {   // bad column id, continue check rest of column ids
+                    continue
+                }
+                Column boundCol = axis.getColumnById(colId)
+                metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+                if (columnDefaultCache != null)
+                {
+                    columnDefaultCache[colId] = metaValue
+                }
+            }
             if (metaValue != null)
             {
                 if (colDef != null)
@@ -1268,7 +1277,7 @@ class NCube<T>
                 ids.add(whereId)
                 commandInput[colAxisName] = colAxis.getValueToLocateColumn(column)
                 Object colKey = isColDiscrete ? column.value : column.columnName
-                whereVars[colKey] = mapReduceGetCellById(columnDefaultCache, ids, commandInput, output, defaultValue)
+                whereVars[colKey] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
                 ids.remove(whereId)
             }
 
@@ -1277,7 +1286,7 @@ class NCube<T>
             if (whereResult)
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
-                matchingRows[key] = buildMapReduceResultRow(columnDefaultCache, colAxis, selectList, whereVars, ids, commandInput, output, defaultValue)
+                matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache)
             }
             ids.remove(rowId)
         }
@@ -1396,77 +1405,6 @@ class NCube<T>
         return ret
     }
 
-    private T mapReduceGetCellById(Map colDefaultCache, final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null)
-    {
-        // First, get a ThreadLocal copy of an NCube execution stack
-        Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
-        boolean pushed = false
-        try
-        {
-            // Form fully qualified cell lookup (NCube name + coordinate)
-            // Add fully qualified coordinate to ThreadLocal execution stack
-            final StackEntry entry = new StackEntry(name, coordinate)
-            stackFrame.addFirst(entry)
-            pushed = true
-            T cellValue
-            if (cells.containsKey(colIds))
-            {
-                cellValue = cells[colIds]
-            }
-            else
-            {   // No cell, look for default
-                Iterator<Long> i = colIds.iterator()
-                while (i.hasNext())
-                {
-                    long colId = i.next()
-                    def metaValue
-                    if (colDefaultCache.containsKey(colId))
-                    {
-                        metaValue = colDefaultCache[colId]
-                    }
-                    else
-                    {
-                        Axis axis = getAxisFromColumnId(colId)
-                        if (axis == null)
-                        {   // bad column id, continue check rest of column ids
-                            continue
-                        }
-                        Column boundCol = axis.getColumnById(colId)
-                        metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-                        colDefaultCache[colId] = metaValue
-                    }
-                    if (metaValue != null)
-                    {
-                        if (cellValue != null && cellValue != metaValue)
-                        {
-                            cellValue = null
-                            break
-                        }
-                        cellValue = (T)metaValue
-                    }
-                }
-                if (cellValue == null)
-                {   // No Column Default, try NCube default, and finally passed in default
-                    cellValue = defaultCellValue ?: (T)defaultValue
-                }
-            }
-
-            if (cellValue instanceof CommandCell)
-            {
-                Map ctx = prepareExecutionContext(coordinate, output)
-                return (T) executeExpression(ctx, (CommandCell)cellValue)
-            }
-            return cellValue
-        }
-        finally
-        {	// Unwind stack: always remove if stacked pushed, even if Exception has been thrown
-            if (pushed)
-            {
-                stackFrame.removeFirst()
-            }
-        }
-    }
-
     private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
     {
         Comparable key
@@ -1569,7 +1507,7 @@ class NCube<T>
         return boundColumns
     }
 
-    private Map buildMapReduceResultRow(Map columnDefaultCache, Axis searchAxis, Collection<Column> selectList, Map whereVars, Set<Long> ids, Map commandInput, Map output, Object defaultValue = null)
+    private Map buildMapReduceResultRow(Axis searchAxis, Collection<Column> selectList, Map whereVars, Set<Long> ids, Map commandInput, Map output, Object defaultValue = null, Map columnDefaultCache)
     {
         String axisName = searchAxis.name
         boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
@@ -1586,7 +1524,7 @@ class NCube<T>
             commandInput[axisName] = column.valueThatMatches
             long colId = column.id
             ids.add(colId)
-            result[colValue] = mapReduceGetCellById(columnDefaultCache, ids, commandInput, output, defaultValue)
+            result[colValue] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
             ids.remove(colId)
         }
 
