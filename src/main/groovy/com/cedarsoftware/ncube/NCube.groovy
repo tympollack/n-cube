@@ -1122,7 +1122,7 @@ class NCube<T>
             }
             else
             {
-                Axis axis = getAxisFromColumnId(colId)
+                Axis axis = getAxisFromColumnId(colId, false)
                 if (axis == null)
                 {   // bad column id, continue check rest of column ids
                     continue
@@ -1257,12 +1257,12 @@ class NCube<T>
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = new CaseInsensitiveMap()
         final Map whereVars = new CaseInsensitiveMap(input)
-
         Iterator<Column> rowColIter = rowAxis.columns.iterator()
+        
         while (rowColIter.hasNext())
         {
             Column row = rowColIter.next()
-            commandInput[rowAxisName] = rowAxis.getValueToLocateColumn(row)
+            commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
             long rowId = row.id
             ids.add(rowId)
 
@@ -1272,9 +1272,9 @@ class NCube<T>
                 Column column = whereColIter.next()
                 long whereId = column.id
                 ids.add(whereId)
-                commandInput[colAxisName] = colAxis.getValueToLocateColumn(column)
+                commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
                 Object colKey = isColDiscrete ? column.value : column.columnName
-                whereVars[colKey] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
+                whereVars.put(colKey, getCellById(ids, commandInput, output, defaultValue, columnDefaultCache))
                 ids.remove(whereId)
             }
 
@@ -1283,7 +1283,7 @@ class NCube<T>
             if (whereResult)
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
-                matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache)
+                matchingRows.put(key, buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache))
             }
             ids.remove(rowId)
         }
