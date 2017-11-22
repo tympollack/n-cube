@@ -1115,10 +1115,10 @@ class NCube<T>
         while (i.hasNext())
         {
             long colId = i.next()
-            def metaValue
-            if (columnDefaultCache && columnDefaultCache.containsKey(colId))
+            def defColValue
+            if (columnDefaultCache?.containsKey(colId))
             {
-                metaValue = columnDefaultCache[colId]
+                defColValue = columnDefaultCache[colId]
             }
             else
             {
@@ -1128,22 +1128,22 @@ class NCube<T>
                     continue
                 }
                 Column boundCol = axis.getColumnById(colId)
-                metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+                defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
                 if (columnDefaultCache != null)
                 {
-                    columnDefaultCache[colId] = metaValue
+                    columnDefaultCache[colId] = defColValue
                 }
             }
-            if (metaValue != null)
+            if (defColValue != null)
             {
                 if (colDef != null)
                 {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
-                    if (colDef != metaValue)
+                    if (colDef != defColValue)
                     {
                         return null
                     }
                 }
-                colDef = metaValue
+                colDef = defColValue
             }
         }
 
