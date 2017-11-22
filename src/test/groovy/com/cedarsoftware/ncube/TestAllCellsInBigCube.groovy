@@ -179,7 +179,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
 
         Map options = [:]
         options[NCube.MAP_REDUCE_COLUMNS_TO_SEARCH] = ['hotel'] as Set
-        for (int i=0; i < 3; i++)
+        for (int i=0; i < 10; i++)
         {
             start = System.nanoTime()
             ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)
@@ -189,7 +189,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         }
 
         options.input = [row:1] as Map
-        for (int i=0; i < 3; i++)
+        for (int i=0; i < 10; i++)
         {
             start = System.nanoTime()
             ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)

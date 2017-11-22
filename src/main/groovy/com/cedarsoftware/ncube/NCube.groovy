@@ -1207,22 +1207,22 @@ class NCube<T>
      * the colAxisName). The values for each row in the rowAxis is bound to the where expression for each row.  If
      * the row passes the 'where' condition, it is included in the output.
      * @param options - options map that can include any of the following keys:
-     *    - input Map the input Map just like it is used for getCell() or at().  Only needed when there are three (3)
+     *    - "input" Map just like it is used for getCell() or at().  Only needed when there are three (3)
      *      or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
      *      bound just as they are in getCell() or at().
-     *    - output Map the output Map use to write multiple return values to, just like getCell() or at().
-     *    - columnsToSearch Set which allows reducing the number of columns bound for use in the where clause.  If not
+     *    - "output" the output Map use to write multiple return values to, just like getCell() or at().
+     *    - MAP_REDUCE_COLUMNS_TO_SEARCH Set which allows reducing the number of columns bound for use in the where clause.  If not
      *      specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
      *      has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
      *      values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
      *      columns are included in the columnsToSearch.
-     *    - columnsToReturn Set of values to indicate which columns to return.  If not specified, the entire 'row' is
+     *    - MAP_REDUCE_COLUMNS_TO_RETURN Set of values to indicate which columns to return.  If not specified, the entire 'row' is
      *      returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
      *      two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
      *      The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
      *      is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
      *      can have it return less column/value pairs in the returned Map if you add only the columns you want returned here.
-     *    - defaultValue Object placed here will be returned if there is no cell at the location
+     *    - MAP_REDUCE_DEFAULT_VALUE Object placed here will be returned if there is no cell at the location
      *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
      *                     n-cube is returned, but if this parameter is passed a non-null value,
      *                     then it will be returned.  Optional.
@@ -1290,22 +1290,22 @@ class NCube<T>
      * the colAxisName). The values for each row in the rowAxis is bound to the where expression for each row.  If
      * the row passes the 'where' condition, it is included in the output.
      * @param options - options map that can include any of the following keys:
-     *    - input Map the input Map just like it is used for getCell() or at().  Only needed when there are three (3)
+     *    - "input" Map just like it is used for getCell() or at().  Only needed when there are three (3)
      *      or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
      *      bound just as they are in getCell() or at().
-     *    - output Map the output Map use to write multiple return values to, just like getCell() or at().
-     *    - columnsToSearch Set which allows reducing the number of columns bound for use in the where clause.  If not
+     *    - "output" the output Map use to write multiple return values to, just like getCell() or at().
+     *    - MAP_REDUCE_COLUMNS_TO_SEARCH Set which allows reducing the number of columns bound for use in the where clause.  If not
      *      specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
      *      has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
      *      values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
      *      columns are included in the columnsToSearch.
-     *    - columnsToReturn Set of values to indicate which columns to return.  If not specified, the entire 'row' is
+     *    - MAP_REDUCE_COLUMNS_TO_RETURN Set of values to indicate which columns to return.  If not specified, the entire 'row' is
      *      returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
      *      two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
      *      The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
      *      is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
      *      can have it return less column/value pairs in the returned Map if you add only the columns you want returned here.
-     *    - defaultValue Object placed here will be returned if there is no cell at the location
+     *    - MAP_REDUCE_DEFAULT_VALUE Object placed here will be returned if there is no cell at the location
      *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
      *                     n-cube is returned, but if this parameter is passed a non-null value,
      *                     then it will be returned.  Optional.
