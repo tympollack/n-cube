@@ -1129,19 +1129,13 @@ class NCube<T>
                 }
                 Column boundCol = axis.getColumnById(colId)
                 defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-                if (columnDefaultCache != null)
-                {
-                    columnDefaultCache[colId] = defColValue
-                }
+                columnDefaultCache?.put(colId, defColValue)
             }
             if (defColValue != null)
             {
-                if (colDef != null)
+                if (colDef != null && colDef != defColValue)
                 {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
-                    if (colDef != defColValue)
-                    {
-                        return null
-                    }
+                    return null
                 }
                 colDef = defColValue
             }
@@ -1250,14 +1244,13 @@ class NCube<T>
         Collection<Column> selectList = (Collection) options.selectList
         Collection<Column> whereColumns = (Collection) options.whereColumns
         final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
-        Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
+        final Set<Long> ids = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
 
         Axis rowAxis = getAxis(rowAxisName)
         Axis colAxis = getAxis(colAxisName)
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
-        final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = new CaseInsensitiveMap()
         final Map whereVars = new CaseInsensitiveMap(input)
 
@@ -1265,9 +1258,9 @@ class NCube<T>
         while (rowColIter.hasNext())
         {
             Column row = rowColIter.next()
-            commandInput[rowAxisName] = rowAxis.getValueToLocateColumn(row)
+            commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
             long rowId = row.id
-            ids.add(rowId)
+            ids.add(row.id)
 
             Iterator<Column> whereColIter = whereColumns.iterator()
             while (whereColIter.hasNext())
@@ -1275,9 +1268,9 @@ class NCube<T>
                 Column column = whereColIter.next()
                 long whereId = column.id
                 ids.add(whereId)
-                commandInput[colAxisName] = colAxis.getValueToLocateColumn(column)
+                commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
                 Object colKey = isColDiscrete ? column.value : column.columnName
-                whereVars[colKey] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
+                whereVars.put(colKey, getCellById(ids, commandInput, output, defaultValue, columnDefaultCache))
                 ids.remove(whereId)
             }
 
@@ -1286,7 +1279,7 @@ class NCube<T>
             if (whereResult)
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
-                matchingRows[key] = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache)
+                matchingRows.put(key, buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache))
             }
             ids.remove(rowId)
         }
@@ -1385,15 +1378,15 @@ class NCube<T>
         while (i.hasNext())
         {
             Column column = i.next()
-            input[axisName] = column.value
+            input.put(axisName, column.value)
             if (noMoreAxes)
             {
                 Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
                 result = internalMapReduce(rowAxisName, colAxisName, where, options, columnDefaultCache)
                 for (Map.Entry resultEntry : result)
                 {
-                    inputVal[rowAxisName] = resultEntry.key
-                    ret[inputVal] = resultEntry.value
+                    inputVal.put(rowAxisName, resultEntry.key)
+                    ret.put(inputVal, resultEntry.value)
                 }
             }
             else
@@ -1407,56 +1400,30 @@ class NCube<T>
 
     private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
     {
-        Comparable key
         if (isRowDiscrete)
         {
-            key = row.value
+            return row.value
         }
-        else
+        if (StringUtilities.isEmpty(row.columnName))
         {
-            if (StringUtilities.isEmpty(row.columnName))
-            {
-                throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
-            }
-            key = row.columnName
+            throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
         }
-        return key
+        return row.columnName
     }
 
-    private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
+    private static Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
     {
         boolean isDiscrete = axis.type == AxisType.DISCRETE
         if (!valuesMatchingColumns)
         {   // If empty or null, then treat as '*' (all columns)
-            valuesMatchingColumns = new CaseInsensitiveSet()
-            for (Column column : axis.columns)
-            {
-                if (isDiscrete)
-                {
-                    valuesMatchingColumns.add(column.value)
-                }
-                else
-                {
-                    if (StringUtilities.isEmpty(column.columnName))
-                    {
-                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
-                    }
-                    valuesMatchingColumns.add(column.columnName)
-                }
-            }
+            return axis.columns
         }
         Collection<Column> columns = []
-        for (Object value : valuesMatchingColumns)
+        Iterator it = valuesMatchingColumns.iterator()
+        while (it.hasNext())
         {
-            Column column
-            if (isDiscrete)
-            {
-                column = axis.findColumn((Comparable)value)
-            }
-            else
-            {
-                column = axis.findColumnByName((String)value)
-            }
+            Object value = it.next()
+            Column column = isDiscrete ? axis.findColumn((Comparable)value) : axis.findColumnByName((String)value)
             columns.add(column)
         }
         return columns
@@ -1474,7 +1441,7 @@ class NCube<T>
     {
         if (axisList.size() <= 2)
         {
-            return [] as Set
+            return (Set)[]
         }
         Set<String> axisNames = axisList.keySet()
         Set<String> otherAxisNames = axisNames - [rowAxisName, colAxisName]
@@ -1492,17 +1459,19 @@ class NCube<T>
             }
         }
 
-        Set<Long> boundColumns = [] as Set
-        for (String axisName : otherAxisNames)
+        Set<Long> boundColumns = (Set)[]
+        Iterator<String> axisIterator = otherAxisNames.iterator()
+        while (axisIterator.hasNext())
         {
+            String axisName = axisIterator.next()
             Axis otherAxis = getAxis(axisName)
-            def value = input[axisName]
-            Column column = otherAxis.findColumn((Comparable)value)
+            Comparable value = (Comparable)input[axisName]
+            Column column = otherAxis.findColumn(value)
             if (!column)
             {
                 throw new CoordinateNotFoundException("Column: ${value} not found on axis: ${axisName} on cube: ${name}", name, null, axisName, value)
             }
-            boundColumns << column.id
+            boundColumns.add(column.id)
         }
         return boundColumns
     }
@@ -1521,13 +1490,12 @@ class NCube<T>
                 result[colValue] = whereVars[colValue]
                 continue
             }
-            commandInput[axisName] = column.valueThatMatches
+            commandInput.put(axisName, column.valueThatMatches)
             long colId = column.id
             ids.add(colId)
-            result[colValue] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
+            result.put(colValue, getCellById(ids, commandInput, output, defaultValue, columnDefaultCache))
             ids.remove(colId)
         }
-
         return result
     }
 

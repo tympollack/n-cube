@@ -5354,7 +5354,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            ncube.mapReduce('query')
+            ncube.mapReduce('key')
             fail('Should have thrown an IllegalStateException')
         }
         catch(IllegalStateException ex)

@@ -114,6 +114,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
     @Test
     void testMapReduceLarge()
     {
+        final int timesToRun = 10
         long start = System.nanoTime()
         NCube ncube = new NCube("bigCube")
         Axis row = new Axis('row', AxisType.DISCRETE, AxisValueType.LONG, false)
@@ -180,7 +181,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
 
         Map options = [:]
         options[NCube.MAP_REDUCE_COLUMNS_TO_SEARCH] = ['hotel'] as Set
-        for (int i=0; i < 20; i++)
+        for (int i=0; i < timesToRun; i++)
         {
             start = System.nanoTime()
             ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)
@@ -190,7 +191,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
         }
 
         options.input = [row:1] as Map
-        for (int i=0; i < 20; i++)
+        for (int i=0; i < timesToRun; i++)
         {
             start = System.nanoTime()
             ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)
