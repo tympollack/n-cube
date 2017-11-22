@@ -1122,7 +1122,7 @@ class NCube<T>
             }
             else
             {
-                Axis axis = getAxisFromColumnId(colId, false)
+                Axis axis = getAxisFromColumnId(colId)
                 if (axis == null)
                 {   // bad column id, continue check rest of column ids
                     continue
@@ -1131,20 +1131,14 @@ class NCube<T>
                 if (boundCol != null)
                 {
                     defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-                    if (columnDefaultCache != null && !columnDefaultCache.containsKey(colId))
-                    {   // If not already cached, cache it
-                        columnDefaultCache[colId] = defColValue
-                    }
+                    columnDefaultCache?.put(colId, defColValue)
                 }
             }
             if (defColValue != null)
             {
-                if (colDef != null)
+                if (colDef != null && colDef != defColValue)
                 {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
-                    if (colDef != defColValue)
-                    {
-                        return null
-                    }
+                    return null
                 }
                 colDef = defColValue
             }
