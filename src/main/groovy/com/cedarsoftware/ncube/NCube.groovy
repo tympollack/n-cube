@@ -1217,6 +1217,10 @@ class NCube<T>
      *      or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
      *      bound just as they are in getCell() or at().
      *    - "output" the output Map use to write multiple return values to, just like getCell() or at().
+     *    - "selectList" is a Collection of Column objects that indicates which will be returned (instead of *, less
+     *      columns can be return in the 'result set').
+     *    - "whereColumns" is a Collection of Column objects that will be sent to the 'where' closure.  Rather than
+     *      send all columns, fewer is better because each where column must be bound to a value for each row.
      *    - MAP_REDUCE_COLUMNS_TO_SEARCH Set which allows reducing the number of columns bound for use in the where clause.  If not
      *      specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
      *      has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
@@ -1257,19 +1261,15 @@ class NCube<T>
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = new CaseInsensitiveMap()
         final Map whereVars = new CaseInsensitiveMap(input)
-        Iterator<Column> rowColIter = rowAxis.columns.iterator()
-        
-        while (rowColIter.hasNext())
+
+        for (Column row : rowAxis.columns)
         {
-            Column row = rowColIter.next()
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
             long rowId = row.id
             ids.add(rowId)
 
-            Iterator<Column> whereColIter = whereColumns.iterator()
-            while (whereColIter.hasNext())
+            for (Column column : whereColumns)
             {
-                Column column = whereColIter.next()
                 long whereId = column.id
                 ids.add(whereId)
                 commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
@@ -1378,19 +1378,17 @@ class NCube<T>
         boolean noMoreAxes = otherAxes.empty
         Map input = (Map) options.input
 
-        Iterator<Column> i = columns.iterator()
-        while (i.hasNext())
+        for (Column column : columns)
         {
-            Column column = i.next()
-            input[axisName] = column.value
+            input.put(axisName, column.value)
             if (noMoreAxes)
             {
                 Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
                 result = internalMapReduce(rowAxisName, colAxisName, where, options, columnDefaultCache)
                 for (Map.Entry resultEntry : result)
                 {
-                    inputVal[rowAxisName] = resultEntry.key
-                    ret[inputVal] = resultEntry.value
+                    inputVal.put(rowAxisName, resultEntry.key)
+                    ret.put(inputVal, resultEntry.value)
                 }
             }
             else
@@ -1422,39 +1420,49 @@ class NCube<T>
 
     private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
     {
+        Collection<Column> columns = []
         boolean isDiscrete = axis.type == AxisType.DISCRETE
-        if (!valuesMatchingColumns)
+
+        if (valuesMatchingColumns == null || valuesMatchingColumns.empty)
         {   // If empty or null, then treat as '*' (all columns)
-            valuesMatchingColumns = new CaseInsensitiveSet()
-            for (Column column : axis.columns)
+            if (isDiscrete)
             {
-                if (isDiscrete)
+                for (Column column : axis.columns)
                 {
-                    valuesMatchingColumns.add(column.value)
+                    columns.add(axis.findColumn(column.value))
                 }
-                else
+            }
+            else
+            {
+                for (Column column : axis.columns)
                 {
                     if (StringUtilities.isEmpty(column.columnName))
                     {
                         throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
                     }
-                    valuesMatchingColumns.add(column.columnName)
+                    columns.add(axis.findColumnByName(column.columnName))
                 }
             }
+            return columns
         }
-        Collection<Column> columns = []
-        for (Object value : valuesMatchingColumns)
+        
+        if (isDiscrete)
         {
-            Column column
-            if (isDiscrete)
+            for (Object value : valuesMatchingColumns)
             {
-                column = axis.findColumn((Comparable)value)
+                columns.add(axis.findColumn((Comparable)value))
             }
-            else
+        }
+        else
+        {
+            for (Object value : valuesMatchingColumns)
             {
-                column = axis.findColumnByName((String)value)
+                if (StringUtilities.isEmpty((String)value))
+                {
+                    throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
+                }
+                columns.add(axis.findColumnByName((String)value))
             }
-            columns.add(column)
         }
         return columns
     }
@@ -1493,13 +1501,13 @@ class NCube<T>
         for (String axisName : otherAxisNames)
         {
             Axis otherAxis = getAxis(axisName)
-            def value = input[axisName]
+            def value = input.get(axisName)
             Column column = otherAxis.findColumn((Comparable)value)
             if (!column)
             {
                 throw new CoordinateNotFoundException("Column: ${value} not found on axis: ${axisName} on cube: ${name}", name, null, axisName, value)
             }
-            boundColumns << column.id
+            boundColumns.add(column.id)
         }
         return boundColumns
     }
