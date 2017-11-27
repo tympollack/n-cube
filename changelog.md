@@ -1,7 +1,8 @@
 ### Revision History
 * 4.1.27
-  * Map reduce now takes options map for nullable parameters.
-  * Fixed performance issue underlying map reduce.
+  * `NCube.mapReduce()` allows any number of dimensions (one must act as the 'where' axis).
+  * `NCube.mapReduce()` takes new 'options' `Map` where the additional arguments are passed.  
+  * Consumed java-util 1.34.0
 * 4.1.26
   * Add `NCube.hyperMapReduce` that allows mapReduce with multiple unknown axis values.
   * Add global menu `sys.menu.global` in `sys.app` which provides a template for all apps across the system. Application-specific menus override properties of the global menu.
