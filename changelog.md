@@ -1,4 +1,6 @@
 ### Revision History
+* 4.1.28-SNAPSHOT
+  * --
 * 4.1.27
   * `NCube.mapReduce()` allows any number of dimensions (one must act as the 'where' axis).
   * `NCube.mapReduce()` takes new 'options' `Map` where the additional arguments are passed.  

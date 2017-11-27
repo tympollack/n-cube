@@ -114,7 +114,7 @@ class TestAllCellsInBigCube extends NCubeBaseTest
     @Test
     void testMapReduceLarge()
     {
-        final int timesToRun = 10
+        final int timesToRun = 20
         long start = System.nanoTime()
         NCube ncube = new NCube("bigCube")
         Axis row = new Axis('row', AxisType.DISCRETE, AxisValueType.LONG, false)
