@@ -1,6 +1,7 @@
 ### Revision History
 * 4.1.28-SNAPSHOT
-  * --
+  * Bug fix: Updated `NCube.createStubCube()` so it doesn't try to delete columns reference axes. Reference axes on "stub NCubes" will now contain all columns. Non-reference axes continue to have no columns.
+  * Cleaned up `NCubeJdbcPersister.createCube()`
 * 4.1.27
   * `NCube.mapReduce()` allows any number of dimensions (one must act as the 'where' axis).
   * `NCube.mapReduce()` takes new 'options' `Map` where the additional arguments are passed.  
