@@ -4387,6 +4387,8 @@ class NCube<T>
         return s.toString()
     }
 
+    // This method could cause sha1 issues where the same column names were on different axes.
+    @Deprecated
     private String columnIdsToStringV1(Set<Long> columns)
     {
         List<String> list = new ArrayList(columns.size())
