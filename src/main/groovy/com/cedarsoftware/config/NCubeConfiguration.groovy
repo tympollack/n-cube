@@ -57,7 +57,7 @@ class NCubeConfiguration
     @Value('${ncube.target.username:#{null}}') String username
     @Value('${ncube.target.password:#{null}}') String password
     @Value('${ncube.target.numConnections:100}') int numConnections
-    @Value('${ncube.sha1.version:2}') int ncubeSha1Version
+    @Value('${ncube.sha1.version:0}') int ncubeSha1Version
 
     @Value('${ncube.sources.dir:#{null}}') String sourcesDirectory
     @Value('${ncube.classes.dir:#{null}}') String classesDirectory

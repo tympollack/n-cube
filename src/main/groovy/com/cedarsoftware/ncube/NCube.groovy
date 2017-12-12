@@ -4116,10 +4116,12 @@ class NCube<T>
     {
         switch (ncubeSha1Version)
         {
+            case 1:
+                return sha1V1()
             case 2:
                 return sha1V2()
             default:
-                return sha1V1()
+                throw new IllegalStateException('Application property for ncube.sha1.version must be set.')
         }
     }
 
@@ -4241,6 +4243,9 @@ class NCube<T>
         return sha1
     }
 
+    // This version of the sha1 algorithm is broken in the case of cutting the cell data between two columns with the
+    // same value on two different axes. E.g. Deleting cell value from axis1:a, axis2:b and setting same cell value at axis1:b, axis2:a
+    @Deprecated
     private String sha1V1()
     {
         // Check if the SHA1 is already calculated.  If so, return it.
