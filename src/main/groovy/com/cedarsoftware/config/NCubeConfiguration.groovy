@@ -57,6 +57,7 @@ class NCubeConfiguration
     @Value('${ncube.target.username:#{null}}') String username
     @Value('${ncube.target.password:#{null}}') String password
     @Value('${ncube.target.numConnections:100}') int numConnections
+    @Value('${ncube.sha1.version:2}') int ncubeSha1Version
 
     @Value('${ncube.sources.dir:#{null}}') String sourcesDirectory
     @Value('${ncube.classes.dir:#{null}}') String classesDirectory
@@ -133,6 +134,15 @@ class NCubeConfiguration
         MethodInvokingBean methodInvokingBean = new MethodInvokingBean()
         methodInvokingBean.staticMethod = "com.cedarsoftware.ncube.util.CdnClassLoader.setNcubeAcceptedDomains"
         methodInvokingBean.arguments = [ncubeAcceptedDomains] as Object []
+        return methodInvokingBean
+    }
+
+    @Bean(name = "ncubeSha1Version")
+    MethodInvokingBean setNcubeSha1Version()
+    {
+        MethodInvokingBean methodInvokingBean = new MethodInvokingBean()
+        methodInvokingBean.staticMethod = "com.cedarsoftware.ncube.NCube.setNcubeSha1Version"
+        methodInvokingBean.arguments = ncubeSha1Version
         return methodInvokingBean
     }
 

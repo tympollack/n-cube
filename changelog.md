@@ -1,5 +1,6 @@
 ### Revision History
 * 4.1.28-SNAPSHOT
+  * Bug fix: Updated sha1 algorithm for a found issue with rainbow pairs. Application property is available to change running sha1 version, the default is v2.
   * Bug fix: Updated `NCube.createStubCube()` so it doesn't try to delete columns reference axes. Reference axes on "stub NCubes" will now contain all columns. Non-reference axes continue to have no columns.
   * Cleaned up `NCubeJdbcPersister.createCube()`
 * 4.1.27
