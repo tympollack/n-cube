@@ -4374,7 +4374,7 @@ class NCube<T>
             {   // Rare case where a column has an invalid ID.
                 Column column = axis.getColumnById(colId)
                 Object value = column.value
-                list.add(axis.name + (value == null ? 'null' : column.value.toString()))
+                list.add(axis.name.toLowerCase() + '|' + (value == null ? 'null' : column.value.toString()))
             }
         }
         Collections.sort(list)
