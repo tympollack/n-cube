@@ -4134,6 +4134,7 @@ class NCube<T>
             return sha1
         }
 
+        Map<String, String> axisNameMap = [:]
         final byte sep = 0
         MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
         sha1Digest.update(name == null ? ''.bytes : name.bytes)
@@ -4152,7 +4153,10 @@ class NCube<T>
         for (entry in sortedAxes.entrySet())
         {
             Axis axis = entry.value
-            sha1Digest.update(axis.name.toLowerCase().bytes)
+            String axisName = axis.name
+            String axisNameLower = axisName.toLowerCase()
+            axisNameMap.put(axisName, axisNameLower)
+            sha1Digest.update(axisNameLower.bytes)
             sha1Digest.update(sep)
             sha1Digest.update(String.valueOf(axis.columnOrder).bytes)
             sha1Digest.update(sep)
@@ -4218,14 +4222,14 @@ class NCube<T>
         sha1Digest.update(C_BYTES)  // c = cells
         sha1Digest.update(sep)
 
-        if (numCells > 0)
+        if (numCells)
         {
             List<String> sha1s = new ArrayList<>(cells.size()) as List
             MessageDigest tempDigest = EncryptionUtilities.SHA1Digest
 
             for (entry in cells.entrySet())
             {
-                String keySha1 = columnIdsToStringV2(entry.key)
+                String keySha1 = columnIdsToStringV2(axisNameMap, entry.key)
                 deepSha1(tempDigest, entry.value, sep)
                 String valueSha1 = StringUtilities.encode(tempDigest.digest())
                 sha1s.add(EncryptionUtilities.calculateSHA1Hash((keySha1 + valueSha1).bytes))
@@ -4364,7 +4368,7 @@ class NCube<T>
         return sha1
     }
 
-    private String columnIdsToStringV2(Set<Long> columns)
+    private String columnIdsToStringV2(Map<String, String> axisNameMap, Set<Long> columns)
     {
         List<String> list = new ArrayList(columns.size())
         for (colId in columns)
@@ -4374,7 +4378,7 @@ class NCube<T>
             {   // Rare case where a column has an invalid ID.
                 Column column = axis.getColumnById(colId)
                 Object value = column.value
-                list.add(axis.name.toLowerCase() + '|' + (value == null ? 'null' : column.value.toString()))
+                list.add("${axisNameMap.get(axis.name)}|${value == null ? 'null' : column.value.toString()}".toString())
             }
         }
         Collections.sort(list)
