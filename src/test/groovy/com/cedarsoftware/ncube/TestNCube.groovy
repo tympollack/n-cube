@@ -4452,7 +4452,7 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
-    void testSha1SwitchingDataBetweenSameNamedColumnsOnMultipleAxes()
+    void testSha1SwitchingDataBetweenSameValueColumnsOnMultipleAxes()
     {
         String cellVal = 'test'
         Axis axis1 = new Axis('axis1', AxisType.DISCRETE, AxisValueType.STRING, false)
@@ -4461,6 +4461,31 @@ class TestNCube extends NCubeBaseTest
         axis1.addColumn('b')
         axis2.addColumn('a')
         axis2.addColumn('b')
+
+        NCube cube = new NCube('testsha1')
+        cube.applicationID = ApplicationID.testAppId
+        cube.addAxis(axis1)
+        cube.addAxis(axis2)
+        cube.setCell(cellVal, [axis1:'a', axis2:'b'])
+        String oldSha1 = cube.sha1()
+
+        cube.clearCells()
+        cube.setCell(cellVal, [axis1:'b', axis2:'a'])
+        String newSha1 = cube.sha1()
+
+        assert oldSha1 != newSha1
+    }
+
+    @Test
+    void testSha1SwitchingDataBetweenSameValueColumnsOnMultipleRuleAxes()
+    {
+        String cellVal = 'test'
+        Axis axis1 = new Axis('axis1', AxisType.RULE, AxisValueType.STRING, false)
+        Axis axis2 = new Axis('axis2', AxisType.RULE, AxisValueType.STRING, false)
+        axis1.addColumn('a', 'a')
+        axis1.addColumn('a', 'b')
+        axis2.addColumn('a', 'a')
+        axis2.addColumn('a', 'b')
 
         NCube cube = new NCube('testsha1')
         cube.applicationID = ApplicationID.testAppId

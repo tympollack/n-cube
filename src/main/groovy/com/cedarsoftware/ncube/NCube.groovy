@@ -4114,15 +4114,13 @@ class NCube<T>
      */
     String sha1()
     {
-        switch (ncubeSha1Version)
-        {
-            case 1:
-                return sha1V1()
-            case 2:
-                return sha1V2()
-            default:
-                throw new IllegalStateException('Application property for ncube.sha1.version must be set.')
+        if (ncubeSha1Version == 1) {
+            return sha1V1()
         }
+        if (ncubeSha1Version == 2) {
+            return sha1V2()
+        }
+        throw new IllegalStateException('Application property for ncube.sha1.version must be set.')
     }
 
     private String sha1V2()
@@ -4377,8 +4375,8 @@ class NCube<T>
             if (axis != null)
             {   // Rare case where a column has an invalid ID.
                 Column column = axis.getColumnById(colId)
-                Object value = column.value
-                list.add("${axisNameMap.get(axis.name)}|${value == null ? 'null' : column.value.toString()}".toString())
+                Object value = column.columnName ?: column.value
+                list.add("${axisNameMap.get(axis.name)}|${value == null ? 'Default' : value.toString()}".toString())
             }
         }
         Collections.sort(list)
