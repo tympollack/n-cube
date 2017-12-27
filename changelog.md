@@ -1,6 +1,7 @@
 ### Revision History
-* 4.1.28-SNAPSHOT
+* 4.1.29-SNAPSHOT
   * Bug fix: Updated sha1 algorithm for an issue with symmetrical cubes. Application property is required to set running sha1 version until we can convert the records in our DB.
+* 4.1.28
   * Removed `String.join()`, which is Java 8 functionality, from `GroovyExpression` and replaced it with Guava's `Joiner` so that consumers using `<classifier>jre7</classifier>` can use NCube.
   * Bug fix: Updated `NCube.createStubCube()` so it doesn't try to delete columns reference axes. Reference axes on "stub NCubes" will now contain all columns. Non-reference axes continue to have no columns.
   * Cleaned up `NCubeJdbcPersister.createCube()`
