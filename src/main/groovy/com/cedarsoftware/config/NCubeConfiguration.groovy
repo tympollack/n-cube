@@ -109,10 +109,10 @@ class NCubeConfiguration
     @PostConstruct
     void init()
     {
-        CdnClassLoader.setGeneratedClassesDirectory(classesDirectory)
-        GroovyBase.setGeneratedSourcesDirectory(sourcesDirectory)
-        NCube.setStackEntryCoordinateValueMaxSize(stackEntryCoordinateValueMaxSize)
-        CdnClassLoader.setNcubeAcceptedDomains(ncubeAcceptedDomains)
+        CdnClassLoader.generatedClassesDirectory = classesDirectory
+        GroovyBase.generatedSourcesDirectory = sourcesDirectory
+        NCube.stackEntryCoordinateValueMaxSize = stackEntryCoordinateValueMaxSize
+        CdnClassLoader.ncubeAcceptedDomains = ncubeAcceptedDomains
     }
 
     @Configuration
