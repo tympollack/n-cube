@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.0
+  * Bug fix: Updated sha1 algorithm for an issue with symmetrical cubes. Application property is required to set running sha1 version until we can convert the records in our DB.
 * 4.1.30
   * `NCube.mapReduce()` - If input is bound to the axis marked as the rowAxis (on the input map), then the columns on the rows axis will be matched to it - either directly by value (meaning only 0 or 1 row will be returned) or a Collection can be bound to the row axis, in which the only rows considered for `mapReduce()` must also be in the `Collection`.  If nothing is bound to the rowAxis on input, then all rows will be attempted to be matched. Supplied by Greg Morefield.
 * 4.1.29
