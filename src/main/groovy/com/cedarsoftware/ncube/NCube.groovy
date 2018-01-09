@@ -1259,10 +1259,25 @@ class NCube<T>
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = new CaseInsensitiveMap()
-        final Map whereVars = new CaseInsensitiveMap(input)
+        final Map matchingRows = rowAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap() : new LinkedHashMap()
+        final Map whereVars = colAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap(input) : new LinkedHashMap(input)
 
-        for (Column row : rowAxis.columns)
+        Collection<Column> rowColumns
+        Object rowAxisValue = input[rowAxisName]
+        if (rowAxisValue)
+        {
+            rowColumns = selectColumns(rowAxis, rowAxisValue instanceof Collection ? rowAxisValue as Set : [rowAxisValue] as Set)
+            if (rowColumns.contains(null))
+            {
+                throw new IllegalStateException("At least one row axis column not found for input:${rowAxisValue.toString()}")
+            }
+        }
+        else
+        {
+            rowColumns = rowAxis.columns
+        }
+
+        for (Column row : rowColumns)
         {
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
             long rowId = row.id
@@ -1328,8 +1343,8 @@ class NCube<T>
      */
     Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:])
     {
-        throwIf(!colAxisName, new IllegalArgumentException('The column axis name cannot be null'))
-        throwIf(!where, new IllegalArgumentException('The where clause cannot be null'))
+        throwIf(!colAxisName, 'The column axis name cannot be null')
+        throwIf(!where, 'The where clause cannot be null')
 
         Axis colAxis = axisList[colAxisName]
         Map input = (Map)options.input ?: [:]
@@ -1467,11 +1482,11 @@ class NCube<T>
         return columns
     }
 
-    private static void throwIf(boolean throwCondition, Exception ex)
+    private static void throwIf(boolean throwCondition, String msg)
     {
         if (throwCondition)
         {
-            throw ex
+            throw new IllegalArgumentException(msg)
         }
     }
 
@@ -1516,7 +1531,7 @@ class NCube<T>
     {
         String axisName = searchAxis.name
         boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
-        Map result = new CaseInsensitiveMap()
+        Map result = searchAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap() : new LinkedHashMap()
 
         for (Column column : selectList)
         {
