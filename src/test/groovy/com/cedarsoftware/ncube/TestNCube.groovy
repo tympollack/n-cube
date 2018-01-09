@@ -5289,6 +5289,130 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testMapReduceFindSingleRowSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:'B']])
+
+        assert queryResult.size() == 1
+        assert queryResult.keySet().containsAll(['B'])
+    }
+
+    @Test
+    void testMapReduceFindMultipleRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['B','C','D']]])
+
+        assert queryResult.size() == 3
+        assert queryResult.keySet().containsAll(['B','C','D'])
+    }
+
+    @Test
+    void testMapReduceFindNullRowSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:null]])
+
+        assert queryResult.size() == 8
+        assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+    }
+
+    @Test
+    void testMapReduceFindDuplicateRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['C','C','C']]])
+
+        assert queryResult.size() == 1
+        assert queryResult.keySet().containsAll(['C'])
+    }
+
+    @Test
+    void testMapReduceFindNoMatchingRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+
+        try
+        {
+            ncube.mapReduce('query', { true }, [input:[key:['NonExistentKey']]])
+            fail 'Should have thrown an IllegalStateException'
+        }
+        catch (Exception e)
+        {
+            assert e instanceof IllegalStateException
+            assertContainsIgnoreCase(e.message, 'At least one row axis column not found for input', 'NonExistentKey')
+        }
+    }
+
+    @Test
+    void testMapReduceFindNoMatchingRowsInSetSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+
+        try
+        {
+            ncube.mapReduce('query', { true }, [input:[key:['NonExistentKey','AlsoNotFound']]])
+            fail 'Should have thrown an IllegalStateException'
+        }
+        catch (Exception e)
+        {
+            assert e instanceof IllegalStateException
+            assertContainsIgnoreCase(e.message, 'At least one row axis column not found for input', 'NonExistentKey', 'AlsoNotFound')
+        }
+    }
+
+    @Test
+    void testMapReduceFindCaseSensitiveRows()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryCaseSensitive.json')
+
+        Map queryResult = ncube.mapReduce('key', { true })
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['STATE'] as Map
+        assert row['A'] == 'OH'
+        assert row['B'] == 'KY'
+
+        row = queryResult['State'] as Map
+        assert row['A'] == 'Ohio'
+        assert row['B'] == 'Kentucky'
+    }
+
+    @Test
+    void testMapReduceFindCaseSensitiveRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryCaseSensitive.json')
+
+        Map queryResult = ncube.mapReduce('key', { true }, [input:[query:'STATE']])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['STATE'] as Map
+        assert row['A'] == 'OH'
+        assert row['B'] == 'KY'
+    }
+
+    @Test
+    void testMapReduceFindCaseSensitiveCols()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryCaseSensitive.json')
+
+        Map queryResult = ncube.mapReduce('query', { true })
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['A'] as Map
+        assert row['STATE'] == 'OH'
+        assert row['State'] == 'Ohio'
+
+        row = queryResult['B'] as Map
+        assert row['STATE'] == 'KY'
+        assert row['State'] == 'Kentucky'
+    }
+
+    @Test
     void testMapReduceWithCommandCell()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
