@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.1
+  * Remove old sha1 algorithm and sha1 versioning as it is no longer needed.
 * 4.2.0
   * Bug fix: Updated sha1 algorithm for an issue with symmetrical cubes. Application property is required to set running sha1 version until we can convert the records in our DB.
 * 4.1.30
