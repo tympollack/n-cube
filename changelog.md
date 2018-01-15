@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.2-SNAPSHOT
+  * --
 * 4.2.1
   * Remove old sha1 algorithm and sha1 versioning as it is no longer needed.
   * Bug fix: `NCube.mapReduce()` not properly handling case-sensitive columns.
