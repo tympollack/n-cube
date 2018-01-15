@@ -1250,7 +1250,7 @@ class NCube<T>
         Object defaultValue = options[MAP_REDUCE_DEFAULT_VALUE]
         Collection<Column> selectList = (Collection) options.selectList
         Collection<Column> whereColumns = (Collection) options.whereColumns
-        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
+        final Map commandInput = new TrackingMap<>(new LinkedHashMap(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
 
         Axis rowAxis = getAxis(rowAxisName)
@@ -1259,17 +1259,17 @@ class NCube<T>
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = rowAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap() : new LinkedHashMap()
-        final Map whereVars = colAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap(input) : new LinkedHashMap(input)
+        final Map matchingRows = new LinkedHashMap()
+        final Map whereVars = new LinkedHashMap(input)
 
         Collection<Column> rowColumns
         Object rowAxisValue = input[rowAxisName]
         if (rowAxisValue)
         {
             rowColumns = selectColumns(rowAxis, rowAxisValue instanceof Collection ? rowAxisValue as Set : [rowAxisValue] as Set)
-            if (rowColumns.contains(null))
+            while (rowColumns.contains(null))
             {
-                throw new IllegalStateException("At least one row axis column not found for input:${rowAxisValue.toString()}")
+                rowColumns.remove(null)
             }
         }
         else
@@ -1298,7 +1298,8 @@ class NCube<T>
             if (whereResult)
             {
                 Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
-                matchingRows.put(key, buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache))
+                Map resultRow = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache)
+                matchingRows.put(key, resultRow)
             }
             ids.remove(rowId)
         }
@@ -1386,7 +1387,7 @@ class NCube<T>
     private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map options, Map columnDefaultCache)
     {
         Map result
-        Map ret = new CaseInsensitiveMap()
+        Map ret = new LinkedHashMap()
         String axisName = axes.last() // take axis with most columns first
         List<Column> columns = getAxis(axisName).columns
         Set<String> otherAxes = axes - axisName
@@ -1398,10 +1399,10 @@ class NCube<T>
             input.put(axisName, column.value)
             if (noMoreAxes)
             {
-                Map inputVal = new TrackingMap<>(new CaseInsensitiveMap(input))
                 result = internalMapReduce(rowAxisName, colAxisName, where, options, columnDefaultCache)
                 for (Map.Entry resultEntry : result)
                 {
+                    Map inputVal = new LinkedHashMap(input)
                     inputVal.put(rowAxisName, resultEntry.key)
                     ret.put(inputVal, resultEntry.value)
                 }
@@ -1531,7 +1532,7 @@ class NCube<T>
     {
         String axisName = searchAxis.name
         boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
-        Map result = searchAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap() : new LinkedHashMap()
+        Map result = new LinkedHashMap()
 
         for (Column column : selectList)
         {
