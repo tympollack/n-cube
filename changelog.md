@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.1
+  * Bug fix: `NCube.mapReduce()` not properly handling case-sensitive columns.
 * 4.2.0
   * Bug fix: Updated sha1 algorithm for an issue with symmetrical cubes. Application property is required to set running sha1 version until we can convert the records in our DB.
 * 4.1.30
