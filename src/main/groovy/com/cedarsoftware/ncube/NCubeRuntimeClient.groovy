@@ -78,4 +78,10 @@ interface NCubeRuntimeClient extends NCubeClient
     Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Map output)
 
     Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Map output, Object defaultValue)
+
+
+
+
+
+    void runDbConversion()
 }

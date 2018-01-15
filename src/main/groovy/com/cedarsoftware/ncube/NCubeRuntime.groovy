@@ -1638,4 +1638,20 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
         NCube.validateCubeName(cube.name)
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void runDbConversion() {
+        bean.call(beanName, 'runDbConversion', [])
+    }
 }

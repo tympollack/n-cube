@@ -8,7 +8,11 @@ import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import com.google.common.util.concurrent.AtomicDouble
+import groovy.sql.BatchingStatementWrapper
+import groovy.sql.Sql
 import groovy.transform.CompileStatic
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.actuate.endpoint.InfoEndpoint
@@ -19,6 +23,7 @@ import javax.management.MBeanServer
 import javax.management.ObjectName
 import javax.servlet.http.HttpServletRequest
 import java.lang.management.ManagementFactory
+import java.sql.ResultSet
 import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
@@ -2040,5 +2045,333 @@ class NCubeController implements NCubeConstants
             String s = "Failed to load n-cubes from passed in JSON, last successful cube read: ${lastSuccessful}"
             throw new IllegalArgumentException(s, e)
         }
+    }
+
+
+
+
+
+
+
+
+
+
+
+    private static final Logger LOG = LoggerFactory.getLogger(NCubeManager.class)
+    private Map<Long, Map<String, String>> allData = [:]
+    private Map<String, String> oldToNew = [:]
+
+    private String invalidUtf = 'Invalid UTF-8 start byte'
+    private String refAxisNotExist = 'was not found on the referenced n-cube'
+    private String oldTransform = 'which must have two DISCRETE axes: transform (LONG) and property (STRING)'
+    private String refCubeNotExist = 'Failed to load referenced n-cube'
+    private String transCubeNotLoaded = 'Failed to load transform n-cube'
+    private String ruleExists = 'There is already a rule named'
+    private String jsonError = 'Error reading cube from passed in JSON'
+    private String enumLong = 'No enum constant com.cedarsoftware.ncube.AxisType.long'
+    private String couldNotProcess = 'Could not process'
+    private String cannotCastObject = 'Cannot cast object'
+    private String nullCubeValueBin = 'null cube_value_bin'
+    private String columnValueExists = 'matches a value already on axis'
+    private String defaultColumnExists = 'Cannot add default column'
+    private Map<String, Set<Long>> errors = [ // 20712
+                                              (oldTransform):(Set)[],       // 8550
+                                              (refCubeNotExist):(Set)[],    // 2167
+                                              (invalidUtf):(Set)[],         // 662
+                                              (ruleExists):(Set)[],         // 230
+                                              (cannotCastObject):(Set)[],   // 7
+                                              (columnValueExists):(Set)[],  // 6
+                                              (transCubeNotLoaded):(Set)[], // 24
+                                              (jsonError):(Set)[],          // 4
+                                              (enumLong):(Set)[],           // 5
+                                              (defaultColumnExists):(Set)[],// 1
+                                              (refAxisNotExist):(Set)[],    // 1
+                                              (nullCubeValueBin):(Set)[],   // 9055
+                                              (couldNotProcess):(Set)[]     // 0
+    ]
+    private List<ApplicationID> appIds = []
+
+    private Map<String, String> conversionInfo = [:]
+
+    @SuppressWarnings("GroovyUnusedDeclaration")
+    void runDbConversion() {
+//  PROD
+        conversionInfo.url = "jdbc:oracle:thin:@//dm01-scan.td.afg:1521/app_ncubep.prod.gai.com"
+        conversionInfo.user = "ncube"
+        conversionInfo.password = "wRetrEd2yap5XE"
+        conversionInfo.driverClassName = "oracle.jdbc.driver.OracleDriver"
+
+//  DEV
+//        conversionInfo.url = "jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com"
+//        conversionInfo.user = "nce"
+//        conversionInfo.password = "quality"
+//        conversionInfo.driverClassName = "oracle.jdbc.driver.OracleDriver"
+
+        doConversion()
+    }
+
+    private void doConversion() {
+        int origSha1Ver = NCube.getNcubeSha1Version()
+        try {
+            LOG.info "Starting conversion code..."
+
+            getAllAppIds()
+            step1()
+            step2()
+//            step3()
+//            revert()
+
+            LOG.info "Finished conversion code successfully."
+            int totalErrors = 0
+            errors.values().collect {totalErrors += it.size()}
+            LOG.info ""
+            LOG.info "Errors: ${totalErrors}"
+            for (String errorKey : errors.keySet()) {
+                Set<Long> ids = errors.get(errorKey)
+                ids.sort()
+                LOG.info "${errorKey} - ${ids.size()}"
+                for (Long id : ids) {
+                    LOG.info "     -- ${id}"
+                }
+                LOG.info ""
+            }
+            LOG.info ""
+            LOG.info "All Data:"
+            for (Map.Entry<Long, Map<String, String>> entry : allData) {
+                Map sha1s = entry.value
+                String oldSha1 = sha1s.oldSha1
+                String newSha1 = oldToNew.get(oldSha1)
+                String oldHeadSha1 = sha1s.oldHeadSha1
+                String newHeadSha1 = oldHeadSha1 ? oldToNew.get(oldHeadSha1) : 'null'
+                LOG.info "${entry.key}: ${oldSha1} -> ${newSha1}, ${oldHeadSha1} -> ${newHeadSha1}"
+            }
+        }
+        finally {
+            NCube.setNcubeSha1Version(origSha1Ver)
+            LOG.info "Reverted sha1 version."
+        }
+    }
+
+    // Full DB scan stores all old sha1 info in map as id -> oldSha1, oldSha1,
+    //      and calculates new sha1 in bimap as oldSha1 -> newSha1.
+    // Don't save sha1 or id if oldSha1 == newSha1, and error out if oldSha1 == newSha1 && cube has cells.
+    // Assert no values for oldSha1 set exist in newSha1 set.
+    private void step1() {
+        LOG.info "Step 1: Scanning DB for sha1s and calculating newSha1..."
+
+        NCube.setNcubeSha1Version(2)
+        int numAppIds = appIds.size()
+        int curIdNum = 1
+        for (ApplicationID appId : appIds) {
+            Sql sql = null
+            try {
+                LOG.info "Processing ${appId} - (${curIdNum++} / ${numAppIds})"
+                String select = """select n_cube_id, n_cube_nm, branch_id, version_no_cd, status_cd, app_cd, create_dt,
+                       create_hid, revision_number, changed, sha1, head_sha1, test_data_bin, cube_value_bin
+                       from n_cube where app_cd = '${appId.app}' and version_no_cd = '${
+                    appId.version
+                }' and status_cd = '${appId.status}' and branch_id = '${appId.branch}'"""
+
+                sql = Sql.newInstance(conversionInfo.url, conversionInfo.user, conversionInfo.password, conversionInfo.driverClassName)
+                sql.eachRow(select, { ResultSet row ->
+                    processRowForStep1(row)
+                })
+            }
+            finally {
+                sql?.close()
+            }
+        }
+
+        for (String oldSha1 : oldToNew.keySet()) {
+            if (oldToNew.containsValue(oldSha1)) {
+                throw new IllegalStateException("oldSha1 should not be in newSha1 list.")
+            }
+        }
+    }
+
+    private void step2() {
+        LOG.info "Step 2: Updating old sha1 and headSha1..."
+
+        int numIds = allData.size()
+        int curIdNum = 0
+        Sql sql = null
+        try {
+            sql = Sql.newInstance(conversionInfo.url, conversionInfo.user, conversionInfo.password, conversionInfo.driverClassName)
+            sql.withBatch(1000, { BatchingStatementWrapper stmt ->
+                for (Map.Entry<Long, Map<String, String>> recordEntry : allData.entrySet()) {
+                    if (!curIdNum || curIdNum % 1000 == 0) {
+                        LOG.info "Processing ids ${curIdNum}-${Math.min(curIdNum + 999, numIds)} of ${numIds}"
+                    }
+                    curIdNum++
+                    Map sha1s = recordEntry.value
+                    String oldSha1 = sha1s.oldSha1
+                    String newSha1 = oldToNew.get(oldSha1)
+                    String oldHeadSha1 = sha1s.oldHeadSha1
+                    String newHeadSha1 = oldHeadSha1 ? "'${oldToNew.get(oldHeadSha1)}'" : 'null'
+                    stmt.addBatch("update n_cube set sha1 = '${newSha1}', head_sha1 = ${newHeadSha1} where n_cube_id = '${recordEntry.key}'")
+                }
+            })
+        }
+        finally {
+            sql?.close()
+        }
+    }
+
+    private void step3() {
+        LOG.info "Checking that no old sha1, head_sha1 exist in db..."
+
+        int numSha1 = oldToNew.size()
+        int curIdNum = 0
+        Set<String> sha1Set = (Set)[]
+        Sql sql = null
+        for (String oldSha1Key : oldToNew.keySet()) {
+            if (curIdNum % 100 == 0 || curIdNum == numSha1) {
+                LOG.info "Processing ids ${curIdNum}-${Math.min(curIdNum + 99, numSha1)} of ${numSha1}"
+                try {
+                    sql = Sql.newInstance(conversionInfo.url, conversionInfo.user, conversionInfo.password, conversionInfo.driverClassName)
+                    for (String sha1 : sha1Set) {
+                        String select = "select n_cube_id from n_cube where sha1 = '${sha1}' or head_sha1 = '${sha1}'"
+                        sql.eachRow(select, { ResultSet row ->
+                            Long id = row.getLong('n_cube_id')
+                            if (allData.containsKey(id)) { // otherwise it's a non-processed cube
+                                Map sha1s = allData.get(id)
+                                String oldSha1 = sha1s.oldSha1
+                                String newSha1 = oldToNew.get(oldSha1)
+                                String oldHeadSha1 = sha1s.oldHeadSha1
+                                String newHeadSha1 = oldHeadSha1 ? "'${oldToNew.get(oldHeadSha1)}'" : 'null'
+                                LOG.info "OLD SHA1 EXISTS IN DB   -   ${id}: ${oldSha1} -> ${newSha1}, ${oldHeadSha1} -> ${newHeadSha1}"
+                            }
+                        })
+                    }
+                }
+                finally {
+                    sql?.close()
+                }
+                sha1Set.clear()
+            }
+            curIdNum++
+            sha1Set.add(oldSha1Key)
+        }
+    }
+
+    private void revert() {
+        LOG.info "Reverting db records back to old sha1, head_sha1..."
+
+        int numIds = allData.size()
+        int curIdNum = 0
+        Sql sql = null
+        try {
+            sql = Sql.newInstance(conversionInfo.url, conversionInfo.user, conversionInfo.password, conversionInfo.driverClassName)
+            sql.withBatch(1000, { BatchingStatementWrapper stmt ->
+                for (Map.Entry<Long, Map<String, String>> recordEntry : allData.entrySet()) {
+                    if (!curIdNum || curIdNum % 1000 == 0) {
+                        LOG.info "Processing ids ${curIdNum}-${Math.min(curIdNum + 999, numIds)} of ${numIds}"
+                    }
+                    curIdNum++
+                    Map sha1s = recordEntry.value
+                    String oldHeadSha1 = sha1s.oldHeadSha1 ? "'${sha1s.oldHeadSha1}'" : 'null'
+                    stmt.addBatch("update n_cube set sha1 = '${sha1s.oldSha1}', head_sha1 = ${oldHeadSha1} where n_cube_id = '${recordEntry.key}'")
+                }
+            })
+        }
+        finally {
+            sql?.close()
+        }
+    }
+
+    private void processRowForStep1(ResultSet row) {
+        Long id = row.getLong('n_cube_id')
+        String oldSha1 = row.getString('sha1')
+        String oldHeadSha1 = row.getString('head_sha1')
+        String newSha1
+
+        try {
+            if (oldToNew.containsKey(oldSha1)) {
+                newSha1 = oldToNew.get(oldSha1)
+            } else {
+                NCubeInfoDto record = createDtoFromRow(row)
+                NCube cube = NCube.createCubeFromRecord(record)
+                cube.clearSha1()
+                newSha1 = cube.sha1()
+
+                if (oldSha1 == newSha1) {
+                    if (cube.numCells) {
+                        throw new IllegalStateException("oldSha1 should not match newSha1.")
+                    }
+                } else if (!oldToNew.containsKey(oldSha1)) {
+                    oldToNew.put(oldSha1, newSha1)
+                }
+            }
+
+            if (oldSha1 != newSha1) {
+                allData.put(id, [oldSha1:oldSha1, oldHeadSha1:oldHeadSha1])
+            }
+        }
+        catch (all) {
+            if (!all.message) {
+                errors.get(nullCubeValueBin).add(id)
+                return
+            }
+            if (all.message.contains(cannotCastObject)) {
+                errors.get(cannotCastObject).add(id)
+                return
+            }
+            Throwable cause = all.cause
+            if (cause) {
+                String message = cause.message
+                Throwable cause2 = cause.cause
+                for (String errorKey : errors.keySet()) {
+                    if (message.contains(errorKey) || cause2?.message?.contains(errorKey)) {
+                        errors.get(errorKey).add(id)
+                        return
+                    }
+                }
+            }
+            errors.get(couldNotProcess).add(id)
+            LOG.info "Could not process ${row.getString('n_cube_nm')}/NONE/${row.getString('app_cd')}/${row.getString('version_no_cd')}/${row.getString('status_cd')}/${row.getString('branch_id')}   -   ${id}: ${all.message}   -   ${cause?.message}"
+        }
+    }
+
+    private void getAllAppIds(String[] appNames = null) {
+        LOG.info "Getting all appIds..."
+        appNames = appNames ?: getAppNames()
+        for (String app : appNames) {
+            for (String versionString : getVersions(app)) {
+                String[] verSplit = versionString.split('-')
+                String version = verSplit[0]
+                String status = verSplit[1]
+                if (status == 'RELEASE' || version == '0.0.0') {
+                    ApplicationID appId = new ApplicationID(tenant, app, version, status, 'HEAD')
+                    for (String branch : getBranches(appId)) {
+                        appIds.add(appId.asBranch(branch))
+                    }
+                }
+            }
+        }
+        LOG.info "Retrieved ${appIds.size()} appIds"
+    }
+
+    private static NCubeInfoDto createDtoFromRow(ResultSet row) {
+        NCubeInfoDto dto = new NCubeInfoDto()
+        dto.id = row.getString('n_cube_id')
+        dto.name = row.getString('n_cube_nm')
+        dto.branch = row.getString('branch_id')
+        dto.version = row.getString('version_no_cd')
+        dto.status = row.getString('status_cd')
+        dto.app = row.getString('app_cd')
+        dto.createDate = new Date(row.getTimestamp('create_dt').time)
+        dto.createHid = row.getString('create_hid')
+        dto.revision = row.getString('revision_number')
+        dto.changed = row.getBoolean('changed')
+        dto.sha1 = row.getString('sha1')
+        dto.headSha1 = row.getString('head_sha1')
+        dto.notes = "".bytes
+        dto.bytes = row.getBytes('cube_value_bin')
+        byte[] testBytes = row.getBytes('test_data_bin')
+        if (testBytes)
+        {
+            dto.testData = new String(testBytes, 'UTF-8')
+        }
+        return dto
     }
 }
