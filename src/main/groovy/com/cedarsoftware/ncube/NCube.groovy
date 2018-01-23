@@ -340,7 +340,7 @@ class NCube<T>
         {
             StringBuilder s = new StringBuilder()
             s.append("${cubeName}:[")
-            Iterator<Map.Entry<String, Object>> i = coord.entrySet().iterator()
+            Iterator<Map.Entry> i = coord.entrySet().iterator()
             
             while (i.hasNext())
             {
@@ -1580,7 +1580,7 @@ class NCube<T>
 
         if (ruleValue instanceof Boolean)
         {
-            return ruleValue == true
+            return ruleValue
         }
 
         if (ruleValue instanceof Number)
@@ -1814,7 +1814,7 @@ class NCube<T>
                     cellInfo = new CellInfo(value)
                     ret[idx++] = [coord, cellInfo as Map]
                 }
-                catch (Exception e)
+                catch (Exception ignored)
                 {
                     cellInfo = new CellInfo(value.toString())    // Convert non-logical primitive to String
                     ret[idx++] = [coord, cellInfo as Map]
@@ -3325,7 +3325,7 @@ class NCube<T>
                         {    // skip deleted columns
                             Map columnProps = (Map)column[(PARSE_COL_PROPS)]
                             transformMetaProperties(columnProps)
-                            Iterator<Map.Entry<String, Object>> i = columnProps.entrySet().iterator()
+                            Iterator<Map.Entry> i = columnProps.entrySet().iterator()
                             while (i.hasNext())
                             {
                                 Map.Entry<String, Object> entry = i.next()
@@ -3668,7 +3668,7 @@ class NCube<T>
                         Column col = newAxis.getColumnById((long)column['id'])
                         if (col)
                         {    // skip deleted columns
-                            Iterator<Map.Entry<String, Object>> i = column.entrySet().iterator()
+                            Iterator<Map.Entry> i = column.entrySet().iterator()
                             while (i.hasNext())
                             {
                                 Map.Entry<String, Object> entry = i.next()
