@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.3-SNAPSHOT
+  * --
 * 4.2.2
   * Updated to consume json-command-servlet 1.8.3
   * Updated to consume spring 4.3.13.RELEASE
