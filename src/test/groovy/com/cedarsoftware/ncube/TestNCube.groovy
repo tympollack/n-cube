@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.AxisOverlapException
+import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.proximity.LatLon
@@ -5351,6 +5352,54 @@ class TestNCube extends NCubeBaseTest
         Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['NonExistentKey','C']]])
         assert queryResult.size() == 1
         assert queryResult.keySet().containsAll(['C'])
+    }
+
+    @Test
+    void testMapReduceWithLinkedCubeRequiredScope()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where, [input:[three:colName]])
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assert ((Map)map.get(colName)).containsValue(cubeFrom.getCell([one:colName, two:colName, three:colName]))
+    }
+
+    @Test
+    void testMapReduceWithoutLinkedCubeRequiredScope()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where)
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assertContainsIgnoreCase(((Map)map.get(colName)).get(colName) as String, 'does not contain all of the required scope keys', 'three')
+    }
+
+    @Test
+    void testMapReduceWithoutLinkedCubeRequiredScopeNoExecute()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where, [(NCube.MAP_REDUCE_SHOULD_EXECUTE):false])
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assert ((Map)map.get(colName)).containsValue(cubeFrom.getCellNoExecute([one:colName, two:colName]))
     }
 
     @Test
