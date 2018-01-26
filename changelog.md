@@ -1,6 +1,11 @@
 ### Revision History
-* 4.2.2-SNAPSHOT
+* 4.2.3-SNAPSHOT
   * --
+* 4.2.2
+  * Updated to consume json-command-servlet 1.8.3
+  * Updated to consume spring 4.3.13.RELEASE
+  * Updated to consume spring-boot 1.5.9.RELEASE
+  * Updated to consume tomcat 8.5.24
 * 4.2.1
   * Remove old sha1 algorithm and sha1 versioning as it is no longer needed.
   * Bug fix: `NCube.mapReduce()` not properly handling case-sensitive columns.
