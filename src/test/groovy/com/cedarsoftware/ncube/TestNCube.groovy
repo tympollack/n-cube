@@ -5354,6 +5354,37 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testMapReduceWithoutLinkedCubeRequiredScope()
+    {
+        Axis one = new Axis('one', AxisType.DISCRETE, AxisValueType.STRING, false)
+        Axis two = new Axis('two', AxisType.DISCRETE, AxisValueType.STRING, false)
+        Axis three = new Axis('three', AxisType.DISCRETE, AxisValueType.STRING, false)
+        one.addColumn('a')
+        two.addColumn('a')
+        three.addColumn('a')
+
+        NCube linkedCube = new NCube('LinkedTo')
+        linkedCube.applicationID = ApplicationID.testAppId
+        linkedCube.addAxis(one)
+        linkedCube.addAxis(two)
+        linkedCube.addAxis(three)
+        linkedCube.setCell('test', [two:'a', three:'a'])
+        ncubeRuntime.addCube(linkedCube)
+
+        NCube linkCube = new NCube('LinkedFrom')
+        linkCube.applicationID = ApplicationID.testAppId
+        linkCube.addAxis(one)
+        linkCube.addAxis(two)
+        linkCube.setCell('@LinkedTo[:]', [two:'a'])
+
+//        try
+//        {
+            linkCube.mapReduce('one', { Map input -> input['a'] != null })
+//            fail()
+//        }
+    }
+
+    @Test
     void testMapReduceCaseSensitive3D() {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQuery3DTest.json')
         Map queryResult = ncube.mapReduce('Val', {Map input -> input['Val1'] != null || input['val1'] != null || input[null] != null})

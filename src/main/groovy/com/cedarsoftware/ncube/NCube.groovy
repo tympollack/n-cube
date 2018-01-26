@@ -80,6 +80,7 @@ class NCube<T>
     public static final String METAPROPERTY_TEST_DATA = '_testData'
     public static final String MAP_REDUCE_COLUMNS_TO_SEARCH = 'columnsToSearch'
     public static final String MAP_REDUCE_COLUMNS_TO_RETURN = 'columnsToReturn'
+    public static final String MAP_REDUCE_SHOULD_EXECUTE = 'shouldExecute'
     public static final String MAP_REDUCE_DEFAULT_VALUE = 'defaultValue'
     protected static final byte[] TRUE_BYTES = 't'.bytes
     protected static final byte[] FALSE_BYTES = 'f'.bytes
@@ -1247,11 +1248,12 @@ class NCube<T>
     {
         Map input = (Map) options.input ?: [:]
         Map output = (Map) options.output ?: [:]
-        Object defaultValue = options[MAP_REDUCE_DEFAULT_VALUE]
+        Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
         Collection<Column> selectList = (Collection) options.selectList
         Collection<Column> whereColumns = (Collection) options.whereColumns
         final Map commandInput = new TrackingMap<>(new LinkedHashMap(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
+        boolean shouldExecute = options.get(MAP_REDUCE_SHOULD_EXECUTE)
 
         Axis rowAxis = getAxis(rowAxisName)
         Axis colAxis = getAxis(colAxisName)
@@ -1289,7 +1291,7 @@ class NCube<T>
                 ids.add(whereId)
                 commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
                 Object colKey = isColDiscrete ? column.value : column.columnName
-                whereVars.put(colKey, getCellById(ids, commandInput, output, defaultValue, columnDefaultCache))
+                whereVars.put(colKey, shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : getCellByIdNoExecute(ids))
                 ids.remove(whereId)
             }
 
@@ -1358,6 +1360,7 @@ class NCube<T>
         commandOpts.input = commandInput
         commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
         commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
+        commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options[MAP_REDUCE_SHOULD_EXECUTE] ?: true)
 
         String rowAxisName
         Set<String> searchAxes = axisNames - colAxisName - input.keySet()
