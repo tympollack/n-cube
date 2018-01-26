@@ -1291,7 +1291,16 @@ class NCube<T>
                 ids.add(whereId)
                 commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
                 Object colKey = isColDiscrete ? column.value : column.columnName
-                whereVars.put(colKey, shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : getCellByIdNoExecute(ids))
+                def val
+                try
+                {
+                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : getCellByIdNoExecute(ids)
+                }
+                catch (Exception e)
+                {
+                    val = "err: ${getExceptionMessage(getDeepestException(e))}".toString()
+                }
+                whereVars.put(colKey, val)
                 ids.remove(whereId)
             }
 
@@ -1360,7 +1369,7 @@ class NCube<T>
         commandOpts.input = commandInput
         commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
         commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
-        commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options[MAP_REDUCE_SHOULD_EXECUTE] ?: true)
+        commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options.get(MAP_REDUCE_SHOULD_EXECUTE) == null ? true : options.get(MAP_REDUCE_SHOULD_EXECUTE))
 
         String rowAxisName
         Set<String> searchAxes = axisNames - colAxisName - input.keySet()
