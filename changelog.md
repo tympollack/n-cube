@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.4-SNAPSHOT
+  * --
 * 4.2.3
   * Updated `NCube.mapReduce()` to return errors in cells vs ending the entire call when error occurs.
   * Updated `NCube.mapReduce()` to include an option for executing cells while running (default is no execute).
