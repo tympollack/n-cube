@@ -1,7 +1,7 @@
 ### Revision History
-* 4.2.3-SNAPSHOT
-  * Updated `NCube.mapReduce()` to return errors in cells vs ending the entire call.
-  * Updated `NCube.mapReduce()` to include an option for not executing cells while running.
+* 4.2.3
+  * Updated `NCube.mapReduce()` to return errors in cells vs ending the entire call when error occurs.
+  * Updated `NCube.mapReduce()` to include an option for executing cells while running (default is no execute).
 * 4.2.2
   * Updated to consume json-command-servlet 1.8.3
   * Updated to consume spring 4.3.13.RELEASE

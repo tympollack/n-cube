@@ -1294,7 +1294,7 @@ class NCube<T>
                 def val
                 try
                 {
-                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : getCellByIdNoExecute(ids)
+                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells[ids]
                 }
                 catch (Exception e)
                 {
