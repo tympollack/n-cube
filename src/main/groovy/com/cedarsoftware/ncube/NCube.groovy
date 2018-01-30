@@ -1260,10 +1260,12 @@ class NCube<T>
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
-        if (rowAxis.type!=AxisType.RULE) {
+        if (rowAxis.type!=AxisType.RULE)
+        {
             commandInput.informAdditionalUsage([rowAxisName])
         }
-        if (colAxis.type!=AxisType.RULE) {
+        if (colAxis.type!=AxisType.RULE)
+        {
             commandInput.informAdditionalUsage([colAxisName])
         }
         trackInputKeysUsed(commandInput,output)
