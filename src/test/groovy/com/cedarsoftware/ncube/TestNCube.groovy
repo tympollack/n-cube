@@ -5090,10 +5090,18 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceWithBasicQuery()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'NY'})
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'NY'}, [output:output])
 
         assert queryResult.size() == 2
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 3
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+        assert inputKeysUsed.contains('cubeName')
 
         Map row = queryResult['B'] as Map
         assert row['foo'] == 'NY'
@@ -5292,8 +5300,15 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceFindSingleRowSpecified()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:'B']])
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:'B'],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 2
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
 
         assert queryResult.size() == 1
         assert queryResult.keySet().containsAll(['B'])
@@ -5302,8 +5317,15 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceFindMultipleRowsSpecified()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['B','C','D']]])
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['B','C','D']],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 2
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
 
         assert queryResult.size() == 3
         assert queryResult.keySet().containsAll(['B','C','D'])
@@ -5312,8 +5334,16 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceFindNullRowSpecified()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:null]])
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:null],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 3
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+        assert inputKeysUsed.contains('cubeName')
 
         assert queryResult.size() == 8
         assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
