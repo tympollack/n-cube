@@ -1246,12 +1246,12 @@ class NCube<T>
      */
     private Map internalMapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map options = [:], Map columnDefaultCache)
     {
-        Map input = (Map) options.input ?: [:]
-        Map output = (Map) options.output ?: [:]
+        Map input =  options.containsKey('input') ? (Map) options.input : [:]
+        Map output = options.containsKey('output') ? (Map) options.output : [:]
         Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
         Collection<Column> selectList = (Collection) options.selectList
         Collection<Column> whereColumns = (Collection) options.whereColumns
-        final Map commandInput = new TrackingMap<>(new LinkedHashMap(input))
+        final TrackingMap commandInput = new TrackingMap<>(new LinkedHashMap(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
         boolean shouldExecute = options.get(MAP_REDUCE_SHOULD_EXECUTE)
 
@@ -1259,6 +1259,16 @@ class NCube<T>
         Axis colAxis = getAxis(colAxisName)
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
+
+        if (rowAxis.type!=AxisType.RULE)
+        {
+            commandInput.informAdditionalUsage([rowAxisName])
+        }
+        if (colAxis.type!=AxisType.RULE)
+        {
+            commandInput.informAdditionalUsage([colAxisName])
+        }
+        trackInputKeysUsed(commandInput,output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = new LinkedHashMap()
@@ -1291,7 +1301,16 @@ class NCube<T>
                 ids.add(whereId)
                 commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
                 Object colKey = isColDiscrete ? column.value : column.columnName
-                whereVars.put(colKey, shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : getCellByIdNoExecute(ids))
+                def val
+                try
+                {
+                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells[ids]
+                }
+                catch (Exception e)
+                {
+                    val = "err: ${getExceptionMessage(getDeepestException(e))}".toString()
+                }
+                whereVars.put(colKey, val)
                 ids.remove(whereId)
             }
 
@@ -1350,7 +1369,7 @@ class NCube<T>
         throwIf(!where, 'The where clause cannot be null')
 
         Axis colAxis = axisList[colAxisName]
-        Map input = (Map)options.input ?: [:]
+        Map input = options.containsKey('input') ? (Map)options.input : [:]
         Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
         Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
         final Map columnDefaultCache = new CaseInsensitiveMap()
@@ -1360,7 +1379,7 @@ class NCube<T>
         commandOpts.input = commandInput
         commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
         commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
-        commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options[MAP_REDUCE_SHOULD_EXECUTE] ?: true)
+        commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options.get(MAP_REDUCE_SHOULD_EXECUTE) == null ? true : options.get(MAP_REDUCE_SHOULD_EXECUTE))
 
         String rowAxisName
         Set<String> searchAxes = axisNames - colAxisName - input.keySet()
@@ -4902,6 +4921,7 @@ class NCube<T>
      * @param axisName String name of axis to get (case ignored)
      * @return Axis if found, null otherwise.
      */
+    @Deprecated
     Axis get(String axisName)
     {
         return axisList[axisName]

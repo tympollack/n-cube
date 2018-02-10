@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.AxisOverlapException
+import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.proximity.LatLon
@@ -361,10 +362,10 @@ class TestNCube extends NCubeBaseTest
     void testDefaultNCubeCellValue()
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(true)
-        ncube.defaultCellValue = 3.0        // Non-set cells will return this value
+        ncube.setDefaultCellValue(3.0d)        // Non-set cells will return this value
 
         Map coord = [Gender:'Male', Age:18] as Map
-        ncube.setCell(21.0, coord)
+        ncube.setCell(21.0d, coord)
         Double x = ncube.getCell(coord) as Double
         assertTrue(x == 21.0)
         coord.Age = 65
@@ -378,7 +379,7 @@ class TestNCube extends NCubeBaseTest
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(true)
         Map coord = [Gender:'Male', Age:18] as Map
-        ncube.setCell(21.0, coord)
+        ncube.setCell(21.0d, coord)
         Double x = ncube.getCell(coord, [:], -1) as Double
         assertTrue(x == 21.0)
         coord.Age = 65
@@ -900,14 +901,14 @@ class TestNCube extends NCubeBaseTest
         Map coord = [:] as Map
         coord.put("Gender", "Male")
         coord.put("Age", 39)
-        ncube.setCell(9.9, coord)
+        ncube.setCell(9.9d, coord)
         assertTrue(ncube.getCell(coord) == 9.9)
         assertTrue(countMatches(ncube.toHtml(), "<tr") == 4)
 
         coord.put("Gender", "Fmale")    // intentional
         try
         {
-            ncube.setCell(9.9, coord)
+            ncube.setCell(9.9d, coord)
             fail("should throw an exception")
         }
         catch (CoordinateNotFoundException e)
@@ -934,7 +935,7 @@ class TestNCube extends NCubeBaseTest
         NCube ncube = NCubeBuilder.getTestNCube2D(false)
         try
         {
-            ncube.setCell(9.9, null)
+            ncube.setCell(9.9d, null)
             fail()
         }
         catch (CoordinateNotFoundException e)
@@ -947,7 +948,7 @@ class TestNCube extends NCubeBaseTest
         Map coord = [:] as Map
         try
         {
-            ncube.setCell(9.9, coord)
+            ncube.setCell(9.9d, coord)
             fail()
         }
         catch (CoordinateNotFoundException e)
@@ -963,7 +964,7 @@ class TestNCube extends NCubeBaseTest
         coord.put("Gender", "Male")
         try
         {
-            ncube.setCell(9.9, coord)
+            ncube.setCell(9.9d, coord)
             fail()
         }
         catch (CoordinateNotFoundException e)
@@ -3194,7 +3195,7 @@ class TestNCube extends NCubeBaseTest
         Set colIds = new HashSet()
         colIds.add(ageCol0)
         colIds.add(genderCol0)
-        ncube.setCellById(1.1, colIds)
+        ncube.setCellById(1.1d, colIds)
 
         def coord = [:]
         coord.AGE = ageCol.valueThatMatches
@@ -4832,7 +4833,7 @@ class TestNCube extends NCubeBaseTest
         NCube ncube = NCubeBuilder.getTestNCube2D(false)
         try
         {
-            ncube.setCellById(1.0, null)
+            ncube.setCellById(1.0d, null)
             fail()
         }
         catch (InvalidCoordinateException e)
@@ -5089,10 +5090,18 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceWithBasicQuery()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'NY'})
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'NY'}, [output:output])
 
         assert queryResult.size() == 2
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 3
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+        assert inputKeysUsed.contains('cubeName')
 
         Map row = queryResult['B'] as Map
         assert row['foo'] == 'NY'
@@ -5291,8 +5300,15 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceFindSingleRowSpecified()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:'B']])
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:'B'],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 2
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
 
         assert queryResult.size() == 1
         assert queryResult.keySet().containsAll(['B'])
@@ -5301,8 +5317,15 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceFindMultipleRowsSpecified()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['B','C','D']]])
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['B','C','D']],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 2
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
 
         assert queryResult.size() == 3
         assert queryResult.keySet().containsAll(['B','C','D'])
@@ -5311,8 +5334,16 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testMapReduceFindNullRowSpecified()
     {
+        Map output = [:]
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
-        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:null]])
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:null],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 3
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+        assert inputKeysUsed.contains('cubeName')
 
         assert queryResult.size() == 8
         assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
@@ -5354,34 +5385,51 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testMapReduceWithLinkedCubeRequiredScope()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where, [input:[three:colName]])
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assert ((Map)map.get(colName)).containsValue(cubeFrom.getCell([one:colName, two:colName, three:colName]))
+    }
+
+    @Test
     void testMapReduceWithoutLinkedCubeRequiredScope()
     {
-        Axis one = new Axis('one', AxisType.DISCRETE, AxisValueType.STRING, false)
-        Axis two = new Axis('two', AxisType.DISCRETE, AxisValueType.STRING, false)
-        Axis three = new Axis('three', AxisType.DISCRETE, AxisValueType.STRING, false)
-        one.addColumn('a')
-        two.addColumn('a')
-        three.addColumn('a')
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
 
-        NCube linkedCube = new NCube('LinkedTo')
-        linkedCube.applicationID = ApplicationID.testAppId
-        linkedCube.addAxis(one)
-        linkedCube.addAxis(two)
-        linkedCube.addAxis(three)
-        linkedCube.setCell('test', [two:'a', three:'a'])
-        ncubeRuntime.addCube(linkedCube)
+        Map map = cubeFrom.mapReduce(axisName, where)
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assertContainsIgnoreCase(((Map)map.get(colName)).get(colName) as String, 'does not contain all of the required scope keys', 'three')
+    }
 
-        NCube linkCube = new NCube('LinkedFrom')
-        linkCube.applicationID = ApplicationID.testAppId
-        linkCube.addAxis(one)
-        linkCube.addAxis(two)
-        linkCube.setCell('@LinkedTo[:]', [two:'a'])
+    @Test
+    void testMapReduceWithoutLinkedCubeRequiredScopeNoExecute()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
 
-//        try
-//        {
-            linkCube.mapReduce('one', { Map input -> input['a'] != null })
-//            fail()
-//        }
+        Map map = cubeFrom.mapReduce(axisName, where, [(NCube.MAP_REDUCE_SHOULD_EXECUTE):false])
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assert ((Map)map.get(colName)).containsValue(cubeFrom.getCellNoExecute([one:colName, two:colName]))
     }
 
     @Test
