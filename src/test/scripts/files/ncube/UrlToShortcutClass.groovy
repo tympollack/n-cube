@@ -6,7 +6,7 @@ class UrlToShortcutClass extends NCubeGroovyExpression
 {
     def run()
     {
-        at([name:'urlToRemoteClass'])
+        @([name:'urlToRemoteClass'])
         output.urlToShortcutClass = this.class
     }
 }

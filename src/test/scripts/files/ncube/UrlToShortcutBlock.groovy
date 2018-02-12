@@ -1,2 +1,2 @@
-at([name:'urlToRemoteBlock'])
+@([name:'urlToRemoteBlock'])
 output.urlToShortcutBlock = this.class
