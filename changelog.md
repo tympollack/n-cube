@@ -1,6 +1,6 @@
 ### Revision History
 * 4.2.5-SNAPSHOT
-  * --
+  * `NCubeManager.getPullRequests()' can now accept a pull request ID to find if it's otherwise outside of the date range.
 * 4.2.4
   * NCube.mapReduce() - input/output Map when passed in was not getting used if it was empty (Groovy truth - empty map is false - threw off comparison). @gmorefield.
   * NCube.mapReduce() - when ran against a rule cube, the row and column axis names need to be added to the tracking map.  @gmorefield.
