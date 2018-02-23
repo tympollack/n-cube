@@ -2699,8 +2699,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
             results.add(prInfo)
         }
         results.sort(true, { Map a, Map b ->
-            Converter.convert(b[PR_REQUEST_TIME], Date.class) as Date <=> Converter.convert(a[PR_REQUEST_TIME], Date.class) as Date ?:
-                    Converter.convert(b[PR_MERGE_TIME], Date.class) as Date <=> Converter.convert(a[PR_MERGE_TIME], Date.class) as Date
+            Converter.convertToDate(b[PR_REQUEST_TIME]) <=> Converter.convertToDate(a[PR_REQUEST_TIME]) ?:
+                    Converter.convertToDate(b[PR_MERGE_TIME]) <=> Converter.convertToDate(a[PR_MERGE_TIME])
         })
         return results as Object[]
     }
