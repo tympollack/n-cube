@@ -1,4 +1,6 @@
 ### Revision History
+* 4.2.6-SNAPSHOT
+  * --
 * 4.2.5
   * `NCubeManager.getPullRequests()` can now accept a pull request ID to find if it's otherwise outside of the date range.
 * 4.2.4
