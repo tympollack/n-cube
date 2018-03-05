@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.BranchMergeException
+import com.cedarsoftware.ncube.exception.CubeSizeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.util.BranchComparator
 import com.cedarsoftware.ncube.util.GCacheManager
@@ -23,6 +24,7 @@ import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
+import static com.cedarsoftware.util.Converter.convert
 
 /**
  * This class manages a list of NCubes.  This class is referenced
@@ -2168,7 +2170,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                 continue
             }
 
-            long headRev = (long) Converter.convert(head.revision, long.class)
+            long headRev = (long) convert(head.revision, long.class)
             boolean activeStatusMatches = (revision < 0) == (headRev < 0)
             boolean branchSha1MatchesHeadSha1 = StringUtilities.equalsIgnoreCase(updateCube.sha1, head.sha1)
             boolean branchHeadSha1MatchesHeadSha1 = StringUtilities.equalsIgnoreCase(updateCube.headSha1, head.sha1)
@@ -2264,7 +2266,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         {
             otherBranchCube.branch = appId.branch  // using other branch's DTO as return value, therefore setting the branch to the passed in AppId's branch
             NCubeInfoDto info = branchRecordMap[otherBranchCube.name]
-            long otherBranchCubeRev = (long) Converter.convert(otherBranchCube.revision, long.class)
+            long otherBranchCubeRev = (long) convert(otherBranchCube.revision, long.class)
 
             if (info == null)
             {   // Other branch has cube that my branch does not have
@@ -2280,7 +2282,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                 continue
             }
 
-            long infoRev = (long) Converter.convert(info.revision, long.class)
+            long infoRev = (long) convert(info.revision, long.class)
             boolean activeStatusMatches = (infoRev < 0) == (otherBranchCubeRev < 0)
             boolean myBranchSha1MatchesOtherBranchSha1 = StringUtilities.equalsIgnoreCase(info.sha1, otherBranchCube.sha1)
 
@@ -2430,7 +2432,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                     // Fast-Forward branch
                     // Update HEAD SHA-1 on branch directly (no need to insert)
                     NCubeInfoDto branchCube = getCubeInfo(appId, updateCube)
-                    persister.updateBranchCubeHeadSha1((Long) Converter.convert(branchCube.id, Long.class), branchCube.sha1, updateCube.sha1, getUserId())
+                    persister.updateBranchCubeHeadSha1((Long) convert(branchCube.id, Long.class), branchCube.sha1, updateCube.sha1, getUserId())
                     fastforwards.add(updateCube)
                     break
                 case ChangeType.CONFLICT.code:
@@ -2866,7 +2868,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
             assertPermissions(appId, null, Action.COMMIT)
         }
 
-        List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
+        List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId).sort { it.name ?: it.revision }
         if (!inputCubes)
         {
             return newDtoList
@@ -2874,11 +2876,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         else
         {
             List<NCubeInfoDto> cubesToUpdate = []
-            Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
-            newDtoList.each { newDtos[it.name] = it }
-            (inputCubes.toList() as List<NCubeInfoDto>).each { NCubeInfoDto oldDto ->
+            for (Object inputCube : inputCubes)
+            {
+                NCubeInfoDto oldDto = (NCubeInfoDto)inputCube
                 // make reject list by comparing with refresh records
-                NCubeInfoDto newDto = newDtos[oldDto.name]
+                NCubeInfoDto newDto = newDtoList.find { it.name == oldDto.name }
                 if (newDto == null || newDto.id != oldDto.id)
                 {   // if in oldDtos but not in newDtos OR if something happened while we were away
                     rejects.add(oldDto)
@@ -3027,12 +3029,24 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
     // -------------------------------- Non API methods --------------------------------------
 
-    protected NCube mergeCubesIfPossible(NCubeInfoDto branchInfo, NCubeInfoDto headInfo, boolean headToBranch)
+    private def loadWithMemCheck(Closure closure) throws CubeSizeException
     {
-        long branchCubeId = (long) Converter.convert(branchInfo.id, long.class)
-        long headCubeId = (long) Converter.convert(headInfo.id, long.class)
-        NCube branchCube = loadCubeById(branchCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
-        NCube headCube = loadCubeById(headCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
+        long start = Runtime.runtime.freeMemory()
+        def ret = closure()
+        long end = Runtime.runtime.freeMemory()
+        if (start - end > 100000000) // 100MB
+        {
+            throw new CubeSizeException('Cube is too large to compare.')
+        }
+        return ret
+    }
+
+    protected NCube mergeCubesIfPossible(NCubeInfoDto branchInfo, NCubeInfoDto headInfo, boolean headToBranch) throws CubeSizeException
+    {
+        long branchCubeId = (long) convert(branchInfo.id, long.class)
+        long headCubeId = (long) convert(headInfo.id, long.class)
+        NCube branchCube = loadWithMemCheck { loadCubeById(branchCubeId, [(SEARCH_INCLUDE_TEST_DATA):true]) } as NCube
+        NCube headCube = loadWithMemCheck { loadCubeById(headCubeId, [(SEARCH_INCLUDE_TEST_DATA):true]) } as NCube
         NCube baseCube, headBaseCube
         Map branchDelta, headDelta
 
@@ -3058,11 +3072,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
                 DeltaProcessor.mergeDeltaSet(headCube, branchDelta)
                 return headCube // merged n-cube (HEAD cube with branch changes in it)
             }
-            else
-            {
-                DeltaProcessor.mergeDeltaSet(branchCube, headDelta)
-                return branchCube   // merge n-cube (branch cube with HEAD changes in it)
-            }
+            DeltaProcessor.mergeDeltaSet(branchCube, headDelta)
+            return branchCube   // merge n-cube (branch cube with HEAD changes in it)
         }
 
         List<Delta> diff

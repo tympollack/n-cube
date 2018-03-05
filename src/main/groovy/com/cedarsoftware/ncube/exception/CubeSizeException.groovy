@@ -1,4 +1,9 @@
 package com.cedarsoftware.ncube.exception
 
-class CubeTooLargeException {
+import groovy.transform.CompileStatic
+
+@CompileStatic
+class CubeSizeException extends RuntimeException
+{
+    CubeSizeException(String message) { super(message) }
 }
