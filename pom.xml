@@ -77,6 +77,7 @@
         <version.json-command-servlet>1.8.3</version.json-command-servlet>
         <version.groovy>2.4.13</version.groovy>
         <version.guava>23.0</version.guava>
+        <version.caffeine>2.6.2</version.caffeine>
         <version.httpclient>4.5.3</version.httpclient>
         <version.spring>4.3.13.RELEASE</version.spring>
         <version.springboot>1.5.9.RELEASE</version.springboot>
@@ -407,6 +408,11 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${version.guava}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${version.caffeine}</version>
         </dependency>
 
         <dependency>

@@ -4,7 +4,7 @@ import com.cedarsoftware.ncube.GroovyBase
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.UrlCommandCell
 import com.cedarsoftware.ncube.util.CdnClassLoader
-import com.cedarsoftware.ncube.util.GCacheManager
+import com.cedarsoftware.ncube.util.CCacheManager
 import com.cedarsoftware.util.HsqlSchemaCreator
 import groovy.transform.CompileStatic
 import org.springframework.beans.factory.annotation.Value
@@ -94,16 +94,16 @@ class NCubeConfiguration
     }
 
     @Bean(name = "ncubeCacheManager")
-    GCacheManager getNcubeCacheManager()
+    CCacheManager getNcubeCacheManager()
     {
-        GCacheManager cacheManager = new GCacheManager(ncubeRemoval, maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache, concurrencyNCubeCache)
+        CCacheManager cacheManager = new CCacheManager(ncubeRemoval, maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache, concurrencyNCubeCache)
         return cacheManager
     }
 
     @Bean(name = 'permCacheManager')
-    GCacheManager getPermCacheManager()
+    CCacheManager getPermCacheManager()
     {
-        GCacheManager cacheManager = new GCacheManager(null, maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
+        CCacheManager cacheManager = new CCacheManager(null, maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
         return cacheManager
     }
 
