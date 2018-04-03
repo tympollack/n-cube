@@ -4,12 +4,10 @@ import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point3D
-import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.google.common.collect.RangeMap
 import com.google.common.collect.TreeRangeMap
-import gnu.trove.map.hash.TLongObjectHashMap
 import groovy.transform.CompileStatic
 
 import java.security.SecureRandom
@@ -68,7 +66,7 @@ class Axis
     private boolean isRef
 
     // Internal indexes
-    private final transient TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>(16, 0.8f)   // Setting load factor to 0.8 because trove uses 0.5 (uses too much memory)
+    private final transient Map<Long, Column> idToCol = new HashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
     private transient NavigableMap<Comparable, Column> valueToCol
@@ -77,7 +75,7 @@ class Axis
     private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
         Random initialValue()
         {
-            String s = Converter.convert(System.nanoTime(), String.class)
+            String s = Converter.convertToString(System.nanoTime())
             s = EncryptionUtilities.calculateSHA1Hash(s.bytes)
             return new SecureRandom(s.bytes)
         }
@@ -153,7 +151,7 @@ class Axis
         this.name = name
         this.id = id
         isRef = true
-        this.valueToCol = new TreeMap<>()
+        this.valueToCol = null
 
         // Ask the provider to load this axis up.
         axisRefProvider.load(this)
@@ -349,6 +347,22 @@ class Axis
         removeTransform()
     }
 
+    void makeReference(ApplicationID refAppId, String refCubeName, refAxisName)
+    {
+        isRef = true
+        Map args = [
+                (REF_TENANT): refAppId.tenant,
+                (REF_APP): refAppId.app,
+                (REF_VERSION): refAppId.version,
+                (REF_STATUS): refAppId.status,
+                (REF_BRANCH): refAppId.branch,
+                (REF_CUBE_NAME): refCubeName,
+                (REF_AXIS_NAME): refAxisName
+        ] as Map<String, Object>
+        addMetaProperties(args)
+        reloadReferenceAxis(refCubeName, args)
+    }
+
     /**
      * Remove transform from reference axis.
      */
@@ -359,7 +373,6 @@ class Axis
         removeMetaProperty(TRANSFORM_STATUS)
         removeMetaProperty(TRANSFORM_BRANCH)
         removeMetaProperty(TRANSFORM_CUBE_NAME)
-        removeMetaProperty(TRANSFORM_METHOD_NAME)
     }
 
     /**
@@ -516,7 +529,7 @@ class Axis
 
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
-            valueToCol[standardizeColumnValue(column.value)] = column
+            valueToColumn[standardizeColumnValue(column.value)] = column
         }
         else if (type == AxisType.RANGE)
         {
@@ -620,7 +633,10 @@ class Axis
         valueType = newValueType
         NavigableMap<Comparable, Column> existing = valueToCol
         valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap<>(String.CASE_INSENSITIVE_ORDER) : new TreeMap<>()
-        valueToCol.putAll(existing)
+        if (existing)
+        {
+            valueToCol.putAll(existing)
+        }
     }
 
     protected void clearIndexes()
@@ -697,7 +713,7 @@ class Axis
         {
             if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
             {
-                if (valueToCol.containsKey(value))
+                if (valueToColumn.containsKey(value))
                 {
                     throw new AxisOverlapException("Passed in value '${value}' matches a value already on axis '${name}'")
                 }
@@ -796,7 +812,7 @@ class Axis
 
         // New columns are always added at the end in terms of displayOrder.
         int order = displayOrder.isEmpty() ? 1 : displayOrder.lastKey() + 1
-        column.setDisplayOrder(column.default ? Integer.MAX_VALUE : order)
+        column.displayOrder = column.default ? Integer.MAX_VALUE : order
         indexColumn(column)
         return column
     }
@@ -859,7 +875,7 @@ class Axis
         // Remove from 'value' storage
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {   // O(1) remove
-            valueToCol.remove(standardizeColumnValue(col.value))
+            valueToColumn.remove(standardizeColumnValue(col.value))
         }
         else if (type == AxisType.RANGE)
         {   // O(Log n) remove
@@ -908,7 +924,7 @@ class Axis
         ensureUnique(newColumn.value)
 
         // re-use displayOrder or take it from order arg
-        newColumn.setDisplayOrder(order == -1i ? column.displayOrder : order)
+        newColumn.displayOrder = order == -1i ? column.displayOrder : order
         indexColumn(newColumn)
     }
 
@@ -928,7 +944,7 @@ class Axis
             throw new IllegalStateException("You cannot update columns on a reference Axis, axis: ${name}")
         }
 
-        LongHashSet colsToDelete = new LongHashSet()
+        Set<Long> colsToDelete = new LinkedHashSet<>()
         Map<Long, Column> newColumnMap = [:]
 
         // Step 1. Map all columns from passed in Collection by ID
@@ -1180,8 +1196,7 @@ class Axis
         {
             return null
         }
-
-        if (type == AxisType.DISCRETE)
+        else if (type == AxisType.DISCRETE)
         {
             return promoteValue(valueType, value)
         }
@@ -1297,23 +1312,23 @@ class Axis
     {
         if (AxisValueType.STRING == srcValueType || AxisValueType.CISTRING == srcValueType)
         {
-            return (Comparable) Converter.convert(value, String.class)
+            return Converter.convertToString(value)
         }
         else if (AxisValueType.LONG == srcValueType)
         {
-            return (Comparable) Converter.convert(value, Long.class)
+            return Converter.convertToLong(value)
         }
         else if (AxisValueType.BIG_DECIMAL == srcValueType)
         {
-            return (Comparable) Converter.convert(value, BigDecimal.class)
+            return Converter.convertToBigDecimal(value)
         }
         else if (AxisValueType.DATE == srcValueType)
         {
-            return (Comparable) Converter.convert(value, Date.class)
+            return Converter.convertToDate(value)
         }
         else if (AxisValueType.DOUBLE == srcValueType)
         {
-            return (Comparable) Converter.convert(value, Double.class)
+            return Converter.convertToDouble(value)
         }
         else if (AxisValueType.EXPRESSION == srcValueType)
         {
@@ -1326,13 +1341,13 @@ class Axis
                 Matcher m = Regexes.valid2Doubles.matcher((String) value)
                 if (m.matches())
                 {   // No way to determine if it was supposed to be a Point2D. Specify as JSON for Point2D
-                    return new LatLon((Double)Converter.convert(m.group(1), double.class), (Double)Converter.convert(m.group(2), double.class))
+                    return new LatLon(Converter.convertToDouble(m.group(1)), Converter.convertToDouble(m.group(2)))
                 }
 
                 m = Regexes.valid3Doubles.matcher((String) value)
                 if (m.matches())
                 {
-                    return new Point3D((Double)Converter.convert(m.group(1), double.class), (Double)Converter.convert(m.group(2), double.class), (Double)Converter.convert(m.group(3), double.class))
+                    return new Point3D(Converter.convertToDouble(m.group(1)), Converter.convertToDouble(m.group(2)), Converter.convertToDouble(m.group(3)))
                 }
 
                 try
@@ -1579,7 +1594,7 @@ class Axis
 
         if (type == AxisType.DISCRETE)
         {
-            Column colToFind = valueToCol[promotedValue]
+            Column colToFind = valueToColumn[promotedValue]
             return colToFind == null ? defaultCol : colToFind
         }
         else if (type == AxisType.RANGE || type == AxisType.SET)
@@ -1593,7 +1608,7 @@ class Axis
             {
                 return idToCol.get(promotedValue as Long)
             }
-            else if (promotedValue instanceof String)
+            else if (promotedValue instanceof String || promotedValue instanceof GString)
             {
                 Column colToFind = colNameToCol[promotedValue as String]
                 return colToFind == null ? defaultCol : colToFind
@@ -1627,7 +1642,7 @@ class Axis
 
     private Column findNearest(final Comparable promotedValue)
     {
-        if (valueToCol.isEmpty())
+        if (valueToColumn.isEmpty())
         {
             return null
         }
@@ -1781,13 +1796,13 @@ class Axis
     {
         if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
         {
-            return new ArrayList<>((preferredOrder == SORTED) ? valueToCol.values() : displayOrder.values())
+            return new ArrayList<>((preferredOrder == SORTED) ? valueToColumn.values() : displayOrder.values())
         }
-        else if (type == AxisType.RULE)
+        if (type == AxisType.RULE)
         {
             return new ArrayList<>(displayOrder.values())
         }
-        else if (type == AxisType.RANGE || type == AxisType.SET)
+        if (type == AxisType.RANGE || type == AxisType.SET)
         {
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)
@@ -1802,10 +1817,7 @@ class Axis
             }
             return cols
         }
-        else
-        {
-            throw new IllegalStateException("AxisValueType '${type}' added but no code to support it.")
-        }
+        throw new IllegalStateException("AxisValueType '${type}' added but no code to support it.")
     }
 
     /**
@@ -1875,5 +1887,14 @@ class Axis
         {
             return findColumn(source.value)
         }
+    }
+
+    private NavigableMap<Comparable, Column> getValueToColumn()
+    {
+        if (valueToCol == null)
+        {
+            valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap<>(String.CASE_INSENSITIVE_ORDER) : new TreeMap<>()
+        }
+        return valueToCol
     }
 }

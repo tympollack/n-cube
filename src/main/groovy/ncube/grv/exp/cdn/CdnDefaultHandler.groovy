@@ -39,14 +39,14 @@ class CdnDefaultHandler extends NCubeGroovyExpression
     {
         final String axisName = CdnRouter.CONTENT_NAME
         final String logicalFileName = (String) input[axisName]
-        final String url = extension + '/' + logicalFileName + '.' + extension
+        final String url = "${extension}/${logicalFileName}.${extension}"
         final UrlCommandCell exp = isString ? new StringUrlCmd(url, false) : new BinaryUrlCmd(url, false)
         final String fullName = ncube.applicationID.cacheKey(ncube.name)
 
         synchronized (fullName.intern())
         {
             Axis axis = ncube.getAxis(axisName)
-            if (axis.findColumn(logicalFileName) == axis.getDefaultColumn())
+            if (axis.findColumn(logicalFileName) == axis.defaultColumn)
             {
                 ncube.addColumn(axisName, logicalFileName)
                 ncube.setCell(exp, input)

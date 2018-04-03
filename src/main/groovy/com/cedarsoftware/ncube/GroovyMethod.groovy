@@ -58,17 +58,17 @@ class GroovyMethod extends GroovyBase
 
     private GroovyMethod() {}
 
-    GroovyMethod(String cmd, String url, boolean cacheable)
+    GroovyMethod(String cmd, String url = null, boolean cacheable = false)
     {
         super(cmd, url, cacheable)
     }
 
-    protected String buildGroovy(Map<String, Object> ctx, String theirGroovy)
+    protected String buildGroovy(Map<String, Object> ctx, String className, String theirGroovy)
     {
         return theirGroovy
     }
 
-    protected Object invokeRunMethod(NCubeGroovyExpression instance, Map<String, Object> ctx) throws Exception
+    protected Object invokeRunMethod(NCubeGroovyExpression instance) throws Exception
     {
         NCubeGroovyController controller = (NCubeGroovyController) instance
         return controller.run(L2CacheKey)

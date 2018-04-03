@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.AxisOverlapException
+import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
 import com.cedarsoftware.ncube.proximity.LatLon
@@ -9,11 +10,16 @@ import com.cedarsoftware.ncube.proximity.Point3D
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.CaseInsensitiveMap
 import groovy.transform.CompileStatic
-import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
+import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * NCube tests.
@@ -356,14 +362,14 @@ class TestNCube extends NCubeBaseTest
     void testDefaultNCubeCellValue()
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(true)
-        ncube.defaultCellValue = 3.0        // Non-set cells will return this value
+        ncube.setDefaultCellValue(3.0d)        // Non-set cells will return this value
 
         Map coord = [Gender:'Male', Age:18] as Map
-        ncube.setCell(21.0, coord)
-        Double x = ncube.getCell(coord)
+        ncube.setCell(21.0d, coord)
+        Double x = ncube.getCell(coord) as Double
         assertTrue(x == 21.0)
         coord.Age = 65
-        x = ncube.getCell(coord)
+        x = ncube.getCell(coord) as Double
         assertTrue(x == 3.0)
         assertTrue(countMatches(ncube.toHtml(), "<tr") == 5)
     }
@@ -373,11 +379,11 @@ class TestNCube extends NCubeBaseTest
     {
         NCube ncube = NCubeBuilder.getTestNCube2D(true)
         Map coord = [Gender:'Male', Age:18] as Map
-        ncube.setCell(21.0, coord)
-        Double x = ncube.getCell(coord, [:], -1)
+        ncube.setCell(21.0d, coord)
+        Double x = ncube.getCell(coord, [:], -1) as Double
         assertTrue(x == 21.0)
         coord.Age = 65
-        x = ncube.getCell(coord, [:], -1)
+        x = ncube.getCell(coord, [:], -1) as Double
         assertTrue(x == -1)
     }
 
@@ -666,7 +672,7 @@ class TestNCube extends NCubeBaseTest
         subTestEdgeCases(ncube, "dateRange")
     }
 
-    private void subTestEdgeCases(NCube<String> cube, String axis)
+    private static void subTestEdgeCases(NCube<String> cube, String axis)
     {
         def coord = [:]
         try
@@ -714,12 +720,12 @@ class TestNCube extends NCubeBaseTest
         }
         catch (IllegalArgumentException e)
         {
-            String msg = e.message.toLowerCase();
+            String msg = e.message.toLowerCase()
             assert msg.contains('could not be converted') || msg.contains("unsupported value type")
         }
     }
 
-    private void subTestErrorCases(Axis axis)
+    private static void subTestErrorCases(Axis axis)
     {
         // non-range being added
         try
@@ -784,7 +790,7 @@ class TestNCube extends NCubeBaseTest
         }
         catch (IllegalArgumentException e)
         {
-            String msg = e.message.toLowerCase();
+            String msg = e.message.toLowerCase()
             assert msg.contains('could not be converted') || msg.contains("unsupported value type")
         }
 
@@ -796,7 +802,7 @@ class TestNCube extends NCubeBaseTest
         }
         catch (IllegalArgumentException e)
         {
-            String msg = e.message.toLowerCase();
+            String msg = e.message.toLowerCase()
             assert msg.contains('could not be converted') || msg.contains("unsupported value type")
         }
     }
@@ -804,9 +810,9 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testRange()
     {
-        new Range() // test default constructor
+        Range x = new Range() // test default constructor
 
-        Range x = new Range(0, 1)
+        x = new Range(0, 1)
         x.toString()    // so it gets called at least once.
 
         NCube ncube = new NCube("RangeTest")
@@ -829,7 +835,7 @@ class TestNCube extends NCubeBaseTest
 
         try
         {
-            new Range(null, 1)
+            x = new Range(null, 1)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -840,7 +846,7 @@ class TestNCube extends NCubeBaseTest
         }
         try
         {
-            new Range(1, null)
+            x = new Range(1, null)
             fail()
         }
         catch (IllegalArgumentException e)
@@ -895,14 +901,14 @@ class TestNCube extends NCubeBaseTest
         Map coord = [:] as Map
         coord.put("Gender", "Male")
         coord.put("Age", 39)
-        ncube.setCell(9.9, coord)
+        ncube.setCell(9.9d, coord)
         assertTrue(ncube.getCell(coord) == 9.9)
         assertTrue(countMatches(ncube.toHtml(), "<tr") == 4)
 
         coord.put("Gender", "Fmale")    // intentional
         try
         {
-            ncube.setCell(9.9, coord)
+            ncube.setCell(9.9d, coord)
             fail("should throw an exception")
         }
         catch (CoordinateNotFoundException e)
@@ -916,7 +922,7 @@ class TestNCube extends NCubeBaseTest
             assertEquals("Gender", e.axisName)
             assertEquals("Fmale", e.value)
         }
-        catch (Exception e)
+        catch (Exception ignore)
         {
             fail("should throw CoordinateNotFoundException")
         }
@@ -929,7 +935,7 @@ class TestNCube extends NCubeBaseTest
         NCube ncube = NCubeBuilder.getTestNCube2D(false)
         try
         {
-            ncube.setCell(9.9, null)
+            ncube.setCell(9.9d, null)
             fail()
         }
         catch (CoordinateNotFoundException e)
@@ -942,7 +948,7 @@ class TestNCube extends NCubeBaseTest
         Map coord = [:] as Map
         try
         {
-            ncube.setCell(9.9, coord)
+            ncube.setCell(9.9d, coord)
             fail()
         }
         catch (CoordinateNotFoundException e)
@@ -958,7 +964,7 @@ class TestNCube extends NCubeBaseTest
         coord.put("Gender", "Male")
         try
         {
-            ncube.setCell(9.9, coord)
+            ncube.setCell(9.9d, coord)
             fail()
         }
         catch (CoordinateNotFoundException e)
@@ -2168,6 +2174,122 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testStackEntryCoordinateValueAbbreviated()
+    {
+        String failMessage = "should throw exception"
+        String cmdString = "throw new Exception('cell error')"
+
+        String size0 = ''
+        String size1 = 'b'
+        String size999 = 'b'.multiply(999)
+        String size1000 = 'b'.multiply(1000)
+        String size1001 = 'b'.multiply(1001)
+
+        NCube<CommandCell> cube = new NCube<CommandCell>("StackEntryTest")
+        Axis axis1 = new Axis("axis1", AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY)
+        cube.addAxis(axis1)
+        axis1.addColumn("a")
+
+        Axis axis2 = new Axis("axis2", AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY)
+        cube.addAxis(axis2)
+        axis2.addColumn(size0)
+        axis2.addColumn(size1)
+        axis2.addColumn(size999)
+        axis2.addColumn(size1000)
+        axis2.addColumn(size1001)
+
+        def coord = [axis1: 'a']
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+
+        coord.axis2 = size1001
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+        coord.axis2 = size1000
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+        coord.axis2 = size999
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+        coord.axis2 = size1
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+        coord.axis2 = size0
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+        coord.remove("axis2")
+        cube.setCell(new GroovyExpression(cmdString, null, false), coord)
+
+        ncubeRuntime.addCube(cube)
+
+        //Test coordinate value that gets abbreviated - size1001
+        coord.axis2 = size1001
+        try
+        {
+            cube.getCell(coord)
+            fail(failMessage)
+        }
+        catch (RuntimeException e)
+        {
+            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size1000}...")
+        }
+
+        //Test coordinate value that does not get abbreviated - size1000 (same length as max length)
+        coord.axis2 = size1000
+        try
+        {
+            cube.getCell(coord)
+            fail(failMessage)
+        }
+        catch (RuntimeException e)
+        {
+            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size1000}")
+        }
+
+        //Test coordinate value that does not get abbreviated - size999
+        coord.axis2 = size999
+        try
+        {
+            cube.getCell(coord)
+            fail(failMessage)
+        }
+        catch (RuntimeException e)
+        {
+            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size999}")
+        }
+
+        //Test coordinate value that does not get abbreviated - size1
+        coord.axis2 = size1
+        try
+        {
+            cube.getCell(coord)
+            fail(failMessage)
+        }
+        catch (RuntimeException e)
+        {
+            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size1}")
+        }
+
+        //Test coordinate value that does not get abbreviated - size0
+        coord.axis2 = size0
+        try
+        {
+            cube.getCell(coord)
+            fail(failMessage)
+        }
+        catch (RuntimeException e)
+        {
+            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:")
+        }
+
+        //Test coordinate value that does not get abbreviated - column default
+        coord.remove("axis2")
+        try
+        {
+            cube.getCell(coord)
+            fail(failMessage)
+        }
+        catch (RuntimeException e)
+        {
+            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a]")
+        }
+    }
+
+    @Test
     void testRenameAxis()
     {
         NCube<String> ncube = new NCube('RenameAxisTest')
@@ -2291,7 +2413,7 @@ class TestNCube extends NCubeBaseTest
     {
         ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'template1.json')
         ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'template2.json')
-        NCube n1 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
+        NCube n1 = createRuntimeCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
         def coord = [:]
         coord.put("sites", "BinaryFromLocalUrl")
         byte[] localBinaryBytes = (byte[]) n1.getCell(coord)
@@ -2637,7 +2759,7 @@ class TestNCube extends NCubeBaseTest
         assertEquals(o, 250)
     }
 
-    public static class CallJavaTest
+    static class CallJavaTest
     {
         public static Object testInput(Map input, Map output, String type)
         {
@@ -3073,7 +3195,7 @@ class TestNCube extends NCubeBaseTest
         Set colIds = new HashSet()
         colIds.add(ageCol0)
         colIds.add(genderCol0)
-        ncube.setCellById(1.1, colIds)
+        ncube.setCellById(1.1d, colIds)
 
         def coord = [:]
         coord.AGE = ageCol.valueThatMatches
@@ -3555,7 +3677,7 @@ class TestNCube extends NCubeBaseTest
         axis.setMetaProperty("car", "cruze")
         col.setMetaProperty("one", 1)
 
-        assertEquals(2, ncube.metaProperties.size());
+        assertEquals(2, ncube.metaProperties.size())
         assertEquals(2, axis.metaProperties.size())
         assertEquals(3, col.metaProperties.size())
 
@@ -3575,7 +3697,7 @@ class TestNCube extends NCubeBaseTest
 
         //  removed sha1 above, so no sha1 in cube
         assertEquals(4, ncube.metaProperties.size())
-        ncube.sha1();
+        ncube.sha1()
         assertEquals(4, ncube.metaProperties.size())
         assertEquals(4, axis.metaProperties.size())
         assertEquals(5, col.metaProperties.size())
@@ -3640,9 +3762,9 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testCreateNCubeFromBytesWithException()
     {
-        byte[] bytes = new byte[2];
-        bytes[0] = (byte)0x1F;
-        bytes[1] = (byte)0x8b;
+        byte[] bytes = new byte[2]
+        bytes[0] = (byte)0x1F
+        bytes[1] = (byte)0x8b
         try
         {
             NCube.createCubeFromBytes(bytes)
@@ -3881,6 +4003,14 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testDuplicate()
+    {
+        NCube c1 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId.asBranch('branch'), 'testCube6.json')
+        NCube c2 = c1.duplicate('TestCube')
+        assert c1.applicationID == c2.applicationID
+    }
+
+    @Test
     void testCubeEquals()
     {
         NCube c1 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'testCube6.json')
@@ -3976,7 +4106,7 @@ class TestNCube extends NCubeBaseTest
     @Test
     void testAbsoluteHttpUrlToGroovy()
     {
-        NCube cube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
+        NCube cube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
         def coord = [:]
         coord.put("sites", "AbsoluteHttpUrl")
         String s = (String) cube.getCell(coord)
@@ -4323,6 +4453,56 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testSha1SwitchingDataBetweenSameValueColumnsOnMultipleAxes()
+    {
+        String cellVal = 'test'
+        Axis axis1 = new Axis('axis1', AxisType.DISCRETE, AxisValueType.STRING, false)
+        Axis axis2 = new Axis('axis2', AxisType.DISCRETE, AxisValueType.STRING, false)
+        axis1.addColumn('a')
+        axis1.addColumn('b')
+        axis2.addColumn('a')
+        axis2.addColumn('b')
+
+        NCube cube = new NCube('testsha1')
+        cube.applicationID = ApplicationID.testAppId
+        cube.addAxis(axis1)
+        cube.addAxis(axis2)
+        cube.setCell(cellVal, [axis1:'a', axis2:'b'])
+        String oldSha1 = cube.sha1()
+
+        cube.clearCells()
+        cube.setCell(cellVal, [axis1:'b', axis2:'a'])
+        String newSha1 = cube.sha1()
+
+        assert oldSha1 != newSha1
+    }
+
+    @Test
+    void testSha1SwitchingDataBetweenSameValueColumnsOnMultipleRuleAxes()
+    {
+        String cellVal = 'test'
+        Axis axis1 = new Axis('axis1', AxisType.RULE, AxisValueType.STRING, false)
+        Axis axis2 = new Axis('axis2', AxisType.RULE, AxisValueType.STRING, false)
+        axis1.addColumn('a', 'a')
+        axis1.addColumn('a', 'b')
+        axis2.addColumn('a', 'a')
+        axis2.addColumn('a', 'b')
+
+        NCube cube = new NCube('testsha1')
+        cube.applicationID = ApplicationID.testAppId
+        cube.addAxis(axis1)
+        cube.addAxis(axis2)
+        cube.setCell(cellVal, [axis1:'a', axis2:'b'])
+        String oldSha1 = cube.sha1()
+
+        cube.clearCells()
+        cube.setCell(cellVal, [axis1:'b', axis2:'a'])
+        String newSha1 = cube.sha1()
+
+        assert oldSha1 != newSha1
+    }
+
+    @Test
     void testSha1CollectionCell()
     {
         NCube cube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'delta.json')
@@ -4572,8 +4752,8 @@ class TestNCube extends NCubeBaseTest
         NCube cube1 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'merge1.json')
         NCube cube2 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'merge2.json')
         Map coord = [row:3, column:'C'] as Map
-        cube1.removeCell(coord);
-        Map delta = DeltaProcessor.getDelta(cube1, cube2);
+        cube1.removeCell(coord)
+        Map delta = DeltaProcessor.getDelta(cube1, cube2)
         DeltaProcessor.mergeDeltaSet(cube1, delta)
         Object v = cube1.getCell(coord)
         assert v == 3.14159
@@ -4585,11 +4765,11 @@ class TestNCube extends NCubeBaseTest
         NCube cube1 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'merge2.json')
         NCube cube2 = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'merge2.json')
         Map coord = [row:3, column:'C'] as Map
-        cube1.removeCell(coord);
-        Map delta = DeltaProcessor.getDelta(cube1, cube2);
+        cube1.removeCell(coord)
+        Map delta = DeltaProcessor.getDelta(cube1, cube2)
         DeltaProcessor.mergeDeltaSet(cube1, delta)
         Object v = cube1.getCell(coord)
-        assert cube1.sha1() == cube2.sha1();
+        assert cube1.sha1() == cube2.sha1()
         assert v == 3.14159
     }
 
@@ -4619,7 +4799,7 @@ class TestNCube extends NCubeBaseTest
             NCube.fromSimpleJson((InputStream)null)
             fail()
         }
-        catch (NullPointerException ignored)
+        catch (Exception ignored)
         {
         }
 
@@ -4628,7 +4808,7 @@ class TestNCube extends NCubeBaseTest
             NCube.fromSimpleJson((String)null)
             fail()
         }
-        catch (NullPointerException ignored)
+        catch (Exception ignored)
         {
         }
     }
@@ -4653,7 +4833,7 @@ class TestNCube extends NCubeBaseTest
         NCube ncube = NCubeBuilder.getTestNCube2D(false)
         try
         {
-            ncube.setCellById(1.0, null)
+            ncube.setCellById(1.0d, null)
             fail()
         }
         catch (InvalidCoordinateException e)
@@ -4807,16 +4987,16 @@ class TestNCube extends NCubeBaseTest
     void testPotentialCells()
     {
         NCube ncube = NCubeBuilder.get5DTestCube()
-        assert 48 == ncube.numPotentialCells
+        assert 48L == ncube.numPotentialCells
 
         ncube = NCubeBuilder.discrete1D
-        assert 2 == ncube.numPotentialCells
+        assert 2L == ncube.numPotentialCells
 
         ncube = NCubeBuilder.testNCube3D_Boolean
-        assert 144 == ncube.numPotentialCells
+        assert 144L == ncube.numPotentialCells
 
         ncube = NCubeBuilder.trackingTestCube
-        assert 4 == ncube.numPotentialCells
+        assert 4L == ncube.numPotentialCells
     }
 
     @Test
@@ -4907,28 +5087,764 @@ class TestNCube extends NCubeBaseTest
         }
     }
 
-    // For testing getCube speed()
-    @Ignore
-    void testGetCubeSpeed()
+    @Test
+    void testMapReduceWithBasicQuery()
     {
-        NCube ncube = NCubeBuilder.discrete1D
-        ncube.applicationID = ApplicationID.testAppId
-        ncubeRuntime.addCube(ncube)
+        Map output = [:]
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'NY'}, [output:output])
 
-        long start = System.nanoTime()
-        for (int i=0; i < 1000000; i++)
+        assert queryResult.size() == 2
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 3
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+        assert inputKeysUsed.contains('cubeName')
+
+        Map row = queryResult['B'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == 'a string long enough to test contains'
+
+        row = queryResult['F'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == null
+    }
+
+    @Test
+    void testMapReduceWithBasicQueryAndInput()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == input.fubar}, [input:[fubar: 'NY']])
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['B'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == 'a string long enough to test contains'
+
+        row = queryResult['F'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == null
+    }
+
+    @Test
+    void testMapReduceWithComplexQuery()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'IN' || (input.bar instanceof Number && (input.bar as int )< 50)})
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['C'] as Map
+        assert row['foo'] == 'IN'
+        assert row['bar'] == 'something random'
+
+        row = queryResult['D'] as Map
+        assert row['foo'] == 'KY'
+        assert row['bar'] == 33
+    }
+
+    @Test
+    void testMapReduceWithLargeCube()
+    {
+        long start, stop
+        Map queryResult
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'mapReduceLargeCube.json')
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] })
+        stop = System.nanoTime()
+        println("MapReduce on large cube with no axes on input = " + ((stop - start) / 1000000))
+        assert 14 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'AllOther']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage on input = " + ((stop - start) / 1000000))
+        assert 5 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[sourceRisk: 'Building']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with sourceRisk on input = " + ((stop - start) / 1000000))
+        assert 13 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[risk: 'PremisesOperations']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with risk on input = " + ((stop - start) / 1000000))
+        assert 4 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[field: 'RateFactors']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with field on input = " + ((stop - start) / 1000000))
+        assert 2 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'CommercialGeneralLiabilityCoverage', sourceRisk: 'Building']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage, sourceRisk on input = " + ((stop - start) / 1000000))
+        assert 3 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'CommercialGeneralLiabilityCoverage', risk: 'PremisesOperations']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage, risk on input = " + ((stop - start) / 1000000))
+        assert 4 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'CommercialGeneralLiabilityCoverage', field: 'coverages']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage, field on input = " + ((stop - start) / 1000000))
+        assert 1 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[sourceRisk: 'Building', risk: 'ProductsCompletedOperations']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with sourceRisk, risk on input = " + ((stop - start) / 1000000))
+        assert 10 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[sourceRisk: 'Building', field: 'Rates']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with sourceRisk, field on input = " + ((stop - start) / 1000000))
+        assert 2 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[risk: 'ProductsCompletedOperations', field: 'Rates']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with risk, field on input = " + ((stop - start) / 1000000))
+        assert 2 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'CommercialGeneralLiabilityCoverage', sourceRisk: 'CGLOperations', risk: 'PremisesOperations']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage, sourceRisk, risk on input = " + ((stop - start) / 1000000))
+        assert 1 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'CommercialGeneralLiabilityCoverage', sourceRisk: 'CGLOperations', field: 'Limits']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage, sourceRisk, field on input = " + ((stop - start) / 1000000))
+        assert 0 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[coverage: 'CommercialGeneralLiabilityCoverage', risk: 'PremisesOperations', field: 'coverages']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with coverage, risk, field on input = " + ((stop - start) / 1000000))
+        assert 1 == queryResult.size()
+
+        start = System.nanoTime()
+        queryResult = ncube.mapReduce('trait', { Map input -> input['r:exists'] }, [input:[sourceRisk: 'Building', risk: 'PremisesOperations', field: 'deductibles']])
+        stop = System.nanoTime()
+        println("MapReduce on large cube with sourceRisk, risk, field on input = " + ((stop - start) / 1000000))
+        assert 1 == queryResult.size()
+    }
+
+    @Test
+    void testMapReduceWithContains()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.bar?.toString()?.contains('test contains')})
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['B'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == 'a string long enough to test contains'
+
+        row = queryResult['E'] as Map
+        assert row['foo'] == 'TX'
+        assert row['bar'] == 'also test contains'
+    }
+
+    @Test
+    void testMapReduceWithMultipleConditions()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'NY' && (input.bar as String)?.contains('a string long enough')})
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['B'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == 'a string long enough to test contains'
+    }
+
+    @Test
+    void testMapReduceLookingForEmptyValue()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> !input.bar })
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['F'] as Map
+        assert row['foo'] == 'NY'
+        assert row['bar'] == null
+    }
+
+    @Test
+    void testMapReduceFindAllRows()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query')
+
+        assert queryResult.size() == 8
+        assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+    }
+
+    @Test
+    void testMapReduceFindSingleRowSpecified()
+    {
+        Map output = [:]
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:'B'],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 2
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+
+        assert queryResult.size() == 1
+        assert queryResult.keySet().containsAll(['B'])
+    }
+
+    @Test
+    void testMapReduceFindMultipleRowsSpecified()
+    {
+        Map output = [:]
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['B','C','D']],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 2
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+
+        assert queryResult.size() == 3
+        assert queryResult.keySet().containsAll(['B','C','D'])
+    }
+
+    @Test
+    void testMapReduceFindNullRowSpecified()
+    {
+        Map output = [:]
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:null],output:output])
+
+        RuleInfo ruleInfo = (RuleInfo) output.get(NCube.RULE_EXEC_INFO)
+        Set inputKeysUsed = ruleInfo.getInputKeysUsed()
+        assert inputKeysUsed.size() == 3
+        assert inputKeysUsed.contains('key')
+        assert inputKeysUsed.contains('query')
+        assert inputKeysUsed.contains('cubeName')
+
+        assert queryResult.size() == 8
+        assert queryResult.keySet().containsAll(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+    }
+
+    @Test
+    void testMapReduceFindDuplicateRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['C','C','C']]])
+
+        assert queryResult.size() == 1
+        assert queryResult.keySet().containsAll(['C'])
+    }
+
+    @Test
+    void testMapReduceFindNoMatchingRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['NonExistentKey']]])
+        assert queryResult.isEmpty()
+    }
+
+    @Test
+    void testMapReduceFindNoMatchingRowsInSetSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['NonExistentKey','AlsoNotFound']]])
+        assert queryResult.isEmpty()
+    }
+
+    @Test
+    void testMapReduceFindSomeMatchingRowsInSetSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { true }, [input:[key:['NonExistentKey','C']]])
+        assert queryResult.size() == 1
+        assert queryResult.keySet().containsAll(['C'])
+    }
+
+    @Test
+    void testMapReduceWithLinkedCubeRequiredScope()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where, [input:[three:colName]])
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assert ((Map)map.get(colName)).containsValue(cubeFrom.getCell([one:colName, two:colName, three:colName]))
+    }
+
+    @Test
+    void testMapReduceWithoutLinkedCubeRequiredScope()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where)
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assertContainsIgnoreCase(((Map)map.get(colName)).get(colName) as String, 'does not contain all of the required scope keys', 'three')
+    }
+
+    @Test
+    void testMapReduceWithoutLinkedCubeRequiredScopeNoExecute()
+    {
+        NCube cubeFrom = createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedFrom.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'MapReduceLinkedTo.json')
+        Axis axis = cubeFrom.getAxis('one')
+        String axisName = axis.name
+        String colName = axis.columns.first().value
+        Closure where = { Map input -> input.get(colName) != null }
+
+        Map map = cubeFrom.mapReduce(axisName, where, [(NCube.MAP_REDUCE_SHOULD_EXECUTE):false])
+        assert 1 == map.size()
+        assert map.containsKey(colName)
+        assert ((Map)map.get(colName)).containsValue(cubeFrom.getCellNoExecute([one:colName, two:colName]))
+    }
+
+    @Test
+    void testMapReduceCaseSensitive3D() {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQuery3DTest.json')
+        Map queryResult = ncube.mapReduce('Val', {Map input -> input['Val1'] != null || input['val1'] != null || input[null] != null})
+        assert queryResult.size() == 3
+        assert queryResult.containsKey([Row:1L, Column:'A'])
+        assert queryResult.containsKey([Row:1L, Column:'B'])
+        assert queryResult.containsKey([Row:2L, Column:'B'])
+    }
+
+    @Test
+    void testMapReduceFindCaseSensitiveRows()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryCaseSensitive.json')
+
+        Map queryResult = ncube.mapReduce('key', { true })
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['STATE'] as Map
+        assert row['A'] == 'OH'
+        assert row['B'] == 'KY'
+
+        row = queryResult['State'] as Map
+        assert row['A'] == 'Ohio'
+        assert row['B'] == 'Kentucky'
+    }
+
+    @Test
+    void testMapReduceFindCaseSensitiveRowsSpecified()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryCaseSensitive.json')
+
+        Map queryResult = ncube.mapReduce('key', { true }, [input:[query:'STATE']])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['STATE'] as Map
+        assert row['A'] == 'OH'
+        assert row['B'] == 'KY'
+    }
+
+    @Test
+    void testMapReduceFindCaseSensitiveCols()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryCaseSensitive.json')
+
+        Map queryResult = ncube.mapReduce('query', { true })
+
+        assert queryResult.size() == 2
+
+        Map row = queryResult['A'] as Map
+        assert row['STATE'] == 'OH'
+        assert row['State'] == 'Ohio'
+
+        row = queryResult['B'] as Map
+        assert row['STATE'] == 'KY'
+        assert row['State'] == 'Kentucky'
+    }
+
+    @Test
+    void testMapReduceWithCommandCell()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'OH' })
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['G'] as Map
+        assert row['foo'] == 'OH'
+        assert row['bar'] == '5 G - bar'
+    }
+
+    @Test
+    void testMapReduceWithOtherDimensions()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryMultiDimTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'OH'}, [input:[bind: 'bindToAValue']])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['A'] as Map
+        assert row['foo'] == 'OH'
+        assert row['bar'] == 'Ohio'
+    }
+
+    @Test
+    void testMapReduceWithOtherDimensionsNotSet()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryMultiDimTestWithDefCol.json')
+        Set set = new HashSet()
+        Map queryResult = ncube.mapReduce('query', { Map input, Map map ->
+            set.add(map.key)
+            input.foo == 'def-A-foo'
+        }, [:])
+
+        assert queryResult.size() == 1
+        assert set.contains('A')
+        assert set.contains('B')
+        assert set.size() == 2
+    }
+
+    @Test
+    void testMapReduceWithOtherDimensionsInvalidCoordinate()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryMultiDimTest.json')
+
+        try
         {
-            ncubeRuntime.getCube(ApplicationID.testAppId, ncube.name)
+            ncube.mapReduce('query', { Map input -> input.foo == 'OH'}, [input:[bind: 'invalid']])
+            fail 'Should have thrown a CoordinateNotFoundException'
         }
-        long end = System.nanoTime()
+        catch (CoordinateNotFoundException e)
+        {
+            assertContainsIgnoreCase(e.message,'invalid', 'not found', 'bind', 'Test.Select.MultiDimension')
+        }
+    }
 
-        println ((end - start) / 1000000.0d)
+    @Test
+    void testMapReduceWithNonDiscreteRowAxis()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryRowAxisRangeTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo != 'N/A' && input.foo != 'Slow'})
+
+        assert queryResult.size() == 3
+
+        Map row = queryResult['legal'] as Map
+        assert row['foo'] == 'Legal'
+        assert row['bar'] == 'DEF'
+
+        row = queryResult['fair'] as Map
+        assert row['foo'] == 'Fair'
+        assert row['bar'] == 'GHI'
+
+        row = queryResult['average'] as Map
+        assert row['foo'] == 'Average'
+        assert row['bar'] == 'JKL'
+    }
+
+    @Test
+    void testMapReduceWithNonDiscreteRowAxisMissingNames()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryRowAxisMissingNamesTest.json')
+
+        try
+        {
+            ncube.mapReduce('query')
+            fail 'Should have thrown an IllegalStateException'
+        }
+        catch(IllegalStateException ex)
+        {
+            assertContainsIgnoreCase(ex.message, 'must have', 'name', 'Test.Select.RowAxisRange.MissingNames', 'key')
+        }
+    }
+
+    @Test
+    void testMapReduceWithNonDiscreteColumnAxis()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryColumnAxisSetTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.group2 != 'Y'})
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['location'] as Map
+        assert row['group1'] == 'midwest'
+        assert row['group2'] == 'scattered'
+        assert row['group3'] == 'western'
+    }
+
+    @Test
+    void testMapReduceWithNonDiscreteColumnAxisMissingNames()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryColumnAxisMissingNamesTest.json')
+
+        try
+        {
+            ncube.mapReduce('key')
+            fail('Should have thrown an IllegalStateException')
+        }
+        catch(IllegalStateException ex)
+        {
+            assertContainsIgnoreCase(ex.message, 'must have', 'name', 'Test.Select.ColumnAxisSet.MissingNames', 'query')
+        }
+    }
+
+    @Test
+    void testMapReduceWithNoColumnAxisName()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+
+        try
+        {
+            ncube.mapReduce(null, { Map input -> input.foo == 'NY'})
+        }
+        catch(IllegalArgumentException ex)
+        {
+            assertContainsIgnoreCase(ex.message, 'column axis', 'cannot be null')
+        }
+    }
+
+    @Test
+    void testMapReduceWithNoWhereClause()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+
+        try
+        {
+            ncube.mapReduce('query', null)
+        }
+        catch(IllegalArgumentException ex)
+        {
+            assert ex.message == 'The where clause cannot be null'
+        }
+    }
+
+    @Test
+    void testMapReduceWithFilterAndReturnSets()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'TX' }, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH):['foo'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN):['bar'] as Set])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['E'] as Map
+        assert row.size() == 1
+        assert row['bar'] == 'also test contains'
+    }
+
+    @Test
+    void testMapReduceWithFilterAndReturnSetsColumnInBoth()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'TX' }, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH):['foo'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN):['foo', 'bar'] as Set])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['E'] as Map
+        assert row.size() == 2
+        assert row['foo'] == 'TX'
+        assert row['bar'] == 'also test contains'
+    }
+
+    @Test
+    void testMapReduceWithFilterAndReturnSetsNonDiscreteAxis()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryColumnAxisSetTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.group2 != 'Y'}, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH):['group2'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN):['group3'] as Set])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['location'] as Map
+        assert row.size() == 1
+        assert row['group3'] == 'western'
+    }
+
+    @Test
+    void testMapReduceWithFilterAndReturnSetsRunningCommandCell()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query', { Map input -> input.foo == 'OH' }, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH):['foo'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN):['bar'] as Set])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['G'] as Map
+        assert row.size() == 1
+        assert row['bar'] == '5 G - bar'
+    }
+
+    @Test
+    void testMapReduceWithFilterAndReturnSetsRunningCommandCellWithClosure()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.mapReduce('query',  { Map input -> input.foo == 'OH' }, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH):['foo'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN):['bar'] as Set])
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['G'] as Map
+        assert row.size() == 1
+        assert row['bar'] == '5 G - bar'
+    }
+
+    @Test
+    void testMapReduceFromGroovyExpression()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        Map queryResult = ncube.getCell([key: 'H', query: 'bar']) as Map
+
+        assert queryResult.size() == 1
+
+        Map row = queryResult['D'] as Map
+        assert row['foo'] == 'KY'
+        assert row['bar'] == 33
+    }
+
+    @Test
+    void testMapReduceFromGroovyExpressionAgainstAnotherCube()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'selectQueryTest.json')
+        NCube otherCube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'selectQueryMultiDimTest.json')
+        Map queryResult = ncube.getCell([key: 'H', query: 'bar', bind: 'bindToAValue', cubeName: 'Test.Select.MultiDimension']) as Map
+
+        assert queryResult.size() == 1
+
+        Collection<String> row = queryResult.values()
+        assert row['foo'] == ['OH']
+        assert row['bar'] == ['Ohio']
+    }
+
+    @Test
+    void testUse()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'useRef.json')
+        def x = ncube.getCell([column:'a', row:1])
+        assert 'A3' == x
+
+        x = ncube.getCell([column:'a', row:2])
+        assert 'C2' == x
+
+        x = ncube.getCell([column:'b', row:1])
+        assert 'B3' == x
+
+        x = ncube.getCell([column:'b', row:2])
+        assert 'C2' == x
+
+        x = ncube.getCell([column:'c', row:3])
+        assert 'foo' == x
+    }
+
+    @Test
+    void testUseAcrossCubes()
+    {
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'useRef.json')
+        NCube ncube2 = createRuntimeCubeFromResource(ApplicationID.testAppId, 'useRef1.json')
+        def x = ncube2.getCell([column:'a', row:1])
+        assert 'C1' == x
+    }
+
+    @Test
+    void testGetCells()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'getCellsTest.json')
+        Object[] ids = [
+                [1000000000001, 2000000000001],
+                ['1000000000001', '2000000000002'],
+                [1000000000002, 2000000000001],
+                [1000000000002, 2000000000002],
+                [1000000000002, 2000000000003],
+                [1000000000001, 2000000000003]
+        ] as Object[]
+        Map input = [:]     // proves that no input still gets axis names bound (gender and age show up in inputUsed)
+        Map output = [:]
+        Object[] cellValues = ncube.getCells(ids, input, output, 13)
+        assert cellValues.length == 6
+
+        List list1 = cellValues[0] as List
+        List id1 = list1[0] as List
+        assert id1[0] == 1000000000001
+        assert id1[1] == 2000000000001
+        Map info1 = list1[1] as Map
+        assert info1.type == 'boolean'
+        assert info1.value == 'true'
+
+        List list2 = cellValues[1] as List
+        List id2 = list2[0] as List
+        assert id2[0] == '1000000000001'       // proves that cell IDs can be Strings, longs, etc. (converter.convertToLong used internally)
+        assert id2[1] == '2000000000002'
+        Map info2 = list2[1] as Map
+        assert info2.type == 'long'
+        assert info2.value == '10'
+
+        List list3 = cellValues[2] as List
+        List id3 = list3[0] as List
+        assert id3[0] == 1000000000002
+        assert id3[1] == 2000000000001
+        Map info3 = list3[1] as Map
+        assert info3.type == 'boolean'
+        assert info3.value == 'true'
+
+        List list4 = cellValues[3] as List
+        List id4 = list4[0] as List
+        assert id4[0] == 1000000000002
+        assert id4[1] == 2000000000002
+        Map info4 = list4[1] as Map
+        assert info4.type == 'int'
+        assert info4.value == '13'     // proves passed in 'defaultValue' for cell works
+
+        List list5 = cellValues[4] as List
+        List id5 = list5[0] as List
+        assert id5[0] == 1000000000002
+        assert id5[1] == 2000000000003
+        Map info5 = list5[1] as Map
+        assert info5.type == 'string'
+        assert info5.value == '[a, b, c]'     // proves passed in 'defaultValue' for cell works
+
+        List list6 = cellValues[5] as List
+        List id6 = list6[0] as List
+        assert id6[0] == 1000000000001
+        assert id6[1] == 2000000000003
+        Map info6 = list6[1] as Map
+        assert info6.type == 'string'
+        assertContainsIgnoreCase((String)info6.value, 'err: Cannot invoke method next() on null object')
+
+        RuleInfo ruleInfo = ncube.getRuleInfo(output)
+        assert output.cell11 == true
+        assert output.cell21 == true    // prove same output used for all cells
+        assert ruleInfo.getInputKeysUsed().containsAll(['gender', 'age'])
+        assert ruleInfo.getInputKeysUsed().size() == 2
     }
 
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 
-    private void simpleJsonCompare(String name)
+    private static void simpleJsonCompare(String name)
     {
         NCube<?> ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, name)
         int h1 = ncube.hashCode()
@@ -4974,7 +5890,7 @@ class TestNCube extends NCubeBaseTest
 
     private static void println(Object... args)
     {
-        if (_debug == true)
+        if (_debug)
         {
             for (Object arg : args)
             {

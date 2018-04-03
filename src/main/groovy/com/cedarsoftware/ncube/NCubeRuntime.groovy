@@ -1,36 +1,34 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.ncube.util.GCacheManager
-import com.cedarsoftware.util.CallableBean
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.IOUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.SystemUtilities
-import com.cedarsoftware.util.TrackingMap
+import com.cedarsoftware.ncube.util.LocalFileCache
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import com.cedarsoftware.visualizer.RpmVisualizer
+import com.cedarsoftware.visualizer.Visualizer
 import groovy.transform.CompileStatic
 import ncube.grv.method.NCubeGroovyController
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.DisposableBean
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
+import org.springframework.cache.guava.GuavaCache
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.NCubeConstants.CLASSPATH_CUBE
-import static com.cedarsoftware.ncube.NCubeConstants.CONTROLLER_BEAN
-import static com.cedarsoftware.ncube.NCubeConstants.MANAGER_BEAN
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BRANCH
-import static com.cedarsoftware.ncube.NCubeConstants.PROPERTY_CACHE
-import static com.cedarsoftware.ncube.NCubeConstants.PR_APP
-import static com.cedarsoftware.ncube.NCubeConstants.PR_CUBE
-import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
+import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.visualizer.RpmVisualizerConstants.*
+import static SnapshotPolicy.FORCE
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -51,18 +49,44 @@ import static com.cedarsoftware.ncube.NCubeConstants.SYS_BOOTSTRAP
  */
 
 @CompileStatic
-class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestClient
+class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestClient, DisposableBean
 {
     private static final String MUTABLE_ERROR = 'Non-runtime method called:'
     private final CacheManager ncubeCacheManager
     private final CacheManager adviceCacheManager
     private final ConcurrentMap<ApplicationID, GroovyClassLoader> localClassLoaders = new ConcurrentHashMap<>()
+    private static AtomicInteger instanceCount = new AtomicInteger(0)
     private static final Logger LOG = LoggerFactory.getLogger(NCubeRuntime.class)
     // not private in case we want to tweak things for testing.
     protected volatile ConcurrentMap<String, Object> systemParams = null
     protected final CallableBean bean
+    private volatile boolean alive = true
     private final boolean allowMutableMethods
     private final String beanName
+    @Value('${ncube.cache.refresh.min:75}') int cacheRefreshIntervalMin
+
+    @Autowired(required = false)
+    private LocalFileCache localFileCache
+
+    private final ThreadLocal<GroovyShell> groovyShellThreadLocal = new ThreadLocal<GroovyShell>() {
+        GroovyShell initialValue()
+        {
+            return new GroovyShell()
+        }
+    }
+
+    private GroovyShell getGroovyShell()
+    {
+        return groovyShellThreadLocal.get()
+    }
+
+    LocalFileCache getLocalFileCache() {
+        return localFileCache
+    }
+
+    void setLocalFileCache(LocalFileCache localFileCache) {
+        this.localFileCache = localFileCache
+    }
 
     NCubeRuntime(CallableBean bean, CacheManager ncubeCacheManager, boolean allowMutableMethods, String beanName = null)
     {
@@ -78,6 +102,199 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {
             this.beanName = NCubeAppContext.containsBean(MANAGER_BEAN) ? MANAGER_BEAN : CONTROLLER_BEAN
         }
+
+        def refresh = {
+            while (alive)
+            {
+                Thread.sleep(1000 * 60 * cacheRefreshIntervalMin)
+                GCacheManager cacheManager = (GCacheManager) ncubeCacheManager
+                Iterator<String> i = cacheManager.cacheNames.iterator()
+                
+                while (i.hasNext())
+                {
+                    String cacheName = i.next()
+                    Cache cache = cacheManager.getCache(cacheName)
+                    if (cache != null)
+                    {
+                        cacheManager.applyToEntries(cacheName, { key, value ->
+                            if (value instanceof NCube)
+                            {
+                                NCube cube = (NCube) value
+                                boolean evict = true
+                                if (cube.containsMetaProperty(CUBE_EVICT))
+                                {
+                                    evict = Converter.convert(cube.getMetaProperty(CUBE_EVICT), boolean.class)
+                                }
+
+                                if (cube.name == SYS_CLASSPATH || !evict)
+                                {   // refresh last-accessed time
+                                    cache.get(key)
+                                }
+                            }
+                        })
+                    }
+                }
+            }
+        }
+        Thread t = new Thread(refresh)
+        t.name = "NcubeCacheRefresher${instanceCount.incrementAndGet()}"
+        t.daemon = true
+        t.start()
+    }
+
+    void destroy() throws Exception
+    {
+        alive = false
+    }
+
+    Map getMenu(ApplicationID appId)
+    {
+        Map appMenu = [:]
+        Map globalMenu = [:]
+        ApplicationID sysAppId = new ApplicationID(appId.tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        NCube globalMenuCube = getCubeInternal(sysAppId, GLOBAL_MENU)
+        if (globalMenuCube)
+        {
+            globalMenu =  globalMenuCube.getCell([:]) as Map
+        }
+        try
+        {   // Do not remove try-catch handler in favor of advice handler
+            ApplicationID bootVersionAppId = appId.asBootVersion().asSnapshot()
+            NCube menuCube = getCubeInternal(bootVersionAppId, SYS_MENU)
+            if (menuCube == null)
+            {
+                menuCube = getCubeInternal(bootVersionAppId.asHead(), SYS_MENU)
+            }
+            appMenu = menuCube.getCell([:]) as Map
+        }
+        catch (Exception e)
+        {
+            LOG.debug("Unable to load ${SYS_MENU} (${SYS_MENU} cube likely not in appId: ${appId}, exception: ${e.message}")
+            if (!globalMenu)
+            {
+                appMenu = [(MENU_TITLE):MENU_TITLE_DEFAULT,
+                           (MENU_TAB):
+                                   ['n-cube':[html:'html/ntwobe.html',img:'img/letter-n.png'],
+                                    'n-cube-old':[html:'html/ncube.html',img:'img/letter-o.png'],
+                                    'JSON':[html:'html/jsonEditor.html',img:'img/letter-j.png'],
+                                    'Details':[html:'html/details.html',img:'img/letter-d.png'],
+                                    'Test':[html:'html/test.html',img:'img/letter-t.png'],
+                                    'Visualizer':[html:'html/visualize.html', img:'img/letter-v.png']],
+                           (MENU_NAV):[:]
+                ]
+            }
+        }
+
+        String title = appMenu[MENU_TITLE] ?: globalMenu[MENU_TITLE]
+        Map tabMenu = globalMenu[MENU_TAB] as Map ?: [:]
+        tabMenu.putAll((appMenu[MENU_TAB] ?: [:]) as Map)
+
+        Map navMenu = globalMenu[MENU_NAV] as Map ?: [:]
+        Map appNavMenu = appMenu[MENU_NAV] as Map
+        for (Map.Entry appNavEntry : appNavMenu)
+        {
+            String navKey = appNavEntry.key
+            Map navVal = appNavEntry.value as Map
+            if (navMenu.containsKey(navKey))
+            {
+                (navMenu[navKey] as Map).putAll(navVal)
+            }
+            else
+            {
+                navMenu[navKey] = navVal
+            }
+        }
+
+        return [(MENU_TITLE):title, (MENU_TAB):tabMenu, (MENU_NAV):navMenu]
+    }
+
+    Map mapReduce(ApplicationID appId, String cubeName, String colAxisName, String where = 'true', Map options = [:])
+    {
+        NCube ncube = getCubeInternal(appId, cubeName)
+        Closure whereClosure = evaluateWhereClosure(where)
+        Map result = ncube.mapReduce(colAxisName, whereClosure, options)
+        return result
+    }
+
+    private Closure evaluateWhereClosure(String where)
+    {
+        Object whereClosure = getGroovyShell().evaluate(where)
+        if (!(whereClosure instanceof Closure))
+        {
+            throw new IllegalArgumentException("Passed in 'where' clause: ${where}, is not evaluating to a Closure.  Make sure it is in the form (example): { Map input -> input.state == 'AZ' }")
+        }
+        return (Closure)whereClosure
+    }
+
+    Map<String, Object> getVisualizerGraph(ApplicationID appId, Map options)
+    {
+        Visualizer vis = getVisualizer(options.startCubeName as String)
+        return vis.loadGraph(appId, options)
+    }
+
+    Map<String, Object> getVisualizerScopeChange(ApplicationID appId, Map options)
+    {
+        Visualizer vis = getVisualizer(options.startCubeName as String)
+        return vis.loadScopeChange(appId, options)
+    }
+
+    Map<String, Object> getVisualizerNodeDetails(ApplicationID appId, Map options)
+    {
+        Visualizer vis = getVisualizer(options.startCubeName as String)
+        return vis.loadNodeDetails(appId, options)
+    }
+
+    // TODO: This needs to be externalized (loaded via Grapes)
+    private Visualizer getVisualizer(String cubeName)
+    {
+        return cubeName.startsWith(RPM_CLASS) ? new RpmVisualizer(this) : new Visualizer(this)
+    }
+
+    Map getCell(ApplicationID appId, String cubeName, Map coordinate, defaultValue = null)
+    {
+        Map output = [:]
+        NCube ncube = getCubeInternal(appId, cubeName)
+        ncube.getCell(coordinate, output, defaultValue)
+        return output
+    }
+
+    Map execute(ApplicationID appId, String cubeName, String method, Map args)
+    {
+        Map coordinate = ['method' : method, 'service': this]
+        coordinate.putAll(args)
+        return getCell(appId, cubeName, coordinate)
+    }
+
+    /**
+     * This API will fetch particular cell values (identified by the idArrays) for the passed
+     * in appId and named cube.  The idArrays is an Object[] of Object[]'s:<pre>
+     * [
+     *  [1, 2, 3],
+     *  [4, 5, 6],
+     *  [7, 8, 9],
+     *   ...
+     *]
+     * In the example above, the 1st entry [1, 2, 3] identifies the 1st cell to fetch.  The 2nd entry [4, 5, 6]
+     * identifies the 2nd cell to fetch, and so on.
+     * </pre>
+     * @return Object[] The return value is an Object[] containing Object[]'s with the original coordinate
+     *  as the first entry and the cell value as the 2nd entry:<pre>
+     * [
+     *  [[1, 2, 3], {"type":"int", "value":75}],
+     *  [[4, 5, 6], {"type":"exp", "cache":false, "value":"return 25"}],
+     *  [[7, 8, 9], {"type":"string", "value":"hello"}],
+     *   ...
+     * ]
+     * </pre>
+     */
+    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Map output = [:], Object defaultValue = null)
+    {
+        NCube ncube = getCubeInternal(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Unable to fetch requested cells. NCube: ${cubeName} not found, app: ${appId}")
+        }
+        return ncube.getCells(idArrays, input, output, defaultValue)
     }
 
     /**
@@ -96,10 +313,18 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      */
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
     {
-        Object[] searchResults = bean.call(beanName, 'search', [appId, cubeNamePattern, content, options]) as Object[]
-        List<NCubeInfoDto> dtos = []
-        searchResults.each { NCubeInfoDto dto -> dtos.add(dto) }
-        return dtos
+        if (cubeNamePattern != null)
+        {
+            cubeNamePattern = cubeNamePattern.trim()
+        }
+        List<NCubeInfoDto> cubeInfos = (List<NCubeInfoDto>) bean.call(beanName, 'search', [appId, cubeNamePattern, content, options])
+        Collections.sort(cubeInfos, new Comparator<NCubeInfoDto>() {
+            int compare(NCubeInfoDto info1, NCubeInfoDto info2)
+            {
+                return info1.name.compareToIgnoreCase(info2.name)
+            }
+        })
+        return cubeInfos
     }
 
     /**
@@ -121,6 +346,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return getCubeInternal(appId, cubeName)
     }
 
+    Map getAppTests(ApplicationID appId)
+    {
+        Map result = bean.call(beanName, 'getAppTests', [appId]) as Map
+        return result
+    }
+
     Object[] getTests(ApplicationID appId, String cubeName)
     {
         Object[] result = bean.call(beanName, 'getTests', [appId, cubeName]) as Object[]
@@ -135,20 +366,38 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     Boolean updateCube(NCube ncube)
     {
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException('Cannot pass null to updateCube.')
+        }
         verifyAllowMutable('updateCube')
-        Boolean result = bean.call(beanName, 'updateCube', [ncube]) as Boolean
-
-        if (CLASSPATH_CUBE.equalsIgnoreCase(ncube.name))
+        Boolean result = bean.call(beanName, 'updateCube', [ncube.applicationID, ncube.name, ncube.cubeAsGzipJsonBytes]) as Boolean
+        if (SYS_CLASSPATH.equalsIgnoreCase(ncube.name))
         {   // If the sys.classpath cube is changed, then the entire class loader must be dropped.  It will be lazily rebuilt.
             clearCache(ncube.applicationID)
         }
-        clearCubeFromCache(ncube.applicationID, ncube.name)
+        clearCache(ncube.applicationID, [ncube.name])
+        ncube.removeMetaProperty(NCube.METAPROPERTY_TEST_DATA)
         return result
     }
 
-    NCube loadCubeById(long id)
+    Boolean updateCube(ApplicationID appId, String cubeName, byte[] cubeBytes)
     {
-        NCube ncube = bean.call(beanName, 'loadCubeById', [id]) as NCube
+        throw new IllegalStateException('This should never be called. Call updateCube(NCube) instead.')
+    }
+
+    NCube loadCubeById(long id, Map options = null)
+    {
+        NCubeInfoDto record = loadCubeRecordById(id, options)
+        NCube ncube = NCube.createCubeFromRecord(record)
+        applyAdvices(ncube)
+        return ncube
+    }
+
+    NCube loadCube(ApplicationID appId, String cubeName, Map options = null)
+    {
+        NCubeInfoDto record = loadCubeRecord(appId, cubeName, options)
+        NCube ncube = NCube.createCubeFromRecord(record)
         applyAdvices(ncube)
         return ncube
     }
@@ -156,15 +405,21 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     void createCube(NCube ncube)
     {
         verifyAllowMutable('createCube')
-        bean.call(beanName, 'createCube', [ncube])
+        bean.call(beanName, 'createCube', [ncube.applicationID, ncube.name, ncube.cubeAsGzipJsonBytes])
+        ncube.removeMetaProperty(NCube.METAPROPERTY_TEST_DATA)
         prepareCube(ncube)
+    }
+
+    void createCube(ApplicationID appId, String cubeName, byte[] cubeBytes)
+    {
+        throw new IllegalStateException('This should never be called. Call createCube(NCube) instead.')
     }
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
     {
         verifyAllowMutable('duplicate')
         Boolean result = bean.call(beanName, 'duplicate', [oldAppId, newAppId, oldName, newName]) as Boolean
-        clearCubeFromCache(newAppId, newName)
+        clearCache(newAppId, [newName])
         return result
     }
 
@@ -174,9 +429,21 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    Boolean checkPermissions(ApplicationID appId, String resource, String action)
+    Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
+    {
+        Map result = bean.call(beanName, 'checkMultiplePermissions', [appId, resource, actions]) as Map
+        return result
+    }
+
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
         Boolean result = bean.call(beanName, 'checkPermissions', [appId, resource, action]) as Boolean
+        return result
+    }
+
+    Boolean isSysAdmin()
+    {
+        Boolean result = bean.call(beanName, 'isSysAdmin', []) as Boolean
         return result
     }
 
@@ -207,7 +474,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    Integer releaseVersion(ApplicationID appId, String newSnapVer)
+    Integer releaseVersion(ApplicationID appId, String newSnapVer = null)
     {
         verifyAllowMutable('releaseVersion')
         Integer result = bean.call(beanName, 'releaseVersion', [appId, newSnapVer]) as Integer
@@ -215,7 +482,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    Integer releaseCubes(ApplicationID appId, String newSnapVer)
+    Integer releaseCubes(ApplicationID appId, String newSnapVer = null)
     {
         verifyAllowMutable('releaseCubes')
         Integer result = bean.call(beanName, 'releaseCubes', [appId, newSnapVer]) as Integer
@@ -236,15 +503,39 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
+    NCubeInfoDto promoteRevision(long cubeId)
+    {
+        verifyAllowMutable('promoteRevision')
+        NCubeInfoDto record = bean.call(beanName, 'promoteRevision', [cubeId]) as NCubeInfoDto
+        if (SYS_CLASSPATH.equalsIgnoreCase(record.name))
+        {   // If the sys.classpath cube is changed, then the entire class loader must be dropped.  It will be lazily rebuilt.
+            clearCache(record.applicationID)
+        }
+        clearCache(record.applicationID, [record.name])
+        return record
+    }
+
+    List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
+    {
+        List<Delta> deltas = bean.call(beanName, 'fetchJsonRevDiffs', [newCubeId, oldCubeId]) as List
+        return deltas
+    }
+
+    List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
+    {
+        List<Delta> deltas = bean.call(beanName, 'fetchJsonBranchDiffs', [newInfoDto, oldInfoDto]) as List
+        return deltas
+    }
+
     List<NCubeInfoDto> getCellAnnotation(ApplicationID appId, String cubeName, Set<Long> ids, boolean ignoreVersion = false)
     {
         List<NCubeInfoDto> result = bean.call(beanName, 'getCellAnnotation', [appId, cubeName, ids, ignoreVersion]) as List
         return result
     }
 
-    List<String> getAppNames()
+    Object[] getAppNames()
     {
-        List<String> result = bean.call(beanName, 'getAppNames', []) as List
+        Object[] result = bean.call(beanName, 'getAppNames', []) as Object[]
         return result
     }
 
@@ -262,9 +553,9 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    Set<String> getBranches(ApplicationID appId)
+    Object[] getBranches(ApplicationID appId)
     {
-        Set<String> result = bean.call(beanName, 'getBranches', [appId]) as Set
+        Object[] result = bean.call(beanName, 'getBranches', [appId]) as Object[]
         return result
     }
 
@@ -274,10 +565,43 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
-    String getCubeRawJson(ApplicationID appId, String cubeName)
+    NCubeInfoDto loadCubeRecord(ApplicationID appId, String cubeName, Map options)
     {
-        String result = bean.call(beanName, 'getCubeRawJson', [appId, cubeName]) as String
-        return result
+        NCubeInfoDto record = bean.call(beanName, 'loadCubeRecord', [appId, cubeName, options]) as NCubeInfoDto
+        return record
+    }
+
+    NCubeInfoDto loadCubeRecordById(long id, Map options = null)
+    {
+        NCubeInfoDto record = bean.call(beanName, 'loadCubeRecordById', [id, options]) as NCubeInfoDto
+        return record
+    }
+
+    String getJson(ApplicationID appId, String cubeName, Map options)
+    {
+        try
+        {
+            NCube ncube = getCube(appId, cubeName)
+            return NCube.formatCube(ncube, options)
+        }
+        catch (IllegalStateException e)
+        {
+            if (['json','json-pretty'].contains(options.mode))
+            {
+                LOG.error(e.message, e)
+                NCubeInfoDto record = loadCubeRecord(appId, cubeName, options)
+                String json = new String(IOUtilities.uncompressBytes(record.bytes), 'UTF-8')
+                if ('json-pretty' == options.mode)
+                {
+                    return JsonWriter.formatJson(json)
+                }
+                return json
+            }
+            else
+            {
+                throw e
+            }
+        }
     }
 
     Boolean deleteBranch(ApplicationID appId)
@@ -288,11 +612,19 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return result
     }
 
+    Boolean deleteApp(ApplicationID appId)
+    {
+        verifyAllowMutable('deleteApp')
+        Boolean result = bean.call(beanName, 'deleteApp', [appId]) as Boolean
+        clearCache(appId)
+        return result
+    }
+
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
         verifyAllowMutable('mergeDeltas')
         NCube ncube = bean.call(beanName, 'mergeDeltas', [appId, cubeName, deltas]) as NCube
-        cacheCube(ncube)
+        ncube = cacheCube(ncube)
         return ncube
     }
 
@@ -300,7 +632,13 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         verifyAllowMutable('deleteCubes')
         Boolean result = bean.call(beanName, 'deleteCubes', [appId, cubeNames]) as Boolean
-        clearCache(appId)
+        if (result)
+        {
+            for (Object cubeName : cubeNames)
+            {
+                clearCache(appId, [cubeName as String])
+            }
+        }
         return result
     }
 
@@ -316,8 +654,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         verifyAllowMutable('renameCube')
         Boolean result = bean.call(beanName, 'renameCube', [appId, oldName, newName]) as Boolean
-        clearCubeFromCache(appId, oldName)
-        clearCubeFromCache(appId, newName)
+        clearCache(appId, [oldName, newName])
         return result
     }
 
@@ -382,14 +719,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     {
         verifyAllowMutable('updateAxisMetaProperties')
         bean.call(beanName, 'updateAxisMetaProperties', [appId, cubeName, axisName, newMetaProperties])
-        clearCubeFromCache(appId, cubeName)
-    }
-
-    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
-    {
-        verifyAllowMutable('saveTests')
-        Boolean result = bean.call(beanName, 'saveTests', [appId, cubeName, tests]) as Boolean
-        return result
+        clearCache(appId, [cubeName])
     }
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
@@ -408,7 +738,13 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     void clearTestDatabase()
     {
         verifyAllowMutable('clearTestDatabase')
-        bean.call(beanName, 'clearTestDatabase', []) as Boolean
+        bean.call(beanName, 'clearTestDatabase', [])
+    }
+
+    void clearPermCache()
+    {
+        verifyAllowMutable('clearPermCache')
+        bean.call(beanName, 'clearPermCache', [])
     }
 
     List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
@@ -437,10 +773,10 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return map
     }
 
-    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos)
+    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos, String notes = '')
     {
         verifyAllowMutable('generatePullRequestHash')
-        String link = bean.call(beanName, 'generatePullRequestHash', [appId, infoDtos]) as String
+        String link = bean.call(beanName, 'generatePullRequestHash', [appId, infoDtos, notes]) as String
         return link
     }
 
@@ -449,52 +785,43 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         verifyAllowMutable('mergePullRequest')
         Map result = bean.call(beanName, 'mergePullRequest', [prId]) as Map
 
-        ApplicationID headAppId = (result[PR_APP] as ApplicationID).asHead()
+        ApplicationID prApp = result[PR_APP] as ApplicationID
+        ApplicationID headAppId = prApp.asHead()
         clearCache(headAppId)
-        result.remove(PR_APP)
-
-        NCube prCube = result[PR_CUBE] as NCube
-        clearCubeFromCache(prCube.applicationID, prCube.name)
-        result.remove(PR_CUBE)
-
+        String prCube = result[PR_CUBE] as String
+        clearCache(prApp, [prCube])
         return result
     }
 
-    NCube obsoletePullRequest(String prId)
+    void obsoletePullRequest(String prId)
     {
         verifyAllowMutable('obsoletePullRequest')
-        NCube ncube = bean.call(beanName, 'obsoletePullRequest', [prId]) as NCube
-        clearCubeFromCache(ncube.applicationID, ncube.name)
-        return ncube
+        bean.call(beanName, 'obsoletePullRequest', [prId]) as NCube
     }
 
-    NCube cancelPullRequest(String prId)
+    void cancelPullRequest(String prId)
     {
         verifyAllowMutable('cancelPullRequest')
-        NCube ncube = bean.call(beanName, 'cancelPullRequest', [prId]) as NCube
-        clearCubeFromCache(ncube.applicationID, ncube.name)
-        return ncube
+        bean.call(beanName, 'cancelPullRequest', [prId]) as NCube
     }
 
-    NCube reopenPullRequest(String prId)
+    void reopenPullRequest(String prId)
     {
         verifyAllowMutable('reopenPullRequest')
-        NCube ncube = bean.call(beanName, 'reopenPullRequest', [prId]) as NCube
-        clearCubeFromCache(ncube.applicationID, ncube.name)
-        return ncube
+        bean.call(beanName, 'reopenPullRequest', [prId]) as NCube
     }
 
-    Object[] getPullRequests(Date startDate = null, Date endDate = null)
+    Object[] getPullRequests(Date startDate = null, Date endDate = null, String prId = null)
     {
         verifyAllowMutable('getPullRequests')
-        Object[] result = bean.call(beanName, 'getPullRequests', [startDate, endDate]) as Object[]
+        Object[] result = bean.call(beanName, 'getPullRequests', [startDate, endDate, prId]) as Object[]
         return result
     }
 
-    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null, String notes = null)
     {
         verifyAllowMutable('commitBranch')
-        Map<String, Object> map = bean.call(beanName, 'commitBranch', [appId, inputCubes]) as Map<String, Object>
+        Map<String, Object> map = bean.call(beanName, 'commitBranch', [appId, inputCubes, notes]) as Map<String, Object>
         clearCache(appId)
         clearCache(appId.asHead())
         return map
@@ -542,7 +869,269 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             throw new IllegalStateException("${MUTABLE_ERROR} ${methodName}()")
         }
     }
-    
+
+    void createRefAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName)
+    {
+        verifyAllowMutable('createRefAxis')
+        bean.call(beanName, 'createRefAxis', [appId, cubeName, axisName, refAppId, refCubeName, refAxisName])
+        clearCache(appId, [cubeName])
+    }
+
+    //-- Run Tests -------------------------------------------------------------------------------------------------
+
+    Map runTests(ApplicationID appId)
+    {
+        Map ret = [:]
+        Map appTests = getAppTests(appId)
+        for (Map.Entry cubeData : appTests)
+        {
+            String cubeName = cubeData.key
+            ret[cubeName] = runTests(appId, cubeName, cubeData.value as Object[])
+        }
+        return ret
+    }
+
+    Map runTests(ApplicationID appId, String cubeName, Object[] tests)
+    {
+        Map ret = [:]
+        for (Object t : tests)
+        {
+            NCubeTest test = t as NCubeTest
+            try
+            {
+                ret[test.name] = runTest(appId, cubeName, test)
+            }
+            catch (Exception e)
+            {
+                ret[test.name] = ['_message':e.message, '_result':e.stackTrace] as Map
+            }
+        }
+        return ret
+    }
+
+    Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
+    {
+        try
+        {
+            // Do not remove try-catch handler here - this API must handle it's own exceptions, instead
+            // of allowing the Around Advice to handle them.
+            Properties props = System.properties
+            String server = props.getProperty("http.proxyHost")
+            String port = props.getProperty("http.proxyPort")
+            LOG.info("proxy server: ${server}, proxy port: ${port}".toString())
+
+            NCube ncube = getCube(appId, cubeName)
+            Map<String, Object> coord = test.coordWithValues
+            boolean success = true
+            Map output = new LinkedHashMap()
+            Map args = [input:coord, output:output, ncube:ncube]
+            Map<String, Object> copy = new LinkedHashMap(coord)
+
+            // If any of the input values are a CommandCell, execute them.  Use the fellow (same) input as input.
+            // In other words, other key/value pairs on the input map can be referenced in a CommandCell.
+            copy.each { key, value ->
+                if (value instanceof CommandCell)
+                {
+                    CommandCell cmd = (CommandCell) value
+                    redirectOutput(true)
+                    coord[key] = cmd.execute(args)
+                    redirectOutput(false)
+                }
+            }
+
+            Set<String> errors = new LinkedHashSet<>()
+            redirectOutput(true)
+            ncube.getCell(coord, output)               // Execute test case
+            redirectOutput(false)
+
+            List<GroovyExpression> assertions = test.createAssertions()
+            int i = 0
+
+            for (GroovyExpression exp : assertions)
+            {
+                i++
+
+                try
+                {
+                    Map assertionOutput = new LinkedHashMap<>(output)
+                    RuleInfo ruleInfo = new RuleInfo()
+                    assertionOutput[(NCube.RULE_EXEC_INFO)] = ruleInfo
+                    args.output = assertionOutput
+                    redirectOutput(true)
+                    if (!exp.execute(args))
+                    {
+                        errors.add("[assertion ${i} failed]: ${exp.cmd}".toString())
+                        success = false
+                    }
+                    redirectOutput(false)
+                }
+                catch (ThreadDeath t)
+                {
+                    throw t
+                }
+                catch (Throwable e)
+                {
+                    errors.add('[exception]')
+                    errors.add('\n')
+                    errors.add(getTestCauses(e))
+                    success = false
+                }
+            }
+
+            RuleInfo ruleInfoMain = (RuleInfo) output[(NCube.RULE_EXEC_INFO)]
+            ruleInfoMain.setSystemOut(fetchRedirectedOutput())
+            ruleInfoMain.setSystemErr(fetchRedirectedErr())
+            ruleInfoMain.setAssertionFailures(errors)
+            return ['_message': new TestResultsFormatter(output).format(), '_result': success]
+        }
+        catch(Exception e)
+        {
+            fetchRedirectedOutput()
+            fetchRedirectedErr()
+            throw new IllegalStateException(getTestCauses(e), e)
+        }
+        finally
+        {
+            redirectOutput(false)
+        }
+    }
+
+    private static String fetchRedirectedOutput()
+    {
+        OutputStream outputStream = System.out
+        if (outputStream instanceof ThreadAwarePrintStream)
+        {
+            return ((ThreadAwarePrintStream) outputStream).content
+        }
+        return ''
+    }
+
+    private static String fetchRedirectedErr()
+    {
+        OutputStream outputStream = System.err
+        if (outputStream instanceof ThreadAwarePrintStreamErr)
+        {
+            return ((ThreadAwarePrintStreamErr) outputStream).content
+        }
+        return ''
+    }
+
+    private static void redirectOutput(boolean redirect)
+    {
+        OutputStream outputStream = System.out
+        if (outputStream instanceof ThreadAwarePrintStream)
+        {
+            ((ThreadAwarePrintStream) outputStream).redirect = redirect
+        }
+        outputStream = System.err
+        if (outputStream instanceof ThreadAwarePrintStreamErr)
+        {
+            ((ThreadAwarePrintStreamErr) outputStream).redirect = redirect
+        }
+    }
+
+    /**
+     * Given an exception, get an HTML version of it.  This version is reversed in order,
+     * so that the root cause is first, and then the caller, and so on.
+     * @param t Throwable exception for which to obtain the HTML
+     * @return String version of the Throwable in HTML format.  Surrounded with pre-tag.
+     */
+    String getTestCauses(Throwable t)
+    {
+        LinkedList<Map<String, Object>> stackTraces = new LinkedList<>()
+
+        while (true)
+        {
+            stackTraces.push([msg: t.localizedMessage, trace: t.stackTrace] as Map)
+            t = t.cause
+            if (t == null)
+            {
+                break
+            }
+        }
+
+        // Convert from LinkedList to direct access list
+        List<Map<String, Object>> stacks = new ArrayList<>(stackTraces)
+        StringBuilder s = new StringBuilder()
+        int len = stacks.size()
+
+        for (int i=0; i < len; i++)
+        {
+            Map<String, Object> map = stacks[i]
+            s.append("""<b style="color:darkred">${map.msg}</b><br>""")
+
+            if (i != len - 1i)
+            {
+                Map nextStack = stacks[i + 1i]
+                StackTraceElement[] nextStackElementArray = (StackTraceElement[]) nextStack.trace
+                s.append(trace(map.trace as StackTraceElement[], nextStackElementArray))
+                s.append('<hr style="border-top: 1px solid #aaa;margin:8px"><b>Called by:</b><br>')
+            }
+            else
+            {
+                s.append(trace(map.trace as StackTraceElement[], null))
+            }
+        }
+
+        return "<pre>${s}</pre>"
+    }
+
+    private static String trace(StackTraceElement[] stackTrace, StackTraceElement[] nextStrackTrace)
+    {
+        StringBuilder s = new StringBuilder()
+        int len = stackTrace.length
+        for (int i=0; i < len; i++)
+        {
+            s.append('&nbsp;&nbsp;')
+            StackTraceElement element = stackTrace[i]
+            if (alreadyExists(element, nextStrackTrace))
+            {
+                s.append('...continues below<br>')
+                return s.toString()
+            }
+            else
+            {
+                s.append("""${element.className}.${element.methodName}()&nbsp;<small><b class="pull-right">""")
+
+                if (element.nativeMethod)
+                {
+                    s.append('Native Method')
+                }
+                else
+                {
+                    if (element.fileName)
+                    {
+                        s.append("""${element.fileName}:${element.lineNumber}""")
+                    }
+                    else
+                    {
+                        s.append('source n/a')
+                    }
+                }
+                s.append('</b></small><br>')
+            }
+        }
+
+        return s.toString()
+    }
+
+    private static boolean alreadyExists(StackTraceElement element, StackTraceElement[] stackTrace)
+    {
+        if (ArrayUtilities.isEmpty(stackTrace))
+        {
+            return false
+        }
+
+        for (StackTraceElement traceElement : stackTrace)
+        {
+            if (element == traceElement)
+            {
+                return true
+            }
+        }
+        return false
+    }
+
     //-- NCube Caching -------------------------------------------------------------------------------------------------
 
     /**
@@ -550,41 +1139,48 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      * This will remove all the n-cubes from memory, compiled Groovy code,
      * caches related to expressions, caches related to method support,
      * advice caches, and local classes loaders (used when no sys.classpath is
-     * present).
+     * present). If NCube names are passed as the second argument, only those
+     * NCubes will be evicted from the cache.
      *
      * @param appId ApplicationID for which the cache is to be cleared.
+     * @param cubeNames (optional, defaults to null) Collection<String> for specific NCubes to clear from cache.
      */
-    void clearCache(ApplicationID appId)
+    void clearCache(ApplicationID appId, Collection<String> cubeNames = null)
     {
-        synchronized (ncubeCacheManager)
+        ApplicationID.validateAppId(appId)
+        if (cubeNames != null)
         {
-            ApplicationID.validateAppId(appId)
-
-            // Clear NCube cache
             Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
-            cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
-
-            GroovyBase.clearCache(appId)
-            NCubeGroovyController.clearCache(appId)
-
-            // Clear Advice cache
-            Cache adviceCache = adviceCacheManager.getCache(appId.cacheKey())
-            adviceCache.clear()
-
-            // Clear ClassLoader cache
-            GroovyClassLoader classLoader = localClassLoaders[appId]
-            if (classLoader != null)
+            for (String cubeName : cubeNames)
             {
-                classLoader.clearCache()
-                localClassLoaders.remove(appId)
+                cubeCache.evict(cubeName.toLowerCase())
             }
         }
-    }
+        else
+        {
+            synchronized (ncubeCacheManager)
+            {
+                String cacheKey = appId.cacheKey()
+                // Clear NCube cache
+                Cache cubeCache = ncubeCacheManager.getCache(cacheKey)
+                cubeCache.clear()   // eviction will trigger removalListener, which clears other NCube internal caches
 
-    void clearCubeFromCache(ApplicationID appId, String cubeName)
-    {
-        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
-        cubeCache.evict(cubeName.toLowerCase())
+                GroovyBase.clearCache(appId)
+                NCubeGroovyController.clearCache(appId)
+
+                // Clear Advice cache
+                Cache adviceCache = adviceCacheManager.getCache(cacheKey)
+                adviceCache.clear()
+
+                // Clear ClassLoader cache
+                GroovyClassLoader classLoader = localClassLoaders[appId]
+                if (classLoader != null)
+                {
+                    classLoader.clearCache()
+                    localClassLoaders.remove(appId)
+                }
+            }
+        }
     }
 
     void clearCache()
@@ -610,21 +1206,62 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         ApplicationID appId = ncube.applicationID
         ApplicationID.validateAppId(appId)
         validateCube(ncube)
-        prepareCube(ncube)
+        prepareCube(ncube, true)
     }
 
-    private void cacheCube(NCube ncube)
+    /**
+     * @return boolean true if the named cube is cached in the Runtime cache, false otherwise.  If the name is
+     * of a non-existent cube, the return value will be false.
+     */
+    boolean isCached(ApplicationID appId, String cubeName)
+    {
+        Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
+        String loName = cubeName.toLowerCase()
+        Cache.ValueWrapper wrapper = cubeCache.get(loName)
+        if (wrapper != null)
+        {
+            def value = wrapper.get()
+            return value instanceof NCube
+        }
+        return false
+    }
+    
+    private NCube cacheCube(NCube ncube, boolean force = false)
     {
         if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
             Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.cacheKey())
-            cubeCache.put(ncube.name.toLowerCase(), ncube)
+            String loName = ncube.name.toLowerCase()
+
+            if (allowMutableMethods || force)
+            {
+                cubeCache.put(loName, ncube)
+            }
+            else
+            {
+                Cache.ValueWrapper wrapper = cubeCache.putIfAbsent(loName, ncube)
+                if (wrapper != null)
+                {
+                    def value = wrapper.get()
+                    if (value instanceof NCube)
+                    {
+                        ncube = (NCube)value
+                    }
+                    else
+                    {
+                        LOG.info('Updating n-cube cache entry on a non-existing cube (cached = false) to an n-cube.')
+                        cubeCache.put(loName, ncube)
+                    }
+                }
+            }
         }
+        return ncube
     }
 
     private NCube getCubeInternal(ApplicationID appId, String cubeName)
     {
         Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
+        boolean localCacheEnabled = localFileCache?.enabled
         final String lowerCubeName = cubeName.toLowerCase()
 
         Cache.ValueWrapper item = cubeCache.get(lowerCubeName)
@@ -634,24 +1271,55 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             return Boolean.FALSE == value ? null : value as NCube
         }
 
-        // now even items with metaProperties(cache = 'false') can be retrieved
-        // and normal app processing doesn't do two queries anymore.
-        // used to do getCubeInfoRecords() -> dto
-        // and then dto -> loadCube(id)
-        NCube ncube = bean.call(beanName, 'getCube', [appId, cubeName]) as NCube
-        if (ncube == null)
+        NCube ncube = null
+        if (localCacheEnabled) {
+            item = localFileCache.get(appId,cubeName)
+            if (item?.get() instanceof NCube) {
+                ncube = (NCube) item.get()
+            }
+        }
+
+        if (!item || (localCacheEnabled && appId.isSnapshot() && localFileCache.snapshotPolicy==FORCE)) {
+            // now even items with metaProperties(cache = 'false') can be retrieved
+            // and normal app processing doesn't do two queries anymore.
+            // used to do getCubeInfoRecords() -> dto
+            // and then dto -> loadCube(id)
+
+            Map options = null
+            if (localCacheEnabled && ncube!=null) {
+                // data will only be returned if sha1 is different than supplied value
+                options = [(SEARCH_INCLUDE_CUBE_DATA):true, (SEARCH_CHECK_SHA1):ncube.sha1()]
+            }
+
+            NCubeInfoDto record = loadCubeRecord(appId, cubeName, options)
+            if (record == null ) {
+                ncube = null    // reset in case cube had existed in cache
+            }
+            else if (record.hasCubeData()) {
+                ncube = NCube.createCubeFromRecord(record)
+            }
+
+            // update cache if item is new (didn't exist before) or changed
+            if (localCacheEnabled && (!item || item.get() != ncube)) {
+                localFileCache.put(appId, cubeName, ncube)
+            }
+        }
+
+        if (ncube==null)
         {
             cubeCache.put(lowerCubeName, false)
             return null
         }
-        return prepareCube(ncube)
+        else {
+            return prepareCube(ncube)
+        }
     }
 
-    private NCube prepareCube(NCube cube)
+    private NCube prepareCube(NCube ncube, boolean force = false)
     {
-        applyAdvices(cube)
-        cacheCube(cube)
-        return cube
+        applyAdvices(ncube)
+        NCube cachedCube = cacheCube(ncube, force)
+        return cachedCube
     }
 
     //-- Advice --------------------------------------------------------------------------------------------------------
@@ -682,7 +1350,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
     }
 
-    private void addAdviceToMatchedCube(Advice advice, Pattern pattern, NCube ncube, Axis axis)
+    private static void addAdviceToMatchedCube(Advice advice, Pattern pattern, NCube ncube, Axis axis)
     {
         if (axis != null)
         {   // Controller methods
@@ -698,7 +1366,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
 
         // Add support for run() method (inline GroovyExpressions)
-        String classMethod = ncube.name + '.run()'
+        String classMethod = "${ncube.name}.run()"
         if (pattern.matcher(classMethod).matches())
         {
             ncube.addAdvice(advice, 'run')
@@ -714,15 +1382,47 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      */
     private void applyAdvices(NCube ncube)
     {
-        if (adviceCacheManager instanceof GCacheManager)
+        if (ncube && adviceCacheManager instanceof GCacheManager)
         {
-            ((GCacheManager)adviceCacheManager).applyToEntries(ncube.applicationID.cacheKey(), {String key, Object value ->
+            ApplicationID appId = ncube.applicationID
+            String cacheKey = appId.cacheKey()
+            GCacheManager acm = (GCacheManager)adviceCacheManager
+            if (ncube.name != SYS_ADVICE)
+            {
+                addSysAdviceAdvices(acm.getCache(cacheKey), appId)
+            }
+            acm.applyToEntries(cacheKey, {String key, Object value ->
                 final Advice advice = value as Advice
-                final String wildcard = key.replace(advice.name + '/', "")
+                final String wildcard = key.replace("${advice.name}/", "")
                 final String regex = StringUtilities.wildcardToRegexString(wildcard)
                 final Axis axis = ncube.getAxis('method')
                 addAdviceToMatchedCube(advice, Pattern.compile(regex), ncube, axis)
             })
+        }
+    }
+
+    private void addSysAdviceAdvices(Cache cache, ApplicationID appId)
+    {
+        com.google.common.cache.Cache gCache = ((GuavaCache)cache).nativeCache
+        Iterator i = gCache.asMap().entrySet().iterator()
+        if (i.hasNext())
+        {
+            return
+        }
+        NCube sysAdviceCube = getCube(appId, SYS_ADVICE)
+        if (!sysAdviceCube)
+        {
+            return
+        }
+        Axis adviceAxis = sysAdviceCube.getAxis('advice')
+        if (!adviceAxis)
+        {
+            throw new IllegalStateException("sys.advice is malformed for app: ${appId}")
+        }
+        for (Column column : adviceAxis.columns)
+        {
+            Map map = sysAdviceCube.getMap([advice: column.value, attribute: new HashSet()])
+            addAdvice(appId, (String)map.pattern, (Advice)map.expression)
         }
     }
 
@@ -777,12 +1477,18 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
     }
 
+    String getUrlContent(ApplicationID appId, String url, Map input)
+    {
+        URL actualUrl = getActualUrl(appId, url, input)
+        return actualUrl?.getText()
+    }
+
     /**
      * Fetch the classloader for the given ApplicationID.
      */
     URLClassLoader getUrlClassLoader(ApplicationID appId, Map input)
     {
-        NCube cpCube = getCube(appId, CLASSPATH_CUBE)
+        NCube cpCube = getCube(appId, SYS_CLASSPATH)
 
         if (cpCube == null)
         {   // No sys.classpath cube exists, just create regular GroovyClassLoader with no URLs set into it.
@@ -828,7 +1534,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         return gcl
     }
 
-    private boolean doesMapContainKey(Map map, String key)
+    private static boolean doesMapContainKey(Map map, String key)
     {
         if (map instanceof TrackingMap)
         {
@@ -895,7 +1601,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             NCube ncube = NCube.fromSimpleJson(json)
             ncube.applicationID = appId
             ncube.sha1()
-            prepareCube(ncube)
+            prepareCube(ncube, true)
             return ncube
         }
         catch (NullPointerException e)
@@ -915,7 +1621,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     /**
      * Still used in getNCubesFromResource
      */
-    private Object[] getJsonObjectFromResource(String name) throws IOException
+    private static Object[] getJsonObjectFromResource(String name) throws IOException
     {
         JsonReader reader = null
         try
@@ -947,7 +1653,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
                 NCube nCube = NCube.fromSimpleJson(json)
                 nCube.applicationID = appId
                 nCube.sha1()
-                prepareCube(nCube)
+                prepareCube(nCube, true)
                 lastSuccessful = nCube.name
                 cubeList.add(nCube)
             }
@@ -964,7 +1670,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
 
     //-- Validation ----------------------------------------------------------------------------------------------------
 
-    protected void validateCube(NCube cube)
+    protected static void validateCube(NCube cube)
     {
         if (cube == null)
         {

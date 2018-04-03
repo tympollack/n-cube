@@ -7,11 +7,14 @@ import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
 import com.cedarsoftware.ncube.formatters.HtmlFormatter
 import com.cedarsoftware.ncube.formatters.JsonFormatter
-import com.cedarsoftware.ncube.util.LongHashSet
-import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.ncube.formatters.NCubeTestReader
+import com.cedarsoftware.ncube.formatters.NCubeTestWriter
+import com.cedarsoftware.ncube.util.CellMap
+import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.EncryptionUtilities
 import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.MapUtilities
@@ -21,16 +24,23 @@ import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import com.cedarsoftware.util.io.MetaUtils
+import com.fasterxml.jackson.core.JsonFactory
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.JsonToken
 import groovy.transform.CompileStatic
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.util.FastByteArrayOutputStream
 
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
+import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
-import java.util.zip.GZIPOutputStream
 
 /**
  * Implements an n-cube.  This is a hyper (n-dimensional) cube
@@ -66,6 +76,12 @@ class NCube<T>
     public static final String DEFAULT_CELL_VALUE_CACHE = 'defaultCellValueCache'
     public static final String validCubeNameChars = '0-9a-zA-Z._-'
     public static final String RULE_EXEC_INFO = '_rule'
+    public static final String METAPROPERTY_TEST_UPDATED = 'testUpdated'
+    public static final String METAPROPERTY_TEST_DATA = '_testData'
+    public static final String MAP_REDUCE_COLUMNS_TO_SEARCH = 'columnsToSearch'
+    public static final String MAP_REDUCE_COLUMNS_TO_RETURN = 'columnsToReturn'
+    public static final String MAP_REDUCE_SHOULD_EXECUTE = 'shouldExecute'
+    public static final String MAP_REDUCE_DEFAULT_VALUE = 'defaultValue'
     protected static final byte[] TRUE_BYTES = 't'.bytes
     protected static final byte[] FALSE_BYTES = 'f'.bytes
     private static final byte[] A_BYTES = 'a'.bytes
@@ -80,10 +96,11 @@ class NCube<T>
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
     private final Map<Long, Axis> idToAxis = new HashMap<>(16, 0.8f)
-    protected final Map<LongHashSet, T> cells = new HashMap<>(128, 0.8f)
+    protected final Map<Set<Long>, T> cells = new CellMap<T>()
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
     private Map metaProps = new CaseInsensitiveMap<>()
+    private static ConcurrentMap primitives = new ConcurrentHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
     private static final ThreadLocal<Deque<StackEntry>> executionStack = new ThreadLocal<Deque<StackEntry>>() {
@@ -92,6 +109,7 @@ class NCube<T>
             return new ArrayDeque<>()
         }
     }
+    private static int stackEntryCoordinateValueMaxSize
 
     /**
      * Permanently add Custom Reader / Writer to json-io so that n-cube will use its native JSON
@@ -113,7 +131,7 @@ class NCube<T>
             Map map = (Map)jOb
             if (map.size() == 1)
             {   // If "@type" was added, then you need to extract the n-cube instance from the "ncube" field.
-                map = map.ncube as Map
+                map = (Map)map.ncube
             }
             NCube ncube = hydrateCube(map)
             String tenant = ncube.getMetaProperty('n-tenant')
@@ -161,7 +179,7 @@ class NCube<T>
             stripFoistedAppId(ncube)
         }
     }
-    
+
     private static void stripFoistedAppId(NCube ncube)
     {
         ncube.removeMetaProperty('n-tenant')
@@ -205,6 +223,16 @@ class NCube<T>
         return metaProps[key]
     }
 
+    /**
+     * Test for existence of a given meta-property key.
+     * @param key String name of key
+     * @return boolean true if the passed in meta-property key exists, false otherwise.
+     */
+    boolean containsMetaProperty(String key)
+    {
+        return metaProps.containsKey(key)
+    }
+    
     /**
      * If a meta property value is fetched from an Axis or a Column, the value should be extracted
      * using this API, so as to allow executable values to be retrieved.
@@ -274,10 +302,10 @@ class NCube<T>
      */
     protected void dropOrphans(Set<Long> columnIds, long axisId)
     {
-        Iterator<LongHashSet> i = cells.keySet().iterator()
+        Iterator<Set<Long>> i = cells.keySet().iterator()
         while (i.hasNext())
         {
-            LongHashSet cols = i.next()
+            Set<Long> cols = i.next()
             for (id in cols)
             {
                 Axis axis = getAxisFromColumnId(id, false)
@@ -312,16 +340,18 @@ class NCube<T>
         String toString()
         {
             StringBuilder s = new StringBuilder()
-            s.append(cubeName)
-            s.append(':[')
-
-            Iterator<Map.Entry<String, Object>> i = coord.entrySet().iterator()
+            s.append("${cubeName}:[")
+            Iterator<Map.Entry> i = coord.entrySet().iterator()
+            
             while (i.hasNext())
             {
                 Map.Entry<String, Object> coordinate = i.next()
-                s.append(coordinate.key)
-                s.append(':')
-                s.append(coordinate.value)
+                String value = coordinate.value.toString()
+                if (value.size() > stackEntryCoordinateValueMaxSize)
+                {
+                    value = "${value[0..(stackEntryCoordinateValueMaxSize - 1)]}..."
+                }
+                s.append("${coordinate.key}:${value}")
                 if (i.hasNext())
                 {
                     s.append(',')
@@ -347,6 +377,10 @@ class NCube<T>
     List<Advice> getAdvices(String method)
     {
         List<Advice> result = []
+        if (advices.isEmpty())
+        {
+            return result
+        }
         method = "/${method}"
         for (entry in advices.entrySet())
         {
@@ -357,12 +391,15 @@ class NCube<T>
             }
         }
 
-        Collections.sort(result, new Comparator<Advice>() {
-            int compare(Advice a1, Advice a2)
-            {
-                return a1.name.compareToIgnoreCase(a2.name)
-            }
-        })
+        if (!result.empty)
+        {
+            Collections.sort(result, new Comparator<Advice>() {
+                int compare(Advice a1, Advice a2)
+                {
+                    return a1.name.compareToIgnoreCase(a2.name)
+                }
+            })
+        }
 
         return result
     }
@@ -448,7 +485,7 @@ class NCube<T>
     T removeCellById(final Set<Long> coordinate)
     {
         clearSha1()
-        LongHashSet ids = ensureFullCoordinate(coordinate)
+        Set<Long> ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
             return null
@@ -471,7 +508,7 @@ class NCube<T>
      */
     boolean containsCell(final Map coordinate, boolean useDefault = false)
     {
-        LongHashSet cols
+        Set<Long> cols
         if (useDefault)
         {
             if (defaultCellValue != null)
@@ -502,7 +539,7 @@ class NCube<T>
      */
     boolean containsCellById(final Collection<Long> coordinate)
     {
-        LongHashSet ids = ensureFullCoordinate(coordinate)
+        Set<Long> ids = ensureFullCoordinate(coordinate)
         return cells.containsKey(ids)
     }
 
@@ -521,7 +558,8 @@ class NCube<T>
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.")
         }
         clearSha1()
-        return cells[getCoordinateKey(coordinate)] = value
+        return cells[getCoordinateKey(coordinate)] = (T) internValue(value)
+
     }
 
     /**
@@ -535,12 +573,12 @@ class NCube<T>
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.")
         }
         clearSha1()
-        LongHashSet ids = ensureFullCoordinate(coordinate)
+        Set<Long> ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
-            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name} using coordinate: ${coordinate}. Add column(s) before assigning cells.", name)
+            throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name}, appId: ${appId} using coordinate: ${coordinate}. Add column(s) before assigning cells.", name)
         }
-        return cells[ids] = value
+        return cells[ids] = (T)internValue(value)
     }
 
     /**
@@ -551,7 +589,7 @@ class NCube<T>
      */
     def getCellByIdNoExecute(final Set<Long> coordinate)
     {
-        LongHashSet ids = ensureFullCoordinate(coordinate)
+        Set<Long> ids = ensureFullCoordinate(coordinate)
         return cells[ids]
     }
 
@@ -567,7 +605,7 @@ class NCube<T>
      */
     def getCellNoExecute(final Map coordinate)
     {
-        LongHashSet ids = getCoordinateKey(coordinate)
+        Set<Long> ids = getCoordinateKey(coordinate)
         return cells[ids]
     }
 
@@ -594,6 +632,18 @@ class NCube<T>
     T at(final Map coordinate, final Map output = [:], Object defaultValue = null)
     {
         return getCell(coordinate, output, defaultValue)
+    }
+
+    /**
+     * Grab the cell located at altInput, then run it in terms of the input.
+     */
+    T use(Map altInput, Map input, Map output, def defaultCellValue)
+    {
+        T value = getCellById(getCoordinateKey(altInput, output), input, output, defaultCellValue)
+        RuleInfo info = getRuleInfo(output)
+        info.setLastExecutedStatement(value)
+        output.return = value
+        return value
     }
 
     /**
@@ -688,10 +738,9 @@ class NCube<T>
                                 // the conditionValue becomes 'true' for Default column when ruleAxisBindCount = 0
                                 final Integer count = conditionsFiredCountPerAxis[axisName]
                                 conditionValue = cmd == null ? isZero(count) : executeExpression(ctx, cmd)
-                                final boolean conditionAnswer = isTrue(conditionValue)
-                                cachedConditionValues[boundColumn.id] = conditionAnswer
+                                cachedConditionValues[boundColumn.id] = conditionValue as boolean
 
-                                if (conditionAnswer)
+                                if (conditionValue)
                                 {   // Rule fired
                                     conditionsFiredCountPerAxis[axisName] = count == null ? 1 : count + 1
                                     if (!axis.fireAll)
@@ -714,7 +763,7 @@ class NCube<T>
                             // one rule axis, X, Y, Z on another).  This generates coordinate combinations
                             // (AX, AY, AZ, BX, BY, BZ, CX, CY, CZ).  The condition columns must be run only once, on
                             // subsequent access, the cached result of the condition is used.
-                            if (isTrue(conditionValue))
+                            if (conditionValue)
                             {
                                 binding.bind(axisName, boundColumn)
                             }
@@ -799,6 +848,19 @@ class NCube<T>
         try
         {
             final Set<Long> colIds = binding.idCoordinate
+            for (Long id : binding.idCoordinate)
+            {
+                Axis axis = getAxisFromColumnId(id)
+                if (axis != null && axis.type == AxisType.RULE)
+                {
+                    Column column = axis.getColumnById(id)
+                    if (column != null && !input.containsKey(axis.name))
+                    {   // Rule name is not bound - temporarily bind it during rule statement execution
+                        input[axis.name] = "${column.columnName}"
+                    }
+                }
+            }
+
             T statementValue = getCellById(colIds, input, output)
             binding.value = statementValue
             return statementValue
@@ -829,6 +891,24 @@ class NCube<T>
             }
             binding.value = "[${msg}]"
             throw e
+        }
+        finally
+        {
+            for (Long id : binding.idCoordinate)
+            {
+                Axis axis = getAxisFromColumnId(id)
+                if (axis != null && axis.type == AxisType.RULE)
+                {
+                    Column column = axis.getColumnById(id)
+                    if (column != null)
+                    {   // Rule name is not bound - temporarily bind it during rule statement execution
+                        if (input[axis.name] instanceof GString)
+                        {
+                            input.remove(axis.name)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -864,7 +944,7 @@ class NCube<T>
                 if (count == null || count < 1)
                 {
                     throw new CoordinateNotFoundException("No conditions on the rule axis: ${axisName} fired, and there is no default column on this axis, cube: ${name}, input: ${coordinate}",
-                        name, coordinate, axisName)
+                            name, coordinate, axisName)
                 }
             }
         }
@@ -882,13 +962,15 @@ class NCube<T>
      * one exists (under Column's meta-key: 'DEFAULT_CELL'). If no column-level
      * default is specified (no non-null value provided), then the NCube level default
      * is chosen (if it exists). If no NCube level default is specified, then the
-     * defaultValue passed in is used, if it is non-null.
+     * defaultValue passed in is used, if it is non-null. The default value cache
+     * should only be used with mapReduce because of its repeated calculation of each
+     * column on all axes.
      * REQUIRED: The coordinate passed to this method must have already been run
      * through validateCoordinate(), which duplicates the coordinate and ensures the
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    protected T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null)
+    protected T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -898,7 +980,7 @@ class NCube<T>
             // Form fully qualified cell lookup (NCube name + coordinate)
             // Add fully qualified coordinate to ThreadLocal execution stack
             final StackEntry entry = new StackEntry(name, coordinate)
-            stackFrame.push(entry)
+            stackFrame.addFirst(entry)
             pushed = true
             T cellValue
 
@@ -931,29 +1013,22 @@ class NCube<T>
 //                LOG.info("  coord Map: " + coordinate)
 //            }
 
-            cellValue = cells.get(colIds)
+            cellValue = cells[colIds]
             if (cellValue == null && !cells.containsKey(colIds))
             {   // No cell, look for default
-                cellValue = (T) getColumnDefault(colIds)
+                cellValue = (T) getColumnDefault(colIds, columnDefaultCache)
                 if (cellValue == null)
                 {   // No Column Default, try NCube default, and finally passed in default
-                    if (defaultCellValue != null)
-                    {
-                        cellValue = defaultCellValue
-                    }
-                    else
-                    {
-                        cellValue = (T) defaultValue
-                    }
+                    cellValue = defaultCellValue == null ? (T) defaultValue : defaultCellValue
                 }
             }
 
             if (cellValue instanceof CommandCell)
             {
                 Map ctx = prepareExecutionContext(coordinate, output)
-                return (T) executeExpression(ctx, cellValue as CommandCell)
+                return (T) executeExpression(ctx, (CommandCell)cellValue)
             }
-            else
+            else if (columnDefaultCache == null)
             {
                 trackInputKeysUsed(coordinate, output)
             }
@@ -963,8 +1038,67 @@ class NCube<T>
         {	// Unwind stack: always remove if stacked pushed, even if Exception has been thrown
             if (pushed)
             {
-                stackFrame.pop()
+                stackFrame.removeFirst()
             }
+        }
+    }
+
+    /**
+     * Pre-compile command cells, meta-properties, and rule conditions that are expressions
+     */
+    CompileInfo compile()
+    {
+        CompileInfo compileInfo = new CompileInfo()
+        compileInfo.setCubeName(this.name)
+
+        cells.each { ids, cell ->
+            if(cell instanceof GroovyBase) {
+                compileCell(getCoordinateFromIds(ids), (GroovyBase)cell, compileInfo)
+            }
+        }
+
+        metaProps.each { key, value ->
+            if (value instanceof GroovyBase) {
+                compileCell([metaProp:key], (GroovyBase)value, compileInfo)
+            }
+        }
+
+        axisList.each { axisName, axis ->
+            axis.columns.each { column ->
+                if (column.value instanceof GroovyBase) {
+                    compileCell([axis:axisName,column:column.columnName], (GroovyBase)column.value, compileInfo)
+                }
+
+                if (column.metaProps) {
+                    column.metaProps.each { key, value ->
+                        if (value instanceof GroovyBase) {
+                            compileCell([axis:axisName,column:column.columnName,metaProp:key], (GroovyBase)value, compileInfo)
+                        }
+                    }
+                }
+            }
+
+            if (axis.metaProps) {
+                axis.metaProps.each { key, value ->
+                    if (value instanceof GroovyBase) {
+                        compileCell([axis:axisName,metaProp:key], (GroovyBase)value, compileInfo)
+                    }
+                }
+            }
+        }
+
+        return compileInfo
+    }
+
+    private void compileCell(Map input, GroovyBase groovyBase, CompileInfo compileInfo) {
+        try
+        {
+            groovyBase.prepare(groovyBase.cmd ?: groovyBase.url, prepareExecutionContext(input,[:]))
+        }
+        catch (Exception e)
+        {
+            compileInfo.addException(input,e)
+            LOG.warn("Failed to compile cell for cube: ${name} with coords: ${input.toString()}", e)
         }
     }
 
@@ -972,31 +1106,42 @@ class NCube<T>
      * Given the passed in column IDs, return the column level default value
      * if one exists or null otherwise.  In the case of intersection, then null
      * is returned, meaning that the n-cube level default cell value will be
-     * returned at intersections.
+     * returned at intersections. The default value cache should only be used
+     * with mapReduce because of its repeated calculation of each column on all axes.
      */
-    def getColumnDefault(Set<Long> colIds)
+    def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
     {
         def colDef = null
-
-        for (colId in colIds)
+        Iterator<Long> i = colIds.iterator()
+        while (i.hasNext())
         {
-            Axis axis = getAxisFromColumnId(colId)
-            if (axis == null)
-            {   // bad column id, continue check rest of column ids
-                continue
-            }
-            Column boundCol = axis.getColumnById(colId)
-            def metaValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-            if (metaValue != null)
+            long colId = i.next()
+            def defColValue
+            if (columnDefaultCache?.containsKey(colId))
             {
-                if (colDef != null)
-                {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
-                    if (colDef != metaValue)
-                    {
-                        return null
-                    }
+                defColValue = columnDefaultCache[colId]
+            }
+            else
+            {
+                Axis axis = getAxisFromColumnId(colId, false)
+                if (axis == null)
+                {   // bad column id, continue check rest of column ids
+                    continue
                 }
-                colDef = metaValue
+                Column boundCol = axis.getColumnById(colId)
+                if (boundCol != null)
+                {
+                    defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
+                    columnDefaultCache?.put(colId, defColValue)
+                }
+            }
+            if (defColValue != null)
+            {
+                if (colDef != null && colDef != defColValue)
+                {   // More than one specified in this set (intersection), therefore return null (use n-cube level default)
+                    return null
+                }
+                colDef = defColValue
             }
         }
 
@@ -1052,8 +1197,378 @@ class NCube<T>
 
         for (column in columns)
         {
-            coord[axisName] = column.valueThatMatches
+            coord[axisName] = wildcardAxis.getValueToLocateColumn(column)
             result[column.value] = getCell(coord, output, defaultValue)
+        }
+
+        return result
+    }
+
+    /**
+     * Filter rows of an n-cube.  Use this API to fetch a subset of an n-cube, similar to SQL SELECT.
+     * @param rowAxisName String name of axis acting as the ROW axis.
+     * @param colAxisName String name of axis acting as the COLUMN axis.
+     * @param where Closure groovy closure.  Written as condition in terms of the columns on the colAxisName.
+     * Example: { Map input -> (input.state == 'TX' || input.state == 'OH') && (input.attribute == 'fuzzy')}.
+     * This will only return rows where this condition is true ('state' and 'attribute' are two column values from
+     * the colAxisName). The values for each row in the rowAxis is bound to the where expression for each row.  If
+     * the row passes the 'where' condition, it is included in the output.
+     * @param options - options map that can include any of the following keys:
+     *    - "input" Map just like it is used for getCell() or at().  Only needed when there are three (3)
+     *      or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
+     *      bound just as they are in getCell() or at().
+     *    - "output" the output Map use to write multiple return values to, just like getCell() or at().
+     *    - "selectList" is a Collection of Column objects that indicates which will be returned (instead of *, less
+     *      columns can be return in the 'result set').
+     *    - "whereColumns" is a Collection of Column objects that will be sent to the 'where' closure.  Rather than
+     *      send all columns, fewer is better because each where column must be bound to a value for each row.
+     *    - MAP_REDUCE_COLUMNS_TO_SEARCH Set which allows reducing the number of columns bound for use in the where clause.  If not
+     *      specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
+     *      has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
+     *      values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
+     *      columns are included in the columnsToSearch.
+     *    - MAP_REDUCE_COLUMNS_TO_RETURN Set of values to indicate which columns to return.  If not specified, the entire 'row' is
+     *      returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
+     *      two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
+     *      The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
+     *      is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
+     *      can have it return less column/value pairs in the returned Map if you add only the columns you want returned here.
+     *    - MAP_REDUCE_DEFAULT_VALUE Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.  Optional.
+     * @return Map of Maps - The outer Map is keyed by the column values of all row columns.  If the row Axis is a discrete
+     * axis, then the keys of the map are all the values of the columns.  If a non-discrete axis is used, then the keys
+     * are the name meta-key for each column.  If a non-discrete axis is used and there are no name attributes on the columns,
+     * and exception will be thrown.  The 'value' associated to the key (column value or column name) is a Map record,
+     * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
+     * for each cell in the same column, for when the 'where' condition holds true (groovy true).
+     */
+    private Map internalMapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map options = [:], Map columnDefaultCache)
+    {
+        Map input =  options.containsKey('input') ? (Map) options.input : [:]
+        Map output = options.containsKey('output') ? (Map) options.output : [:]
+        Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
+        Collection<Column> selectList = (Collection) options.selectList
+        Collection<Column> whereColumns = (Collection) options.whereColumns
+        final TrackingMap commandInput = new TrackingMap<>(new LinkedHashMap(input))
+        Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
+        boolean shouldExecute = options.get(MAP_REDUCE_SHOULD_EXECUTE)
+
+        Axis rowAxis = getAxis(rowAxisName)
+        Axis colAxis = getAxis(colAxisName)
+        boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
+        boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
+
+        if (rowAxis.type!=AxisType.RULE)
+        {
+            commandInput.informAdditionalUsage([rowAxisName])
+        }
+        if (colAxis.type!=AxisType.RULE)
+        {
+            commandInput.informAdditionalUsage([colAxisName])
+        }
+        trackInputKeysUsed(commandInput,output)
+
+        final Set<Long> ids = new LinkedHashSet<>(boundColumns)
+        final Map matchingRows = new LinkedHashMap()
+        final Map whereVars = new LinkedHashMap(input)
+
+        Collection<Column> rowColumns
+        Object rowAxisValue = input[rowAxisName]
+        if (rowAxisValue)
+        {
+            rowColumns = selectColumns(rowAxis, rowAxisValue instanceof Collection ? rowAxisValue as Set : [rowAxisValue] as Set)
+            while (rowColumns.contains(null))
+            {
+                rowColumns.remove(null)
+            }
+        }
+        else
+        {
+            rowColumns = rowAxis.columns
+        }
+
+        for (Column row : rowColumns)
+        {
+            commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
+            long rowId = row.id
+            ids.add(rowId)
+
+            for (Column column : whereColumns)
+            {
+                long whereId = column.id
+                ids.add(whereId)
+                commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
+                Object colKey = isColDiscrete ? column.value : column.columnName
+                def val
+                try
+                {
+                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells[ids]
+                }
+                catch (Exception e)
+                {
+                    val = "err: ${getExceptionMessage(getDeepestException(e))}".toString()
+                }
+                whereVars.put(colKey, val)
+                ids.remove(whereId)
+            }
+
+            def whereResult = where.maximumNumberOfParameters == 1 ? where(whereVars) : where(whereVars, commandInput)
+
+            if (whereResult)
+            {
+                Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
+                Map resultRow = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache)
+                matchingRows.put(key, resultRow)
+            }
+            ids.remove(rowId)
+        }
+        return matchingRows
+    }
+
+    /**
+     * Use mapReduce() [select] on n-dimensional n-cube where n >= 2.  Axes other than the where clause can be left off, or
+     * can have a value specifically bound to them (reducing search time).
+     * @param colAxisName String name of axis acting as the COLUMN axis.
+     * @param where Closure groovy closure.  Written as condition in terms of the columns on the colAxisName.
+     * Example: { Map input -> (input.state == 'TX' || input.state == 'OH') && (input.attribute == 'fuzzy')}.
+     * This will only return rows where this condition is true ('state' and 'attribute' are two column values from
+     * the colAxisName). The values for each row in the rowAxis is bound to the where expression for each row.  If
+     * the row passes the 'where' condition, it is included in the output.
+     * @param options - options map that can include any of the following keys:
+     *    - "input" Map just like it is used for getCell() or at().  Only needed when there are three (3)
+     *      or more dimensions.  All values in the input map (excluding the axis specified by rowAxisName and colAxisName) are
+     *      bound just as they are in getCell() or at().
+     *    - "output" the output Map use to write multiple return values to, just like getCell() or at().
+     *    - MAP_REDUCE_COLUMNS_TO_SEARCH Set which allows reducing the number of columns bound for use in the where clause.  If not
+     *      specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
+     *      has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
+     *      values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
+     *      columns are included in the columnsToSearch.
+     *    - MAP_REDUCE_COLUMNS_TO_RETURN Set of values to indicate which columns to return.  If not specified, the entire 'row' is
+     *      returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
+     *      two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
+     *      The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
+     *      is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
+     *      can have it return less column/value pairs in the returned Map if you add only the columns you want returned here.
+     *    - MAP_REDUCE_DEFAULT_VALUE Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.  Optional.
+     * @return Map of Maps - The outer Map is keyed by the column values of all row columns.  If the row Axis is a discrete
+     * axis, then the keys of the map are all the values of the columns.  If a non-discrete axis is used, then the keys
+     * are the name meta-key for each column.  If a non-discrete axis is used and there are no name attributes on the columns,
+     * and exception will be thrown.  The 'value' associated to the key (column value or column name) is a Map record,
+     * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
+     * for each cell in the same column, for when the 'where' condition holds true (groovy true).
+     */
+    Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:])
+    {
+        throwIf(!colAxisName, 'The column axis name cannot be null')
+        throwIf(!where, 'The where clause cannot be null')
+
+        Axis colAxis = axisList[colAxisName]
+        Map input = options.containsKey('input') ? (Map)options.input : [:]
+        Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
+        Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
+        final Map columnDefaultCache = new CaseInsensitiveMap()
+
+        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
+        Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
+        commandOpts.input = commandInput
+        commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
+        commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
+        commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options.get(MAP_REDUCE_SHOULD_EXECUTE) == null ? true : options.get(MAP_REDUCE_SHOULD_EXECUTE))
+
+        String rowAxisName
+        Set<String> searchAxes = axisNames - colAxisName - input.keySet()
+        if (searchAxes.empty)
+        {
+            searchAxes = axisNames - colAxisName
+            rowAxisName = searchAxes.first()
+        }
+        else
+        {
+            searchAxes.sort { getAxis(it).columns.size() }
+            rowAxisName = searchAxes.last() // take axis with most columns first
+        }
+        Set<String> otherAxes = searchAxes - rowAxisName
+        Map result
+        if (otherAxes.empty)
+        {
+            result = internalMapReduce(rowAxisName, colAxisName, where, commandOpts, columnDefaultCache)
+        }
+        else
+        {
+            result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, commandOpts, columnDefaultCache)
+        }
+        return result
+    }
+
+    private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map options, Map columnDefaultCache)
+    {
+        Map result
+        Map ret = new LinkedHashMap()
+        String axisName = axes.last() // take axis with most columns first
+        List<Column> columns = getAxis(axisName).columns
+        Set<String> otherAxes = axes - axisName
+        boolean noMoreAxes = otherAxes.empty
+        Map input = (Map) options.input
+
+        for (Column column : columns)
+        {
+            input.put(axisName, column.value)
+            if (noMoreAxes)
+            {
+                result = internalMapReduce(rowAxisName, colAxisName, where, options, columnDefaultCache)
+                for (Map.Entry resultEntry : result)
+                {
+                    Map inputVal = new LinkedHashMap(input)
+                    inputVal.put(rowAxisName, resultEntry.key)
+                    ret.put(inputVal, resultEntry.value)
+                }
+            }
+            else
+            {
+                result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, options, columnDefaultCache)
+                ret.putAll(result)
+            }
+        }
+        return ret
+    }
+
+    private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
+    {
+        Comparable key
+        if (isRowDiscrete)
+        {
+            key = row.value
+        }
+        else
+        {
+            if (StringUtilities.isEmpty(row.columnName))
+            {
+                throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
+            }
+            key = row.columnName
+        }
+        return key
+    }
+
+    private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
+    {
+        Collection<Column> columns = []
+        boolean isDiscrete = axis.type == AxisType.DISCRETE
+
+        if (valuesMatchingColumns == null || valuesMatchingColumns.empty)
+        {   // If empty or null, then treat as '*' (all columns)
+            if (isDiscrete)
+            {
+                for (Column column : axis.columns)
+                {
+                    columns.add(axis.findColumn(column.value))
+                }
+            }
+            else
+            {
+                for (Column column : axis.columns)
+                {
+                    if (StringUtilities.isEmpty(column.columnName))
+                    {
+                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
+                    }
+                    columns.add(axis.findColumnByName(column.columnName))
+                }
+            }
+            return columns
+        }
+        
+        if (isDiscrete)
+        {
+            for (Object value : valuesMatchingColumns)
+            {
+                columns.add(axis.findColumn((Comparable)value))
+            }
+        }
+        else
+        {
+            for (Object value : valuesMatchingColumns)
+            {
+                if (StringUtilities.isEmpty((String)value))
+                {
+                    throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
+                }
+                columns.add(axis.findColumnByName((String)value))
+            }
+        }
+        return columns
+    }
+
+    private static void throwIf(boolean throwCondition, String msg)
+    {
+        if (throwCondition)
+        {
+            throw new IllegalArgumentException(msg)
+        }
+    }
+
+    private Set<Long> bindAdditionalColumns(String rowAxisName, String colAxisName, Map input)
+    {
+        if (axisList.size() <= 2)
+        {
+            return [] as Set
+        }
+        Set<String> axisNames = axisList.keySet()
+        Set<String> otherAxisNames = axisNames - [rowAxisName, colAxisName]
+        Set<String> inputAxisNames = input.keySet()
+        if (!inputAxisNames.containsAll(otherAxisNames))
+        {
+            Set<String> otherAxes = axisNames - [rowAxisName, colAxisName]
+            Set<String> otherAxesWithDefaults = otherAxes.findAll { String axisName ->
+                getAxis(axisName).hasDefaultColumn()
+            }
+
+            if (!input.keySet().containsAll(otherAxes - otherAxesWithDefaults))
+            {
+                throw new IllegalArgumentException("Using row axis: ${rowAxisName} and query axis: ${colAxisName} for cube: ${this.name} - bindings for axes: ${otherAxisNames} must be supplied.")
+            }
+        }
+
+        Set<Long> boundColumns = [] as Set
+        for (String axisName : otherAxisNames)
+        {
+            Axis otherAxis = getAxis(axisName)
+            def value = input.get(axisName)
+            Column column = otherAxis.findColumn((Comparable)value)
+            if (!column)
+            {
+                throw new CoordinateNotFoundException("Column: ${value} not found on axis: ${axisName} on cube: ${name}", name, null, axisName, value)
+            }
+            boundColumns.add(column.id)
+        }
+        return boundColumns
+    }
+
+    private Map buildMapReduceResultRow(Axis searchAxis, Collection<Column> selectList, Map whereVars, Set<Long> ids, Map commandInput, Map output, Object defaultValue = null, Map columnDefaultCache)
+    {
+        String axisName = searchAxis.name
+        boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
+        Map result = new LinkedHashMap()
+
+        for (Column column : selectList)
+        {
+            def colValue = isDiscrete ? column.value : column.columnName
+            if (whereVars.containsKey(colValue))
+            {
+                result[colValue] = whereVars[colValue]
+                continue
+            }
+            commandInput[axisName] = column.valueThatMatches
+            long colId = column.id
+            ids.add(colId)
+            result[colValue] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
+            ids.remove(colId)
         }
 
         return result
@@ -1087,15 +1602,15 @@ class NCube<T>
 
         if (ruleValue instanceof Boolean)
         {
-            return ruleValue == true
+            return ruleValue
         }
 
         if (ruleValue instanceof Number)
         {
             boolean isZero = ((byte) 0) == ruleValue ||
                     ((short) 0) == ruleValue ||
-                    0 == ruleValue ||
-                    ((long) 0) == ruleValue ||
+                    0i == ruleValue ||
+                    0L == ruleValue ||
                     0.0d == ruleValue ||
                     0.0f == ruleValue ||
                     BigInteger.ZERO == ruleValue ||
@@ -1110,22 +1625,22 @@ class NCube<T>
 
         if (ruleValue instanceof Map)
         {
-            return (ruleValue as Map).size() > 0
+            return ((Map)ruleValue).size() > 0
         }
 
         if (ruleValue instanceof Collection)
         {
-            return (ruleValue as Collection).size() > 0
+            return ((Collection)ruleValue).size() > 0
         }
 
         if (ruleValue instanceof Enumeration)
         {
-            return (ruleValue as Enumeration).hasMoreElements()
+            return ((Enumeration)ruleValue).hasMoreElements()
         }
 
         if (ruleValue instanceof Iterator)
         {
-            return (ruleValue as Iterator).hasNext()
+            return ((Iterator)ruleValue).hasNext()
         }
 
         return true
@@ -1160,19 +1675,19 @@ class NCube<T>
                 }
                 else if (value instanceof Collection)
                 {   // Collection of rule names to select (orchestration)
-                    Collection<String> orchestration = value as Collection
+                    Collection<String> orchestration = (Collection)value
                     bindings[axisName] = axis.findColumns(orchestration)
                     assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, rule names ${orchestration}, cube: ${name}")
                 }
                 else if (value instanceof Map)
                 {   // key-value pairs that meta-properties of rule columns must match to select rules.
-                    Map<String, Object> required = value as Map
+                    Map<String, Object> required = (Map)value
                     bindings[axisName] = axis.findColumns(required)
                     assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, meta-properties must match ${required}, cube: ${name}")
                 }
                 else if (value instanceof Closure)
                 {
-                    bindings[axisName] = axis.findColumns(value as Closure)
+                    bindings[axisName] = axis.findColumns((Closure)value)
                     assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, meta-properties must match closure, cube: ${name}")
                 }
                 else
@@ -1182,15 +1697,15 @@ class NCube<T>
             }
             else
             {   // Find the single column that binds to the input coordinate on a regular axis.
-                final Column column = axis.findColumn(value as Comparable)
+                final Column column = axis.findColumn((Comparable)value)
                 if (column == null || column.default)
                 {
                     trackUnboundAxis(output, name, axisName, value)
                 }
                 if (column == null)
                 {
-                   throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}",
-                           name, input, axisName, value)
+                    throw new CoordinateNotFoundException("Value '${value}' not found on axis: ${axisName}, cube: ${name}",
+                            name, input, axisName, value)
                 }
                 bindings[axisName] = [column]    // Binding is a List of one column on non-rule axis
             }
@@ -1231,36 +1746,149 @@ class NCube<T>
      * be added to the returned Set).
      * @return Set<Long> that contains only the necessary coordinates from the passed in Collection.  If it cannot
      * bind, null is returned.
+     * Example of what this method does:
+     * axis 1 (has columns with IDs 10, 11, ...)
+     * axis 2 (20, 21, ...)
+     * axis 3 (30, 31, ...)
+     * axis 4 (40, 41, ...)
+     * passed in [16, 35]
+     * returned [16, 35, 2.def, 4.def]  // 2.def = ID of default column on axis 2, 4.def (ditto)
      */
-    protected LongHashSet ensureFullCoordinate(Collection<Long> coordinate)
+    protected Set<Long> ensureFullCoordinate(Collection<Long> coordinate)
     {
         if (coordinate == null)
         {
-            coordinate = new HashSet<>()
+            coordinate = new LinkedHashSet<>()
         }
-        Set<Long> ids = new TreeSet<>()
+        Set<Long> ids = new LinkedHashSet<>()
+        Iterator<Long> i = coordinate.iterator()
+        Map<Long, Long> axisToCoord = [:]
+
+        while (i.hasNext())
+        {
+            Long id = i.next()
+            axisToCoord[id.intdiv(Axis.BASE_AXIS_ID).longValue()] = id
+        }
+
         for (axis in axisList.values())
         {
-            Column bindColumn = null
-            for (id in coordinate)
+            Long coordId = axisToCoord[axis.id]
+            if (coordId)
             {
-                bindColumn = axis.getColumnById(id)
-                if (bindColumn != null)
-                {
-                    break
-                }
+                ids.add(coordId)
             }
-            if (bindColumn == null)
-            {
-                bindColumn = axis.defaultColumn
-                if (bindColumn == null)
-                {
-                    return null
-                }
+            else if (coordId == null && axis.hasDefaultColumn())
+            {   // If inbound coordinate does not have an ID for an axis, snag the default column ID for that axis (if the axis has a default)
+                ids.add(axis.defaultColId)
             }
-            ids.add(bindColumn.id)
         }
-        return new LongHashSet(ids)
+        if (ids.size() != numDimensions)
+        {
+            return null
+        }
+        return ids
+    }
+
+    /**
+     * This API will fetch particular cell values (identified by the idArrays) for the passed
+     * in appId and named cube.  The idArrays is an Object[] of Object[]'s:<pre>
+     * [
+     *  [1, 2, 3],
+     *  [4, 5, 6],
+     *  [7, 8, 9],
+     *   ...
+     *]
+     * In the example above, the 1st entry [1, 2, 3] identifies the 1st cell to fetch.  The 2nd entry [4, 5, 6]
+     * identifies the 2nd cell to fetch, and so on.
+     * </pre>
+     * @return Object[] The return value is an Object[] containing Object[]'s with the original coordinate
+     *  as the first entry and the cell value as the 2nd entry:<pre>
+     * [
+     *  [[1, 2, 3], {"type":"int", "value":75}],
+     *  [[4, 5, 6], {"type":"exp", "cache":false, "value":"return 25"}],
+     *  [[7, 8, 9], {"type":"string", "value":"hello"}],
+     *   ...
+     * ]
+     * </pre>
+     */
+    Object[] getCells(Object[] idArrays, Map input, Map output = [:], Object defaultValue = null)
+    {
+        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
+
+        Object[] ret = new Object[idArrays.length]
+        int idx = 0
+
+        for (coord in idArrays)
+        {
+            Set<Long> key = new HashSet<>()
+            for (item in coord)
+            {
+                key.add(Converter.convertToLong(item))
+            }
+            key = ensureFullCoordinate(key)
+            ensureInputBindings(commandInput, key)
+            CellInfo cellInfo
+            try
+            {
+                def value = getCellById(key, commandInput, output, defaultValue)
+                try
+                {
+                    cellInfo = new CellInfo(value)
+                    ret[idx++] = [coord, cellInfo as Map]
+                }
+                catch (Exception ignored)
+                {
+                    cellInfo = new CellInfo(value.toString())    // Convert non-logical primitive to String
+                    ret[idx++] = [coord, cellInfo as Map]
+                }
+            }
+            catch (Exception e)
+            {
+                cellInfo = new CellInfo("err: ${getExceptionMessage(getDeepestException(e))}".toString())
+                ret[idx++] = [coord, cellInfo as Map]
+            }
+        }
+
+        return ret
+    }
+
+    private static String getExceptionMessage(Throwable t)
+    {
+        return t.message ?: t.class.name
+    }
+
+    private static Throwable getDeepestException(Throwable e)
+    {
+        while (e.cause != null)
+        {
+            e = e.cause
+        }
+
+        return e
+    }
+
+    /**
+     * This API ensures that the passed in inputMap has bindings for all axes specified by ids.
+     */
+    protected void ensureInputBindings(Map input, Set<Long> ids)
+    {
+        Iterator i = ids.iterator()
+        while (i.hasNext())
+        {
+            Long id = i.next()
+            Axis axis = getAxisFromColumnId(id, false)
+            if (axis != null)
+            {
+                if (!input.containsKey(axis.name))
+                {
+                    Column column = axis.getColumnById(id)
+                    if (column)
+                    {
+                        input[axis.name] = axis.getValueToLocateColumn(column)
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1315,8 +1943,7 @@ class NCube<T>
         while (i.hasNext())
         {
             final StackEntry key = i.next()
-            s.append('-> cell:')
-            s.append(key.toString())
+            s.append("-> cell:${key.toString()}")
             if (i.hasNext())
             {
                 s.append('\n')
@@ -1405,13 +2032,13 @@ class NCube<T>
      * stored within in NCube.  The returned Set is the 'key' of NCube's cells Map, which
      * maps a coordinate (Set of column IDs) to the cell value.
      */
-    LongHashSet getCoordinateKey(final Map coordinate, Map output = new CaseInsensitiveMap())
+    Set<Long> getCoordinateKey(final Map coordinate, Map output = new CaseInsensitiveMap())
     {
         Map safeCoord
 
         if (coordinate instanceof TrackingMap)
         {
-            TrackingMap trackMap = coordinate as TrackingMap
+            TrackingMap trackMap = (TrackingMap)coordinate
             if (trackMap.getWrappedMap() instanceof CaseInsensitiveMap)
             {
                 safeCoord = coordinate
@@ -1430,23 +2057,24 @@ class NCube<T>
             safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate)
         }
 
-        LongHashSet ids = new LongHashSet()
+        Set<Long> ids = new LinkedHashSet<>()
         Iterator<Axis> i = axisList.values().iterator()
 
         while (i.hasNext())
         {
             Axis axis = (Axis) i.next()
             String axisName = axis.name
-            final Comparable value = (Comparable) safeCoord[axisName]
-            final Column column = (Column) axis.findColumn(value)
+            Comparable value = (Comparable) safeCoord[axisName]
+            Column column = (Column) axis.findColumn(value)
+
             if (column == null || column.default)
             {
                 trackUnboundAxis(output, name, axisName, value)
-            }
-            if (column == null)
-            {
-                throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
-                        name, coordinate, axisName, value)
+                if (column == null)
+                {
+                    throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
+                            name, coordinate, axisName, value)
+                }
             }
             ids.add(column.id)
         }
@@ -1467,8 +2095,16 @@ class NCube<T>
         }
 
         // Duplicate input coordinate
-        final Map copy = new CaseInsensitiveMap<>()
-        copy.putAll(coordinate)
+        Map copy
+
+        if (coordinate instanceof CaseInsensitiveMap)
+        {
+            copy = coordinate
+        }
+        else
+        {
+            copy = new CaseInsensitiveMap<>(coordinate)
+        }
 
         // Ensure required scope is supplied within the input coordinate
         Set<String> requiredScope = getRequiredScope(coordinate, output)
@@ -1478,7 +2114,7 @@ class NCube<T>
             if (!copy.containsKey(scopeKey))
             {
                 Set coordinateKeys = coordinate.keySet()
-                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}",
+                throw new InvalidCoordinateException("Input coordinate: ${coordinateKeys}, does not contain all of the required scope keys: ${requiredScope}, cube: ${name}, appId: ${appId}",
                         name, coordinateKeys, requiredScope)
             }
         }
@@ -1601,11 +2237,11 @@ class NCube<T>
         {   // Rule axes are deleted by ID, name, or null (default - can be deleted with null or ID).
             if (value instanceof Long)
             {
-                column = axis.deleteColumnById(value as Long)
+                column = axis.deleteColumnById((Long)value)
             }
             else if (value instanceof String)
             {
-                column = axis.findColumnByName(value as String)
+                column = axis.findColumnByName((String)value)
                 if (column != null)
                 {
                     axis.deleteColumnById(column.id)
@@ -1633,11 +2269,11 @@ class NCube<T>
         long colId = column.id
 
         // Remove all cells that reference the deleted column
-        final Iterator<LongHashSet> i = cells.keySet().iterator()
+        final Iterator<Set<Long>> i = cells.keySet().iterator()
 
         while (i.hasNext())
         {
-            final LongHashSet key = i.next()
+            final Set<Long> key = i.next()
             // Locate the uniquely identified column, regardless of axis order
             if (key.contains(colId))
             {
@@ -1707,10 +2343,10 @@ class NCube<T>
 
         if (!colsToDel.empty)
         {   // If there are columns to delete, then delete any cells referencing those columns
-            Iterator<LongHashSet> i = cells.keySet().iterator()
+            Iterator<Set<Long>> i = cells.keySet().iterator()
             while (i.hasNext())
             {
-                LongHashSet cols = i.next()
+                Set<Long> cols = i.next()
 
                 for (id in cols)
                 {
@@ -1741,7 +2377,7 @@ class NCube<T>
      */
     Axis getAxisFromColumnId(long id, boolean columnMustExist = true)
     {
-        Axis axis = idToAxis.get(id.intdiv(Axis.BASE_AXIS_ID).longValue())
+        Axis axis = idToAxis[id.intdiv(Axis.BASE_AXIS_ID).longValue()]
         if (axis == null)
         {
             return null
@@ -1782,7 +2418,7 @@ class NCube<T>
     /**
      * @return read-only copy of the n-cube cells.
      */
-    Map<LongHashSet, T> getCellMap()
+    Map<Set<Long>, T> getCellMap()
     {
         return Collections.unmodifiableMap(cells)
     }
@@ -1834,11 +2470,11 @@ class NCube<T>
         if (axis.hasDefaultColumn())
         {   // Add default column ID of the new axis to all populated cells, effectively shifting them to the
             // default column on the new axis.
-            Collection<Map.Entry<LongHashSet, T>> newCells = new ArrayDeque<>()
+            Collection<Map.Entry<Set<Long>, T>> newCells = new ArrayDeque<>()
             long defaultColumnId = axis.defaultColId
             for (cell in cells)
             {
-                LongHashSet cellKey = cell.key
+                Set<Long> cellKey = cell.key
                 cellKey.add(defaultColumnId)
                 newCells.add(cell)
             }
@@ -1846,7 +2482,7 @@ class NCube<T>
             cells.clear()
             for (cell in newCells)
             {
-                cells[cell.key] = cell.value
+                cells[cell.key] = (T)internValue(cell.value)
             }
         }
         else
@@ -1894,6 +2530,99 @@ class NCube<T>
         Axis axis = getAxis(axisName)
         axis.breakReference()
         clearSha1()
+    }
+
+    protected void convertAxisToRefAxis(final String axisName, final ApplicationID refAppId, final String refCubeName, final String refAxisName)
+    {
+        Axis axis = getAxis(axisName)
+        if (axis.reference)
+        {
+            return
+        }
+        axis.makeReference(refAppId, refCubeName, refAxisName)
+        clearSha1()
+    }
+
+    protected void convertExistingAxisToRefAxis(final String axisName, final ApplicationID refAppId, final String refCubeName, final String refAxisName)
+    {
+        if (name == refCubeName && appId == refAppId)
+        {
+            throw new IllegalArgumentException("Axis cube and reference axis cube must be different, app: ${appId}, cube: ${name}, axis: ${axisName}")
+        }
+        // copy list of columns before axis changes
+        Axis axis = getAxis(axisName)
+        if (axis.reference)
+        {
+            return
+        }
+        List<Column> oldColumns = axis.columns
+
+        // make copy of the cell map to reference after the axis changes
+        Map<Set<Long>, T> cellMapCopy = new CellMap(cellMap)
+
+        Map args = [:]
+        args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
+        args[ReferenceAxisLoader.REF_APP] = refAppId.app
+        args[ReferenceAxisLoader.REF_VERSION] = refAppId.version
+        args[ReferenceAxisLoader.REF_STATUS] = refAppId.status
+        args[ReferenceAxisLoader.REF_BRANCH] = refAppId.branch
+        args[ReferenceAxisLoader.REF_CUBE_NAME] = refCubeName  // cube name of the holder of the referring (pointing) axis
+        args[ReferenceAxisLoader.REF_AXIS_NAME] = refAxisName    // axis name of the referring axis (the variable that you had missing earlier)
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(name, axisName, args)
+        Axis newAxis = new Axis(axisName, axis.id, axis.hasDefaultColumn(), refAxisLoader)
+
+        Map<Long, Long> oldToNewId = [:]
+        for (Column oldCol : oldColumns)
+        {   // Locate columns in O(1) to O(log n)
+            // Use value that exists on OLD column to locate NEW column
+            Column column = newAxis.findColumn(axis.getValueToLocateColumn(oldCol))
+            if (column != null)
+            {
+                oldToNewId[oldCol.id] = column.id
+            }
+        }
+
+        deleteAxis(axisName)
+        addAxis(newAxis)
+
+        cells.clear()
+        // change cell ids and put back into cube
+        for (Map.Entry<Set<Long>, T> entry : cellMapCopy)
+        {
+            Set<Long> coord = entry.key
+            // change coord to have existing ref ax value
+            for (long oldCoordPart : coord)
+            {
+                Long newCoordPart = oldToNewId[oldCoordPart]
+                if (newCoordPart)
+                {
+                    coord.remove(oldCoordPart)
+                    coord.add(newCoordPart)
+                }
+            }
+            
+            cells[coord] = (T) internValue(entry.value)
+        }
+
+        // Eliminate orphans, where source axis (A, B, C, D, E) pointed to existing ref axis (A, C, E).
+        // Cells in columns B & D must be dropped!
+        Iterator<Set<Long>> i = cells.keySet().iterator()
+        while (i.hasNext())
+        {
+            Set<Long> ids = i.next()
+            Iterator<Long> j = ids.iterator()
+
+            while (j.hasNext())
+            {
+                long id = j.next()
+                if (getAxisFromColumnId(id) == null)
+                {
+                    i.remove()
+                }
+            }
+        }
+
+        // clearSha1() // called by other APIs [deleteAxis(), addAxis()]
     }
 
     /**
@@ -1972,7 +2701,7 @@ class NCube<T>
             }
         }
 
-        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty('optionalScopeKeys'), input, output)
+        Collection<String> declaredOptionalScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty(NCubeConstants.OPTIONAL_SCOPE), input, output)
         optionalScope.addAll(declaredOptionalScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredOptionalScope))
         return optionalScope
     }
@@ -2025,7 +2754,12 @@ class NCube<T>
      */
     protected Set<String> getDeclaredScope(Map input, Map output)
     {
-        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(getMetaProperty("requiredScopeKeys"), input, output)
+        if (!metaProps.containsKey(NCubeConstants.REQUIRED_SCOPE))
+        {
+            return new CaseInsensitiveSet<>()
+        }
+        Object value = metaProps[NCubeConstants.REQUIRED_SCOPE]
+        Collection<String> declaredRequiredScope = (Collection<String>) extractMetaPropertyValue(value, input, output)
         return declaredRequiredScope == null ? new CaseInsensitiveSet<String>() : new CaseInsensitiveSet<>(declaredRequiredScope)
     }
 
@@ -2038,11 +2772,11 @@ class NCube<T>
     {
         Map<Map, Set<String>> refs = new LinkedHashMap<>()
 
-        cells.each { LongHashSet ids, T cell ->
+        cells.each { Set<Long> ids, T cell ->
             if (cell instanceof CommandCell)
             {
                 Map<String, Object> coord = getDisplayCoordinateFromIds(ids)
-                getReferences(refs, coord, cell as CommandCell)
+                getReferences(refs, coord, (CommandCell)cell)
             }
         }
 
@@ -2052,7 +2786,7 @@ class NCube<T>
             {
                 for (column in axis.columnsWithoutDefault)
                 {
-                    Map<String, Object> coord = getDisplayCoordinateFromIds([column.id] as LongHashSet)
+                    Map<String, Object> coord = getDisplayCoordinateFromIds([column.id] as Set<Long>)
                     getReferences(refs, coord, column.value as CommandCell)
                 }
             }
@@ -2062,7 +2796,7 @@ class NCube<T>
                 Object defaultValue = column.metaProperties[Column.DEFAULT_VALUE]
                 if (defaultValue instanceof CommandCell)
                 {
-                    Map<String, Object> coord = getDisplayCoordinateFromIds([column.id] as LongHashSet)
+                    Map<String, Object> coord = getDisplayCoordinateFromIds([column.id] as Set<Long>)
                     getReferences(refs, coord, defaultValue as CommandCell)
                 }
             }
@@ -2071,7 +2805,7 @@ class NCube<T>
         // If the DefaultCellValue references another n-cube, add it into the dependency list.
         if (defaultCellValue instanceof CommandCell)
         {
-            getReferences(refs, [:], defaultCellValue as CommandCell)
+            getReferences(refs, [:], (CommandCell)defaultCellValue)
         }
         return refs
     }
@@ -2119,6 +2853,64 @@ class NCube<T>
     // ----------------------------
 
     /**
+     * @param ncube NCube to be formatted
+     * @param options Map containing various formatting options.  Valid options, listed in
+     * (String key : String value) format, mode: html, mode: index, mode: pretty, mode: nocells.
+     * 'html' mode is a visual, nice excel-like view.  'index' mode is a different format where
+     * the columns are indexed by name below the axis, as opposed to axis having an array of
+     * columns. 'pretty' mode is the original json format but formatted nicely for viewing.
+     * 'json' mode is the default, but can be explicitly specified.  'nocells' mode is the original
+     * json format but the cells array is empty. The 'pretty' mode can be added to 'index', 'nocells',
+     * or 'json' like this 'index-pretty', 'nocells-pretty', or 'json-index'.
+     * @return String format, generated from the passed in n-cube, based upon passed in options.
+     */
+    static String formatCube(NCube ncube, Map options)
+    {
+        String mode = options.mode
+        if ('html' == mode)
+        {
+            return ncube.toHtml()
+        }
+
+        Map formatOptions = [:]
+        if (mode.contains('index'))
+        {
+            formatOptions.indexFormat = true
+        }
+        if (mode.contains('nocells'))
+        {
+            formatOptions.nocells = true
+        }
+
+        String json = ncube.toFormattedJson(formatOptions)
+        if (mode.contains('pretty'))
+        {
+            return JsonWriter.formatJson(json)
+        }
+        return json
+    }
+
+    /**
+     * Create an NCube from the given the passed in Map representing an NCube record.
+     * @param record NCubeInfoDto
+     * @return NCube created from the passed in Map (record) format of an NCube.
+     */
+    static NCube createCubeFromRecord(NCubeInfoDto record)
+    {
+        if (record == null || !record.hasCubeData())
+        {
+            return null
+        }
+        NCube ncube = createCubeFromBytes(record.bytes)
+        ncube.applicationID = record.applicationID
+        if (record.hasTestData())
+        {
+            ncube.testData = NCubeTestReader.convert(record.testData).toArray()
+        }
+        return ncube
+    }
+
+    /**
      * Use this API to create NCubes from a simple JSON format.
      *
      * @param json Simple JSON format
@@ -2128,11 +2920,29 @@ class NCube<T>
      */
     static <T> NCube<T> fromSimpleJson(final String json)
     {
+        if (StringUtilities.isEmpty(json))
+        {
+            throw new IllegalArgumentException("JSON String cannot be null or empty.")
+        }
+        InputStream stream = new ByteArrayInputStream(json.getBytes('UTF-8'))
+        return fromSimpleJson(stream)
+    }
+
+    /**
+     * Use this API to create NCubes from a simple JSON format.
+     *
+     * @param stream Simple JSON format
+     * @return NCube instance created from the passed in JSON.  It is
+     * not added to the static list of NCubes.  If you want that, call
+     * addCube() after creating the NCube with this API.
+     */
+    static <T> NCube<T> fromSimpleJsonOld(final InputStream stream)
+    {
         try
         {
             Map options = [:]
             options[JsonReader.USE_MAPS] = true
-            Map jsonNCube = (Map) JsonReader.jsonToJava(json, options)
+            Map jsonNCube = (Map) JsonReader.jsonToJava(new BufferedInputStream(stream), options)
             return hydrateCube(jsonNCube)
         }
         catch (RuntimeException | ThreadDeath e)
@@ -2144,23 +2954,17 @@ class NCube<T>
             throw new IllegalStateException("Error reading cube from passed in JSON", e)
         }
     }
-
-    /**
-     * Use this API to create NCubes from a simple JSON format.
-     *
-     * @param stream Simple JSON format
-     * @return NCube instance created from the passed in JSON.  It is
-     * not added to the static list of NCubes.  If you want that, call
-     * addCube() after creating the NCube with this API.
-     */
     static <T> NCube<T> fromSimpleJson(final InputStream stream)
     {
+        if (stream == null)
+        {
+            throw new IllegalArgumentException("InputStream cannot be null.")
+        }
         try
         {
-            Map options = [:]
-            options[JsonReader.USE_MAPS] = true
-            Map jsonNCube = (Map) JsonReader.jsonToJava(stream, options)
-            return hydrateCube(jsonNCube)
+            JsonParser jsonParser = new JsonFactory().enable(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS).createParser(stream)
+            NCube<T> ncube = parseJson(jsonParser)
+            return ncube
         }
         catch (RuntimeException | ThreadDeath e)
         {
@@ -2170,6 +2974,633 @@ class NCube<T>
         {
             throw new IllegalStateException("Error reading cube from passed in JSON", e)
         }
+    }
+
+    private static final Map<JsonToken, Closure> ncubeToken = [:]
+    private static final Map<JsonToken, Closure> axisToken = [:]
+    private static final Map<JsonToken, Closure> columnToken = [:]
+    private static final Map<Object, Closure> parserValue = [:]
+    private static final Map<Object, Closure> ncubeField = [:]
+    private static final Map<Object, Closure> axisField = [:]
+    private static final Map<Object, Closure> columnField = [:]
+
+    private static final int PARSE_USERID_TO_UNIQUE = 1
+    private static final int PARSE_META_PROPERTY = 2
+    private static final int PARSE_BASE_AXIS_ID = 3
+    private static final int PARSE_NCUBE_PROPS = 4
+    private static final int PARSE_AXIS_OBJ = 5
+    private static final int PARSE_AXIS_PROPS = 6
+    private static final int PARSE_COL_OBJ = 8
+    private static final int PARSE_COL_PROPS = 9
+    private static final int PARSE_CELL_PROPS = 11
+    private static final int PARSE_TEMP_COLS = 12
+
+    static
+    {
+        Closure fieldClosure = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, Map fieldMap, String fieldName ->
+            Closure method = fieldMap[fieldName]
+            if (method == null)
+            {
+                method = fieldMap[(PARSE_META_PROPERTY)]
+                state = (Map)method(ncube, state, parser, token, input, fieldName)
+            }
+            else
+            {
+                state = (Map)method(ncube, state, parser, token, input)
+            }
+            return state
+        }
+        Closure getParserValue = { JsonParser parser, Object token ->
+            Closure method = parserValue[token]
+            if (method == null)
+            {
+                throw new IllegalStateException("Unexpected parser state, no method for token: ${token}")
+            }
+            return method(parser)
+        }
+        parserValue[JsonToken.VALUE_STRING] = { JsonParser parser -> return parser.text }
+        parserValue[JsonToken.VALUE_TRUE] = { JsonParser parser -> return true }
+        parserValue[JsonToken.VALUE_FALSE] = { JsonParser parser -> return false }
+        parserValue[JsonToken.VALUE_NUMBER_FLOAT] = { JsonParser parser -> return parser.valueAsDouble }
+        parserValue[JsonToken.VALUE_NUMBER_INT] = { JsonParser parser -> return parser.valueAsLong }
+        parserValue[JsonToken.VALUE_NULL] = { JsonParser parser -> return null }
+        parserValue[JsonToken.START_ARRAY] = { JsonParser parser ->
+            JsonToken token = parser.nextToken()
+            Comparable low = (Comparable)getParserValue(parser, token)
+            token = parser.nextToken()
+            Comparable high = (Comparable)getParserValue(parser, token)
+            parser.nextToken()
+            return new Range(low, high)
+        }
+        parserValue['SET_START_ARRAY'] = { JsonParser parser ->
+            RangeSet rangeSet = new RangeSet()
+            while (true)
+            {
+                JsonToken token = parser.nextToken()
+                if (token == JsonToken.END_ARRAY)
+                {
+                    break
+                }
+                rangeSet.add((Comparable)getParserValue(parser, token))
+            }
+            return rangeSet
+        }
+        parserValue[JsonToken.START_OBJECT] = { JsonParser parser ->
+            JsonObject jsonObject = new JsonObject()
+            while (true)
+            {
+                JsonToken token = parser.nextToken()
+                if (token == JsonToken.END_OBJECT)
+                {
+                    break
+                }
+                String fieldName = parser.text
+                token = parser.nextToken()
+                jsonObject[fieldName] = getParserValue(parser, token)
+            }
+            return jsonObject
+        }
+
+        ncubeToken[JsonToken.START_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            return state
+        }
+        ncubeToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            String fieldName = parser.text
+            token = parser.nextToken()
+            return fieldClosure(ncube, state, parser, token, input, ncubeField, fieldName)
+        }
+        ncubeToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            if (input.containsKey(DEFAULT_CELL_VALUE) || input.containsKey(DEFAULT_CELL_VALUE_URL))
+            {
+                Object value = input[DEFAULT_CELL_VALUE]
+                String defUrl = (String)input[DEFAULT_CELL_VALUE_URL]
+                String defType = (String)input[DEFAULT_CELL_VALUE_TYPE]
+                boolean defCache = getBoolean(input, DEFAULT_CELL_VALUE_CACHE)
+                ncube.setDefaultCellValue(CellInfo.parseJsonValue(value, defUrl, defType, defCache))
+            }
+            transformMetaProperties((Map)input[(PARSE_NCUBE_PROPS)])
+            ncube.addMetaProperties((Map)input[(PARSE_NCUBE_PROPS)])
+            ncube.removeMetaProperty('ruleMode')
+            ncube.removeMetaProperty('sha1')
+            return state
+        }
+
+        ncubeField['ncube'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ncube.name = parser.text
+            return state
+        }
+        ncubeField['axes'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            if (JsonToken.START_ARRAY != token)
+            {
+                throw new IllegalStateException("Expecting start array '[' for axes but instead found: ${token}")
+            }
+            return axisToken
+        }
+        ncubeField['cells'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            if (JsonToken.START_ARRAY != token)
+            {
+                throw new IllegalStateException("Expecting start array '[' for cells but instead found: ${token}")
+            }
+            Map userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
+            while (!parser.closed)
+            {
+                token = parser.nextToken()
+                if (token == JsonToken.START_OBJECT)
+                {
+                    Set<Long> colIds = null
+                    Map keyMapId = null
+                    Object value = null
+                    String type = null
+                    String url = null
+                    boolean cache = false
+
+                    token = parser.nextToken()
+                    if (JsonToken.FIELD_NAME != token)
+                    {
+                        throw new IllegalStateException("Expecting field but found: ${token}")
+                    }
+                    while (!parser.closed)
+                    {
+                        String fieldName = parser.text
+                        if ('id' == fieldName)
+                        {
+                            token = parser.nextToken()
+                            if (JsonToken.START_ARRAY != token)
+                            {
+                                throw new IllegalStateException("Expecting start array '[' for cell id but instead found: ${token}")
+                            }
+
+                            colIds = new LinkedHashSet<>()
+                            Object id
+
+                            while (!parser.closed)
+                            {
+                                token = parser.nextToken()
+                                if (JsonToken.VALUE_NUMBER_INT == token)
+                                {
+                                    id = parser.valueAsLong
+                                }
+                                else if (JsonToken.END_ARRAY == token)
+                                {
+                                    parser.nextToken()
+                                    break
+                                }
+                                else if (JsonToken.VALUE_STRING == token)
+                                {
+                                    id = parser.text
+                                }
+                                else if (JsonToken.VALUE_NUMBER_FLOAT == token)
+                                {
+                                    id = parser.valueAsDouble
+                                }
+                                else
+                                {
+                                    throw new IllegalStateException("Unexpected token: ${token} when parsing cell ID")
+                                }
+                                Long mappedId = userIdToUniqueId[id]
+                                if (mappedId != null)
+                                {
+                                    colIds.add(mappedId)
+                                }
+                            }
+                        }
+                        else if ('value' == fieldName)
+                        {
+                            token = parser.nextToken()
+                            value = getParserValue(parser, token)
+                            token = parser.nextToken()
+                        }
+                        else if ('type' == fieldName)
+                        {
+                            parser.nextToken()
+                            type = parser.text
+                            token = parser.nextToken()
+                        }
+                        else if (JsonToken.END_OBJECT == token)
+                        {
+                            Object v = CellInfo.parseJsonValue(value, url, type, cache)
+
+                            if (colIds != null)
+                            {
+                                try
+                                {
+                                    ncube.setCellById((T)v, colIds)
+                                }
+                                catch (InvalidCoordinateException ignore)
+                                {
+                                    LOG.debug("Orphaned cell on n-cube: ${ncube.name}, ids: ${colIds}")
+                                }
+                            }
+                            else
+                            {
+                                for (entry in keyMapId.entrySet())
+                                {
+                                    keyMapId[entry.key] = CellInfo.parseJsonValue(entry.value, null, null, false)
+                                }
+                                try
+                                {
+                                    ncube.setCell(v, keyMapId)
+                                }
+                                catch (CoordinateNotFoundException ignore)
+                                {
+                                    LOG.debug("Orphaned cell on n-cube: ${ncube.name}, coord: ${keyMapId}")
+                                }
+                            }
+                            break
+                        }
+                        else if ('url' == fieldName)
+                        {
+                            parser.nextToken()
+                            url = parser.text
+                            token = parser.nextToken()
+                        }
+                        else if ('cache' == fieldName)
+                        {
+                            parser.nextToken()
+                            cache = 'true' == parser.text
+                            token = parser.nextToken()
+                        }
+                        else if ('key' == fieldName)
+                        {
+                            token = parser.nextToken()
+                            if (JsonToken.START_OBJECT != token)
+                            {
+                                throw new IllegalStateException("Expecting start object '{' for cell key but instead found: ${token}")
+                            }
+                            keyMapId = new CaseInsensitiveMap<>()
+                            token = parser.nextToken()
+                            while (!parser.closed)
+                            {
+                                if (JsonToken.FIELD_NAME == token)
+                                {
+                                    String keyName = parser.text
+                                    token = parser.nextToken()
+                                    keyMapId[keyName] = getParserValue(parser, token)
+                                    token = parser.nextToken()
+                                }
+                                else if (JsonToken.END_OBJECT == token)
+                                {
+                                    parser.nextToken()
+                                    break
+                                }
+                                else
+                                {
+                                    throw new IllegalStateException("Unexpected token: ${token} when parsing cell key")
+                                }
+                            }
+                        }
+                        else
+                        {
+                            throw new IllegalStateException("Unknown field name for cell: ${fieldName}")
+                        }
+                    }
+                }
+                else if (token == JsonToken.END_ARRAY)
+                {
+                    break
+                }
+                else
+                {
+                    throw new IllegalStateException("Unexpected token: ${token} when parsing cells")
+                }
+            }
+            return state
+        }
+        ncubeField[DEFAULT_CELL_VALUE] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            input[DEFAULT_CELL_VALUE] = getParserValue(parser, token)
+            return state
+        }
+        ncubeField[DEFAULT_CELL_VALUE_TYPE] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            input[DEFAULT_CELL_VALUE_TYPE] = parser.text
+            return state
+        }
+        ncubeField[DEFAULT_CELL_VALUE_URL] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            input[DEFAULT_CELL_VALUE_URL] = parser.text
+            return state
+        }
+        ncubeField[DEFAULT_CELL_VALUE_CACHE] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            input[DEFAULT_CELL_VALUE_CACHE] = getParserValue(parser, token)
+            return state
+        }
+        ncubeField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+            ((Map)input[(PARSE_NCUBE_PROPS)])[fieldName] = getParserValue(parser, token)
+            return state
+        }
+
+        axisToken[JsonToken.START_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            input[(PARSE_AXIS_OBJ)] = [:]
+            input[(PARSE_TEMP_COLS)] = []
+            input[(PARSE_AXIS_PROPS)] = [:]
+            return state
+        }
+        axisToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            String fieldName = parser.text
+            token = parser.nextToken()
+            return fieldClosure(ncube, state, parser, token, input, axisField, fieldName)
+        }
+        axisToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            Axis axis
+            Map axisObj = (Map)input[(PARSE_AXIS_OBJ)]
+            Map axisProps = (Map)input[(PARSE_AXIS_PROPS)]
+            transformMetaProperties(axisProps)
+            AxisType type = (AxisType)axisObj['type']
+            List<Map> tempColumns = (List)input[(PARSE_TEMP_COLS)]
+            Map<Object, Long> userIdToUniqueId = (Map)input[(PARSE_USERID_TO_UNIQUE)]
+            boolean isRef = getBoolean(axisProps, 'isRef')
+            String axisName = (String)axisObj['name']
+            boolean hasDefault = getBoolean(axisObj, 'hasDefault')
+            Long axisIdLong = axisObj['id']
+            long axisId
+
+            if (axisIdLong)
+            {
+                axisId = axisIdLong
+            }
+            else
+            {    // Older n-cube format with no 'id' on the 'axes' in the JSON
+                long idBase = (long)input[(PARSE_BASE_AXIS_ID)]
+                axisId = idBase++
+                input[(PARSE_BASE_AXIS_ID)] = idBase
+            }
+
+            axisProps.remove('id')
+            axisProps.remove('name')
+            axisProps.remove('isRef')
+            axisProps.remove('hasDefault')
+
+            if (isRef)
+            {
+                ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(ncube.name, axisName, axisProps)
+                axis = new Axis(axisName, axisId, hasDefault, refAxisLoader)
+                ncube.addAxis(axis)
+                for (column in axis.columns)
+                {
+                    userIdToUniqueId[column.id] = column.id
+                }
+
+                moveAxisMetaPropsToDefaultColumn(axis, axisProps)
+                if (tempColumns)
+                {
+                    tempColumns.each { Map column ->
+                        Column col = axis.getColumnById((Long)column['id'])
+                        if (col)
+                        {    // skip deleted columns
+                            Map columnProps = (Map)column[(PARSE_COL_PROPS)]
+                            transformMetaProperties(columnProps)
+                            Iterator<Map.Entry> i = columnProps.entrySet().iterator()
+                            while (i.hasNext())
+                            {
+                                Map.Entry<String, Object> entry = i.next()
+                                String key = entry.key
+                                if ('id' != key)
+                                {
+                                    col.setMetaProperty(key, entry.value)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                final int preferredOrder = getLong(axisObj, 'preferredOrder').intValue()
+                boolean fireAll = true
+                if (axisObj.containsKey('fireAll'))
+                {
+                    fireAll = getBoolean(axisObj, 'fireAll')
+                }
+
+                axis = new Axis(axisName, (AxisType)axisObj['type'], (AxisValueType)axisObj['valueType'], (Boolean)axisObj['hasDefault'], preferredOrder, axisId, fireAll)
+                ncube.addAxis(axis)
+                axis.metaProps = new CaseInsensitiveMap<>()
+                axis.metaProps.putAll(axisProps)
+
+                if (axis.metaProps.size() < 1)
+                {
+                    axis.metaProps = null
+                }
+                else
+                {
+                    moveAxisMetaPropsToDefaultColumn(axis, axisProps)
+                }
+
+                // Temporary - eventually should be removed.  Fixes rule columns with no or non-unique names
+                healUnamedRules(type, tempColumns)
+
+                for (Map col : tempColumns)
+                {
+                    String colType = (String)col['type']
+                    String colName = (String)col['name']
+                    String url = (String)col['url']
+                    Map columnProps = (Map)col[(PARSE_COL_PROPS)]
+                    boolean cache = getBoolean(col, 'cache')
+                    Column colAdded
+                    Object colId = col['id']
+                    Long suggestedId = (colId instanceof Long) ? (Long)colId: null
+
+                    if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+                    {
+                        Comparable value = (Comparable)CellInfo.parseJsonValue(col['value'], null, colType, false)
+                        colAdded = axis.addColumn(value, colName, suggestedId)
+                    }
+                    else if (type == AxisType.RANGE)
+                    {
+                        Range range = (Range)col['value']
+                        colAdded = ncube.addColumn(axis.name, range, colName, suggestedId)
+                    }
+                    else if (type == AxisType.SET)
+                    {
+                        RangeSet rangeSet = (RangeSet)col['value']
+                        colAdded = ncube.addColumn(axis.name, rangeSet, colName, suggestedId)
+                    }
+                    else if (type == AxisType.RULE)
+                    {
+                        Object value = (Object)col['value']
+                        Object cmd = CellInfo.parseJsonValue(value, url, colType, cache)
+                        if (!(cmd instanceof CommandCell))
+                        {
+                            cmd = new GroovyExpression('false', null, cache)
+                        }
+                        colAdded = ncube.addColumn(axis.name, (CommandCell)cmd, colName, suggestedId)
+                    }
+                    else
+                    {
+                        throw new IllegalArgumentException("Unsupported Axis Type '${axisObj.type}' for simple JSON input, axis: ${axisName}, cube: ${ncube.name}")
+                    }
+                    transformMetaProperties(columnProps)
+                    colAdded.addMetaProperties(columnProps)
+
+                    if (colId != null)
+                    {
+                        userIdToUniqueId[colId] = colAdded.id
+                    }
+                }
+            }
+            transformMetaProperties(axisProps)
+            axis.addMetaProperties(axisProps)
+            return state
+        }
+        axisToken[JsonToken.END_ARRAY] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            return ncubeToken
+        }
+
+        axisField['id'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['id'] = parser.valueAsLong
+            return state
+        }
+        axisField['name'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['name'] = parser.text
+            return state
+        }
+        axisField['type'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['type'] = AxisType.valueOf(parser.text)
+            return state
+        }
+        axisField['valueType'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['valueType'] = AxisValueType.valueOf(parser.text)
+            return state
+        }
+        axisField['hasDefault'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['hasDefault'] = getParserValue(parser, token)
+            return state
+        }
+        axisField['preferredOrder'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['preferredOrder'] = parser.valueAsInt
+            return state
+        }
+        axisField['fireAll'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_AXIS_OBJ)])['fireAll'] = getParserValue(parser, token)
+            return state
+        }
+        axisField['columns'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            if (JsonToken.START_ARRAY != token)
+            {
+                throw new IllegalStateException("Expecting start array '[' for columns but instead found: ${token}")
+            }
+            return columnToken
+        }
+        axisField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+            ((Map)input[(PARSE_AXIS_PROPS)])[fieldName] = getParserValue(parser, token)
+            return state
+        }
+
+        columnToken[JsonToken.START_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            input[(PARSE_COL_OBJ)] = [:]
+            input[(PARSE_COL_PROPS)] = [:]
+            return state
+        }
+        columnToken[JsonToken.FIELD_NAME] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            String fieldName = parser.text
+            token = parser.nextToken()
+            return fieldClosure(ncube, state, parser, token, input, columnField, fieldName)
+        }
+        columnToken[JsonToken.END_OBJECT] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            Map column = (Map)input[(PARSE_COL_OBJ)]
+            // Put column's prop map inside column_obj map so that it is together when tempColumns is processed on end axis
+            column[(PARSE_COL_PROPS)] = input[(PARSE_COL_PROPS)]
+            List<Map> tempColumns = (List)input[(PARSE_TEMP_COLS)]
+            tempColumns.add(column)
+
+            if (column['value'] == null)
+            {
+                if (column['id'] == null)
+                {
+                    Map axisMap = (Map)input[(PARSE_AXIS_OBJ)]
+                    throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: ${axisMap.name}, cube: ${ncube.name}")
+                }
+                else
+                {   // Allows you to skip setting both id and value to the same value.
+                    column['value'] = column['id']
+                }
+            }
+            return state
+        }
+        columnToken[JsonToken.END_ARRAY] = {NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            return axisToken
+        }
+
+        columnField['id'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_COL_OBJ)])['id'] = getParserValue(parser, token)
+            return state
+        }
+        columnField['value'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            Object key = token
+            if (((Map)input[(PARSE_AXIS_OBJ)])['type'] == AxisType.SET)
+            {
+                key = "${AxisType.SET}_${token.name()}".toString()
+            }
+            ((Map)input[(PARSE_COL_OBJ)])['value'] = getParserValue(parser, key)
+            return state
+        }
+        columnField['name'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_COL_OBJ)])['name'] = parser.text
+            return state
+        }
+        columnField['url'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_COL_OBJ)])['url'] = parser.text
+            return state
+        }
+        columnField['type'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_COL_OBJ)])['type'] =  parser.text
+            return state
+        }
+        columnField['cache'] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input ->
+            ((Map)input[(PARSE_COL_OBJ)])['cache'] = parser.text
+            return state
+        }
+        columnField[(PARSE_META_PROPERTY)] = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, String fieldName ->
+            ((Map)input[(PARSE_COL_PROPS)])[fieldName] = getParserValue(parser, token)
+            return state
+        }
+    }
+
+    private static <T> NCube<T> parseJsonPrint(JsonParser parser)
+    {
+        while (!parser.closed)
+        {
+            JsonToken token = parser.nextToken()
+            if (token == null)
+            {
+                break
+            }
+            println "token name: ${token.name()}"
+            println "parser text: ${parser.text}"
+            println ''
+        }
+        return null
+    }
+
+    private static <T> NCube<T> parseJson(JsonParser parser)
+    {
+        Map state = ncubeToken
+        NCube<T> ncube = new NCube('tmp')
+        Map input = [
+                (PARSE_BASE_AXIS_ID): 1L,
+                (PARSE_USERID_TO_UNIQUE): new CaseInsensitiveMap(),
+                (PARSE_NCUBE_PROPS): [:],
+                (PARSE_AXIS_PROPS): [:],
+                (PARSE_COL_PROPS): [:],
+                (PARSE_CELL_PROPS): [:]
+        ]
+
+        while (!parser.closed)
+        {
+            JsonToken token = parser.nextToken()
+            if (token == null)
+            {
+                break
+            }
+
+            Closure method = state[token]
+            if (method == null)
+            {
+                throw new IllegalStateException("Unexpected token: ${token} while parsing JSON into an NCube.")
+            }
+            state = (Map)method(ncube, state, parser, token, input)
+        }
+
+        parser.close()
+        return ncube
     }
 
     /**
@@ -2205,17 +3636,12 @@ class NCube<T>
         String defUrl = jsonNCube.containsKey(DEFAULT_CELL_VALUE_URL) ? getString(jsonNCube, DEFAULT_CELL_VALUE_URL) : null
         boolean defCache = getBoolean(jsonNCube, DEFAULT_CELL_VALUE_CACHE)
         ncube.setDefaultCellValue(CellInfo.parseJsonValue(jsonNCube[DEFAULT_CELL_VALUE], defUrl, defType, defCache))
+        
+        Object[] axes = (Object[])jsonNCube.axes
 
-        if (!jsonNCube.containsKey("axes"))
+        if (axes == null)
         {
-            throw new IllegalArgumentException("Must specify a list of axes for the ncube, under the key 'axes' as [{axis 1}, {axis 2}, ... {axis n}], cube: ${cubeName}")
-        }
-
-        Object[] axes = jsonNCube.axes as Object[]
-
-        if (ArrayUtilities.isEmpty(axes))
-        {
-            throw new IllegalArgumentException("Must be at least one axis defined in the JSON format, cube: ${cubeName}")
+            axes = [] as Object[]
         }
 
         Map<Object, Long> userIdToUniqueId = new CaseInsensitiveMap<>()
@@ -2261,10 +3687,10 @@ class NCube<T>
                 if (columns)
                 {
                     columns.each { Map column ->
-                        Column col = newAxis.getColumnById(column.id as Long)
+                        Column col = newAxis.getColumnById((long)column['id'])
                         if (col)
                         {    // skip deleted columns
-                            Iterator<Map.Entry<String, Object>> i = column.entrySet().iterator()
+                            Iterator<Map.Entry> i = column.entrySet().iterator()
                             while (i.hasNext())
                             {
                                 Map.Entry<String, Object> entry = i.next()
@@ -2317,17 +3743,17 @@ class NCube<T>
                 }
 
                 // Temporary - eventually should be removed.  Fixes rule columns with no or non-unique names
-                healUnamedRules(type, columns)
+                healUnamedRules(type, columns as List)
 
                 // Read columns
                 for (col in columns)
                 {
-                    Map jsonColumn = col as Map
+                    Map jsonColumn = (Map)col
                     Object value = jsonColumn['value']
-                    String url = jsonColumn['url'] as String
-                    String colType = jsonColumn['type'] as String
+                    String url = (String)jsonColumn['url']
+                    String colType = (String)jsonColumn['type']
                     Object id = jsonColumn['id']
-                    String colName = jsonColumn[Column.NAME] as String
+                    String colName = (String)jsonColumn[Column.NAME]
 
                     if (value == null)
                     {
@@ -2348,43 +3774,43 @@ class NCube<T>
                     }
 
                     Column colAdded
-                    Long suggestedId = (id instanceof Long) ? id as Long: null
+                    Long suggestedId = (id instanceof Long) ? (Long)id : null
                     if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
                     {
-                        colAdded = ncube.addColumn(axis.name, CellInfo.parseJsonValue(value, null, colType, false) as Comparable, colName, suggestedId)
+                        colAdded = ncube.addColumn(axis.name, (Comparable)CellInfo.parseJsonValue(value, null, colType, false), colName, suggestedId)
                     }
                     else if (type == AxisType.RANGE)
                     {
-                        Object[] rangeItems = value as Object[]
+                        Object[] rangeItems = (Object[])value
                         if (rangeItems.length != 2)
                         {
                             throw new IllegalArgumentException("Range must have exactly two items, axis: ${axisName}, cube: ${cubeName}")
                         }
-                        Comparable low = CellInfo.parseJsonValue(rangeItems[0], null, colType, false) as Comparable
-                        Comparable high = CellInfo.parseJsonValue(rangeItems[1], null, colType, false) as Comparable
+                        Comparable low = (Comparable)CellInfo.parseJsonValue(rangeItems[0], null, colType, false)
+                        Comparable high = (Comparable)CellInfo.parseJsonValue(rangeItems[1], null, colType, false)
                         colAdded = ncube.addColumn(axis.name, new Range(low, high), colName, suggestedId)
                     }
                     else if (type == AxisType.SET)
                     {
-                        Object[] rangeItems = value as Object[]
+                        Object[] rangeItems = (Object[])value
                         RangeSet rangeSet = new RangeSet()
                         for (pt in rangeItems)
                         {
                             if (pt instanceof Object[])
                             {
-                                Object[] rangeValues = pt as Object[]
+                                Object[] rangeValues = (Object[])pt
                                 if (rangeValues.length != 2)
                                 {
                                     throw new IllegalArgumentException("Set Ranges must have two values only, range length: ${rangeValues.length}, axis: ${axisName}, cube: ${cubeName}")
                                 }
-                                Comparable low = CellInfo.parseJsonValue(rangeValues[0], null, colType, false) as Comparable
-                                Comparable high = CellInfo.parseJsonValue(rangeValues[1], null, colType, false) as Comparable
+                                Comparable low = (Comparable)CellInfo.parseJsonValue(rangeValues[0], null, colType, false)
+                                Comparable high = (Comparable)CellInfo.parseJsonValue(rangeValues[1], null, colType, false)
                                 Range range = new Range(low, high)
                                 rangeSet.add(range)
                             }
                             else
                             {
-                                rangeSet.add(CellInfo.parseJsonValue(pt, null, colType, false) as Comparable)
+                                rangeSet.add((Comparable)CellInfo.parseJsonValue(pt, null, colType, false))
                             }
                         }
                         colAdded = ncube.addColumn(axis.name, rangeSet, colName, suggestedId)
@@ -2396,7 +3822,7 @@ class NCube<T>
                         {
                             cmd = new GroovyExpression('false', null, cache)
                         }
-                        colAdded = ncube.addColumn(axis.name, cmd as CommandCell, colName, suggestedId)
+                        colAdded = ncube.addColumn(axis.name, (CommandCell)cmd, colName, suggestedId)
                     }
                     else
                     {
@@ -2435,10 +3861,10 @@ class NCube<T>
 
             for (cell in cells)
             {
-                JsonObject cMap = cell as JsonObject
+                JsonObject cMap = (JsonObject)cell
                 Object ids = cMap['id']
-                String type = cMap['type'] as String
-                String url = cMap['url'] as String
+                String type = (String)cMap['type']
+                String url = (String)cMap['url']
                 boolean cache = false
 
                 if (cMap.containsKey('cache'))
@@ -2450,7 +3876,7 @@ class NCube<T>
 
                 if (ids instanceof Object[])
                 {   // If specified as ID array, build coordinate that way
-                    LongHashSet colIds = new LongHashSet()
+                    Set<Long> colIds = new LinkedHashSet<>()
                     for (id in (Object[])ids)
                     {
                         if (!userIdToUniqueId.containsKey(id))
@@ -2495,7 +3921,7 @@ class NCube<T>
         return ncube
     }
 
-    static void healUnamedRules(AxisType type, Object[] columns)
+    private static void healUnamedRules(AxisType type, List columns)
     {
         if (type != AxisType.RULE)
         {
@@ -2507,14 +3933,14 @@ class NCube<T>
 
         for (Object col : columns)
         {
-            Map column = col as Map
+            Map column = (Map)col
             String name = column.name
             if (!name || names.contains(name))
             {
                 MapEntry result = generateRuleName(names, count)
                 column.name = result.key
                 count = result.value as int
-                names.add(column.name as String)
+                names.add((String)column.name)
             }
             else
             {
@@ -2523,20 +3949,20 @@ class NCube<T>
         }
     }
 
-    static MapEntry generateRuleName(Set<String> names, int count)
+    private static MapEntry generateRuleName(Set<String> names, int count)
     {
         String name
         while (names.contains(name = "BR${count++}"))
-            ;
+        ;
         return new MapEntry(name, count)
     }
 
-   /**
+    /**
      * Snag all meta-properties on Axis that start with Axis.DEFAULT_COLUMN_PREFIX, as this
      * is where the default column's meta properties are stored, and copy them to the default
      * column (if one exists)
      */
-    private static void moveAxisMetaPropsToDefaultColumn(Axis axis)
+    private static void moveAxisMetaPropsToDefaultColumn(Axis axis, Map axisProps = [:])
     {
         Column defCol = axis.defaultColumn
         if (!defCol)
@@ -2552,6 +3978,7 @@ class NCube<T>
             {
                 defCol.setMetaProperty(key - JsonFormatter.DEFAULT_COLUMN_PREFIX, entry.value)
                 i.remove()  // do not leave the column_default_* properties on the Axis
+                axisProps.remove(key)
             }
         }
     }
@@ -2575,7 +4002,7 @@ class NCube<T>
             }
             else if (entry.value instanceof CellInfo)
             {
-                CellInfo info = entry.value as CellInfo
+                CellInfo info = (CellInfo)entry.value
                 entriesToUpdate.add(new MapEntry(entry.key, info.recreate()))
             }
         }
@@ -2593,7 +4020,7 @@ class NCube<T>
         {
             return (String) val
         }
-        String clazz = val == null ? "null" : val.class.name
+        String clazz = val == null ? 'null' : val.class.name
         throw new IllegalArgumentException("Expected 'String' for key '${key}' but instead found: ${clazz}")
     }
 
@@ -2608,16 +4035,16 @@ class NCube<T>
         {
             try
             {
-                return Long.parseLong(val as String)
+                return Long.parseLong((String)val)
             }
             catch(Exception ignored)
             { }
         }
-        String clazz = val == null ? "null" : val.class.name
+        String clazz = val == null ? 'null' : val.class.name
         throw new IllegalArgumentException("Expected 'Long' for key '${key}' but instead found: ${clazz}")
     }
 
-    protected static Boolean getBoolean(Map obj, String key)
+    protected static boolean getBoolean(Map obj, String key)
     {
         Object val = obj[key]
         if (val instanceof Boolean)
@@ -2626,7 +4053,7 @@ class NCube<T>
         }
         if (val instanceof String)
         {
-            return "true".equalsIgnoreCase((String) val)
+            return 'true'.equalsIgnoreCase((String) val)
         }
         if (val == null)
         {
@@ -2639,19 +4066,26 @@ class NCube<T>
     /**
      * Create an equivalent n-cube as 'this'.
      */
-    NCube duplicate(String newName)
+    NCube duplicate(String newName = name)
     {
         NCube copy = createCubeFromBytes(cubeAsGzipJsonBytes)
         copy.setName(newName)
+        copy.applicationID = this.applicationID
         return copy
     }
 
-    NCube createStubCube()
+    /**
+     * Create an 'empty' NCube that matches this NCube, but with no columns on it (same number of axes).
+     */
+    protected NCube createStubCube()
     {
         NCube stub = duplicate(name)
         stub.axes.each { Axis axis ->
-            axis.columns.each { Column column ->
-                stub.deleteColumn(axis.name, column.valueThatMatches)
+            if (!axis.reference)
+            {
+                axis.columns.each { Column column ->
+                    stub.deleteColumn(axis.name, axis.getValueToLocateColumn(column))
+                }
             }
         }
         return stub
@@ -2693,7 +4127,7 @@ class NCube<T>
         List<Map<String, T>> coords = []
         for (entry in cells.entrySet())
         {
-            LongHashSet colIds = entry.key
+            Set<Long> colIds = entry.key
             Map<String, T> coord = (Map<String, T>) getCoordinateFromIds(colIds)
             coords.add(coord)
         }
@@ -2714,13 +4148,16 @@ class NCube<T>
             return sha1
         }
 
+        Map<String, String> axisNameMap = [:]
         final byte sep = 0
         MessageDigest sha1Digest = EncryptionUtilities.SHA1Digest
         sha1Digest.update(name == null ? ''.bytes : name.bytes)
         sha1Digest.update(sep)
 
         deepSha1(sha1Digest, defaultCellValue, sep)
-        deepSha1(sha1Digest, new TreeMap<>(metaProperties), sep)
+        Map copy = new TreeMap(metaProperties)
+        copy.remove(METAPROPERTY_TEST_DATA)
+        deepSha1(sha1Digest, copy, sep)
 
         // Need deterministic ordering (sorted by Axis name will do that)
         Map<String, Axis> sortedAxes = new TreeMap<>(axisList)
@@ -2730,7 +4167,10 @@ class NCube<T>
         for (entry in sortedAxes.entrySet())
         {
             Axis axis = entry.value
-            sha1Digest.update(axis.name.toLowerCase().bytes)
+            String axisName = axis.name
+            String axisNameLower = axisName.toLowerCase()
+            axisNameMap.put(axisName, axisNameLower)
+            sha1Digest.update(axisNameLower.bytes)
             sha1Digest.update(sep)
             sha1Digest.update(String.valueOf(axis.columnOrder).bytes)
             sha1Digest.update(sep)
@@ -2796,14 +4236,14 @@ class NCube<T>
         sha1Digest.update(C_BYTES)  // c = cells
         sha1Digest.update(sep)
 
-        if (numCells > 0)
+        if (numCells)
         {
             List<String> sha1s = new ArrayList<>(cells.size()) as List
             MessageDigest tempDigest = EncryptionUtilities.SHA1Digest
 
             for (entry in cells.entrySet())
             {
-                String keySha1 = columnIdsToString(entry.key)
+                String keySha1 = columnIdsToString(axisNameMap, entry.key)
                 deepSha1(tempDigest, entry.value, sep)
                 String valueSha1 = StringUtilities.encode(tempDigest.digest())
                 sha1s.add(EncryptionUtilities.calculateSHA1Hash((keySha1 + valueSha1).bytes))
@@ -2821,7 +4261,7 @@ class NCube<T>
         return sha1
     }
 
-    private String columnIdsToString(Set<Long> columns)
+    private String columnIdsToString(Map<String, String> axisNameMap, Set<Long> columns)
     {
         List<String> list = new ArrayList(columns.size())
         for (colId in columns)
@@ -2830,8 +4270,8 @@ class NCube<T>
             if (axis != null)
             {   // Rare case where a column has an invalid ID.
                 Column column = axis.getColumnById(colId)
-                Object value = column.value
-                list.add(value == null ? 'null' : column.value.toString())
+                Object value = column.columnName ?: column.value
+                list.add("${axisNameMap.get(axis.name)}|${value == null ? 'Default' : value.toString()}".toString())
             }
         }
         Collections.sort(list)
@@ -2886,7 +4326,7 @@ class NCube<T>
             }
             else if (value instanceof Map)
             {
-                Map map = value as Map
+                Map map = (Map)value
                 md.update(MAP_BYTES)
                 md.update(String.valueOf(map.size()).bytes)
                 md.update(sep)
@@ -2901,12 +4341,12 @@ class NCube<T>
             {
                 if (value instanceof String)
                 {
-                    md.update((value as String).bytes)
+                    md.update(((String)value).bytes)
                     md.update(sep)
                 }
                 else if (value instanceof CommandCell)
                 {
-                    CommandCell cmdCell = value as CommandCell
+                    CommandCell cmdCell = (CommandCell)value
                     md.update(cmdCell.class.name.bytes)
                     md.update(sep)
                     if (cmdCell.url != null)
@@ -2991,192 +4431,241 @@ class NCube<T>
         List<Delta> columnReorders = []
         for (Delta delta : deltas)
         {
-            switch (delta.location)
+            if (delta.location == Delta.Location.NCUBE)
             {
-                case Delta.Location.NCUBE:
-                    switch (delta.locId)
-                    {
-                        case 'NAME':
-                            name = delta.destVal
-                            break
+                if ('NAME'.equals(delta.locId))
+                {
+                    name = delta.destVal
+                }
+                else if ('DEFAULT_CELL'.equals(delta.locId))
+                {
+                    CellInfo cellInfo = delta.destVal as CellInfo
+                    Object cellValue = cellInfo.isUrl ?
+                            CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
+                            CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
+                    setDefaultCellValue((T) cellValue)
+                }
+            }
+            else if (delta.location == Delta.Location.CELL)
+            {
+                Set<Long> coords = delta.locId as Set<Long>
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    setCellById((T) (delta.destVal as CellInfo).recreate(), coords)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    removeCellById(coords)
+                }
+            }
+            else if (delta.location == Delta.Location.NCUBE_META)
+            {
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    MapEntry entry = delta.destVal as MapEntry
+                    setMetaProperty(entry.key as String, entry.value)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    MapEntry entry = delta.sourceVal as MapEntry
+                    removeMetaProperty(entry.key as String)
+                }
+            }
+            else if (delta.location == Delta.Location.AXIS)
+            {
+                Axis receiverAxis = delta.sourceVal as Axis
+                Axis transmitterAxis = delta.destVal as Axis
 
-                        case 'DEFAULT_CELL':
-                            CellInfo cellInfo = delta.destVal as CellInfo
-                            Object cellValue = cellInfo.isUrl ?
-                                    CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
-                                    CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
-                            setDefaultCellValue((T) cellValue)
-                            break
+                if (delta.type == Delta.Type.ADD)
+                {
+                    if (getAxis(transmitterAxis.name) == null)
+                    {   // Only add if not already there.
+                        addAxis(transmitterAxis)
                     }
+                }
+                else if (delta.type == Delta.Type.UPDATE)
+                {
+                    if (receiverAxis)
+                    {
+                        receiverAxis.columnOrder = transmitterAxis.columnOrder
+                        receiverAxis.fireAll = transmitterAxis.fireAll
+                    }
+                }
+                if (delta.type == Delta.Type.DELETE)
+                {
+                    deleteAxis(receiverAxis.name)
+                }
+            }
+            else if (delta.location == Delta.Location.AXIS_META)
+            {
+                Axis axis = getAxis(delta.locId as String)
+                if (!axis)
+                {
                     break
+                }
 
-                case Delta.Location.NCUBE_META:
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            MapEntry entry = delta.destVal as MapEntry
-                            setMetaProperty(entry.key as String, entry.value)
-                            break
-
-                        case Delta.Type.DELETE:
-                            MapEntry entry = delta.sourceVal as MapEntry
-                            removeMetaProperty(entry.key as String)
-                            break
-                    }
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    MapEntry entry = delta.destVal as MapEntry
+                    axis.setMetaProperty(entry.key as String, entry.value)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    MapEntry entry = delta.sourceVal as MapEntry
+                    axis.removeMetaProperty(entry.key as String)
+                }
+            }
+            else if (delta.location == Delta.Location.COLUMN)
+            {
+                String axisName = delta.locId as String
+                Axis axis = getAxis(axisName)
+                if (!axis)
+                {   // axis not found
                     break
+                }
 
-                case Delta.Location.AXIS:
-                    Axis receiverAxis = delta.sourceVal as Axis
-                    Axis transmitterAxis = delta.destVal as Axis
-
-                    switch (delta.type)
+                if (delta.type == Delta.Type.ADD)
+                {
+                    Column column = delta.destVal as Column
+                    if (column.default)
                     {
-                        case Delta.Type.ADD:
-                            if (getAxis(transmitterAxis.name) == null)
-                            {   // Only add if not already there.
-                                addAxis(transmitterAxis)
-                            }
-                            break
-
-                        case Delta.Type.UPDATE:
-                            if (receiverAxis)
-                            {
-                                receiverAxis.columnOrder = transmitterAxis.columnOrder
-                                receiverAxis.fireAll = transmitterAxis.fireAll
-                            }
-                            break
-
-                        case Delta.Type.DELETE:
-                            deleteAxis(receiverAxis.name)
-                            break
+                        if (!axis.hasDefaultColumn())
+                        {
+                            addColumn(axisName, null, column.columnName)
+                        }
                     }
+                    else
+                    {
+                        Column existingCol = axis.locateDeltaColumn(column)
+                        if (!existingCol || existingCol.default)
+                        {   // Only add column if it is not already there
+                            addColumn(axisName, column.value, column.columnName, column.id)
+                        }
+                    }
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    Column column = delta.sourceVal as Column
+                    Column existingCol = axis.locateDeltaColumn(column)
+                    if (axis.type == AxisType.RULE)
+                    {
+                        deleteColumn(axisName, existingCol.columnName ?: existingCol.id as Long)
+                    }
+                    else
+                    {
+                        deleteColumn(axisName, existingCol.value)
+                    }
+                }
+                else if (delta.type == Delta.Type.UPDATE)
+                {
+                    Column oldCol = delta.sourceVal as Column
+                    Column newCol = delta.destVal as Column
+                    Column existingCol = axis.locateDeltaColumn(oldCol)
+                    if (existingCol)
+                    {
+                        updateColumn(existingCol.id, newCol.value)
+                    }
+                }
+                else if (delta.type == Delta.Type.ORDER)
+                {
+                    columnReorders.add(delta)
+                }
+            }
+            else if (delta.location == Delta.Location.COLUMN_META)
+            {
+                Map<String, Object> helperId = delta.locId as Map<String, Object>
+                Axis axis = getAxis(helperId.axis as String)
+                if (!axis)
+                {
                     break
-
-                case Delta.Location.AXIS_META:
-                    Axis axis = getAxis(delta.locId as String)
-                    if (!axis)
-                    {
-                        break
-                    }
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            MapEntry entry = delta.destVal as MapEntry
-                            axis.setMetaProperty(entry.key as String, entry.value)
-                            break
-                        case Delta.Type.DELETE:
-                            MapEntry entry = delta.sourceVal as MapEntry
-                            axis.removeMetaProperty(entry.key as String)
-                            break
-                    }
+                }
+                Column column = axis.locateDeltaColumn(helperId.column as Column)
+                if (!column)
+                {
                     break
+                }
+                MapEntry oldPair = delta.sourceVal as MapEntry
+                MapEntry newPair = delta.destVal as MapEntry
 
-                case Delta.Location.COLUMN:
-                    String axisName = delta.locId as String
-                    Axis axis = getAxis(axisName)
-                    if (!axis)
-                    {   // axis not found
-                        break
-                    }
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                            Column column = delta.destVal as Column
-                            if (column.default)
-                            {
-                                if (!axis.hasDefaultColumn())
-                                {
-                                    addColumn(axisName, null, column.columnName)
-                                }
-                            }
-                            else
-                            {
-                                Column existingCol = axis.locateDeltaColumn(column)
-                                if (!existingCol || existingCol.default)
-                                {   // Only add column if it is not already there
-                                    addColumn(axisName, column.value, column.columnName, column.id)
-                                }
-                            }
-                            break
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    column.setMetaProperty(newPair.key as String, newPair.value)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    column.removeMetaProperty(oldPair.key as String)
+                }
+            }
+            else if (delta.location == Delta.Location.CELL_META)
+            {
+                // TODO - cell meta-properties not yet implemented
+            }
+            else if (delta.location == Delta.Location.TEST)
+            {
+                List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
 
-                        case Delta.Type.DELETE:
-                            Column column = delta.sourceVal as Column
-                            Column existingCol = axis.locateDeltaColumn(column)
-                            if (axis.type == AxisType.RULE)
-                            {
-                                deleteColumn(axisName, existingCol.columnName ?: existingCol.id as Long)
-                            }
-                            else
-                            {
-                                deleteColumn(axisName, existingCol.value)
-                            }
-                            break
+                if (delta.type == Delta.Type.ADD)
+                {
+                    tests.add(delta.destVal as NCubeTest)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    String testName = delta.locId as String
+                    NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                    tests.remove(test)
+                }
+                testData = tests.toArray()
+            }
+            else if (delta.location == Delta.Location.TEST_COORD)
+            {
+                List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                String testName = delta.locId as String
+                NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                Map<String, CellInfo> coords = test.coord
 
-                        case Delta.Type.UPDATE:
-                            Column oldCol = delta.sourceVal as Column
-                            Column newCol = delta.destVal as Column
-                            Column existingCol = axis.locateDeltaColumn(oldCol)
-                            if (existingCol)
-                            {
-                                updateColumn(existingCol.id, newCol.value)
-                            }
-                            break
+                if (delta.type == Delta.Type.ADD || delta.type == Delta.Type.UPDATE)
+                {
+                    Map.Entry<String, CellInfo> newCoordEntry = delta.destVal as Map.Entry<String, CellInfo>
+                    coords[newCoordEntry.key] = newCoordEntry.value
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    Map.Entry<String, CellInfo> oldCoordEntry = delta.sourceVal as Map.Entry<String, CellInfo>
+                    coords.remove(oldCoordEntry.key)
+                }
 
-                        case Delta.Type.ORDER:
-                            columnReorders.add(delta)
-                            break
-                    }
-                    break
+                NCubeTest newTest = new NCubeTest(test.name, coords, test.assertions)
+                tests.remove(test)
+                tests.add(newTest)
+                testData = tests.toArray()
+            }
+            else if (delta.location == Delta.Location.TEST_ASSERT)
+            {
+                List<NCubeTest> tests = delta.sourceList.toList() as List<NCubeTest>
+                String testName = delta.locId as String
+                NCubeTest test = tests.find { NCubeTest cubeTest -> cubeTest.name == testName }
+                List<CellInfo> assertions = test.assertions.toList()
+                CellInfo newAssert = delta.destVal as CellInfo
+                CellInfo oldAssert = delta.sourceVal as CellInfo
 
-                case Delta.Location.COLUMN_META:
-                    Map<String, Object> helperId = delta.locId as Map<String, Object>
-                    Axis axis = getAxis(helperId.axis as String)
-                    if (!axis)
-                    {
-                        break
-                    }
-                    Column column = axis.locateDeltaColumn(helperId.column as Column)
-                    if (!column)
-                    {
-                        break
-                    }
-                    MapEntry oldPair = delta.sourceVal as MapEntry
-                    MapEntry newPair = delta.destVal as MapEntry
+                if (delta.type == Delta.Type.ADD)
+                {
+                    assertions.add(newAssert)
+                }
+                else if (delta.type == Delta.Type.UPDATE)
+                {
+                    assertions.remove(oldAssert)
+                    assertions.add(newAssert)
+                }
+                else if (delta.type == Delta.Type.DELETE)
+                {
+                    assertions.remove(oldAssert)
+                }
 
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            column.setMetaProperty(newPair.key as String, newPair.value)
-                            break
-
-                        case Delta.Type.DELETE:
-                            column.removeMetaProperty(oldPair.key as String)
-                            break
-                    }
-                    break
-
-                case Delta.Location.CELL:
-                    Set<Long> coords = delta.locId as Set<Long>
-
-                    switch (delta.type)
-                    {
-                        case Delta.Type.ADD:
-                        case Delta.Type.UPDATE:
-                            setCellById((T) (delta.destVal as CellInfo).recreate(), coords)
-                            break
-
-                        case Delta.Type.DELETE:
-                            removeCellById(coords)
-                            break
-                    }
-                    break
-
-                case Delta.Location.CELL_META:
-                    // TODO - cell meta-properties not yet implemented
-                    break
+                NCubeTest newTest = new NCubeTest(test.name, test.coord, assertions.toArray() as CellInfo[])
+                tests.remove(test)
+                tests.add(newTest)
+                testData = tests.toArray()
             }
         }
 
@@ -3205,6 +4694,16 @@ class NCube<T>
         }
 
         clearSha1()
+    }
+
+    List<NCubeTest> getTestData()
+    {
+        NCubeTestReader.convert(getMetaProperty(METAPROPERTY_TEST_DATA) as String)
+    }
+
+    void setTestData(Object[] tests)
+    {
+        setMetaProperty(METAPROPERTY_TEST_DATA, new NCubeTestWriter().format(tests))
     }
 
     /**
@@ -3270,26 +4769,8 @@ class NCube<T>
             {
                 continue
             }
-            Object value
-            if (axis.type == AxisType.RULE)
-            {   // Favor rule name first, then use column ID if no rule name exists.
-                Column column = axis.getColumnById(colId)
-                String name = column.columnName
-                if (name != null)
-                {
-                    value = name
-                }
-                else
-                {
-                    value = colId
-                }
-            }
-            else
-            {
-                Column column = axis.getColumnById(colId)
-                value = column.valueThatMatches
-            }
-            coord[axis.name] = value
+            Column column = axis.getColumnById(colId)
+            coord[axis.name] = axis.getValueToLocateColumn(column)
         }
         return coord
     }
@@ -3354,9 +4835,9 @@ class NCube<T>
      * are JSON content representing an n-cube.  Calling ncube.toFormattedJson() is the source
      * of the JSON format used.
      */
-    static <T> NCube<T> createCubeFromBytes(byte[] bytes)
+    static <T> NCube<T> createCubeFromBytes(byte[] bytes, int pos = 0, int length = bytes.length)
     {
-        return createCubeFromStream(new ByteArrayInputStream(bytes))
+        return createCubeFromStream(new ByteArrayInputStream(bytes, pos, length))
     }
 
     /**
@@ -3405,12 +4886,12 @@ class NCube<T>
      */
     byte[] getCubeAsGzipJsonBytes()
     {
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream()
+        FastByteArrayOutputStream byteOut = new FastByteArrayOutputStream()
         OutputStream gzipOut = null
 
         try
         {
-            gzipOut = new GZIPOutputStream(byteOut, 8192)
+            gzipOut = new AdjustableGZIPOutputStream(byteOut, 8192, Deflater.BEST_SPEED)
             new JsonFormatter(gzipOut).formatCube(this, null)
         }
         catch (Exception e)
@@ -3421,7 +4902,7 @@ class NCube<T>
         {
             IOUtilities.close(gzipOut)
         }
-        return byteOut.toByteArray()
+        return byteOut.toByteArrayUnsafe()
     }
 
     /**
@@ -3440,8 +4921,48 @@ class NCube<T>
      * @param axisName String name of axis to get (case ignored)
      * @return Axis if found, null otherwise.
      */
+    @Deprecated
     Axis get(String axisName)
     {
         return axisList[axisName]
+    }
+
+    /**
+     * Intern the passed in value.  Collapses (folds) equivalent instances into same instance.
+     * @param value Object to intern (if possible)
+     * @return interned instance (if internable) otherwise passed-in instance is returned.
+     */
+    private static Object internValue(Object value)
+    {
+        if (value == null)
+        {
+            return null
+        }
+
+        if (!MetaUtils.isLogicalPrimitive(value.class))
+        {   // don't attempt to intern null (NPE) or non-primitive instances
+            return value
+        }
+
+        if (primitives.containsKey(value))
+        {   // intern it (re-use instance)
+            return primitives[value]
+        }
+
+        Object singletonInstance = primitives.putIfAbsent(value, value)
+        if (singletonInstance != null)
+        {
+            return singletonInstance
+        }
+        return value
+    }
+
+    /**
+     * Sets the max size for coordinate value strings in StackEntry.
+     * @param maxSize int
+     */
+    static void setStackEntryCoordinateValueMaxSize(int maxSize)
+    {
+        stackEntryCoordinateValueMaxSize = maxSize
     }
 }

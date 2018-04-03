@@ -106,29 +106,24 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
                 }
             }
 
-            if (ncube.metaProperties.size() > 0)
+            if (!ncube.metaProperties.isEmpty())
             {
                 writeMetaProperties(ncube.metaProperties)
                 comma()
             }
             writeAxes(ncube.axes, options)
-            writeCells(ncube.cellMap as Map, options)
+            writeCells((Map)ncube.cellMap, options)
             endObject()
             closeStream()
         }
         catch (Exception e)
         {
-            throw new IllegalStateException(String.format("Unable to format NCube '%s' into JSON", name), e)
+            throw new IllegalStateException("Unable to format NCube '${name}' into JSON", e)
         }
     }
 
     private void writeMetaProperties(Map<String, Object> metaProps) throws IOException
     {
-        if (metaProps.size() < 1)
-        {
-            return
-        }
-
         Iterator<Map.Entry<String, Object>> i = metaProps.entrySet().iterator()
         while (i.hasNext())
         {
@@ -136,7 +131,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             final String key = entry.key
             Object value = entry.value
 
-            if (value instanceof String || value instanceof Boolean || value == null)
+            if (value == null || value instanceof String || value instanceof Boolean)
             {   // Allows for simple key ==> value associations to be written when value is JSON supported type
                 writeObjectKeyValue(key, value, false)
             }
@@ -361,7 +356,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             writeId(column.id, true)
         }
         writeType(columnType)
-        if (column.metaProperties.size() > 0)
+        if (!column.metaProperties.isEmpty())
         {
             writeMetaProperties(column.metaProperties)
             comma()
@@ -480,7 +475,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
     {
         if (value instanceof CommandCell)
         {
-            writeCommandCell(value as CommandCell)
+            writeCommandCell((CommandCell)value)
         }
         else
         {
@@ -548,14 +543,14 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         }
         else if (o instanceof BigInteger)
         {
-            BigInteger i = o as BigInteger
+            BigInteger i = (BigInteger)o
             builder.append('"')
             builder.append(i.toString())
             builder.append('"')
         }
         else if (o instanceof BigDecimal)
         {
-            BigDecimal d = o as BigDecimal
+            BigDecimal d = (BigDecimal)o
             builder.append('"')
             builder.append(d.stripTrailingZeros().toPlainString())
             builder.append('"')
@@ -572,28 +567,28 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         }
         else if (o instanceof LatLon)
         {
-            LatLon l = o as LatLon
+            LatLon l = (LatLon)o
             builder.append('"')
             builder.append(l.toString())
             builder.append('"')
         }
         else if (o instanceof Point2D)
         {
-            Point2D pt = o as Point2D
+            Point2D pt = (Point2D)o
             builder.append('"')
             builder.append(pt.toString())
             builder.append('"')
         }
         else if (o instanceof Point3D)
         {
-            Point3D pt = o as Point3D
+            Point3D pt = (Point3D)o
             builder.append('"')
             builder.append(pt.toString())
             builder.append('"')
         }
         else if (o instanceof Range)
         {
-            Range r = o as Range
+            Range r = (Range)o
             startArray()
             writeObjectValue(r.low)
             comma()
@@ -602,7 +597,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         }
         else if (o instanceof RangeSet)
         {
-            RangeSet r = o as RangeSet
+            RangeSet r = (RangeSet)o
             Iterator i = r.iterator()
             startArray()
             boolean firstPass = true
@@ -620,7 +615,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
         else if (o instanceof byte[])
         {
             builder.append('"')
-            builder.append(StringUtilities.encode(o as byte[]))
+            builder.append(StringUtilities.encode((byte[])o))
             builder.append('"')
         }
         else if (o.class.array)

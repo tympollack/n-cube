@@ -1,13 +1,20 @@
 package com.cedarsoftware.config
 
+import com.cedarsoftware.ncube.GroovyBase
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.UrlCommandCell
+import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.ncube.util.GCacheManager
-import com.cedarsoftware.ncube.util.NCubeRemoval
 import com.cedarsoftware.util.HsqlSchemaCreator
 import groovy.transform.CompileStatic
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.beans.factory.config.MethodInvokingBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer
+
+import javax.annotation.PostConstruct
 
 /**
  * This class defines allowable actions against persisted n-cubes
@@ -33,45 +40,80 @@ import org.springframework.context.annotation.Profile
 @Configuration
 class NCubeConfiguration
 {
-    @Value('${ncube.cache.max.size}') int maxSizeNCubeCache
-    @Value('${ncube.cache.evict.type}') String typeNCubeCache
-    @Value('${ncube.cache.evict.duration}') int durationNCubeCache
-    @Value('${ncube.cache.evict.units}') String unitsNCubeCache
-    @Value('${ncube.cache.concurrency}') int concurrencyNCubeCache
+    @Value('${ncube.cache.max.size:0}') int maxSizeNCubeCache
+    @Value('${ncube.cache.evict.type:expireAfterAccess}') String typeNCubeCache
+    @Value('${ncube.cache.evict.duration:4}') int durationNCubeCache
+    @Value('${ncube.cache.evict.units:hours}') String unitsNCubeCache
+    @Value('${ncube.cache.concurrency:16}') int concurrencyNCubeCache
 
-    @Value('${perm.cache.max.size}') int maxSizePermCache
-    @Value('${perm.cache.evict.type}') String typePermCache
-    @Value('${perm.cache.evict.duration}') int durationPermCache
-    @Value('${perm.cache.evict.units}') String unitsPermCache
-    @Value('${perm.cache.concurrency}') int concurrencyPermCache
+    @Value('${ncube.perm.cache.max.size:100000}') int maxSizePermCache
+    @Value('${ncube.perm.cache.evict.type:expireAfterAccess}') String typePermCache
+    @Value('${ncube.perm.cache.evict.duration:3}') int durationPermCache
+    @Value('${ncube.perm.cache.evict.units:minutes}') String unitsPermCache
+    @Value('${ncube.perm.cache.concurrency:16}') int concurrencyPermCache
 
-    @Value('${ncube.allow.mutable.methods}') boolean allowMutableMethods
-    @Value('${server.scheme}') String scheme
-    @Value('${server.host}') String host
-    @Value('${server.port}') int port
-    @Value('${server.context}') String context
-    @Value('${server.username}') String username
-    @Value('${server.password}') String password
-    @Value('${server.numConnections}') int numConnections
+    @Value('${ncube.allow.mutable.methods:false}') boolean allowMutableMethods
+    @Value('${ncube.accepted.domains:}') String ncubeAcceptedDomains
+    @Value('${ncube.target.scheme:http}') String scheme
+    @Value('${ncube.target.host:localhost}') String host
+    @Value('${ncube.target.port:9000}') int port
+    @Value('${ncube.target.context:ncube}') String context
+    @Value('${ncube.target.username:#{null}}') String username
+    @Value('${ncube.target.password:#{null}}') String password
+    @Value('${ncube.target.numConnections:100}') int numConnections
+
+    @Value('${ncube.sources.dir:#{null}}') String sourcesDirectory
+    @Value('${ncube.classes.dir:#{null}}') String classesDirectory
+
+    @Value('${ncube.stackEntry.coordinate.value.max:1000}') int stackEntryCoordinateValueMaxSize
+
+    @Bean
+    static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer()
+    {
+        return new PropertySourcesPlaceholderConfigurer()
+    }
 
     @Bean(name = 'ncubeRemoval')
-    NCubeRemoval getNCubeRemoval()
+    Closure getNcubeRemoval()
     {
-        return new NCubeRemoval()
+        return { Object value ->
+            if (value instanceof NCube)
+            {
+                NCube ncube = value as NCube
+                for (Object cellValue : ncube.cellMap.values())
+                {
+                    if (cellValue instanceof UrlCommandCell)
+                    {
+                        UrlCommandCell cell = cellValue as UrlCommandCell
+                        cell.clearClassLoaderCache(ncube.applicationID)
+                    }
+                }
+            }
+            return true
+        }
     }
 
     @Bean(name = "ncubeCacheManager")
     GCacheManager getNcubeCacheManager()
     {
-        GCacheManager cacheManager = new GCacheManager(getNCubeRemoval(), maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache, concurrencyNCubeCache)
+        GCacheManager cacheManager = new GCacheManager(ncubeRemoval, maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache, concurrencyNCubeCache)
         return cacheManager
     }
 
     @Bean(name = 'permCacheManager')
     GCacheManager getPermCacheManager()
     {
-        GCacheManager cacheManager = new GCacheManager(getNCubeRemoval(), maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
+        GCacheManager cacheManager = new GCacheManager(null, maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
         return cacheManager
+    }
+
+    @PostConstruct
+    void init()
+    {
+        CdnClassLoader.generatedClassesDirectory = classesDirectory
+        GroovyBase.generatedSourcesDirectory = sourcesDirectory
+        NCube.stackEntryCoordinateValueMaxSize = stackEntryCoordinateValueMaxSize
+        CdnClassLoader.ncubeAcceptedDomains = ncubeAcceptedDomains
     }
 
     @Configuration

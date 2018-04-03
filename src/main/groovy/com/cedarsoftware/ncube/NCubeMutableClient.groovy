@@ -32,15 +32,27 @@ interface NCubeMutableClient extends NCubeClient
 
     String getUserId()
 
+    NCubeInfoDto loadCubeRecord(ApplicationID appId, String cubeName, Map options)
+
+    NCubeInfoDto loadCubeRecordById(long id, Map options)
+
     Boolean updateCube(NCube ncube)
 
+    Boolean updateCube(ApplicationID appId, String cubeName, byte[] cubeBytes)
+
     void createCube(NCube ncube)
+
+    void createCube(ApplicationID appId, String cubeName, byte[] cubeBytes)
 
     Boolean duplicate(ApplicationID oldAppId, ApplicationID newAppId, String oldName, String newName)
 
     Boolean assertPermissions(ApplicationID appId, String resource, Action action)
 
-    Boolean checkPermissions(ApplicationID appId, String resource, String action)
+    Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
+
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
+
+    Boolean isSysAdmin()
 
     Boolean isAppAdmin(ApplicationID appId)
 
@@ -50,7 +62,11 @@ interface NCubeMutableClient extends NCubeClient
 
     Integer moveBranch(ApplicationID appId, String newSnapVer)
 
+    Integer releaseVersion(ApplicationID appId)
+
     Integer releaseVersion(ApplicationID appId, String newSnapVer)
+
+    Integer releaseCubes(ApplicationID appId)
 
     Integer releaseCubes(ApplicationID appId, String newSnapVer)
 
@@ -72,6 +88,8 @@ interface NCubeMutableClient extends NCubeClient
 
     Boolean deleteBranch(ApplicationID appId)
 
+    Boolean deleteApp(ApplicationID appId)
+
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
 
     Boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
@@ -83,8 +101,6 @@ interface NCubeMutableClient extends NCubeClient
     void updateReferenceAxes(Object[] axisRefs)
 
     void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
-
-    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
 
     Boolean updateNotes(ApplicationID appId, String cubeName, String notes)
 
@@ -104,21 +120,25 @@ interface NCubeMutableClient extends NCubeClient
 
     String generatePullRequestHash(ApplicationID appId, Object[] infoDtos)
 
+    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos, String notes)
+
     Map<String, Object> mergePullRequest(String prId)
 
-    NCube obsoletePullRequest(String prId)
+    void obsoletePullRequest(String prId)
 
-    NCube cancelPullRequest(String prId)
+    void cancelPullRequest(String prId)
 
-    NCube reopenPullRequest(String prId)
+    void reopenPullRequest(String prId)
 
     Object[] getPullRequests()
-
     Object[] getPullRequests(Date startDate, Date endDate)
+    Object[] getPullRequests(Date startDate, Date endDate, String prId)
 
     Map<String, Object> commitBranch(ApplicationID appId)
 
     Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes)
+
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes, String notes)
 
     Integer rollbackBranch(ApplicationID appId, Object[] names)
 
@@ -129,4 +149,12 @@ interface NCubeMutableClient extends NCubeClient
     Integer acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
 
     Boolean isCubeUpToDate(ApplicationID appId, String cubeName)
+
+    void createRefAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName)
+
+    NCubeInfoDto promoteRevision(long cubeId)
+
+    List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
+
+    List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
 }

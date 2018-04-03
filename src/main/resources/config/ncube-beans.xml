@@ -13,22 +13,28 @@
 
     <bean id="appContext" class="com.cedarsoftware.ncube.NCubeAppContext"/>
 
-    <beans profile="client">
+    <beans profile="ncube-client">
+
+        <bean id="localFileCache" class="com.cedarsoftware.ncube.util.LocalFileCache"/>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="callableBean"/>
             <constructor-arg ref="ncubeCacheManager"/>
-            <constructor-arg value="${ncube.allow.mutable.methods}"/>
+            <constructor-arg value="${ncube.allow.mutable.methods:#{false}}"/>
+        </bean>
+
+        <bean id="ncubeHost" class="org.apache.http.HttpHost">
+            <constructor-arg value="${ncube.target.host:#{'localhost'}}"/>
+            <constructor-arg value="${ncube.target.port:#{9000}}"/>
+            <constructor-arg value="${ncube.target.scheme:#{'http'}}"/>
         </bean>
 
         <bean id="callableBean" class="com.cedarsoftware.util.JsonHttpProxy">
-            <constructor-arg value="${server.scheme}"/>
-            <constructor-arg value="${server.host}"/>
-            <constructor-arg value="${server.port}"/>
-            <constructor-arg value="${server.context}"/>
-            <constructor-arg value="${server.username}"/>
-            <constructor-arg value="${server.password}"/>
-            <constructor-arg value="${server.numConnections}"/>
+            <constructor-arg index="0" type="org.apache.http.HttpHost" ref="ncubeHost"/>
+            <constructor-arg index="1" type="java.lang.String" value="${ncube.target.context:#{'ncube'}}"/>
+            <constructor-arg index="2" type="java.lang.String" value="${ncube.target.username:#{null}}"/>
+            <constructor-arg index="3" type="java.lang.String" value="${ncube.target.password:#{null}}"/>
+            <constructor-arg index="4" type="int" value="${ncube.target.numConnections:#{100}}"/>
         </bean>
 
     </beans>
@@ -37,10 +43,12 @@
 
         <import resource="ncube-beans-persister.xml"/>
 
+        <bean id="localFileCache" class="com.cedarsoftware.ncube.util.LocalFileCache"/>
+
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="callableBean"/>
             <constructor-arg ref="ncubeCacheManager"/>
-            <constructor-arg value="${ncube.allow.mutable.methods}"/>
+            <constructor-arg value="${ncube.allow.mutable.methods:#{false}}"/>
         </bean>
 
         <bean id="callableBean" class="com.cedarsoftware.util.ReflectiveProxy"/>
@@ -63,19 +71,26 @@
             <constructor-arg value="true"/>
         </bean>
 
+        <bean id="localFileCache" class="com.cedarsoftware.ncube.util.LocalFileCache"/>
+
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="callableBean"/>
             <constructor-arg ref="ncubeCacheManager"/>
-            <constructor-arg value="${ncube.allow.mutable.methods}"/>
+            <constructor-arg value="true"/>
+        </bean>
+
+        <bean id="ncubeHost" class="org.apache.http.HttpHost">
+            <constructor-arg value="${ncube.target.host:#{'localhost'}}"/>
+            <constructor-arg value="${ncube.target.port:#{9000}}"/>
+            <constructor-arg value="${ncube.target.scheme:#{'http'}}"/>
         </bean>
 
         <bean id="callableBean" class="com.cedarsoftware.util.JsonHttpProxy">
-            <constructor-arg value="${server.scheme}"/>
-            <constructor-arg value="${server.host}"/>
-            <constructor-arg value="${server.port}"/>
-            <constructor-arg value="${server.context}"/>
-            <constructor-arg value="${server.username}"/>
-            <constructor-arg value="${server.password}"/>
+            <constructor-arg index="0" type="org.apache.http.HttpHost" ref="ncubeHost"/>
+            <constructor-arg index="1" type="java.lang.String" value="${ncube.target.context:#{'ncube'}}"/>
+            <constructor-arg index="2" type="java.lang.String" value="${ncube.target.username:#{null}}"/>
+            <constructor-arg index="3" type="java.lang.String" value="${ncube.target.password:#{null}}"/>
+            <constructor-arg index="4" type="int" value="${ncube.target.numConnections:#{100}}"/>
         </bean>
 
     </beans>
@@ -112,6 +127,8 @@
             <constructor-arg ref="ncubeRuntime"/>
             <constructor-arg value="true"/>
         </bean>
+
+        <bean id="localFileCache" class="com.cedarsoftware.ncube.util.LocalFileCache"/>
 
         <bean id="ncubeRuntime" class="com.cedarsoftware.ncube.NCubeRuntime">
             <constructor-arg ref="callableBean"/>

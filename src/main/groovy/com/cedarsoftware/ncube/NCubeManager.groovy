@@ -2,23 +2,21 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
-import com.cedarsoftware.ncube.formatters.NCubeTestWriter
+import com.cedarsoftware.ncube.util.BranchComparator
+import com.cedarsoftware.ncube.util.GCacheManager
 import com.cedarsoftware.ncube.util.VersionComparator
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.Converter
-import com.cedarsoftware.util.EncryptionUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.UniqueIdGenerator
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
+import org.apache.tomcat.jdbc.pool.DataSource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.cache.Cache
 import org.springframework.cache.CacheManager
+import org.springframework.jdbc.datasource.DataSourceUtils
 
+import java.sql.Connection
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
@@ -59,11 +57,25 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     private NCubePersister nCubePersister
     private static final Logger LOG = LoggerFactory.getLogger(NCubeManager.class)
     private final CacheManager permCacheManager
-    
+
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
         String initialValue()
         {
             return System.getProperty('user.name')
+        }
+    }
+
+    private ThreadLocal<Boolean> isSystemRequest = new ThreadLocal<Boolean>() {
+        Boolean initialValue()
+        {
+            return false
+        }
+    }
+
+    private ThreadLocal<GCacheManager> tempCacheManager = new ThreadLocal<GCacheManager>() {
+        GCacheManager initialValue()
+        {
+            return null
         }
     }
 
@@ -79,14 +91,56 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         if (nCubePersister == null)
         {
-            throw new IllegalStateException('Persister not set into NCubeManager.')
+            throw new IllegalStateException("Persister not set into NCubeManager, user: ${getUserId()}")
         }
         return nCubePersister
     }
 
+    /**
+     * Create a reference axis from an existing axis.  If the reference information is does not point to an
+     * existing n-cube, then a new one will be created.  The source axis will provide the values for the
+     * newly created reference axis.  The source cube will also be updated to have a reference axis.  If
+     * the reference information points to an existing n-cube, then the source cube's axis will be updated to
+     * point to the existing reference axis.  If the new reference axis had fewer or more columns, the cells
+     * in the columns that no longer exist are dropped.  If the referenced axis has columns that did not exist
+     * on the source axis, those newly created cells will be empty.  Finally, for columns that existed on the
+     * original source axis as well as exist on the existing referenced axis, they will be kept.
+     */
+    void createRefAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName)
+    {
+        NCube cube = getCube(appId, cubeName)
+        Axis axis = cube.getAxis(axisName)
+
+        NCube refCube = getCube(refAppId, refCubeName)
+        if (refCube)
+        {   // referenced to n-cube already exists (merge case)
+            cube.convertExistingAxisToRefAxis(axisName, refAppId, refCubeName, refAxisName)
+        }
+        else
+        {   // create new
+            // copy axis for ref cube
+            Axis newAxis = new Axis(refAxisName, axis.type, axis.valueType, axis.hasDefaultColumn(), axis.columnOrder, axis.id, axis.fireAll)
+            newAxis.updateColumns(axis.columnsWithoutDefault, true) // using 'updateColumns()' to add-all-columns (keeps same IDs).
+
+            refCube = new NCube(refCubeName)
+            refCube.applicationID = refAppId
+            refCube.addAxis(newAxis)
+            createCube(refCube) // newly created reference axis n-cube (the target of a reference axis)
+
+            cube.convertAxisToRefAxis(axisName, refAppId, refCubeName, refAxisName)
+        }
+        updateCube(cube)
+    }
+
+    /**
+     * Load the n-cube with the given name.  This API works identically to loadCube().  It is strongly recommended that
+     * this method should not be called and instead that loadCube() should be called, when it is being called in a
+     * situation where it is known the target is an NCubeManager.
+     */
     NCube getCube(ApplicationID appId, String cubeName)
     {
-        return loadCube(appId, cubeName)
+        assertPermissions(appId, cubeName)
+        return loadCubeInternal(appId, cubeName, null)
     }
 
     /**
@@ -95,34 +149,97 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      * cache.  Any advices in the manager will be applied to the n-cube.
      * @return NCube of the specified name from the specified AppID, or null if not found.
      */
-    NCube loadCube(ApplicationID appId, String cubeName)
+    NCubeInfoDto loadCubeRecord(ApplicationID appId, String cubeName, Map options = null)
     {
         assertPermissions(appId, cubeName)
-        return loadCubeInternal(appId, cubeName)
-    }
-
-    private NCube loadCubeInternal(ApplicationID appId, String cubeName)
-    {
-        NCube ncube = persister.loadCube(appId, cubeName)
-        return ncube
+        NCubeInfoDto record = loadCubeRecordInternal(appId, cubeName, options)
+        return record
     }
 
     /**
-     * Load the n-cube with the specified id.  This is useful in n-cube editors, where a user wants to pick
-     * an older revision and load / compare it.
+     * Load the n-cube with the specified id.
      * @param id long n-cube id.
-     * @return NCube that has the passed in id.
+     * @param options Map of options using keys from NCubeConstants.SEARCH_*.  Mainly to allow active, deleted, or
+     * both to be searched.
+     * @return NCube that has the passed in id or null if no cube exists with that id.
      */
-    NCube loadCubeById(long id)
+    private NCube loadCubeById(long id, Map options = null)
     {
-        NCube ncube = persister.loadCubeById(id)
-        assertPermissions(ncube.applicationID, ncube.name, Action.READ)
+        NCubeInfoDto record = persister.loadCubeRecordById(id, options, getUserId())
+        NCube ncube = NCube.createCubeFromRecord(record)
         return ncube
+    }
+
+    NCubeInfoDto loadCubeRecordById(long id, Map options = null)
+    {
+        NCubeInfoDto record = persister.loadCubeRecordById(id, options, getUserId())
+        ApplicationID appId = record.applicationID
+        if (appId.tenant != tenant)
+        {
+            throw new SecurityException("Operation not performed. You do not have READ permission for cube with id: ${id}, user: ${getUserId()}")
+        }
+        assertPermissions(record.applicationID, record.name)
+        return record
+    }
+
+    private NCube loadCubeInternal(ApplicationID appId, String cubeName, Map options = null)
+    {
+        NCubeInfoDto record = loadCubeRecordInternal(appId, cubeName, options)
+        NCube ncube = NCube.createCubeFromRecord(record)
+        return ncube
+    }
+
+    private NCubeInfoDto loadCubeRecordInternal(ApplicationID appId, String cubeName, Map options = null)
+    {
+        GCacheManager cm = getTempCacheManager()
+        Cache cache
+        String cubeNameLower
+        if (cm != null)
+        {
+            cubeNameLower = cubeName.toLowerCase()
+            String cacheKey = appId.cacheKey()
+            cache = cm.getCache(cacheKey)
+            Cache.ValueWrapper item = cache.get(cubeNameLower)
+            if (item != null)
+            {
+                Object value = item.get()
+                return Boolean.FALSE == value ? null : value as NCubeInfoDto
+            }
+        }
+        if (options == null)
+        {
+            options = [:]
+        }
+        options[SEARCH_EXACT_MATCH_NAME] = true
+        if (!options.containsKey(SEARCH_INCLUDE_CUBE_DATA))
+        {
+            options[SEARCH_INCLUDE_CUBE_DATA] = true
+        }
+        options[SEARCH_ACTIVE_RECORDS_ONLY] = true
+        List<NCubeInfoDto> records = persister.search(appId, cubeName, null, options, getUserId())
+        if (cm != null)
+        {
+            cache.put(cubeNameLower, records.empty ? false : records.first())
+        }
+        if (records.empty)
+        {
+            return null
+        }
+        return records.first()
     }
 
     void createCube(NCube ncube)
     {
-        detectNewAppId(ncube.applicationID)
+        createPermissionsCubesIfNewAppId(ncube.applicationID)
+        persister.createCube(ncube, getUserId())
+    }
+
+    void createCube(ApplicationID appId, String cubeName, byte[] cubeBytes)
+    {
+        NCube ncube = NCube.createCubeFromBytes(cubeBytes)
+        ncube.applicationID = appId
+        ncube.name = cubeName
+        createPermissionsCubesIfNewAppId(ncube.applicationID)
         persister.createCube(ncube, getUserId())
     }
 
@@ -133,10 +250,11 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(name)
-        NCube ncube = loadCube(appId, name)
+        assertPermissions(appId, name)
+        NCube ncube = loadCubeInternal(appId, name, null)
         if (ncube == null)
         {
-            throw new IllegalArgumentException("Could not get referenced cube names, n-cube: ${name} does not exist in app: ${appId}")
+            throw new IllegalArgumentException("Could not get referenced cube names, cube: ${name} does not exist in app: ${appId}, user: ${getUserId()}")
         }
 
         Map<Map, Set<String>> subCubeRefs = ncube.referencedCubeNames
@@ -165,12 +283,12 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (appId.release)
         {
-            throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be restored, app: ${appId}")
+            throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be restored, app: ${appId}, user: ${getUserId()}")
         }
 
         if (ArrayUtilities.isEmpty(cubeNames))
         {
-            throw new IllegalArgumentException('Error, empty array of cube names passed in to be restored.')
+            throw new IllegalArgumentException("Error, empty array of cube names passed in to be restored, app: ${appId}, user: ${getUserId()}")
         }
 
         assertNotLockBlocked(appId)
@@ -191,8 +309,70 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName)
-        List<NCubeInfoDto> revisions = persister.getRevisions(appId, cubeName, ignoreVersion)
+        List<NCubeInfoDto> revisions = persister.getRevisions(appId, cubeName, ignoreVersion, getUserId())
         return revisions
+    }
+
+    /**
+     * Promote a previous revision of an NCube.
+     * @param cubeId long
+     * @return NCubeInfoDto for the revision of the passed in cubeId, NOT the newly created revision.
+     * NCubeInfDto does not contain bytes or testData
+     * Note: the restored dto and the dto to restore from differ only in revision number
+     */
+    NCubeInfoDto promoteRevision(long cubeId)
+    {
+        NCubeInfoDto record = loadCubeRecordById(cubeId, [(SEARCH_INCLUDE_TEST_DATA): true])
+        NCube ncube = NCube.createCubeFromRecord(record)
+        updateCube(ncube)
+        record.bytes = null
+        record.testData = null
+        return record
+    }
+
+    /**
+     * Get a list of deltas between two NCubes from NCube ids
+     * @param newCubeId long
+     * @param oldCubeId long
+     * @return List<Delta>
+     */
+    List<Delta> fetchJsonRevDiffs(long newCubeId, long oldCubeId)
+    {
+        Map options = [(SEARCH_INCLUDE_TEST_DATA):true]
+        NCubeInfoDto newRecord = loadCubeRecordById(newCubeId, options)
+        NCube newCube = NCube.createCubeFromRecord(newRecord)
+        NCubeInfoDto oldRecord = loadCubeRecordById(oldCubeId, options)
+        NCube oldCube = NCube.createCubeFromRecord(oldRecord)
+        return DeltaProcessor.getDeltaDescription(newCube, oldCube)
+    }
+
+    /**
+     * Get a list of deltas between two NCubes from NCubeInfoDtos
+     * @param newInfoDto NCubeInfoDto
+     * @param oldInfoDto NCubeInfoDto
+     * @return List<Delta>
+     */
+    List<Delta> fetchJsonBranchDiffs(NCubeInfoDto newInfoDto, NCubeInfoDto oldInfoDto)
+    {
+        Map options = [(SEARCH_INCLUDE_TEST_DATA):true]
+
+        ApplicationID newAppId = new ApplicationID(tenant, newInfoDto.app, newInfoDto.version, newInfoDto.status, newInfoDto.branch)
+        NCubeInfoDto newRecord = loadCubeRecord(newAppId, newInfoDto.name, options)
+        if (newRecord == null)
+        {
+            throw new IllegalArgumentException("cube: ${newInfoDto.name} in app: ${newInfoDto.applicationID} does not exist.")
+        }
+        NCube newCube = NCube.createCubeFromRecord(newRecord)
+
+        ApplicationID oldAppId = new ApplicationID(tenant, oldInfoDto.app, oldInfoDto.version, oldInfoDto.status, oldInfoDto.branch)
+        NCubeInfoDto oldRecord = loadCubeRecord(oldAppId, oldInfoDto.name, options)
+        if (oldRecord == null)
+        {
+            throw new IllegalArgumentException("cube: ${oldInfoDto.name} in app: ${oldInfoDto.applicationID} does not exist.")
+        }
+        NCube oldCube = NCube.createCubeFromRecord(oldRecord)
+
+        return DeltaProcessor.getDeltaDescription(newCube, oldCube)
     }
 
     /**
@@ -203,7 +383,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName)
-        List<NCubeInfoDto> revisions = persister.getRevisions(appId, cubeName, ignoreVersion).sort(true, {NCubeInfoDto rev -> rev.revision as long})
+        List<NCubeInfoDto> revisions = persister.getRevisions(appId, cubeName, ignoreVersion,getUserId()).sort(true, {NCubeInfoDto rev -> rev.revision as long})
         List<NCubeInfoDto> relevantRevDtos = []
         NCubeInfoDto prevDto
         NCube oldCube
@@ -234,9 +414,16 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     /**
      * Return a List of Strings containing all unique App names for the given tenant.
      */
-    List<String> getAppNames()
+    Object[] getAppNames()
     {
-        return persister.getAppNames(tenant)
+        List<String> appNames = persister.getAppNames(tenant, getUserId())
+        Collections.sort(appNames, new Comparator<String>() {
+            int compare(String o1, String o2)
+            {
+                return o1.compareToIgnoreCase(o2)
+            }
+        })
+        return appNames.toArray()
     }
 
     /**
@@ -246,8 +433,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     Object[] getVersions(String app)
     {
         ApplicationID.validateApp(app)
-        Set<String> versions = []
-        Map<String, List<String>> versionMap = persister.getVersions(tenant, app)
+        Set<String> versions = new TreeSet<>(new VersionComparator())
+        Map<String, List<String>> versionMap = persister.getVersions(tenant, app, getUserId())
         versionMap.keySet().each {String status ->
             addVersions(versions, versionMap[status], status)
         }
@@ -273,7 +460,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         String app = appId.app
         ApplicationID.validateTenant(tenant)
         ApplicationID.validateApp(app)
-        Map<String, List<String>> versionsMap = persister.getVersions(tenant, app)
+        Map<String, List<String>> versionsMap = persister.getVersions(tenant, app, getUserId())
         Set<String> versions = new TreeSet<>(new VersionComparator())
         versions.addAll(versionsMap[appId.status])
         return versions.first() as String
@@ -291,7 +478,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (newAppId.release)
         {
-            throw new IllegalArgumentException("Cubes cannot be duplicated into a ${ReleaseStatus.RELEASE} version, cube: ${newName}, app: ${newAppId}")
+            throw new IllegalArgumentException("Cubes cannot be duplicated into a ${ReleaseStatus.RELEASE} version, cube: ${newName}, app: ${newAppId}, user: ${getUserId()}")
         }
 
         NCube.validateCubeName(oldName)
@@ -299,13 +486,13 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (oldName.equalsIgnoreCase(newName) && oldAppId == newAppId)
         {
-            throw new IllegalArgumentException("Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ${oldName}, app: ${oldAppId}")
+            throw new IllegalArgumentException("Could not duplicate, old name cannot be the same as the new name when oldAppId matches newAppId, name: ${oldName}, app: ${oldAppId}, user: ${getUserId()}")
         }
 
         assertPermissions(oldAppId, oldName, Action.READ)
         if (oldAppId != newAppId)
         {   // Only see if branch permissions are needed to be created when destination cube is in a different ApplicationID
-            detectNewAppId(newAppId)
+            createPermissionsCubesIfNewAppId(newAppId)
         }
         assertPermissions(newAppId, newName, Action.UPDATE)
         assertNotLockBlocked(newAppId)
@@ -322,7 +509,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         if (ncube == null)
         {
-            throw new IllegalArgumentException('NCube cannot be null')
+            throw new IllegalArgumentException("NCube cannot be null, user: ${getUserId()}")
         }
         ApplicationID appId = ncube.applicationID
         ApplicationID.validateAppId(appId)
@@ -330,7 +517,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (appId.release)
         {
-            throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be updated, cube: ${ncube.name}, app: ${appId}")
+            throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be updated, cube: ${ncube.name}, app: ${appId}, user: ${getUserId()}")
         }
 
         if (!updateHead)
@@ -346,29 +533,50 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return true
     }
 
+    Boolean updateCube(ApplicationID appId, String cubeName, byte[] cubeBytes)
+    {
+        if (cubeBytes == null)
+        {
+            throw new IllegalArgumentException("Attemping to updateCube(), cubeBytes cannot be null, user: ${getUserId()}")
+        }
+        NCube ncube = NCube.createCubeFromBytes(cubeBytes)
+        ncube.applicationID = appId
+        ncube.name = cubeName
+        return updateCube(ncube)
+    }
+
     /**
      * Copy branch from one app id to another
      * @param srcAppId Branch copied from (source branch)
      * @param targetAppId Branch copied to (must not exist)
-     * @return int number of n-cubes in branch (number copied - revision depth is not copied)
+     * @return int number of n-cubes in branch (number copied - revision depth is not copied, will not include "hidden" n-cubes like sys.info)
      */
     Integer copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
-        assertPermissions(srcAppId, null, Action.READ)
-        assertPermissions(targetAppId, null, Action.UPDATE)
+        Closure checkForExistingCubes = { ApplicationID appId, String message ->
+            if (persister.doCubesExist(appId, false, 'copyBranch', getUserId()))
+            {
+                throw new IllegalArgumentException("${message}, app: ${targetAppId}, user: ${getUserId()}")
+            }
+        }
         ApplicationID.validateAppId(srcAppId)
+        assertPermissions(srcAppId, null, Action.READ)
         ApplicationID.validateAppId(targetAppId)
         targetAppId.validateStatusIsNotRelease()
-        if (!search(targetAppId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY): true]).empty)
-        {
-            throw new IllegalArgumentException("A RELEASE version ${targetAppId.version} already exists, app: ${targetAppId}")
-        }
+        checkForExistingCubes(targetAppId.asRelease(), "A RELEASE version ${targetAppId.version} already exists")
+        checkForExistingCubes(targetAppId, "Branch ${targetAppId.branch} already exists")
+        assertPermissions(targetAppId, null, Action.UPDATE)
         assertNotLockBlocked(targetAppId)
-        if (targetAppId.version != '0.0.0')
+        boolean isTargetSysBootVersion = targetAppId.version == ApplicationID.SYS_BOOT_VERSION
+        if (!isTargetSysBootVersion)
         {
-            detectNewAppId(targetAppId)
+            createPermissionsCubesIfNewAppId(targetAppId)
         }
-        int rows = copyWithHistory ? persister.copyBranchWithHistory(srcAppId, targetAppId) : persister.copyBranch(srcAppId, targetAppId)
+        int rows = copyWithHistory ? persister.copyBranchWithHistory(srcAppId, targetAppId, getUserId()) : persister.copyBranch(srcAppId, targetAppId, getUserId())
+        if (isTargetSysBootVersion)
+        {
+            createPermissionsCubes(targetAppId)
+        }
         return rows
     }
 
@@ -381,10 +589,11 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      */
     NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
-        NCube ncube = loadCube(appId, cubeName)
+        assertPermissions(appId, cubeName)
+        NCube ncube = loadCubeInternal(appId, cubeName, [(SEARCH_INCLUDE_TEST_DATA):true])
         if (ncube == null)
         {
-            throw new IllegalArgumentException("No ncube exists with the name: ${cubeName}, no changes will be merged, app: ${appId}")
+            throw new IllegalArgumentException("No n-cube exists with the name: ${cubeName}, no changes will be merged, app: ${appId}, user: ${getUserId()}")
         }
 
         assertPermissions(appId, cubeName, Action.UPDATE)
@@ -392,22 +601,27 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
             if ([Delta.Location.AXIS, Delta.Location.AXIS_META, Delta.Location.COLUMN, Delta.Location.COLUMN_META].contains(delta.location))
             {
                 String axisName
-                switch (delta.location)
+                if (delta.location == Delta.Location.AXIS)
                 {
-                    case Delta.Location.AXIS:
-                        axisName = ((delta.sourceVal ?: delta.destVal) as Axis).name
-                        break
-                    case Delta.Location.AXIS_META:
-                    case Delta.Location.COLUMN:
-                        axisName = delta.locId as String
-                        break
-                    case Delta.Location.COLUMN_META:
-                        axisName = (delta.locId as Map<String, Object>).axis
-                        break
-                    default:
-                        throw new IllegalArgumentException("Invalid properties on delta, no changes will be merged, app: ${appId}, cube: ${cubeName}")
+                    axisName = ((delta.sourceVal ?: delta.destVal) as Axis).name
                 }
-                assertPermissions(appId, cubeName + '/' + axisName, Action.UPDATE)
+                else if (delta.location == Delta.Location.AXIS_META)
+                {
+                    axisName = delta.locId as String
+                }
+                else if (delta.location == Delta.Location.COLUMN)
+                {
+                    axisName = delta.locId as String
+                }
+                else if (delta.location == Delta.Location.COLUMN_META)
+                {
+                    axisName = (delta.locId as Map<String, Object>).axis
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Invalid properties on delta, no changes will be merged, app: ${appId}, cube: ${cubeName}, user: ${getUserId()}")
+                }
+                assertPermissions(appId, "${cubeName}/${axisName}", Action.UPDATE)
             }
         }
 
@@ -427,47 +641,50 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         if (ApplicationID.HEAD == appId.branch)
         {
-            throw new IllegalArgumentException('Cannot move the HEAD branch')
+            throw new IllegalArgumentException("Cannot move the HEAD branch, app: ${appId}, user: ${getUserId()}")
         }
-        if ('0.0.0' == appId.version)
+        if (ApplicationID.SYS_BOOT_VERSION == appId.version)
         {
-            throw new IllegalStateException(ERROR_CANNOT_MOVE_000)
+            throw new IllegalStateException(ERROR_CANNOT_MOVE_000 + " app: ${appId}, user: ${getUserId()}")
         }
-        if ('0.0.0' == newSnapVer)
+        if (ApplicationID.SYS_BOOT_VERSION == newSnapVer)
         {
-            throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000)
+            throw new IllegalStateException(ERROR_CANNOT_MOVE_TO_000 + "app: ${appId}, user: ${getUserId()}")
         }
         assertLockedByMe(appId)
         assertPermissions(appId, null, Action.RELEASE)
-        int rows = persister.moveBranch(appId, newSnapVer)
+        int rows = persister.moveBranch(appId, newSnapVer, getUserId())
         return rows
     }
 
     /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
-    Integer releaseVersion(ApplicationID appId, String newSnapVer)
+    Integer releaseVersion(ApplicationID appId, String newSnapVer = null)
     {
         ApplicationID.validateAppId(appId)
         assertPermissions(appId, null, Action.RELEASE)
         assertLockedByMe(appId)
-        ApplicationID.validateVersion(newSnapVer)
-        if ('0.0.0' == appId.version)
+        if (ApplicationID.SYS_BOOT_VERSION == appId.version)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000 + " app: ${appId}, user: ${getUserId()}")
         }
-        if ('0.0.0' == newSnapVer)
+        if (newSnapVer)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
+            ApplicationID.validateVersion(newSnapVer)
+            if (ApplicationID.SYS_BOOT_VERSION == newSnapVer)
+            {
+                throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000 + " app: ${appId}, user: ${getUserId()}")
+            }
         }
-        if (!search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
+        if (persister.doCubesExist(appId.asRelease(), false, 'releaseVersion', getUserId()))
         {
-            throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
+            throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}, user: ${getUserId()}")
         }
 
         validateReferenceAxesAppIds(appId)
 
-        int rows = persister.releaseCubes(appId, newSnapVer)
+        int rows = persister.releaseCubes(appId, getUserId())
         updateOpenPullRequestVersions(appId, newSnapVer)
         return rows
     }
@@ -475,26 +692,30 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     /**
      * Perform release (SNAPSHOT to RELEASE) for the given ApplicationIDs n-cubes.
      */
-    Integer releaseCubes(ApplicationID appId, String newSnapVer)
+    Integer releaseCubes(ApplicationID appId, String newSnapVer = null)
     {
         assertPermissions(appId, null, Action.RELEASE)
         ApplicationID.validateAppId(appId)
-        ApplicationID.validateVersion(newSnapVer)
-        if ('0.0.0' == appId.version)
+
+        if (ApplicationID.SYS_BOOT_VERSION == appId.version)
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000)
+            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_000 + " app: ${appId}, user: ${getUserId()}")
         }
-        if ('0.0.0' == newSnapVer)
+        if (persister.doCubesExist(appId.asRelease(), false, 'releaseCubes', getUserId()))
         {
-            throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000)
+            throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}, user: ${getUserId()}")
         }
-        if (!search(appId.asVersion(newSnapVer), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
+        if (newSnapVer)
         {
-            throw new IllegalArgumentException("A SNAPSHOT version ${appId.version} already exists, app: ${appId}")
-        }
-        if (!search(appId.asRelease(), null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).empty)
-        {
-            throw new IllegalArgumentException("A RELEASE version ${appId.version} already exists, app: ${appId}")
+            ApplicationID.validateVersion(newSnapVer)
+            if (ApplicationID.SYS_BOOT_VERSION == newSnapVer)
+            {
+                throw new IllegalArgumentException(ERROR_CANNOT_RELEASE_TO_000 + " app: ${appId}, user: ${getUserId()}")
+            }
+            if (persister.doCubesExist(appId.asVersion(newSnapVer), false, 'releaseCubes', getUserId()))
+            {
+                throw new IllegalArgumentException("A SNAPSHOT version ${appId.version} already exists, app: ${appId}, user: ${getUserId()}")
+            }
         }
 
         validateReferenceAxesAppIds(appId)
@@ -505,17 +726,28 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
             sleep(10000)
         }
 
-        Set<String> branches = getBranches(appId)
-        for (String branch : branches)
+        Object[] branches = getBranches(appId)
+        for (Object branchObj : branches)
         {
+            String branch = branchObj as String
             if (!ApplicationID.HEAD.equalsIgnoreCase(branch))
             {
                 ApplicationID branchAppId = appId.asBranch(branch)
-                moveBranch(branchAppId, newSnapVer)
+                if (newSnapVer)
+                {
+                    moveBranch(branchAppId, newSnapVer)
+                }
+                else
+                {
+                    deleteBranch(branchAppId)
+                }
             }
         }
-        int rows = persister.releaseCubes(appId, newSnapVer)
-        persister.copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer))
+        int rows = persister.releaseCubes(appId, getUserId())
+        if (newSnapVer)
+        {
+            persister.copyBranch(appId.asRelease(), appId.asSnapshot().asHead().asVersion(newSnapVer), getUserId())
+        }
         updateOpenPullRequestVersions(appId, newSnapVer)
         lockApp(appId, false)
         return rows
@@ -527,19 +759,28 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         Map prStatusCoord = [(PR_PROP):PR_STATUS]
         Date startDate = new Date() - 60
         List<NCube> prCubes = getPullRequestCubes(startDate, null)
-        for (NCube prCube : prCubes)
-        {
-            Object prAppIdObj = prCube.getCell(prAppIdCoord)
-            Object prStatus = prCube.getCell(prStatusCoord)
-            ApplicationID prAppId = prAppIdObj instanceof ApplicationID ? prAppIdObj as ApplicationID : ApplicationID.convert(prAppIdObj as String)
-            if (prStatus == PR_OPEN)
+        runSystemRequest {
+            for (NCube prCube : prCubes)
             {
-                boolean shouldChange = onlyCurrentBranch ? prAppId == appId : prAppId.equalsNotIncludingBranch(appId)
-                if (shouldChange)
+                Object prAppIdObj = prCube.getCell(prAppIdCoord)
+                Object prStatus = prCube.getCell(prStatusCoord)
+                ApplicationID prAppId = prAppIdObj instanceof ApplicationID ? prAppIdObj as ApplicationID : ApplicationID.convert(prAppIdObj as String)
+                if (prStatus == PR_OPEN)
                 {
-                    prAppId = prAppId.asVersion(newSnapVer)
-                    prCube.setCell(prAppId.toString(), prAppIdCoord)
-                    updateCube(prCube, true)
+                    boolean shouldChange = onlyCurrentBranch ? prAppId == appId : prAppId.equalsNotIncludingBranch(appId)
+                    if (shouldChange)
+                    {
+                        if (newSnapVer)
+                        {
+                            prAppId = prAppId.asVersion(newSnapVer)
+                            prCube.setCell(prAppId.toString(), prAppIdCoord)
+                        }
+                        else
+                        {
+                            prCube.setCell(PR_OBSOLETE, prStatusCoord)
+                        }
+                        updateCube(prCube, true)
+                    }
                 }
             }
         }
@@ -551,12 +792,12 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (appId.release)
         {
-            throw new IllegalArgumentException("Cannot change the version of a ${ReleaseStatus.RELEASE.name()}, app: ${appId}")
+            throw new IllegalArgumentException("Cannot change the version of a ${ReleaseStatus.RELEASE.name()}, app: ${appId}, user: ${getUserId()}")
         }
         ApplicationID.validateVersion(newVersion)
         assertPermissions(appId, null, Action.RELEASE)
         assertNotLockBlocked(appId)
-        persister.changeVersionValue(appId, newVersion)
+        persister.changeVersionValue(appId, newVersion, getUserId())
         updateOpenPullRequestVersions(appId, newVersion, true)
     }
 
@@ -567,7 +808,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (appId.release)
         {
-            throw new IllegalArgumentException("Cannot rename a ${ReleaseStatus.RELEASE.name()} cube, cube: ${oldName}, app: ${appId}")
+            throw new IllegalArgumentException("Cannot rename a ${ReleaseStatus.RELEASE.name()} cube, cube: ${oldName}, app: ${appId}, user: ${getUserId()}")
         }
 
         assertNotLockBlocked(appId)
@@ -577,7 +818,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (oldName == newName)
         {
-            throw new IllegalArgumentException("Could not rename, old name cannot be the same as the new name, name: ${oldName}, app: ${appId}")
+            throw new IllegalArgumentException("Could not rename, old name cannot be the same as the new name, name: ${oldName}, app: ${appId}, user: ${getUserId()}")
         }
 
         assertPermissions(appId, oldName, Action.UPDATE)
@@ -592,7 +833,17 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         appId.validateBranchIsNotHead()
         assertPermissions(appId, null, Action.UPDATE)
         assertNotLockBlocked(appId)
-        return persister.deleteBranch(appId)
+        return persister.deleteBranch(appId, getUserId())
+    }
+
+    Boolean deleteApp(ApplicationID appId)
+    {
+        appId.validate()
+        if (!sysAdmin)
+        {
+            throw new IllegalArgumentException("Only a system administrator can delete apps, app: ${appId}, user: ${getUserId()}")
+        }
+        return persister.deleteApp(appId, getUserId())
     }
 
     /**
@@ -618,7 +869,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         {
             if (appId.release)
             {
-                throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be hard-deleted, app: ${appId}")
+                throw new IllegalArgumentException("${ReleaseStatus.RELEASE.name()} cubes cannot be hard-deleted, app: ${appId}, user: ${getUserId()}")
             }
         }
 
@@ -635,14 +886,19 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         return false
     }
 
-    Boolean saveTests(ApplicationID appId, String cubeName, Object[] tests)
+    Map getAppTests(ApplicationID appId)
     {
-        String testData = new NCubeTestWriter().format(tests)
+        Map ret = new CaseInsensitiveMap()
         ApplicationID.validateAppId(appId)
-        NCube.validateCubeName(cubeName)
-        assertPermissions(appId, cubeName, Action.UPDATE)
-        assertNotLockBlocked(appId)
-        return persister.updateTestData(appId, cubeName, testData)
+        Map appTests = persister.getAppTestData(appId, getUserId())
+        for (Map.Entry cubeTest : appTests.entrySet())
+        {
+            String cubeName = cubeTest.key
+            assertPermissions(appId, cubeName)
+            List<NCubeTest> tests = NCubeTestReader.convert(cubeTest.value as String)
+            ret[cubeName] = tests
+        }
+        return ret
     }
 
     Object[] getTests(ApplicationID appId, String cubeName)
@@ -650,7 +906,12 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName)
-        String s = persister.getTestData(appId, cubeName)
+        String s = persister.getTestData(appId, cubeName, getUserId())
+        return convertTests(s)
+    }
+
+    private static Object[] convertTests(String s)
+    {
         if (StringUtilities.isEmpty(s))
         {
             return null
@@ -665,7 +926,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         NCube.validateCubeName(cubeName)
         assertPermissions(appId, cubeName, Action.UPDATE)
         assertNotLockBlocked(appId)
-        return persister.updateNotes(appId, cubeName, notes)
+        return persister.updateNotes(appId, cubeName, notes, getUserId())
     }
 
     String getNotes(ApplicationID appId, String cubeName)
@@ -681,29 +942,31 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
         if (infos.empty)
         {
-            throw new IllegalArgumentException("Could not fetch notes, no cube: ${cubeName} in app: ${appId}")
+            throw new IllegalArgumentException("Could not fetch notes, no cube: ${cubeName} in app: ${appId}, user: ${getUserId()}")
         }
         return infos[0].notes
     }
 
-    Set<String> getBranches(ApplicationID appId)
+    Object[] getBranches(ApplicationID appId)
     {
         appId.validate()
         assertPermissions(appId, null)
-        Set<String> realBranches = persister.getBranches(appId)
+        Set<String> realBranches = new TreeSet<>(new BranchComparator())
+        Set<String> branches = persister.getBranches(appId, getUserId())
+        realBranches.addAll(branches)
         realBranches.add(ApplicationID.HEAD)
-        return realBranches
+        return realBranches.toArray()
     }
 
     Integer getBranchCount(ApplicationID appId)
     {
-        Set<String> branches = getBranches(appId)
-        return branches.size()
+        Object[] branches = getBranches(appId)
+        return branches.length
     }
 
-    String getCubeRawJson(ApplicationID appId, String cubeName)
+    String getJson(ApplicationID appId, String cubeName, Map options)
     {
-        return persister.loadCubeRawJson(appId, cubeName)
+        throw new IllegalStateException("getJson(${appId}, ${cubeName}) should not be called on a storage server")
     }
 
     /**
@@ -713,11 +976,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
      * @param appId ApplicationID on which we are working
      * @param cubeNamePattern cubeNamePattern String pattern to match cube names
      * @param content String value that is 'contained' within the cube's JSON
-     * @param options map with possible keys:
-     *                changedRecordsOnly - default false ->  Only searches changed records if true.
-     *                activeRecordsOnly - default false -> Only searches non-deleted records if true.
-     *                deletedRecordsOnly - default false -> Only searches deleted records if true.
-     *                cacheResult - default false -> Cache the cubes that match this result..
+     * @param options map with possible keys.  See NCubeConstants.SEARCH_*
      * @return List<NCubeInfoDto>
      */
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String content, Map options)
@@ -734,34 +993,23 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
             cubeNamePattern = handleWildCard(cubeNamePattern)
         }
 
-        content = handleWildCard(content)
-
-        Map permInfo = getPermInfo(appId)
-        List<NCubeInfoDto> cubes = persister.search(appId, cubeNamePattern, content, options)
-        if (!permInfo.skipPermCheck)
+        if (content)
         {
-            cubes.removeAll { !fastCheckPermissions(appId, it.name, Action.READ, permInfo) }
-        }
-        return cubes
-    }
-
-    List<NCube> cubeSearch(ApplicationID appId, String cubeNamePattern, String content, Map options = [:])
-    {
-        ApplicationID.validateAppId(appId)
-
-        if (!options[SEARCH_EXACT_MATCH_NAME])
-        {
-            cubeNamePattern = handleWildCard(cubeNamePattern)
+            while (content.startsWith('*'))
+            {
+                content = content.substring(1)
+            }
+            while (content.endsWith('*'))
+            {
+                content = content[0..-2]
+            }
         }
 
-        content = handleWildCard(content)
-
-        Map permInfo = getPermInfo(appId)
-        List<NCube> cubes = persister.cubeSearch(appId, cubeNamePattern, content, options)
-        if (!permInfo.skipPermCheck)
-        {
-            cubes.removeAll { !fastCheckPermissions(appId, it.name, Action.READ, permInfo) }
+        List<NCubeInfoDto> cubes = (List<NCubeInfoDto>) runWithCubeCache {
+            return persister.search(appId, cubeNamePattern, content, options, getUserId())
         }
+        Set<String> validCubeNames = fastCheckPermissions(appId, Action.READ, cubes.collect { it.name })
+        cubes.removeAll { !validCubeNames.contains(it.name)}
         return cubes
     }
 
@@ -777,50 +1025,45 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         ApplicationID.validateAppId(appId)
         assertPermissions(appId, null)
 
-        // Step 1: Fetch all NCubeInfoDto's for the passed in ApplicationID
-        List<NCube> list = cubeSearch(appId, null, "*${REF_APP}*", [(SEARCH_ACTIVE_RECORDS_ONLY):true])
-        List<AxisRef> refAxes = []
-
-        for (NCube source : list)
-        {
-            try
+        Map<String, Object> jsonReaderOpts = [(JsonReader.USE_MAPS):(Object)true]
+        Closure getRefAxes = { NCubeInfoDto dto, List<AxisRef> refAxes ->
+            String json = StringUtilities.createUTF8String(IOUtilities.uncompressBytes((byte[])dto.bytes))
+            Map jsonNCube = (Map)JsonReader.jsonToJava(json, jsonReaderOpts)
+            Object[] axes = (Object[])jsonNCube.axes
+            for (Object axisEntry : axes)
             {
-                for (Axis axis : source.axes)
+                Map axis = (Map)axisEntry
+                if (axis.containsKey(REF_APP))
                 {
-                    if (axis.reference)
+                    AxisRef ref = new AxisRef()
+                    ref.srcAppId = appId
+                    ref.srcCubeName = dto.name
+                    ref.srcAxisName = axis.name
+
+                    ref.destApp = axis[REF_APP]
+                    ref.destVersion = axis[REF_VERSION]
+                    ref.destStatus = axis[REF_STATUS]
+                    ref.destBranch = axis[REF_BRANCH]
+                    ref.destCubeName = axis[REF_CUBE_NAME]
+                    ref.destAxisName = axis[REF_AXIS_NAME]
+
+                    if (axis[TRANSFORM_APP])
                     {
-                        AxisRef ref = new AxisRef()
-                        ref.srcAppId = appId
-                        ref.srcCubeName = source.name
-                        ref.srcAxisName = axis.name
-
-                        ApplicationID refAppId = axis.referencedApp
-                        ref.destApp = refAppId.app
-                        ref.destVersion = refAppId.version
-                        ref.destStatus = refAppId.status
-                        ref.destBranch = refAppId.branch
-                        ref.destCubeName = axis.getMetaProperty(REF_CUBE_NAME)
-                        ref.destAxisName = axis.getMetaProperty(REF_AXIS_NAME)
-
-                        ApplicationID transformAppId = axis.transformApp
-                        if (transformAppId)
-                        {
-                            ref.transformApp = transformAppId.app
-                            ref.transformVersion = transformAppId.version
-                            ref.transformStatus = transformAppId.status
-                            ref.transformBranch = transformAppId.branch
-                            ref.transformCubeName = axis.getMetaProperty(TRANSFORM_CUBE_NAME)
-                        }
-
-                        refAxes.add(ref)
+                        ref.transformApp = axis[TRANSFORM_APP]
+                        ref.transformVersion = axis[TRANSFORM_VERSION]
+                        ref.transformStatus = axis[TRANSFORM_STATUS]
+                        ref.transformBranch = axis[TRANSFORM_BRANCH]
+                        ref.transformCubeName = axis[TRANSFORM_CUBE_NAME]
                     }
+
+                    refAxes.add(ref)
                 }
             }
-            catch (Exception e)
-            {
-                LOG.warn("Unable to load cube: ${source.name}, app: ${source.applicationID}", e)
-            }
         }
+        List<AxisRef> refAxes = []
+        Map options = [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_CLOSURE): getRefAxes, (SEARCH_OUTPUT): refAxes]
+        search(appId, null, "${REF_APP}", options)
+
         return refAxes
     }
 
@@ -831,7 +1074,19 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         {
             AxisRef axisRef = obj as AxisRef
             ApplicationID srcApp = axisRef.srcAppId
-            ApplicationID destAppId = new ApplicationID(srcApp.tenant, axisRef.destApp, axisRef.destVersion, axisRef.destStatus, axisRef.destBranch)
+            ApplicationID destAppId = null
+            try
+            {
+                 destAppId = new ApplicationID(srcApp.tenant, axisRef.destApp, axisRef.destVersion, axisRef.destStatus, axisRef.destBranch)
+            }
+            catch (Exception e)
+            {
+                axisRef.with {
+                    throw new IllegalStateException("""\
+Could not validate reference axis on cube: ${srcCubeName}, app: ${srcAppId}, referenced cube: ${destCubeName}, \
+referenced app: ${destApp}/${destVersion}/${destStatus}/${destBranch}/""", e)
+                }
+            }
             if (source)
             {
                 uniqueAppIds.add(srcApp)
@@ -841,12 +1096,23 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
                 uniqueAppIds.add(destAppId)
             }
 
-            if (axisRef.transformApp != null && axisRef.transformVersion != null && axisRef.transformStatus != null && axisRef.transformBranch != null)
+            if (StringUtilities.hasContent(axisRef.transformApp) || StringUtilities.hasContent(axisRef.transformVersion) || StringUtilities.hasContent(axisRef.transformStatus) || StringUtilities.hasContent(axisRef.transformBranch))
             {
-                ApplicationID transformAppId = new ApplicationID(srcApp.tenant, axisRef.transformApp, axisRef.transformVersion, axisRef.transformStatus, axisRef.transformBranch)
-                if (!source)
+                try
                 {
-                    uniqueAppIds.add(transformAppId)
+                    ApplicationID transformAppId = new ApplicationID(srcApp.tenant, axisRef.transformApp, axisRef.transformVersion, axisRef.transformStatus, axisRef.transformBranch)
+                    if (!source)
+                    {
+                        uniqueAppIds.add(transformAppId)
+                    }
+                }
+                catch (Exception e)
+                {
+                    axisRef.with {
+                        throw new IllegalStateException("""\
+Could not validate reference axis transform on cube: ${srcCubeName}, app: ${srcAppId}, transform cube: ${transformCubeName}, \
+transform app: ${transformApp}/${transformVersion}/${transformStatus}/${transformBranch}/""", e)
+                    }
                 }
             }
         }
@@ -886,14 +1152,14 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         {
             if (refAppId.status == snapshot)
             {
-                throw new IllegalStateException("Operation not performed. Axis references pointing to snapshot version, referenced app: ${refAppId}")
+                throw new IllegalStateException("Operation not performed. Axis references pointing to snapshot version, referenced app: ${refAppId}, user: ${getUserId()}")
             }
             ApplicationID checkedApp = checklist[refAppId.app]
             if (checkedApp)
             {
                 if (checkedApp != refAppId)
                 {
-                    throw new IllegalStateException("Operation not performed. Axis references pointing to differing versions per app, referenced app: ${refAppId.app}")
+                    throw new IllegalStateException("Operation not performed. Axis references pointing to differing versions per app, referenced app: ${refAppId.app}, user: ${getUserId()}")
                 }
             }
             else
@@ -901,77 +1167,121 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
                 checklist[refAppId.app] = refAppId
             }
         }
+
+        Set<ApplicationID> committedAppIds = getReferenceAxesAppIds(allAxisRefs.toArray(), false)
+        for (ApplicationID refAppId : committedAppIds)
+        {
+            ApplicationID checkedApp = checklist[refAppId.app]
+            if (checkedApp && checkedApp != refAppId)
+            {
+                throw new IllegalStateException("Operation not performed. Axis references pointing to differing versions per app, referenced app: ${refAppId.app}, user: ${getUserId()}")
+            }
+        }
     }
 
     void updateReferenceAxes(Object[] axisRefs)
     {
-        Set<ApplicationID> uniqueAppIds = getReferenceAxesAppIds(axisRefs, true)
-        for (ApplicationID appId : uniqueAppIds)
-        {
-            assertPermissions(appId, null, Action.UPDATE)
-            // Make sure we are not lock blocked on any of the appId's that are being updated.
-            assertNotLockBlocked(appId)
-        }
-
+        Map<ApplicationID, Map<String, Set<AxisRef>>> appIdCubeNames = [:]
         for (Object obj : axisRefs)
         {
             AxisRef axisRef = obj as AxisRef
-            axisRef.with {
-                assertPermissions(srcAppId, srcCubeName, Action.UPDATE)
-                NCube ncube = persister.loadCube(srcAppId, srcCubeName)
-                Axis axis = ncube.getAxis(srcAxisName)
+            ApplicationID appId = axisRef.srcAppId
+            String cubeName = axisRef.srcCubeName
+            if (!appIdCubeNames.containsKey(appId))
+            {
+                appIdCubeNames[appId] = new CaseInsensitiveMap<>()
+            }
+            if (!appIdCubeNames[appId].containsKey(cubeName))
+            {
+                appIdCubeNames[appId][cubeName] = new LinkedHashSet<AxisRef>()
+            }
+            appIdCubeNames[appId][cubeName].add(axisRef)
+        }
 
-                axis.setMetaProperty(REF_APP, destApp)
-                axis.setMetaProperty(REF_VERSION, destVersion)
-                axis.setMetaProperty(REF_STATUS, destStatus)
-                axis.setMetaProperty(REF_BRANCH, destBranch)
-                axis.setMetaProperty(REF_CUBE_NAME, destCubeName)
-                axis.setMetaProperty(REF_AXIS_NAME, destAxisName)
-                ApplicationID appId = new ApplicationID(srcAppId.tenant, destApp, destVersion, destStatus, destBranch)
-                assertPermissions(appId, null)
+        for (Map.Entry<ApplicationID, Map<String, Set<AxisRef>>> appIdCubeNameEntry : appIdCubeNames)
+        {
+            ApplicationID appId = appIdCubeNameEntry.key
+            assertNotLockBlocked(appId)
+            assertPermissions(appId, null, Action.UPDATE)
 
-                NCube target = persister.loadCube(appId, destCubeName)
-                if (target == null)
+            for (Map.Entry<String, Set<AxisRef>> cubeNameRefAxEntry : appIdCubeNameEntry.value)
+            {
+                String cubeName = cubeNameRefAxEntry.key
+                NCubeInfoDto record = loadCubeRecordInternal(appId, cubeName, null)
+                String json = new String(IOUtilities.uncompressBytes(record.bytes), "UTF-8")
+
+                //TODO - fix asap!!! call loadCube() which will use new parser
+                Map jsonNCube = (Map) JsonReader.jsonToJava(json, [(JsonReader.USE_MAPS): true as Object])
+                Object[] axes = jsonNCube.axes as Object[]
+
+                for (AxisRef axisRef : cubeNameRefAxEntry.value)
                 {
-                    throw new IllegalArgumentException("""\
+                    axisRef.with {
+                        ApplicationID destAppId = new ApplicationID(srcAppId.tenant, destApp, destVersion, destStatus, destBranch)
+                        assertPermissions(destAppId, destCubeName)
+                        NCube target = loadCubeInternal(destAppId, destCubeName, null)
+
+                        if (target == null)
+                        {
+                            throw new IllegalArgumentException("""\
 Cannot point reference axis to non-existing cube: ${destCubeName}. \
 Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
-target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
-                }
+target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}, user: ${getUserId()}""")
+                        }
 
-                if (target.getAxis(destAxisName) == null)
-                {
-                    throw new IllegalArgumentException("""\
+                        if (target.getAxis(destAxisName) == null)
+                        {
+                            throw new IllegalArgumentException("""\
 Cannot point reference axis to non-existing axis: ${destAxisName}. \
 Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
-target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}""")
-                }
+target axis: ${destApp} / ${destVersion} / ${destCubeName}.${destAxisName}, user: ${getUserId()}""")
+                        }
 
-                axis.setMetaProperty(TRANSFORM_APP, transformApp)
-                axis.setMetaProperty(TRANSFORM_VERSION, transformVersion)
-                axis.setMetaProperty(TRANSFORM_STATUS, transformStatus)
-                axis.setMetaProperty(TRANSFORM_BRANCH, transformBranch)
-                axis.setMetaProperty(TRANSFORM_CUBE_NAME, transformCubeName)
-
-                if (transformApp && transformVersion && transformStatus && transformBranch && transformCubeName)
-                {   // If transformer cube reference supplied, verify that the cube exists
-                    ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, transformStatus, transformBranch)
-                    assertPermissions(txAppId, null)
-                    NCube transformCube = persister.loadCube(txAppId, transformCubeName)
-                    if (transformCube == null)
-                    {
-                        throw new IllegalArgumentException("""\
+                        boolean hasTransform = transformApp && transformVersion && transformStatus && transformBranch && transformCubeName
+                        if (hasTransform)
+                        {   // If transformer cube reference supplied, verify that the cube exists
+                            ApplicationID txAppId = new ApplicationID(srcAppId.tenant, transformApp, transformVersion, transformStatus, transformBranch)
+                            assertPermissions(txAppId, transformCubeName)
+                            NCubeInfoDto transformCubeRecord = loadCubeRecordInternal(txAppId, transformCubeName, [(SEARCH_INCLUDE_CUBE_DATA): false])
+                            if (transformCubeRecord == null)
+                            {
+                                throw new IllegalArgumentException("""\
 Cannot point reference axis transformer to non-existing cube: ${transformCubeName}. \
 Source axis: ${srcAppId.cacheKey(srcCubeName)}.${srcAxisName}, \
-target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
+target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user: ${getUserId()}""")
+                            }
+                        }
+
+                        Map axis = axes.find { return srcAxisName.equalsIgnoreCase((it as Map).name as String) } as Map
+                        axis[REF_APP] = destApp
+                        axis[REF_VERSION] = destVersion
+                        axis[REF_STATUS] = destStatus
+                        axis[REF_BRANCH] = destBranch
+                        axis[REF_CUBE_NAME] = destCubeName
+                        axis[REF_AXIS_NAME] = destAxisName
+                        if (hasTransform)
+                        {
+                            axis[TRANSFORM_APP] = transformApp
+                            axis[TRANSFORM_VERSION] = transformVersion
+                            axis[TRANSFORM_STATUS] = transformStatus
+                            axis[TRANSFORM_BRANCH] = transformBranch
+                            axis[TRANSFORM_CUBE_NAME] = transformCubeName
+                        }
+                        else
+                        {
+                            axis.remove(TRANSFORM_APP)
+                            axis.remove(TRANSFORM_VERSION)
+                            axis.remove(TRANSFORM_STATUS)
+                            axis.remove(TRANSFORM_BRANCH)
+                            axis.remove(TRANSFORM_CUBE_NAME)
+                        }
                     }
                 }
-                else
-                {
-                    axis.removeTransform()
-                }
 
-                ncube.clearSha1()   // changing meta properties does not clear SHA-1 for recalculation.
+                String updatedJson = JsonWriter.objectToJson(jsonNCube, [(JsonWriter.TYPE):false] as Map)
+                NCube ncube = NCube.fromSimpleJson(updatedJson)
+                ncube.applicationID = appId
+                assertPermissions(appId, cubeName, Action.UPDATE)
                 persister.updateCube(ncube, getUserId())
             }
         }
@@ -985,7 +1295,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         NCube.transformMetaProperties(newMetaProperties)
         String resourceName = cubeName + '/' + axisName
         assertPermissions(appId, resourceName, Action.UPDATE)
-        NCube ncube = loadCube(appId, cubeName)
+        assertPermissions(appId, cubeName)
+        NCube ncube = loadCubeInternal(appId, cubeName, null)
         Axis axis = ncube.getAxis(axisName)
         axis.updateMetaProperties(newMetaProperties, cubeName, { Set<Long> colIds ->
             ncube.dropOrphans(colIds, axis.id)
@@ -994,22 +1305,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         updateCube(ncube)
     }
 
-    void clearTestDatabase()
-    {
-        if (NCubeAppContext.test)
-        {
-            persister.clearTestDatabase()
-        }
-        else
-        {
-            throw new IllegalStateException('clearTestDatabase() is only available during testing.')
-        }
-    }
-
     // ---------------------- Broadcast APIs for notifying other services in cluster of cache changes ------------------
     protected void broadcast(ApplicationID appId)
     {
-        // Write to 'system' tenant, 'NCE' app, version '0.0.0', SNAPSHOT, cube: sys.cache
+        // Write to 'system' tenant, 'NCE' app, version 0.0.0, SNAPSHOT, cube: sys.cache
         // Separate thread reads from this table every 1 second, for new commands, for
         // example, clear cache
         appId.toString()
@@ -1023,11 +1322,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     Boolean assertPermissions(ApplicationID appId, String resource, Action action = Action.READ)
     {
         action = action ?: Action.READ
-        if (checkPermissions(appId, resource, action.name()))
+        if (systemRequest || checkPermissions(appId, resource, action))
         {
             return true
         }
-        throw new SecurityException("Operation not performed.  You do not have ${action} permission to ${resource}, app: ${appId}")
+        throw new SecurityException("Operation not performed.  You do not have ${action} permission to ${resource}, app: ${appId}, user: ${getUserId()}")
     }
 
     protected boolean assertNotLockBlocked(ApplicationID appId)
@@ -1037,7 +1336,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {
             return true
         }
-        throw new SecurityException("Application is not locked by you, app: ${appId}")
+        throw new SecurityException("Application is not locked by you, app: ${appId}, user: ${getUserId()}")
     }
 
     private void assertLockedByMe(ApplicationID appId)
@@ -1050,7 +1349,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             {
                 return
             }
-            throw new SecurityException("Application is not locked by you, no sys.lock n-cube exists in app: ${appId}")
+            throw new SecurityException("Application is not locked by you, no sys.lock n-cube exists in app: ${appId}, user: ${getUserId()}")
         }
 
         final String lockOwner = getAppLockedBy(bootAppId)
@@ -1058,30 +1357,34 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {
             return
         }
-        throw new SecurityException("Application is not locked by you, app: ${appId}")
+        throw new SecurityException("Application is not locked by you, app: ${appId}, user: ${getUserId()}")
     }
 
     private ApplicationID getBootAppId(ApplicationID appId)
     {
-        return new ApplicationID(appId.tenant, appId.app, '0.0.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
+        return new ApplicationID(appId.tenant, appId.app, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     }
 
     private String getPermissionCacheKey(String resource, Action action)
     {
-        final String sep = '/'
-        final StringBuilder builder = new StringBuilder()
-        builder.append(getUserId())
-        builder.append(sep)
-        builder.append(resource)
-        builder.append(sep)
-        builder.append(action)
-        return builder.toString()
+        return "${getUserId()}/${resource}/${action.name()}"
     }
 
     private static Boolean checkPermissionCache(Cache cache, String key)
     {
         Cache.ValueWrapper item = cache.get(key)
         return item?.get()
+    }
+
+    Map checkMultiplePermissions(ApplicationID appId, String resource, Object[] actions)
+    {
+        Map ret = [:]
+        for (Object item : actions)
+        {
+            Action action = item as Action
+            ret[action.name()] = checkPermissions(appId, resource, action)
+        }
+        return ret
     }
 
     /**
@@ -1092,9 +1395,8 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
      * @return boolean true if allowed, false if not.  If the permissions cubes restricting access have not yet been
      * added to the same App, then all access is granted.
      */
-    Boolean checkPermissions(ApplicationID appId, String resource, String actionName)
+    Boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
-        Action action = Action.valueOf(actionName.toUpperCase())
         Cache permCache = permCacheManager.getCache(appId.cacheKey())
         String key = getPermissionCacheKey(resource, action)
         Boolean allowed = checkPermissionCache(permCache, key)
@@ -1104,6 +1406,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         }
 
         if (Action.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
+        {
+            permCache.put(key, true)
+            return true
+        }
+
+        if (isAppAdmin(appId))
         {
             permCache.put(key, true)
             return true
@@ -1127,7 +1435,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         // Step 1: Get user's roles
         Set<String> roles = getRolesForUser(userToRole)
 
-        if (!roles.contains(ROLE_ADMIN) && CUBE_MUTATE_ACTIONS.contains(action))
+        if (CUBE_MUTATE_ACTIONS.contains(action))
         {   // If user is not an admin, check branch permissions.
             NCube branchPermCube = loadCubeInternal(bootVersion.asBranch(appId.branch), SYS_BRANCH_PERMISSIONS)
             if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
@@ -1156,47 +1464,80 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
      * Faster permissions check that should be used when filtering a list of n-cubes.  Before calling this
      * API, call getPermInfo(AppId) to get the 'permInfo' Map to be used in this API.
      */
-    private boolean fastCheckPermissions(ApplicationID appId, String resource, Action action, Map permInfo)
+    private Set<String> fastCheckPermissions(ApplicationID appId, Action action, Collection<String> cubeNames)
     {
+        if (systemRequest || isAppAdmin(appId))
+        {
+            return cubeNames as Set
+        }
+
+        Map permInfo
         Cache permCache = permCacheManager.getCache(appId.cacheKey())
-        String key = getPermissionCacheKey(resource, action)
-        Boolean allowed = checkPermissionCache(permCache, key)
-        if (allowed instanceof Boolean)
+        Iterator<String> it = cubeNames.iterator()
+        while (it.hasNext())
         {
-            return allowed
-        }
-
-        if (Action.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
-        {
-            permCache.put(key, true)
-            return true
-        }
-
-        Set<String> roles = permInfo.roles as Set
-        if (!roles.contains(ROLE_ADMIN) && CUBE_MUTATE_ACTIONS.contains(action))
-        {   // If user is not an admin, check branch permissions.
-            NCube branchPermCube = (NCube)permInfo.branchPermCube
-            if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
+            String resource = it.next()
+            String key = getPermissionCacheKey(resource, action)
+            Boolean allowed = checkPermissionCache(permCache, key)
+            if (allowed instanceof Boolean)
             {
-                permCache.put(key, false)
-                return false
+                if (allowed)
+                {
+                    continue
+                }
+                else
+                {
+                    it.remove()
+                    continue
+                }
             }
-        }
 
-        // Step 2: Make sure one of the user's roles allows access
-        final String actionName = action.lower()
-        NCube permCube = permInfo.permCube as NCube
-        for (String role : roles)
-        {
-            if (checkResourcePermission(permCube, role, resource, actionName))
+            if (Action.READ == action && SYS_LOCK.equalsIgnoreCase(resource))
             {
                 permCache.put(key, true)
-                return true
+                continue
+            }
+
+            if (permInfo == null)
+            {
+                permInfo = getPermInfo(appId)
+            }
+            Set<String> roles = permInfo.roles as Set
+            if (CUBE_MUTATE_ACTIONS.contains(action))
+            {   // If user is not an admin, check branch permissions.
+                NCube branchPermCube = (NCube)permInfo.branchPermCube
+                if (branchPermCube != null && !checkBranchPermission(branchPermCube, resource))
+                {
+                    permCache.put(key, false)
+                    it.remove()
+                    continue
+                }
+            }
+
+            // Step 2: Make sure one of the user's roles allows access
+            final String actionName = action.lower()
+            NCube permCube = permInfo.permCube as NCube
+            boolean foundRolePermission = false
+            if (roles)
+            {
+                for (String role : roles)
+                {
+                    if (checkResourcePermission(permCube, role, resource, actionName))
+                    {
+                        permCache.put(key, true)
+                        foundRolePermission = true
+                        break
+                    }
+                }
+            }
+            if (!foundRolePermission)
+            {
+                permCache.put(key, false)
+                it.remove()
             }
         }
 
-        permCache.put(key, false)
-        return false
+        return cubeNames as Set
     }
 
     private Map getPermInfo(ApplicationID appId)
@@ -1222,7 +1563,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         }
 
         info.branch000 = bootVersion.asBranch(appId.branch)
-        info.branchPermCube = loadCubeInternal((ApplicationID)info.branch000, SYS_BRANCH_PERMISSIONS)
+        info.branchPermCube = loadCubeInternal((ApplicationID) info.branch000, SYS_BRANCH_PERMISSIONS)
         return info
     }
 
@@ -1308,14 +1649,34 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return p.matcher(text).matches()
     }
 
+    protected Boolean isTypeOfAdmin(ApplicationID appId)
+    {
+        Cache permCache = permCacheManager.getCache(appId.cacheKey())
+        String key = getPermissionCacheKey(SYS_INFO, Action.READ)
+        Boolean allowed = checkPermissionCache(permCache, key)
+        if (allowed instanceof Boolean)
+        {
+            return allowed
+        }
+
+        NCube userCube = loadCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
+        allowed = userCube && isUserInGroup(userCube, ROLE_ADMIN)
+        permCache.put(key, allowed)
+        return allowed
+    }
+
+    Boolean isSysAdmin()
+    {
+        return isTypeOfAdmin(sysAppId)
+    }
+
     Boolean isAppAdmin(ApplicationID appId)
     {
-        NCube userCube = loadCubeInternal(getBootAppId(appId), SYS_USERGROUPS)
-        if (userCube == null)
-        {   // Allow everything if no permissions are set up.
+        if (sysAdmin)
+        {
             return true
         }
-        return isUserInGroup(userCube, ROLE_ADMIN)
+        return isTypeOfAdmin(appId)
     }
 
     private boolean isUserInGroup(NCube userCube, String groupName)
@@ -1323,21 +1684,40 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): null]) || userCube.getCell([(AXIS_ROLE): groupName, (AXIS_USER): getUserId()])
     }
 
-    protected void detectNewAppId(ApplicationID appId)
+    protected void createPermissionsCubesIfNewAppId(ApplicationID appId)
     {
-        if (!persister.doCubesExist(appId, true, 'detectNewAppId'))
+        if (detectNewAppId(appId))
         {
-            addAppPermissionsCubes(appId)
-            if (!appId.head)
-            {
-                addBranchPermissionsCube(appId)
-            }
+            createSysAppIfNotExists(appId.tenant)
+            createPermissionsCubes(appId)
         }
     }
 
-    private void addBranchPermissionsCube(ApplicationID appId)
+    protected void createSysAppIfNotExists(String tenant)
     {
-        ApplicationID permAppId = appId.asVersion('0.0.0')
+        if (detectNewAppId(sysAppId))
+        {
+            createPermissionsCubes(sysAppId)
+        }
+    }
+
+    protected boolean detectNewAppId(ApplicationID appId)
+    {
+        return !persister.doCubesExist(appId, true, 'detectNewAppId', getUserId())
+    }
+
+    protected void createPermissionsCubes(ApplicationID appId)
+    {
+        createAppPermissionsCubes(appId)
+        if (!appId.head)
+        {
+            createBranchPermissionsCube(appId)
+        }
+    }
+
+    private void createBranchPermissionsCube(ApplicationID appId)
+    {
+        ApplicationID permAppId = appId.asBootVersion()
         if (loadCubeInternal(permAppId, SYS_BRANCH_PERMISSIONS) != null)
         {
             return
@@ -1348,11 +1728,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         branchPermCube.applicationID = permAppId
         branchPermCube.defaultCellValue = false
 
-        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.STRING, true)
+        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.CISTRING, true)
         resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
         branchPermCube.addAxis(resourceAxis)
 
-        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
+        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.CISTRING, true)
         userAxis.addColumn(userId)
         branchPermCube.addAxis(userAxis)
 
@@ -1363,15 +1743,15 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         updateBranch(permAppId)
     }
 
-    private void addAppPermissionsCubes(ApplicationID appId)
+    private void createAppPermissionsCubes(ApplicationID appId)
     {
         ApplicationID permAppId = getBootAppId(appId)
-        addAppUserGroupsCube(permAppId)
-        addAppPermissionsCube(permAppId)
-        addSysLockingCube(permAppId)
+        createAppUserGroupsCube(permAppId)
+        createAppPermissionsCube(permAppId)
+        createSysLockingCube(permAppId)
     }
 
-    private void addSysLockingCube(ApplicationID appId)
+    private void createSysLockingCube(ApplicationID appId)
     {
         if (loadCubeInternal(appId, SYS_LOCK) != null)
         {
@@ -1381,7 +1761,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         NCube sysLockCube = new NCube(SYS_LOCK)
         sysLockCube.applicationID = appId
         sysLockCube.setMetaProperty(PROPERTY_CACHE, false)
-        sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.STRING, true))
+        sysLockCube.addAxis(new Axis(AXIS_SYSTEM, AxisType.DISCRETE, AxisValueType.CISTRING, true))
         persister.createCube(sysLockCube, getUserId())
     }
 
@@ -1423,7 +1803,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             }
             if (lockOwner != null)
             {
-                throw new SecurityException("Application ${appId} already locked by ${lockOwner}")
+                throw new SecurityException("Application ${appId} already locked by ${lockOwner}, user: ${getUserId()}")
             }
             sysLockCube.setCell(userId, [(AXIS_SYSTEM):null])
         }
@@ -1432,7 +1812,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             String lockOwner = getAppLockedBy(appId)
             if (userId != lockOwner && !isAppAdmin(appId))
             {
-                throw new SecurityException("Application ${appId} locked by ${lockOwner}")
+                throw new SecurityException("Application ${appId} locked by ${lockOwner}, user: ${getUserId()}")
             }
             sysLockCube.removeCell([(AXIS_SYSTEM):null])
         }
@@ -1440,7 +1820,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return true
     }
 
-    private void addAppUserGroupsCube(ApplicationID appId)
+    private void createAppUserGroupsCube(ApplicationID appId)
     {
         if (loadCubeInternal(appId, SYS_USERGROUPS) != null)
         {
@@ -1452,11 +1832,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         userGroupsCube.applicationID = appId
         userGroupsCube.defaultCellValue = false
 
-        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.STRING, true)
+        Axis userAxis = new Axis(AXIS_USER, AxisType.DISCRETE, AxisValueType.CISTRING, true)
         userAxis.addColumn(userId)
         userGroupsCube.addAxis(userAxis)
 
-        Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
+        Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.CISTRING, false)
         roleAxis.addColumn(ROLE_ADMIN)
         roleAxis.addColumn(ROLE_READONLY)
         roleAxis.addColumn(ROLE_USER)
@@ -1469,52 +1849,68 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         persister.createCube(userGroupsCube, getUserId())
     }
 
-    private void addAppPermissionsCube(ApplicationID appId)
+    private void createAppPermissionsCube(ApplicationID appId)
     {
         if (loadCubeInternal(appId, SYS_PERMISSIONS))
         {
             return
         }
 
+        boolean isSysApp = appId.app == SYS_APP
+
         NCube appPermCube = new NCube(SYS_PERMISSIONS)
         appPermCube.applicationID = appId
         appPermCube.defaultCellValue = false
 
-        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.STRING, true)
+        Axis resourceAxis = new Axis(AXIS_RESOURCE, AxisType.DISCRETE, AxisValueType.CISTRING, true)
         resourceAxis.addColumn(SYS_PERMISSIONS)
         resourceAxis.addColumn(SYS_USERGROUPS)
         resourceAxis.addColumn(SYS_BRANCH_PERMISSIONS)
         resourceAxis.addColumn(SYS_LOCK)
+        if (isSysApp)
+        {
+            resourceAxis.addColumn(SYS_TRANSACTIONS)
+        }
         appPermCube.addAxis(resourceAxis)
 
-        Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.STRING, false)
+        Axis roleAxis = new Axis(AXIS_ROLE, AxisType.DISCRETE, AxisValueType.CISTRING, false)
         roleAxis.addColumn(ROLE_ADMIN)
         roleAxis.addColumn(ROLE_READONLY)
         roleAxis.addColumn(ROLE_USER)
         appPermCube.addAxis(roleAxis)
 
-        Axis actionAxis = new Axis(AXIS_ACTION, AxisType.DISCRETE, AxisValueType.STRING, false)
-        actionAxis.addColumn(Action.UPDATE.lower(), null, null, [(Column.DEFAULT_VALUE):true as Object])
-        actionAxis.addColumn(Action.READ.lower(), null, null, [(Column.DEFAULT_VALUE):true as Object])
-        actionAxis.addColumn(Action.RELEASE.lower())
-        actionAxis.addColumn(Action.COMMIT.lower())
+        Axis actionAxis = new Axis(AXIS_ACTION, AxisType.DISCRETE, AxisValueType.CISTRING, false)
+        actionAxis.addColumn(Action.UPDATE, null, null, [(Column.DEFAULT_VALUE):true as Object])
+        actionAxis.addColumn(Action.READ, null, null, [(Column.DEFAULT_VALUE):true as Object])
+        actionAxis.addColumn(Action.RELEASE)
+        actionAxis.addColumn(Action.COMMIT)
         appPermCube.addAxis(actionAxis)
 
-        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
+        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_BRANCH_PERMISSIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE])
 
-        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
-        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT.lower()])
+        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_PERMISSIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT])
 
-        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
-        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT.lower()])
+        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_USERGROUPS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT])
 
-        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
-        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT.lower()])
+        appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_LOCK, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT])
 
-        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.RELEASE.lower()])
-        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT.lower()])
-        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.COMMIT.lower()])
-        appPermCube.setCell(false, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE.lower()])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.RELEASE])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT])
+        appPermCube.setCell(true, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.COMMIT])
+        appPermCube.setCell(false, [(AXIS_RESOURCE):null, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE])
+
+        if (isSysApp)
+        {
+            appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.RELEASE])
+            appPermCube.setCell(true, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_ADMIN, (AXIS_ACTION):Action.COMMIT])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.UPDATE])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_USER, (AXIS_ACTION):Action.READ])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.UPDATE])
+            appPermCube.setCell(false, [(AXIS_RESOURCE):SYS_TRANSACTIONS, (AXIS_ROLE):ROLE_READONLY, (AXIS_ACTION):Action.READ])
+        }
 
         persister.createCube(appPermCube, getUserId())
     }
@@ -1535,6 +1931,34 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     String getUserId()
     {
         return userId.get()
+    }
+
+    /**
+     * Set whether permissions should be checked on the current thread
+     * @param boolean isSystemRequest
+     */
+    private void setSystemRequest(boolean isSystemRequest)
+    {
+        this.isSystemRequest.set(isSystemRequest)
+    }
+
+    /**
+     * Retrieve whether permissions should be checked on the current thread
+     * @return boolean
+     */
+    private boolean isSystemRequest()
+    {
+        return isSystemRequest.get()
+    }
+
+    private void setTempCacheManager(GCacheManager cacheManager)
+    {
+        tempCacheManager.set(cacheManager)
+    }
+
+    private GCacheManager getTempCacheManager()
+    {
+        return tempCacheManager.get()
     }
 
     /**
@@ -1592,7 +2016,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {
             head.branch = appId.branch  // using HEAD's DTO as return value, therefore setting the branch to the passed in AppId's branch
             NCubeInfoDto info = branchRecordMap[head.name]
-            long headRev = (long) Converter.convert(head.revision, long.class)
+            long headRev = (long) Converter.convertToLong(head.revision)
 
             if (info == null)
             {   // HEAD has cube that branch does not have
@@ -1601,7 +2025,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                 continue
             }
 
-            long infoRev = (long) Converter.convert(info.revision, long.class)
+            long infoRev = (long) Converter.convertToLong(info.revision)
             boolean activeStatusMatches = (infoRev < 0) == (headRev < 0)
             boolean branchHeadSha1MatchesHeadSha1 = StringUtilities.equalsIgnoreCase(info.headSha1, head.sha1)
             boolean branchSha1MatchesHeadSha1 = StringUtilities.equalsIgnoreCase(info.sha1, head.sha1)
@@ -1731,7 +2155,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         // Loop through changed (added, deleted, created, restored, updated) records
         for (NCubeInfoDto updateCube : branchList)
         {
-            long revision = (long) Converter.convert(updateCube.revision, long.class)
+            long revision = Converter.convertToLong(updateCube.revision)
             NCubeInfoDto head = headMap[updateCube.name]
 
             if (head == null)
@@ -1929,7 +2353,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
     {
         if (cubeDtos != null && cubeDtos.length == 0)
         {
-            throw new IllegalArgumentException('Nothing selected for update.')
+            throw new IllegalArgumentException("Nothing selected for update, app: ${appId}, user: ${getUserId()}")
         }
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
@@ -2006,23 +2430,23 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                     // Fast-Forward branch
                     // Update HEAD SHA-1 on branch directly (no need to insert)
                     NCubeInfoDto branchCube = getCubeInfo(appId, updateCube)
-                    persister.updateBranchCubeHeadSha1((Long) Converter.convert(branchCube.id, Long.class), branchCube.sha1, updateCube.sha1)
+                    persister.updateBranchCubeHeadSha1((Long) Converter.convert(branchCube.id, Long.class), branchCube.sha1, updateCube.sha1, getUserId())
                     fastforwards.add(updateCube)
                     break
                 case ChangeType.CONFLICT.code:
                     rejects.add(updateCube)
                     break
                 default:
-                    throw new IllegalArgumentException('No change type on passed in cube to update.')
+                    throw new IllegalArgumentException("No change type on passed in cube to update. cube name: ${updateCube.name}, app: ${updateCube.applicationID}, user: ${getUserId()}")
             }
         }
-        finalUpdates = persister.pullToBranch(appId, buildIdList(updates), getUserId(), txId)
+        finalUpdates = updates.empty ? (List<NCubeInfoDto>)[] : persister.pullToBranch(appId, buildIdList(updates), getUserId(), txId)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
-        ret[BRANCH_ADDS] = persister.pullToBranch(appId, buildIdList(adds), getUserId(), txId)
-        ret[BRANCH_DELETES] = persister.pullToBranch(appId, buildIdList(deletes), getUserId(), txId)
+        ret[BRANCH_ADDS] = adds.empty ? (List<NCubeInfoDto>)[] : persister.pullToBranch(appId, buildIdList(adds), getUserId(), txId)
+        ret[BRANCH_DELETES] = deletes.empty ? (List<NCubeInfoDto>)[] : persister.pullToBranch(appId, buildIdList(deletes), getUserId(), txId)
         ret[BRANCH_UPDATES] = finalUpdates
-        ret[BRANCH_RESTORES] = persister.pullToBranch(appId, buildIdList(restores), getUserId(), txId)
+        ret[BRANCH_RESTORES] = restores.empty ? (List<NCubeInfoDto>)[] : persister.pullToBranch(appId, buildIdList(restores), getUserId(), txId)
         ret[BRANCH_FASTFORWARDS] = fastforwards
         ret[BRANCH_REJECTS] = rejects
         return ret
@@ -2033,28 +2457,27 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         return ApplicationID.DEFAULT_TENANT
     }
 
-    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos)
+    String generatePullRequestHash(ApplicationID appId, Object[] infoDtos, String notes = '')
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
         List<Map<String, String>> commitRecords = getCommitRecords(appId, infoDtos)
 
         if (commitRecords.empty)
         {
-            throw new IllegalArgumentException('A pull request cannot be created because there are no cubes to be committed.')
+            throw new IllegalArgumentException("A pull request cannot be created because there are no cubes to be committed, app: ${appId}")
         }
 
         commitRecords.sort(true, {Map it -> it.id})
         String prInfoJson = JsonWriter.objectToJson(commitRecords)
         String sha1 = EncryptionUtilities.calculateSHA1Hash(prInfoJson.getBytes('UTF-8'))
 
-        if (getCube(sysAppId, 'tx.' + sha1))
+        if (runSystemRequest {getCube(sysAppId, 'tx.' + sha1) })
         {
-            throw new IllegalArgumentException('A pull request already exists for this change set.')
+            throw new IllegalArgumentException("A pull request already exists for this change set, app: ${appId}, user: ${getUserId()}")
         }
 
         NCube prCube = new NCube("tx.${sha1}")
         prCube.applicationID = sysAppId
-        prCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1))
+        prCube.addAxis(new Axis(PR_PROP, AxisType.DISCRETE, AxisValueType.CISTRING, false, Axis.DISPLAY, 1))
         prCube.addColumn(PR_PROP, PR_STATUS)
         prCube.addColumn(PR_PROP, PR_APP)
         prCube.addColumn(PR_PROP, PR_CUBES)
@@ -2068,12 +2491,60 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         prCube.setCell(prInfoJson, [(PR_PROP):PR_CUBES])
         prCube.setCell(getUserId(), [(PR_PROP):PR_REQUESTER])
         prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
+        prCube.setCell(notes, [(PR_PROP):PR_ID])
 
-        createCube(prCube)
+        runSystemRequest { createCube(prCube) }
         return sha1
     }
 
+    private def runSystemRequest(Closure closure)
+    {
+        try
+        {
+            systemRequest = true
+            return closure()
+        }
+        finally
+        {
+            systemRequest = false
+        }
+    }
+
+    private def runWithCubeCache(Closure closure)
+    {
+        try
+        {
+            setTempCacheManager(GCacheManager.newInstance())
+            return closure()
+        }
+        finally
+        {
+            tempCacheManager.remove()
+        }
+    }
+
     Map<String, Object> mergePullRequest(String prId)
+    {
+        try
+        {
+            return attemptMergePullRequest(prId)
+        }
+        catch (IllegalStateException | BranchMergeException e)
+        {
+            Connection connection = threadBoundConnection
+            connection.rollback() // rollback in case any work was done before this point
+            obsoletePullRequest(prId)
+            connection.commit() // force database changes before throwing exception
+            throw e
+        }
+    }
+
+    private static Connection getThreadBoundConnection()
+    {
+        return DataSourceUtils.getConnection(NCubeAppContext.getBean(DATA_SOURCE_BEAN) as DataSource)
+    }
+
+    private Map<String, Object> attemptMergePullRequest(String prId)
     {
         NCube prCube = loadPullRequestCube(prId)
 
@@ -2082,14 +2553,15 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         ApplicationID prAppId = ApplicationID.convert(appIdString)
         String requestUser = prCube.getCell([(PR_PROP): PR_REQUESTER])
         String commitUser = prCube.getCell([(PR_PROP): PR_MERGER])
+        String prNotes = prCube.getCell([(PR_PROP): PR_ID])
 
         if (status.contains(PR_CLOSED) || status == PR_OBSOLETE)
         {
-            throw new IllegalStateException("Pull request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${prAppId}")
+            throw new IllegalStateException("Pull request already closed. Status: ${status}, Requested by: ${requestUser}, Committed by: ${commitUser}, ApplicationID: ${prAppId}, user: ${getUserId()}")
         }
-        else if (!persister.doCubesExist(prAppId, true, 'detectNewAppId'))
+        else if (detectNewAppId(prAppId))
         {
-            throw new IllegalStateException("Branch no longer exists; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}")
+            throw new IllegalStateException("Branch no longer exists; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, user: ${getUserId()}")
         }
 
         String prInfoJson = prCube.getCell([(PR_PROP):PR_CUBES]) as String
@@ -2108,7 +2580,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                         {
                             return info
                         }
-                        throw new IllegalStateException("Cube has been changed since request was made; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${dto.name}")
+                        throw new IllegalStateException("Cube has been changed since request was made; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${dto.name}, user: ${getUserId()}")
                     }
                 }
             }
@@ -2119,48 +2591,45 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                 }
                 if (!foundDto)
                 {
-                    throw new IllegalStateException("Cube no longer valid; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${info.name}")
+                    throw new IllegalStateException("Cube no longer valid; pull request will be marked obsolete. Requested by: ${requestUser}, ApplicationID: ${prAppId}, Cube: ${info.name}, user: ${getUserId()}")
                 }
             }
         }
 
-        Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser)
+        Map ret = commitBranchFromRequest(prAppId, prDtos, requestUser, prId, prNotes)
+        validateReferenceAxesAppIds(prAppId.asHead())
         ret[PR_APP] = prAppId
-        ret[PR_CUBE] = prCube
+        ret[PR_CUBE] = prCube.name
 
-        fillPullRequestUpdateInfo(prCube, PR_COMPLETE)
-        updateCube(prCube, true)
+        updatePullRequest(prId, null, null, PR_COMPLETE)
         return ret
     }
 
-    NCube obsoletePullRequest(String prId)
+    void obsoletePullRequest(String prId)
     {
         Closure exceptionTest = { String status ->
             return status == PR_OBSOLETE
         }
         String exceptionText = 'Pull request is already obsolete.'
-        NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_OBSOLETE)
-        return prCube
+        updatePullRequest(prId, exceptionTest, exceptionText, PR_OBSOLETE)
     }
 
-    NCube cancelPullRequest(String prId)
+    void cancelPullRequest(String prId)
     {
         Closure exceptionTest = { String status ->
             return status.contains(PR_CLOSED) || status == PR_OBSOLETE
         }
         String exceptionText = 'Pull request is already closed.'
-        NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_CANCEL)
-        return prCube
+        updatePullRequest(prId, exceptionTest, exceptionText, PR_CANCEL)
     }
 
-    NCube reopenPullRequest(String prId)
+    void reopenPullRequest(String prId)
     {
         Closure exceptionTest = { String status ->
             return [PR_COMPLETE, PR_OBSOLETE, PR_OPEN].contains(status)
         }
         String exceptionText = 'Unable to reopen pull request.'
-        NCube prCube = updatePullRequest(prId, exceptionTest, exceptionText, PR_OPEN, true)
-        return prCube
+        updatePullRequest(prId, exceptionTest, exceptionText, PR_OPEN, true)
     }
 
     private void fillPullRequestUpdateInfo(NCube prCube, String status)
@@ -2175,12 +2644,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         NCube prCube = loadPullRequestCube(prId)
 
         String status = prCube.getCell([(PR_PROP):PR_STATUS])
-        if (exceptionTest(status))
+        if (exceptionTest && exceptionTest(status))
         {
             String requestUser = prCube.getCell([(PR_PROP): PR_REQUESTER])
             String appIdString = prCube.getCell([(PR_PROP):PR_APP])
             ApplicationID prAppId = ApplicationID.convert(appIdString)
-            throw new IllegalArgumentException("${exceptionText} Status: ${status}, Requested by: ${requestUser}, ApplicationID: ${prAppId}")
+            throw new IllegalArgumentException("${exceptionText} Status: ${status}, Requested by: ${requestUser}, ApplicationID: ${prAppId}, user: ${getUserId()}")
         }
 
         if (bumpVersion)
@@ -2191,63 +2660,79 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             prCube.setCell(newAppId.toString(), [(PR_PROP):PR_APP])
         }
         fillPullRequestUpdateInfo(prCube, newStatus)
-        updateCube(prCube, true)
+        runSystemRequest { updateCube(prCube, true) }
         return prCube
     }
 
     private NCube loadPullRequestCube(String prId)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true])
-        if (dtos.empty)
-        {
-            throw new IllegalArgumentException("Invalid pull request id: ${prId}")
-        }
-        NCube prCube = loadCubeById(dtos.first().id as long)
-        return prCube
+        runSystemRequest {
+            List<NCubeInfoDto> dtos = search(sysAppId, "tx.${prId}", null, [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_EXACT_MATCH_NAME): true])
+            if (dtos.empty) {
+                throw new IllegalArgumentException("Invalid pull request id: ${prId}, user: ${getUserId()}")
+            }
+            NCube prCube = loadCubeById(dtos.first().id as long)
+            return prCube
+        } as NCube
     }
 
-    Object[] getPullRequests(Date startDate = null, Date endDate = null)
+    Object[] getPullRequests(Date startDate = null, Date endDate = null, String prId = null)
     {
         List<Map> results = []
+        if (!startDate) {
+            Calendar c = Calendar.instance
+            c.add(Calendar.DATE, -28)
+            startDate = c.time
+        }
+
         List<NCube> cubes = getPullRequestCubes(startDate, endDate)
+        if (prId && !cubes.find {it.name.contains(prId)}) {
+            cubes.add(loadPullRequestCube(prId))
+        }
+
         for (NCube cube : cubes)
         {
             Map prInfo = cube.getMap([(PR_PROP):[] as Set])
-            if (prInfo[PR_APP] instanceof String)
-            {
-                prInfo[PR_APP] = ApplicationID.convert(prInfo[PR_APP] as String)
-            }
-            if (prInfo[PR_CUBES] instanceof String)
-            {
-                prInfo[PR_CUBES] = JsonReader.jsonToJava(prInfo[PR_CUBES] as String)
-            }
+            prInfo[PR_APP] = ApplicationID.convert(prInfo[PR_APP] as String)
+            prInfo[PR_CUBES] = JsonReader.jsonToJava(prInfo[PR_CUBES] as String)
             prInfo[PR_TXID] = cube.name.substring(3)
             results.add(prInfo)
         }
-        results.sort(true, {Map a, Map b -> Converter.convert(b[PR_REQUEST_TIME], Date.class) as Date <=> Converter.convert(a[PR_REQUEST_TIME], Date.class) as Date})
+        results.sort(true, { Map a, Map b ->
+            Converter.convertToDate(b[PR_REQUEST_TIME]) <=> Converter.convertToDate(a[PR_REQUEST_TIME]) ?:
+                    Converter.convertToDate(b[PR_MERGE_TIME]) <=> Converter.convertToDate(a[PR_MERGE_TIME])
+        })
         return results as Object[]
     }
 
     private List<NCube> getPullRequestCubes(Date startDate, Date endDate)
     {
-        ApplicationID sysAppId = new ApplicationID(tenant, SYS_APP, SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
-        Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_CREATE_DATE_START):startDate, (SEARCH_CREATE_DATE_END):endDate]
-        return cubeSearch(sysAppId, 'tx.*', null, options)
+        List<NCube> cubes = []
+        Map<String, Object> options = [:]
+        options[SEARCH_ACTIVE_RECORDS_ONLY] = true
+        options[SEARCH_INCLUDE_CUBE_DATA] = true
+        options[SEARCH_CREATE_DATE_START] = startDate
+        options[SEARCH_CREATE_DATE_END] = endDate
+        options[SEARCH_CLOSURE] = { NCubeInfoDto dto, List<NCube> ncubes ->
+            NCube ncube = NCube.createCubeFromRecord(dto)
+            ncubes.add(ncube)
+        }
+        options[SEARCH_OUTPUT] = cubes
+        runSystemRequest { search(sysAppId, 'tx.*', null, options) }
+        return cubes
     }
 
     /**
      * Commit the passed in changed cube records identified by NCubeInfoDtos.
      * @return array of NCubeInfoDtos that are to be committed.
      */
-    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null)
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] inputCubes = null, String notes = null)
     {
-        validateReferenceAxesAppIds(appId, inputCubes as List<NCubeInfoDto>)
-        String prId = generatePullRequestHash(appId, inputCubes)
+        String prId = generatePullRequestHash(appId, inputCubes, notes)
         return mergePullRequest(prId)
     }
 
-    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes, String requestUser)
+    private Map<String, Object> commitBranchFromRequest(ApplicationID appId, Object[] inputCubes, String requestUser, String txId, String notes)
     {
         List<NCubeInfoDto> adds = []
         List<NCubeInfoDto> deletes = []
@@ -2256,14 +2741,15 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         List<NCubeInfoDto> restores = []
         List<NCubeInfoDto> rejects = []
         List<NCubeInfoDto> finalUpdates
+        String userId = getUserId()
 
-        long txId = UniqueIdGenerator.uniqueId
-        List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
+        List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects, true)
 
-        String commitAction = Action.COMMIT.name()
+        ApplicationID headAppId = appId.asHead()
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!checkPermissions(appId, updateCube.name, commitAction))
+            String cubeName = updateCube.name
+            if (!checkPermissions(headAppId, cubeName, Action.COMMIT) || !checkPermissions(appId, cubeName, Action.READ))
             {
                 rejects.add(updateCube)
                 continue
@@ -2296,7 +2782,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                         NCube cube = mergeCubesIfPossible(branchCube, headCube, false)
                         if (cube != null)
                         {
-                            NCubeInfoDto mergedDto = persister.commitMergedCubeToHead(appId, cube, getUserId(), txId)
+                            NCubeInfoDto mergedDto = persister.commitMergedCubeToHead(appId, cube, userId, requestUser, txId, notes)
                             merges.add(mergedDto)
                         }
                     }
@@ -2308,23 +2794,23 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
                     rejects.add(updateCube)
                     break
                 default:
-                    throw new IllegalArgumentException('No change type on passed in cube to commit.')
+                    throw new IllegalArgumentException("No change type on passed in cube to commit, user: ${userId}")
             }
         }
 
-        finalUpdates = persister.commitCubes(appId, buildIdList(updates), getUserId(), requestUser, txId)
+        finalUpdates = updates.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(updates), userId, requestUser, txId, notes)
         finalUpdates.addAll(merges)
         Map<String, Object> ret = [:]
-        ret[BRANCH_ADDS] = persister.commitCubes(appId, buildIdList(adds), getUserId(), requestUser, txId)
-        ret[BRANCH_DELETES] = persister.commitCubes(appId, buildIdList(deletes), getUserId(), requestUser, txId)
+        ret[BRANCH_ADDS] = adds.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(adds), userId, requestUser, txId, notes)
+        ret[BRANCH_DELETES] = deletes.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(deletes), userId, requestUser, txId, notes)
         ret[BRANCH_UPDATES] = finalUpdates
-        ret[BRANCH_RESTORES] = persister.commitCubes(appId, buildIdList(restores), getUserId(), requestUser, txId)
+        ret[BRANCH_RESTORES] = restores.empty ? (List<NCubeInfoDto>)[] : persister.commitCubes(appId, buildIdList(restores), userId, requestUser, txId, notes)
         ret[BRANCH_REJECTS] = rejects
 
         if (!rejects.empty)
         {
             int rejectSize = rejects.size()
-            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}."
+            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}, user: ${userId}"
             throw new BranchMergeException(errorMessage, ret)
         }
         return ret
@@ -2337,10 +2823,9 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
         ApplicationID headAppId = appId.asHead()
 
-        String commitAction = Action.COMMIT.name()
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!checkPermissions(appId, updateCube.name, commitAction) || updateCube.changeType == ChangeType.CONFLICT.code)
+            if (!checkPermissions(appId, updateCube.name, Action.COMMIT) || updateCube.changeType == ChangeType.CONFLICT.code)
             {
                 rejects.add(updateCube)
             }
@@ -2363,22 +2848,26 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         if (!rejects.empty)
         {
             int rejectSize = rejects.size()
-            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}."
+            String errorMessage = "Unable to commit ${rejectSize} ${rejectSize == 1 ? 'cube' : 'cubes'}, user: ${getUserId()}"
             throw new BranchMergeException(errorMessage, ret)
         }
         return commitRecords
     }
 
-    private List<NCubeInfoDto> getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> rejects)
+    private List<NCubeInfoDto> getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> rejects, boolean isMerge = false)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
+        validateReferenceAxesAppIds(appId, inputCubes as List<NCubeInfoDto>)
         assertNotLockBlocked(appId)
-        assertPermissions(appId, null, Action.COMMIT)
+        if (!isMerge)
+        {
+            assertPermissions(appId, null, Action.COMMIT)
+        }
 
         List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
-        if (inputCubes == null)
+        if (!inputCubes)
         {
             return newDtoList
         }
@@ -2487,14 +2976,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {
             return true
         }
-        Map options = [:]
-        options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
-        options[(SEARCH_EXACT_MATCH_NAME)] = true
-
+        Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true]
         List<NCubeInfoDto> list = search(appId, cubeName, null, options)
-        if (list.size() != 1)
-        {
-            return false
+        if (list.empty)
+        { // cube doesn't exist or is deleted in branch
+            return true
         }
 
         NCubeInfoDto branchDto = list.first()     // only 1 because we used exact match
@@ -2503,29 +2989,56 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         {   // New n-cube - up-to-date because it does not yet exist in HEAD - the branch n-cube is the Creator.
             return true
         }
-        else if (list.size() != 1)
-        {   // Should never happen
-            return false
-        }
 
         NCubeInfoDto headDto = list.first()     // only 1 because we used exact match
         return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
     }
 
+    void clearCache(ApplicationID appId)
+    {
+        // no-op
+    }
+
+    void clearTestDatabase()
+    {
+        if (NCubeAppContext.test)
+        {
+            persister.clearTestDatabase(getUserId())
+        }
+        else
+        {
+            throw new IllegalStateException("clearTestDatabase() is only available during testing, user: ${getUserId()}")
+        }
+    }
+
+    void clearPermCache()
+    {
+        if (NCubeAppContext.test)
+        {
+            permCacheManager.cacheNames.each { String cacheKey ->
+                permCacheManager.getCache(cacheKey).clear()
+            }
+        }
+        else
+        {
+            throw new IllegalStateException("clearPermCache() is only available during testing, user: ${getUserId()}")
+        }
+    }
+
     // -------------------------------- Non API methods --------------------------------------
 
-    NCube mergeCubesIfPossible(NCubeInfoDto branchInfo, NCubeInfoDto headInfo, boolean headToBranch)
+    protected NCube mergeCubesIfPossible(NCubeInfoDto branchInfo, NCubeInfoDto headInfo, boolean headToBranch)
     {
         long branchCubeId = (long) Converter.convert(branchInfo.id, long.class)
         long headCubeId = (long) Converter.convert(headInfo.id, long.class)
-        NCube branchCube = persister.loadCubeById(branchCubeId)
-        NCube headCube = persister.loadCubeById(headCubeId)
+        NCube branchCube = loadCubeById(branchCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
+        NCube headCube = loadCubeById(headCubeId, [(SEARCH_INCLUDE_TEST_DATA):true])
         NCube baseCube, headBaseCube
         Map branchDelta, headDelta
 
         if (branchInfo.headSha1 != null)
         {   // Cube is based on a HEAD cube (not created new)
-            baseCube = persister.loadCubeBySha1(branchInfo.applicationID.asHead(), branchInfo.name, branchInfo.headSha1)
+            baseCube = persister.loadCubeBySha1(branchInfo.applicationID.asHead(), branchInfo.name, branchInfo.headSha1, getUserId())
             headDelta = DeltaProcessor.getDelta(baseCube, headCube)
         }
         else
@@ -2574,11 +3087,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
         List<NCubeInfoDto> cubeDtos = search(appId, dto.name, null, [(SEARCH_EXACT_MATCH_NAME):true, (SEARCH_ACTIVE_RECORDS_ONLY):false])
         if (cubeDtos.empty)
         {
-            throw new IllegalStateException('Cube ' + dto.name + ' does not exist (' + dto + ')')
+            throw new IllegalStateException("Cube: ${dto} does not exist in app: ${appId}, user: ${getUserId()}")
         }
         if (cubeDtos.size() > 1)
         {
-            throw new IllegalStateException('More than one cube return when attempting to load ' + dto.name + ' (' + dto + ')')
+            throw new IllegalStateException("More than one cube returned when attempting to load cube: ${dto}, app: ${appId}, user: ${getUserId()}")
         }
         return cubeDtos.first()
     }
@@ -2591,5 +3104,10 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}""")
             ids[i++] = dto.id
         }
         return ids
+    }
+
+    private ApplicationID getSysAppId()
+    {
+        return new ApplicationID(tenant, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     }
 }

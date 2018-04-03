@@ -1,0 +1,149 @@
+{
+  "ncube":"007",
+  "_testData":"[{\"name\":\"Use\",\"coord\":[{\"type\":{\"type\":\"string\",\"isUrl\":false,\"value\":\"USE\"}}],\"assertions\":[{\"type\":\"exp\",\"isUrl\":false,\"value\":\"output.return\"}]},{\"name\":\"AtTest\",\"coord\":[{\"type\":{\"type\":\"string\",\"isUrl\":false,\"value\":\"AT\"}}],\"assertions\":[{\"type\":\"exp\",\"isUrl\":false,\"value\":\"output.return\"}]}]",
+  "testUpdated":{
+    "type":"long",
+    "value":151001797334294299
+  },
+  "axes":[
+    {
+      "id":5,
+      "name":"ruleName",
+      "hasDefault":true,
+      "type":"RULE",
+      "valueType":"EXPRESSION",
+      "preferredOrder":1,
+      "fireAll":true,
+      "columns":[
+        {
+          "id":5000379389478,
+          "type":"exp",
+          "name":"Test1",
+          "value":"true"
+        },
+        {
+          "id":5000097623635,
+          "type":"exp",
+          "name":"Test2",
+          "value":"true"
+        }
+      ]
+    },
+    {
+      "id":3,
+      "name":"type",
+      "hasDefault":true,
+      "type":"DISCRETE",
+      "valueType":"CISTRING",
+      "preferredOrder":1,
+      "fireAll":false,
+      "columns":[
+        {
+          "id":3001939705047,
+          "type":"string",
+          "value":"USE"
+        },
+        {
+          "id":3001637855593,
+          "type":"string",
+          "value":"AT"
+        },
+        {
+          "id":3000060648529,
+          "type":"string",
+          "value":"GO"
+        }
+      ]
+    }
+  ],
+  "cells":[
+    {
+      "id":[],
+      "type":"exp",
+      "value":"output.steps.add('default-default')\nreturn 'default-default'"
+    },
+    {
+      "id":[
+        5000379389478,
+        3001939705047
+      ],
+      "type":"exp",
+      "value":"output.steps.add('use Test1')\nuse([type:null])"
+    },
+    {
+      "id":[
+        3001939705047
+      ],
+      "type":"exp",
+      "value":"output.steps.add('use default')\nuse([type:null])"
+    },
+    {
+      "id":[
+        5000379389478,
+        3000060648529
+      ],
+      "type":"exp",
+      "value":"output.steps.add('go Test1')\ngo([type:null])"
+    },
+    {
+      "id":[
+        5000379389478,
+        3001637855593
+      ],
+      "type":"exp",
+      "value":"output.steps.add('at Test1')\nat([type:null])"
+    },
+    {
+      "id":[
+        5000379389478
+      ],
+      "type":"exp",
+      "value":"output.steps.add('default Test1')\n'default Test1'"
+    },
+    {
+      "id":[
+        5000097623635,
+        3001939705047
+      ],
+      "type":"exp",
+      "value":"output.steps.add('use Test2')\nuse([type:null])"
+    },
+    {
+      "id":[
+        5000097623635,
+        3001637855593
+      ],
+      "type":"exp",
+      "value":"output.steps.add('at Test2')\nat([type:null])"
+    },
+    {
+      "id":[
+        3000060648529
+      ],
+      "type":"exp",
+      "value":"output.steps.add('go default')\ngo([type:null])"
+    },
+    {
+      "id":[
+        5000097623635,
+        3000060648529
+      ],
+      "type":"exp",
+      "value":"output.steps.add('go Test2')\ngo([type:null])"
+    },
+    {
+      "id":[
+        5000097623635
+      ],
+      "type":"exp",
+      "value":"output.steps.add('default Test2')\n'default Test2'"
+    },
+    {
+      "id":[
+        3001637855593
+      ],
+      "type":"exp",
+      "value":"output.steps.add('at default')\nat([type:null])"
+    }
+  ]
+}

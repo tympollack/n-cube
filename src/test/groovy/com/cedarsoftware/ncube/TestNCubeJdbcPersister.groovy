@@ -37,6 +37,87 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     private ApplicationID defaultSnapshotApp = new ApplicationID(ApplicationID.DEFAULT_TENANT, APP_ID, "1.0.0", ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
     @Test
+    void testCopyBranchInitialRevisions()
+    {
+        String cubeNameBranch = 'TestBranch'
+        String cubeNameAge = 'TestAge'
+        ApplicationID branch1 = defaultSnapshotApp.asBranch('branch1')
+        ApplicationID branch2 = defaultSnapshotApp.asBranch('branch2')
+        ApplicationID branch3 = defaultSnapshotApp.asBranch('branch3')
+        preloadCubes(branch1, 'test.branch.1.json', 'test.branch.age.1.json')
+        mutableClient.commitBranch(branch1)
+        mutableClient.updateBranch(branch2)
+
+        NCube ncube1 = mutableClient.getCube(branch1, cubeNameBranch)
+        ncube1.setCell('XYZ', [Code: -10])
+        mutableClient.updateCube(ncube1)
+        mutableClient.commitBranch(branch1)
+
+        NCube ncube2 = mutableClient.getCube(branch2, cubeNameBranch)
+        ncube2.setCell('XYZ', [Code: 10])
+        mutableClient.updateCube(ncube2)
+        // make sure this works with multiple modified cubes in branch
+        ncube2 = mutableClient.getCube(branch2, 'TestAge')
+        ncube2.setCell('infant', [Code: 0])
+        mutableClient.updateCube(ncube2)
+
+        ncube1.setCell('ABC', [Code: -10])
+        mutableClient.updateCube(ncube1)
+        mutableClient.commitBranch(branch1)
+
+        mutableClient.copyBranch(branch2, branch3)
+
+        NCube ncube3 = mutableClient.getCube(branch3, cubeNameBranch)
+        assert 'ABC' == ncube3.getCell([Code: -10])
+        assert 'XYZ' == ncube3.getCell([Code: 10])
+
+        ncube3 = mutableClient.getCube(branch3, cubeNameAge)
+        assert 'infant' == ncube3.getCell([Code: 0])
+
+        mutableClient.rollbackBranch(branch3, [cubeNameBranch, cubeNameAge] as Object[])
+        ncube3 = mutableClient.getCube(branch3, cubeNameBranch)
+        assert 'ABC' == ncube3.getCell([Code: -10])
+        assert 'GHI' == ncube3.getCell([Code: 10])
+
+        ncube3 = mutableClient.getCube(branch3, cubeNameAge)
+        assert 'baby' == ncube3.getCell([Code: 0])
+    }
+
+    @Test
+    void testCopyBranchCreateHidCurrentUser()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        ApplicationID branch1 = defaultSnapshotApp.asBranch('branch1')
+        ApplicationID branch2 = defaultSnapshotApp.asBranch('branch2')
+        preloadCubes(branch1, 'test.branch.1.json', 'test.branch.age.1.json')
+
+        String origUser = mutableClient.userId
+        String otherUser = UniqueIdGenerator.uniqueId
+        NCubeManager manager = NCubeAppContext.getBean(MANAGER_BEAN) as NCubeManager
+        manager.userId = otherUser
+
+        try
+        {
+            mutableClient.copyBranch(branch1, branch2)
+            NCubeInfoDto branch1dto = mutableClient.getRevisionHistory(branch1, 'TestBranch').first()
+            NCubeInfoDto branch2dto = mutableClient.getRevisionHistory(branch2, 'TestBranch').first()
+            String branch1hid = branch1dto.createHid
+            String branch2hid = branch2dto.createHid
+
+            assert branch1hid != branch2hid
+            assert branch1hid == origUser
+            assert branch2hid == otherUser
+        }
+        finally
+        { // reset userId no matter what
+            manager.userId = origUser
+        }
+    }
+
+    @Test
     void testDbApis()
     {
         NCube ncube1 = NCubeBuilder.testNCube3D_Boolean
@@ -156,22 +237,6 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testUpdateBranchThatIsNotFound()
-    {
-        Connection c = mock(Connection.class)
-        PreparedStatement ps = mock(PreparedStatement.class)
-        ResultSet rs = mock(ResultSet.class)
-        when(c.prepareStatement(anyString())).thenReturn(ps).thenReturn(ps).thenReturn(ps)
-        when(ps.executeQuery()).thenReturn(rs).thenReturn(rs)
-        when(rs.next()).thenReturn(false)
-        when(rs.getLong(1)).thenReturn(5L)
-        when(rs.getDate(anyString())).thenReturn(new java.sql.Date(System.currentTimeMillis()))
-
-        Object[] ids = [0] as Object[]
-        assert new NCubeJdbcPersister().pullToBranch(c, defaultSnapshotApp, ids, USER_ID, UniqueIdGenerator.uniqueId).empty
-    }
-
-    @Test
     void testReleaseCubesWithRuntimeExceptionWhileCreatingNewSnapshot()
     {
         Connection c = mock(Connection.class)
@@ -183,7 +248,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
 
         try
         {
-            new NCubeJdbcPersister().releaseCubes(c, defaultSnapshotApp, "1.2.3")
+            new NCubeJdbcPersister().releaseCubes(c, defaultSnapshotApp)
             fail()
         }
         catch (NullPointerException e)
@@ -195,7 +260,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
     @Test
     void testCommitCubeWithInvalidRevision()
     {
-        assert 0 == new NCubeJdbcPersister().commitCubes(null, defaultSnapshotApp, null, USER_ID, 'requestUser', UniqueIdGenerator.uniqueId).size()
+        assert 0 == new NCubeJdbcPersister().commitCubes(null, defaultSnapshotApp, null, USER_ID, 'requestUser', 'testprid', 'notes').size()
     }
 
     @Test
@@ -229,7 +294,7 @@ class TestNCubeJdbcPersister extends NCubeCleanupBaseTest
 
         try
         {
-            new NCubeJdbcPersister().copyBranch(c, defaultSnapshotApp.asHead(), defaultSnapshotApp)
+            new NCubeJdbcPersister().copyBranch(c, defaultSnapshotApp.asHead(), defaultSnapshotApp, USER_ID)
             fail()
         }
         catch (NullPointerException ignored)

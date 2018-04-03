@@ -6,15 +6,19 @@ import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.JsonHttpProxy
 import com.cedarsoftware.util.StringUtilities
+import com.google.common.base.Joiner
 import groovy.transform.CompileStatic
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
 
 import javax.servlet.http.HttpServletRequest
+import java.lang.reflect.Method
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
+import static com.cedarsoftware.ncube.NCubeConstants.*
+import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
 
 /**
@@ -38,6 +42,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestJavascriptAPIs extends NCubeCleanupBaseTest
 {
+    private static final ApplicationID SYSAPP = new ApplicationID(ApplicationID.DEFAULT_TENANT, SYS_APP, ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), 'FOO')
     private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
     private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
 
@@ -60,13 +65,82 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
                 }
             })
             JsonCommandServlet.servletRequest.set(request)
-
         }
+    }
+
+    @Test
+    void testControllerImplementsInterfaces()
+    {
+        // runtime methods removed because they are runtime only concerns (never go across the wire)
+        Set<String> allowedRunTimeMethods = [
+                'getCube(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
+                'addCube(class com.cedarsoftware.ncube.NCube)',
+                'getBootVersion(class java.lang.String, class java.lang.String)',
+                'getSystemParams()',
+                'getTestCauses(class java.lang.Throwable)',
+                'getUrlClassLoader(class com.cedarsoftware.ncube.ApplicationID, interface java.util.Map)',
+                'getLocalClassloader(class com.cedarsoftware.ncube.ApplicationID)',
+                'getApplicationID(class java.lang.String, class java.lang.String, interface java.util.Map)',
+                'getNCubeFromResource(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
+                'getNCubesFromResource(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
+                'addAdvice(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface com.cedarsoftware.ncube.Advice)',
+                'getActualUrl(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Map)',
+                'getUrlContent(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Map)',
+                'clearCache(class com.cedarsoftware.ncube.ApplicationID, interface java.util.Collection)',
+                'isCached(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
+                'getCells(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class [Ljava.lang.Object;, interface java.util.Map, interface java.util.Map)',
+                'getCells(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class [Ljava.lang.Object;, interface java.util.Map, interface java.util.Map, class java.lang.Object)'
+        ] as Set
+
+        // mutable methods removed because of transformed return type (usually Object[] for Javascript clients)
+        Set<String> allowedMutableMethods = [
+                'getCube(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
+                'getCellAnnotation(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Set)',
+                'getCellAnnotation(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Set, boolean)',
+                'mergeDeltas(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.List)',
+                'assertPermissions(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class com.cedarsoftware.ncube.Action)',
+                'checkPermissions(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class com.cedarsoftware.ncube.Action)'
+        ] as Set
+
+        Set<String> runtimeMethods = getMethods(NCubeRuntimeClient.class.methods)
+        Set<String> mutableMethods = getMethods(NCubeMutableClient.class.methods)
+        Set<String> controllerMethods = getMethods(NCubeController.class.methods)
+
+        runtimeMethods.removeAll(allowedRunTimeMethods)
+        runtimeMethods.removeAll(controllerMethods)
+        assert runtimeMethods.empty
+
+        mutableMethods.removeAll(allowedMutableMethods)
+        mutableMethods.removeAll(controllerMethods)
+        assert mutableMethods.empty
+    }
+
+    private static Set<String> getMethods(Method[] methods)
+    {
+        Set<String> methodNames = [] as Set
+        for (Method method : methods)
+        {
+            methodNames.add(methodToString(method))
+        }
+        return methodNames
+    }
+
+    private static String methodToString(Method method)
+    {
+        StringBuilder sb = new StringBuilder(method.name)
+        sb.append('(')
+        sb.append(Joiner.on(', ').join(method.parameterTypes))
+        sb.append(')')
+        return sb.toString()
     }
     
     @Test
     void testGetJson()
     {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
         NCube ncube1 = NCubeBuilder.discrete1D
         NCube ncube2 = NCubeBuilder.discrete1D
         ncube1.applicationID = BRANCH1
@@ -96,7 +170,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         assert StringUtilities.hasContent(json)
 
         mutableClient.deleteBranch(BRANCH1)
-        ncubeRuntime.clearCache(BRANCH2)
+        call('clearCache', [BRANCH2])
 
         // invalid cube json, but raw json should still load
         json = call('getJson', [BRANCH2, cubeName, [mode:'json']])
@@ -122,6 +196,28 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         call('commitCube', [BRANCH1, cube.name])
         List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, cube.name, null, null)
         assert 1 == dtos.size()
+    }
+
+    @Test
+    void testRuntimeSearchRemovesExistingSearchClosure()
+    {
+        if (!NCubeAppContext.clientTest)
+        {
+            return
+        }
+        NCube cube = NCubeBuilder.discrete1D
+        cube.applicationID = BRANCH1
+        mutableClient.createCube(cube)
+        List<NCube> cubeList = []
+        Map options = [:]
+        options[SEARCH_CLOSURE] = { NCubeInfoDto dto, List<NCube> cubes ->
+            NCube ncube = NCube.createCubeFromRecord(dto)
+            cubes.add(ncube)
+        }
+        options[SEARCH_OUTPUT] = cubeList
+        List<NCubeInfoDto> dtos = mutableClient.search(BRANCH1, cube.name, null, options)
+        assert 1 == dtos.size()
+        assert cubeList.empty
     }
 
     @Test
@@ -162,9 +258,8 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
     {
         Map health = call('heartBeat', [[:]]) as Map
         assert health
-        Map stats = health.serverStats as Map
-        assert stats.containsKey('User ID')
-        assert stats.containsKey('Java version')
+        Map stats = health.compareResults as Map
+        assert stats.isEmpty()
     }
 
     @Test
@@ -175,7 +270,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'ncube.test', '0.0.0', 'SNAPSHOT', 'jose')
         createCubeFromResource(appId, "sys.bootstrap.test.1.json")
 
-        ApplicationID bootId = ncubeRuntime.getApplicationID(appId.tenant, appId.app, [env:null]) as ApplicationID
+        ApplicationID bootId = ncubeRuntime.getApplicationID(appId.tenant, appId.app, [env:null] as Map) as ApplicationID
         assert bootId.tenant == 'NONE'
         assert bootId.app == 'ncube.test'
         assert bootId.version == '1.28.0'
@@ -200,6 +295,37 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
 
         List<Delta> result = call('fetchJsonRevDiffs', [newId, origId]) as List
         assert result.size() == 4
+    }
+
+    @Test
+    void testFetchJsonRevDiffsWrongTenant()
+    {
+        if (NCubeAppContext.clientTest)
+        { // You can't spoof an ApplicationID in a client test. The storage server controller will put the correct one on.
+            return
+        }
+        ApplicationID acme1 = new ApplicationID('Acme', BRANCH1.app, BRANCH1.version, BRANCH1.status, BRANCH1.branch)
+        createCubeFromResource(acme1, 'test.branch.1.json')
+        List<NCubeInfoDto> cubes = ncubeRuntime.search(acme1, 'TestBranch', null, null)
+        assert cubes.size() == 1
+        NCubeInfoDto origDto = cubes[0]
+        long origId = Converter.convert(origDto.id, long.class) as long
+        NCube foo = ncubeRuntime.getNCubeFromResource(acme1, 'test.branch.2.json')
+        mutableClient.updateCube(foo)
+        List<NCubeInfoDto> cubes2 = ncubeRuntime.search(acme1, 'TestBranch', null, null)
+        assert cubes2.size() == 1
+        NCubeInfoDto newDto = cubes2[0]
+        long newId = Converter.convert(newDto.id, long.class) as long
+
+        try
+        {
+            call('fetchJsonRevDiffs', [newId, origId]) as List
+            fail()
+        }
+        catch (SecurityException e)
+        {
+            assertContainsIgnoreCase(e.message, 'not performed', 'permission for cube', 'user:')
+        }
     }
 
     @Test
@@ -233,23 +359,156 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         }
         catch(CoordinateNotFoundException e)
         {
-            assertContainsIgnoreCase(e.message, 'not found on axis', )
+            assertContainsIgnoreCase(e.message, 'not found on axis')
         }
     }
 
     @Test
-    void testGetMenu()
+    void testGetMenuDefault()
     {
+        try
+        {
+            Map menu = call('getMenu', [BRANCH1]) as Map
+            assert MENU_TITLE_DEFAULT == menu[MENU_TITLE]
+            assert 6 == (menu[MENU_TAB] as Map).size()
+            assert (menu[MENU_NAV] as Map).isEmpty()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'user code', 'cannot', 'executed', 'attempted', 'getMenu')
+        }
+    }
+
+    @Test
+    void testGetMenuAppOnly()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        createCubeFromResource(BRANCH1.asBootVersion(), 'sysMenu1.json')
         Map menu = call('getMenu', [BRANCH1]) as Map
-        assert menu.title != null
+        assert 'App Title' == menu[MENU_TITLE]
+
+        Map tabMenu = menu[MENU_TAB] as Map
+        assert 1 == tabMenu.size()
+        assert tabMenu.containsKey('Visualizer')
+
+        Map navMenu = menu[MENU_NAV] as Map
+        assert 3 == navMenu.size()
+
+        Map nav1 = navMenu['Nav1'] as Map
+        assert 1 == nav1.size()
+        assert nav1.containsKey('App Plugin')
+
+        Map nav2 = navMenu['Nav2'] as Map
+        assert 1 == nav2.size()
+        assert nav2.containsKey('Plugin 2')
+        assert 'somethingElse' == ((nav2['Plugin 2'] as Map)['expression'] as Map)['method']
+
+        Map nav3 = navMenu['Nav3'] as Map
+        assert 1 == nav3.size()
+        assert nav3.containsKey('App Plugin')
+    }
+
+    @Test
+    void testGetMenuSystemOnly()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        createCubeFromResource(SYSAPP, 'globalSysMenu1.json')
+        mutableClient.commitBranch(SYSAPP)
+        Map menu = call('getMenu', [BRANCH1]) as Map
+        assert 'Global Title' == menu[MENU_TITLE]
+
+        Map tabMenu = menu[MENU_TAB] as Map
+        assert 5 == tabMenu.size()
+        assert tabMenu.containsKey('n-cube')
+        assert tabMenu.containsKey('n-cube-old')
+        assert tabMenu.containsKey('JSON')
+        assert tabMenu.containsKey('Details')
+        assert tabMenu.containsKey('Test')
+        assert !tabMenu.containsKey('Visualizer')
+
+        Map navMenu = menu[MENU_NAV] as Map
+        assert 2 == navMenu.size()
+
+        Map nav1 = navMenu['Nav1'] as Map
+        assert 1 == nav1.size()
+        assert nav1.containsKey('Global Plugin')
+
+        Map nav2 = navMenu['Nav2'] as Map
+        assert 1 == nav2.size()
+        assert nav2.containsKey('Plugin 2')
+        assert 'searchForString' == ((nav2['Plugin 2'] as Map)['expression'] as Map)['method']
+    }
+
+    @Test
+    void testGetMenuAppAndSystem()
+    {
+        if (NCubeAppContext.clientTest)
+        {
+            return
+        }
+        createCubeFromResource(BRANCH1.asBootVersion(), 'sysMenu1.json')
+        createCubeFromResource(SYSAPP, 'globalSysMenu1.json')
+        mutableClient.commitBranch(SYSAPP)
+        Map menu = call('getMenu', [BRANCH1]) as Map
+        assert 'App Title' == menu[MENU_TITLE]
+
+        Map tabMenu = menu[MENU_TAB] as Map
+        assert 6 == tabMenu.size()
+        assert tabMenu.containsKey('n-cube')
+        assert tabMenu.containsKey('n-cube-old')
+        assert tabMenu.containsKey('JSON')
+        assert tabMenu.containsKey('Details')
+        assert tabMenu.containsKey('Test')
+        assert tabMenu.containsKey('Visualizer')
+
+        Map navMenu = menu[MENU_NAV] as Map
+        assert 3 == navMenu.size()
+
+        Map nav1 = navMenu['Nav1'] as Map
+        assert 2 == nav1.size()
+        assert nav1.containsKey('App Plugin')
+        assert nav1.containsKey('Global Plugin')
+
+        Map nav2 = navMenu['Nav2'] as Map
+        assert 1 == nav2.size()
+        assert nav2.containsKey('Plugin 2')
+        assert 'somethingElse' == ((nav2['Plugin 2'] as Map)['expression'] as Map)['method']
+
+        Map nav3 = navMenu['Nav3'] as Map
+        assert 1 == nav3.size()
+        assert nav3.containsKey('App Plugin')
     }
 
     @Test
     void testExecute()
     {
         createCubeFromResource(BRANCH1, 'test.execute.json')
-        def result = call('execute', [BRANCH1, 'test.execute', 'plus', [value: 2.0d, term: 3.0d]])
-        println result
+        try
+        {
+            def result = call('execute', [BRANCH1, 'test.execute', 'plus', [value: 2.0d, term: 3.0d]])
+            assert result != null
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'user code', 'cannot', 'executed', 'attempted', 'execute')
+        }
+    }
+
+    @Test
+    void testCheckPermissions()
+    {
+        String read = Action.READ.name()
+        String update = Action.UPDATE.name()
+        NCube cube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        Map perms = call('checkMultiplePermissions', [BRANCH1, cube.name, [read, update].toArray()]) as Map
+        assertTrue perms[read] as Boolean
+        assertTrue perms[update] as Boolean
     }
 
     @Test
@@ -317,6 +576,75 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
             Map<String, Object> pr = mutableClient.pullRequests.first() as Map
             assert pr[PR_STATUS] == PR_OBSOLETE
         }
+    }
+
+    @Test
+    void testMapReduce()
+    {
+        try
+        {
+            createCubeFromResource(BRANCH1, 'sys.classpath.tests.json')
+            createCubeFromResource(BRANCH1, 'selectQueryTest.json')
+            Map queryResult = call('mapReduce', [BRANCH1, 'Test.Select', 'query', "{ Map input -> input.foo == 'AL' }", [:]]) as Map
+
+            assert queryResult.size() == 1
+
+            Map row = queryResult['A'] as Map
+            assert row['foo'] == 'AL'
+            assert row['bar'] == 123
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'user code', 'cannot', 'executed', 'attempted', 'mapReduce')
+        }
+    }
+
+    @Test
+    void testPromoteRevision()
+    {
+        // setup NCube and verify initial cell value
+        Map coord = [Code: -10]
+        NCube ncube = createCubeFromResource(BRANCH1, 'test.branch.1.json')
+        String code = ncube.getCell(coord)
+        assert code == 'ABC'
+
+        // update cell and verify value changed
+        call('updateCellAt', [BRANCH1, ncube.name, coord, new CellInfo('XYZ')])
+        NCubeInfoDto record1 = call('loadCubeRecord', [BRANCH1, ncube.name, [:]]) as NCubeInfoDto
+        ncube = NCube.createCubeFromRecord(record1)
+        code = ncube.getCell(coord)
+        assert code == 'XYZ'
+
+        // get revisions, promote original revision and verify cell value
+        List<NCubeInfoDto> revisions = call('getRevisionHistory', [BRANCH1, ncube.name]) as List
+        assert revisions.size() == 2
+        NCubeInfoDto record0 = revisions.find { it.revision == '0' }
+        long id = Converter.convert(record0.id, Long.class) as long
+        call('promoteRevision', [id])
+        revisions = call('getRevisionHistory', [BRANCH1, ncube.name]) as List
+        assert revisions.size() == 3
+        NCubeInfoDto record2 = call('loadCubeRecord', [BRANCH1, ncube.name, [:]]) as NCubeInfoDto
+        ncube = NCube.createCubeFromRecord(record2)
+        code = ncube.getCell(coord)
+        assert code == 'ABC'
+    }
+
+    @Test
+    void testGetCubeRawJson()
+    {
+        String classPathString = call('getCubeRawJson', [ApplicationID.testAppId, 'sys.classpath']) as byte[]
+        assert classPathString != null
+        String nullString = call('getCubeRawJson', [ApplicationID.testAppId, 'NonExistentCube']) as byte[]
+        assert nullString == null
+    }
+
+    @Test
+    void testGetCubeRawJsonBytes()
+    {
+        byte[] classPathBytes = call('getCubeRawJsonBytes', [ApplicationID.testAppId, 'sys.classpath']) as byte[]
+        assert classPathBytes != null
+        byte[] nullBytes = call('getCubeRawJsonBytes', [ApplicationID.testAppId, 'NonExistentCube']) as byte[]
+        assert nullBytes == null
     }
 
     private static Object call(String methodName, List args)

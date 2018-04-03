@@ -8,6 +8,9 @@ import com.cedarsoftware.ncube.util.CdnClassLoader
 import groovy.transform.CompileStatic
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.junit4.SpringRunner
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
@@ -31,9 +34,12 @@ import static org.junit.Assert.*
  *         limitations under the License.
  */
 @CompileStatic
+@RunWith(SpringRunner.class)
+@TestPropertySource(properties=["ncube.accepted.domains=org.apache."])
 class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 {
     public static ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'preloaded', ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
+    public static ApplicationID sysAppId = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'sys.app', ApplicationID.SYS_BOOT_VERSION, ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     private static final ApplicationID HEAD = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), ApplicationID.HEAD)
     private static final ApplicationID BRANCH1 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'FOO')
     private static final ApplicationID BRANCH2 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'BAR')
@@ -56,7 +62,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (CoordinateNotFoundException e)
         {
-            assertContainsIgnoreCase(e.message, 'error', 'in cube', cube.name, '[]')
+            assertContainsIgnoreCase(e.message, 'error', 'in cube', cube.name, '[')
             assertNull(e.cubeName)
             assertNull(e.coordinate)
             assertNull(e.axisName)
@@ -139,11 +145,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         ApplicationID branch3 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.29.0', ReleaseStatus.SNAPSHOT.name(), 'someoneelse')
         ApplicationID branch4 = new ApplicationID(ApplicationID.DEFAULT_TENANT, 'test', '1.28.0', ReleaseStatus.SNAPSHOT.name(), 'someoneelse')
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, branch1))
-        assertEquals(2, mutableClient.copyBranch(HEAD, branch2))
+        assertEquals(3, mutableClient.copyBranch(HEAD, branch1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, branch2))
         // version doesn't match one in HEAD, nothing created.
         assertEquals(0, mutableClient.copyBranch(branch3.asHead(), branch3))
-        assertEquals(2, mutableClient.copyBranch(branch4.asHead(), branch4))
+        assertEquals(3, mutableClient.copyBranch(branch4.asHead(), branch4))
 
         assertTrue(mutableClient.appNames.contains('test'))
         assertTrue(mutableClient.appNames.contains('foo'))
@@ -163,23 +169,26 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert dtos2.empty
         // end verify
 
-        Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos.toArray())
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        String notesText = 'i am a note'
+        Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos.toArray(), notesText)
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         // ensure that there are no more branch changes after create
         dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assert dtos.empty
 
         ApplicationID headId = HEAD
-        assert 1 == mutableClient.search(headId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size()
+        dtos = mutableClient.search(headId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
+        assert 1 == dtos.size()
+        assertContainsIgnoreCase(dtos[0].notes, notesText)
     }
 
     @Test
-    void testMergeWithNoHadCube()
+    void testMergeWithNoHeadCube()
     {
         createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
         createCubeFromResource(BRANCH2, 'test.branch.age.2.json')
@@ -294,6 +303,65 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testDeleteAppPass()
+    {
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
+        mutableClient.commitBranch(BRANCH1)
+
+        assert 1 == mutableClient.search(BRANCH1, null, null, null).size()
+        assert 1 == mutableClient.search(HEAD, null, null, null).size()
+        assert 3 == mutableClient.search(HEAD.asBootVersion(), null, null, null).size()
+
+        mutableClient.deleteApp(BRANCH1)
+        assert !mutableClient.getVersions(BRANCH1.app).size()
+    }
+
+    @Test
+    void testDeleteReleasedAppFails()
+    {
+        String newSnapVer = '1.1.1'
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
+        mutableClient.commitBranch(BRANCH1)
+        mutableClient.releaseCubes(HEAD, newSnapVer)
+
+        assert 1 == mutableClient.search(HEAD.asRelease(), null, null, null).size()
+
+        try
+        {
+            mutableClient.deleteApp(BRANCH1)
+            fail()
+        }
+        catch(IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'Only applications without a released version can be deleted')
+        }
+    }
+
+    @Test
+    void testDeleteAppNotSysAdminFails()
+    {
+        ApplicationID sysAppBranch = sysAppId.asBranch('test')
+        createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
+        mutableClient.commitBranch(BRANCH1)
+        mutableClient.copyBranch(sysAppId, sysAppBranch)
+        NCube sysPermsCube = mutableClient.getCube(sysAppBranch, SYS_USERGROUPS)
+        sysPermsCube.setCell(false, [(AXIS_USER):mutableClient.userId, (AXIS_ROLE):ROLE_ADMIN])
+        mutableClient.updateCube(sysPermsCube)
+        mutableClient.commitBranch(sysAppBranch)
+        testClient.clearPermCache()
+
+        try
+        {
+            mutableClient.deleteApp(BRANCH1)
+            fail()
+        }
+        catch(IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'system administrator')
+        }
+    }
+
+    @Test
     void testUpdateBranchOnCubeCreatedInBranch()
     {
         createCubeFromResource(BRANCH1, 'test.branch.age.1.json')
@@ -302,12 +370,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, dtos.length)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         //  update didn't affect item added locally
         dtos = mutableClient.getBranchChangesForHead(BRANCH1)
@@ -333,11 +401,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     {
         preloadCubes(BRANCH1, "test.branch.1.json")
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.search(HEAD, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, mutableClient.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
@@ -362,11 +430,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, 'test.branch.1.json')
         String cubeName = 'TestBranch'
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.search(HEAD, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
         assertEquals(1, mutableClient.search(BRANCH1, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):true]).size())
@@ -374,11 +442,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, cubeName)
         assertNull(mutableClient.getCube(BRANCH1, cubeName))
         result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         mutableClient.restoreCubes(BRANCH1, cubeName)
         assertNotNull(mutableClient.getCube(BRANCH1, cubeName))
@@ -441,7 +509,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             assertNull(dto.headSha1)
         }
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         assertEquals(cube1Sha1, mutableClient.getCube(BRANCH1, "TestBranch").sha1())
         assertEquals(cube2Sha1, mutableClient.getCube(BRANCH1, "TestAge").sha1())
@@ -471,7 +539,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNull(mutableClient.getCube(HEAD, 'TestAge'))
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, 'TestBranch').size())
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
 
         cube = mutableClient.getCube(HEAD, 'TestBranch')
         assertEquals('ABC', cube.getCell(['Code': -10]))
@@ -494,11 +562,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, dtos.size())
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos.toArray())
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, 'TestBranch').size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, 'TestAge').size())
@@ -522,8 +590,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNull(mutableClient.getCube(BRANCH2, "TestAge"))
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH2))
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
@@ -555,12 +623,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH1, dtos)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH2)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(2, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
@@ -602,7 +670,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         //  test values on branch
         testValuesOnBranch(BRANCH1)
@@ -651,11 +719,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, dtos.size())
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos.toArray())
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(2, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
@@ -678,7 +746,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         // pre-branch, cubes don't exist
         assertNull(mutableClient.getCube(BRANCH1, "TestAge"))
 
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
@@ -695,11 +763,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(2, dtos.length)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(2, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, "TestBranch2").size())
@@ -724,7 +792,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -746,11 +814,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         ((NCubeInfoDto)dtos[0]).revision = Long.toString(100)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -773,7 +841,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         //  test values on branch
         testValuesOnBranch(BRANCH1)
@@ -852,7 +920,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         //  test values on branch
         testValuesOnBranch(BRANCH1)
@@ -890,11 +958,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         //  loads in both TestAge and TestBranch though only TestBranch has changed.
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(2, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
@@ -914,25 +982,25 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         testValuesOnBranch(HEAD)
 
         //  delete and re-add these cubes.
-        assertEquals(4, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(5, mutableClient.copyBranch(HEAD, BRANCH1))
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
         mutableClient.deleteCubes(BRANCH1, 'TestAge')
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 2
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 2
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         NCube cube = ncubeRuntime.getNCubeFromResource(BRANCH1, "test.branch.2.json")
         mutableClient.updateCube(cube)
         result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         // test with default options
         assertEquals(4, mutableClient.search(HEAD, null, null, null).size())
@@ -979,6 +1047,38 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         map.put(SEARCH_DELETED_RECORDS_ONLY, false)
         map.put(SEARCH_CHANGED_RECORDS_ONLY, true)
+    }
+
+    @Test
+    void testSearchWithCheckSha1()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(HEAD, "test.branch.1.json", "test.branch.age.1.json", "TestCubeLevelDefault.json", "basicJumpStart.json")
+        testValuesOnBranch(HEAD)
+
+        NCube testBranchCube = mutableClient.getCube(HEAD, 'TestBranch')
+
+        Map<String,Object> options = [(SEARCH_INCLUDE_CUBE_DATA):true, (SEARCH_EXACT_MATCH_NAME):true] as Map<String,Object>
+        List<NCubeInfoDto> records = mutableClient.search(HEAD, 'TestBranch', null, options)
+        assertEquals(1, records.size())
+        NCubeInfoDto testBranchInfo = records.first()
+        assertEquals(true,testBranchInfo.hasCubeData())
+        assertEquals(testBranchCube.sha1(),testBranchInfo.sha1)
+
+        // add bogus sha1 and ensure bytes are still returned
+        options[SEARCH_CHECK_SHA1] = 'xx'
+        records = mutableClient.search(HEAD, 'TestBranch', null, options)
+        assertEquals(1, records.size())
+        testBranchInfo = records.first()
+        assertEquals(true,testBranchInfo.hasCubeData())
+        assertEquals(testBranchCube.sha1(),testBranchInfo.sha1)
+
+        // add matching sha1 and ensure bytes are not returned
+        options[SEARCH_CHECK_SHA1] = testBranchCube.sha1()
+        records = mutableClient.search(HEAD, 'TestBranch', null, options)
+        assertEquals(1, records.size())
+        testBranchInfo = records.first()
+        assertEquals(false,testBranchInfo.hasCubeData())
     }
 
     @Test
@@ -1095,7 +1195,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         //  test values on branch
         testValuesOnBranch(BRANCH1)
@@ -1141,12 +1241,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, "TestAge").size())
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
@@ -1172,7 +1272,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
             mutableClient.copyBranch(HEAD, BRANCH1)
             fail()
         }
-        catch (IllegalStateException e)
+        catch (IllegalArgumentException e)
         {
             assertContainsIgnoreCase(e.message, 'already exists')
         }
@@ -1189,7 +1289,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1202,7 +1302,77 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         testValuesOnBranch(BRANCH1, "FOO")
 
         int rows = mutableClient.releaseCubes(HEAD, "1.29.0")
-        assertEquals(2, rows)
+        assertEquals(3, rows) // 2 + sys.info = 3
+
+        Object[] versions = ncubeRuntime.getVersions(HEAD.app)
+        assert versions.length == 3
+        assert versions.contains('0.0.0-SNAPSHOT')
+        assert versions.contains('1.29.0-SNAPSHOT')
+        assert versions.contains('1.28.0-RELEASE')
+
+        assertNull(mutableClient.getCube(BRANCH1, "TestAge"))
+        assertNull(mutableClient.getCube(BRANCH1, "TestBranch"))
+        assertNull(mutableClient.getCube(HEAD, "TestAge"))
+        assertNull(mutableClient.getCube(HEAD, "TestBranch"))
+
+        ApplicationID newBranchSnapshot = BRANCH1.createNewSnapshotId("1.29.0")
+
+        ApplicationID release = HEAD.asRelease()
+
+        testValuesOnBranch(release)
+        testValuesOnBranch(newBranchSnapshot, "FOO")
+
+        // test release with no new version
+        mutableClient.releaseCubes(HEAD.asVersion('1.29.0'))
+        versions = ncubeRuntime.getVersions(HEAD.app)
+        assert 3 == versions.length
+        assert versions.contains('0.0.0-SNAPSHOT')
+        assert versions.contains('1.28.0-RELEASE')
+        assert versions.contains('1.29.0-RELEASE')
+    }
+
+    @Test
+    void testIndividualCallsCanReplaceReleaseCubes()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(HEAD, "test.branch.1.json", "test.branch.age.1.json")
+        assertNull(mutableClient.getCube(BRANCH1, "TestBranch"))
+        assertNull(mutableClient.getCube(BRANCH1, "TestAge"))
+        testValuesOnBranch(HEAD)
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
+        testValuesOnBranch(HEAD)
+        testValuesOnBranch(BRANCH1)
+
+        NCube cube = ncubeRuntime.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
+        assertNotNull(cube)
+        mutableClient.updateCube(cube)
+
+        assertEquals(2, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
+        testValuesOnBranch(BRANCH1, "FOO")
+
+        // lock app
+        mutableClient.lockApp(HEAD, true)
+
+        // change versions on existing branches
+        Object[] branches = mutableClient.getBranches(HEAD)
+        for (Object branchObj : branches)
+        {
+            String branch = branchObj as String
+            if (!ApplicationID.HEAD.equalsIgnoreCase(branch))
+            {
+                ApplicationID branchAppId = HEAD.asBranch(branch)
+                mutableClient.moveBranch(branchAppId, '1.29.0')
+            }
+        }
+
+        // release version
+        mutableClient.releaseVersion(HEAD, '1.29.0')
+
+        // copy head forward
+        mutableClient.copyBranch(HEAD, HEAD.asVersion('1.29.0'))
+
+        // unlock app
+        mutableClient.lockApp(HEAD, false)
 
         Object[] versions = ncubeRuntime.getVersions(HEAD.app)
         assert versions.length == 3
@@ -1228,21 +1398,21 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     {
         // load cube with same name, but different structure in TEST branch
         preloadCubes(HEAD, 'test.branch.1.json', 'test.branch.age.1.json')
-        assert 2 == mutableClient.copyBranch(HEAD, BRANCH1)
+        assert 3 == mutableClient.copyBranch(HEAD, BRANCH1)
 
         NCube cube = ncubeRuntime.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
         assertNotNull(cube)
         mutableClient.updateCube(cube)
 
         // create pull request with version 1.28.0
-        String prId = mutableClient.generatePullRequestHash(BRANCH1, mutableClient.getBranchChangesForHead(BRANCH1))
+        String prId = mutableClient.generatePullRequestHash(BRANCH1, mutableClient.getBranchChangesForHead(BRANCH1).toArray())
         Object[] prInfos = mutableClient.pullRequests
         assert 1 == prInfos.size()
         ApplicationID prAppId = (prInfos[0] as Map)[PR_APP] as ApplicationID
         assert HEAD.equalsNotIncludingBranch(prAppId)
 
         // release 1.28.0
-        assert 2 == mutableClient.releaseCubes(HEAD, '1.29.0')
+        assert 3 == mutableClient.releaseCubes(HEAD, '1.29.0') // 2 + sys.info = 3
 
         // test 1.29.0 snapshot still has same values
         ApplicationID newBranchSnapshot = BRANCH1.asVersion('1.29.0')
@@ -1263,6 +1433,34 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testReleaseCubesWithOpenPullRequestsNoNewSnapshot()
+    {
+        // load cube with same name, but different structure in TEST branch
+        preloadCubes(HEAD, 'test.branch.1.json', 'test.branch.age.1.json')
+        assert 3 == mutableClient.copyBranch(HEAD, BRANCH1)
+
+        NCube cube = ncubeRuntime.getNCubeFromResource(BRANCH1, 'test.branch.2.json')
+        assertNotNull(cube)
+        mutableClient.updateCube(cube)
+
+        // create pull request with version 1.28.0
+        mutableClient.generatePullRequestHash(BRANCH1, mutableClient.getBranchChangesForHead(BRANCH1).toArray())
+        Object[] prInfos = mutableClient.pullRequests
+        assert 1 == prInfos.size()
+        ApplicationID prAppId = (prInfos[0] as Map)[PR_APP] as ApplicationID
+        assert HEAD.equalsNotIncludingBranch(prAppId)
+
+        // release 1.28.0 with no new snapshot version
+        assert 3 == mutableClient.releaseCubes(HEAD) // 2 + sys.info = 3
+
+        // test PR obsoleted
+        prInfos = mutableClient.pullRequests
+        assert 1 == prInfos.size()
+        String prStatus = (prInfos[0] as Map)[PR_STATUS] as String
+        assert PR_OBSOLETE == prStatus
+    }
+
+    @Test
     void testDuplicateCubeChanges()
 	{
         // load cube with same name, but different structure in TEST branch
@@ -1270,7 +1468,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1301,7 +1499,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNull(mutableClient.getCube(appId, "TestBranch"))
         assertNull(mutableClient.getCube(appId, "TestAge"))
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1323,7 +1521,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         // load cube with same name, but different structure in TEST branch
         preloadCubes(HEAD, "test.branch.1.json")
 
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
         assertTrue(mutableClient.deleteCubes(BRANCH1, ['TestBranch']))
 
         try
@@ -1343,7 +1541,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         // load cube with same name, but different structure in TEST branch
         preloadCubes(HEAD, "test.branch.1.json")
 
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
         assertTrue(mutableClient.deleteCubes(BRANCH1, ['TestBranch']))
 
         try
@@ -1365,7 +1563,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1391,7 +1589,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(head)
 
-        assertEquals(2, mutableClient.copyBranch(head, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(head, BRANCH1))
 
         testValuesOnBranch(head)
         testValuesOnBranch(BRANCH1)
@@ -1408,7 +1606,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
         assertEquals(0, getDeletedCubesFromDatabase(HEAD, "*").size())
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(BRANCH1, "TestAge").size())
@@ -1423,11 +1621,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(2, mutableClient.getRevisionHistory(BRANCH1, "TestAge").size())
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 2
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 2
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNull(mutableClient.getCube(HEAD, "TestBranch"))
         assertNull(mutableClient.getCube(HEAD, "TestAge"))
@@ -1447,11 +1645,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNotNull(mutableClient.getCube(BRANCH1, "TestAge"))
 
         result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNull(mutableClient.getCube(HEAD, "TestBranch"))
         assertNotNull(mutableClient.getCube(HEAD, "TestAge"))
@@ -1462,11 +1660,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertNotNull(mutableClient.getCube(BRANCH1, "TestBranch"))
 
         result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -1497,11 +1695,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(2, dtos.length)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 2
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 2
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNull(mutableClient.getCube(HEAD, "TestBranch"))
         assertNotNull(mutableClient.getCube(HEAD, "TestBranch2"))
@@ -1524,11 +1722,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(2, dtos.length)
         result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(2, mutableClient.getRevisionHistory(HEAD, "TestBranch2").size())
@@ -1544,7 +1742,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1573,7 +1771,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1601,7 +1799,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1635,7 +1833,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1666,7 +1864,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1684,11 +1882,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(2, dtos.size())
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos.toArray())
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNull(mutableClient.getCube(HEAD, "TestBranch"))
         assertNotNull(mutableClient.getCube(HEAD, "TestBranch2"))
@@ -1706,11 +1904,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         assertEquals(2, dtos.size())
         result = mutableClient.commitBranch(BRANCH1, dtos.toArray())
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNull(mutableClient.getCube(HEAD, "TestBranch2"))
         assertNotNull(mutableClient.getCube(HEAD, "TestBranch"))
@@ -1727,7 +1925,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(head, "test.branch.1.json", "test.branch.age.1.json")
         testValuesOnBranch(head)
 
-        assertEquals(2, mutableClient.copyBranch(head, branch))
+        assertEquals(3, mutableClient.copyBranch(head, branch))
 
         testValuesOnBranch(head)
         testValuesOnBranch(branch)
@@ -1790,11 +1988,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         assertNull(mutableClient.getCube(BRANCH1, "TestBranch2"))
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 2
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 2
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNotNull(mutableClient.getCube(HEAD, "TestBranch"))
         assertNotNull(mutableClient.getCube(HEAD, "TestBranch"))
@@ -1808,7 +2006,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json", "test.branch.age.1.json")
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1824,11 +2022,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(2, dtos.length)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertNotNull(mutableClient.getCube(HEAD, "TestBranch2"))
         assertNotNull(mutableClient.getCube(HEAD, "TestAge"))
@@ -1857,11 +2055,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(2, dtos.size())
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos as Object[])
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 2
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 2
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         //  Test with new name.
         NCube cube = mutableClient.getCube(BRANCH1, "TestBranch2")
@@ -1885,7 +2083,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -1993,11 +2191,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
         assertEquals(2, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
@@ -2019,7 +2217,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         testValuesOnBranch(HEAD)
 
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         testValuesOnBranch(HEAD)
         testValuesOnBranch(BRANCH1)
@@ -2152,11 +2350,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH2)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
@@ -2287,8 +2485,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         createCubeFromResource(BRANCH2, "test.branch.age.2.json")
 
@@ -2313,11 +2511,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -2332,13 +2530,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
         assertEquals(3, cube.cellMap.size())
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -2414,13 +2612,16 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         catch (BranchMergeException e)
         {
             Map data = e.errors
-            assert (data[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (data[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (data[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (data[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (data[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (data[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (data[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (data[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (data[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (data[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
-        manager.userId = origUser
+        finally
+        {
+            manager.userId = origUser
+        }
     }
 
     /***** tests for commit and update from our cube matrix *****/
@@ -2449,12 +2650,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2489,12 +2690,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2525,12 +2726,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2539,11 +2740,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, "test.branch.1.json")
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2552,12 +2753,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, "test.branch.1.json")
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2579,12 +2780,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, "test.branch.1.json")
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2615,12 +2816,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, "test.branch.1.json")
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2640,11 +2841,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -2659,12 +2860,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, "test.branch.1.json")
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -2682,11 +2883,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2704,12 +2905,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2744,12 +2945,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2773,11 +2974,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -2796,12 +2997,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -2821,12 +3022,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.copyBranch(HEAD, BRANCH1)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2857,12 +3058,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2889,12 +3090,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2925,12 +3126,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2945,11 +3146,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2964,12 +3165,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -2984,11 +3185,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3003,12 +3204,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3026,11 +3227,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3048,12 +3249,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3069,12 +3270,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3095,11 +3296,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3120,12 +3321,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3148,11 +3349,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3170,12 +3371,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3199,11 +3400,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3222,12 +3423,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3247,11 +3448,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3271,12 +3472,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3308,11 +3509,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         //consumer commit
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3335,12 +3536,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         //consumer update
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         //producer change and commit
         producerCube = mutableClient.getCube(BRANCH2, 'TestBranch')
@@ -3349,12 +3550,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3400,12 +3601,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assert consumerDto.changed
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
         consumerDto = mutableClient.search(BRANCH1, 'TestBranch', null, null)[0]
         assert !consumerDto.changed
     }
@@ -3433,11 +3634,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3458,12 +3659,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3476,11 +3677,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3493,12 +3694,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3517,11 +3718,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3535,12 +3736,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3571,12 +3772,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3594,11 +3795,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3616,12 +3817,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3645,11 +3846,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3668,12 +3869,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3702,12 +3903,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3732,11 +3933,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3756,12 +3957,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3788,11 +3989,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3814,12 +4015,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3846,11 +4047,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3872,12 +4073,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3904,11 +4105,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -3930,12 +4131,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -3950,11 +4151,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -3969,12 +4170,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4001,12 +4202,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4023,11 +4224,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4044,12 +4245,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4084,12 +4285,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4130,12 +4331,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4157,11 +4358,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -4178,12 +4379,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -4209,11 +4410,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -4234,12 +4435,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.restoreCubes(BRANCH1, 'TestBranch')
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -4286,12 +4487,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4321,11 +4522,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -4350,12 +4551,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -4379,11 +4580,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4407,12 +4608,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(consumerCube)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     @Test
@@ -4478,11 +4679,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -4593,23 +4794,23 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(BRANCH2)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
 
         dtos = mutableClient.getHeadChangesForBranch(BRANCH1)
         assertEquals(1, dtos.size())
 
         result = mutableClient.updateBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
     }
 
     /***** End tests for commit and update from cube test matrix *****/
@@ -4636,12 +4837,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         //consumer update
         mutableClient.getHeadChangesForBranch(BRANCH1)
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         consumerCube = mutableClient.getCube(BRANCH1, 'TestCube')
         Axis genderAxis = consumerCube.getAxis('Gender')
@@ -4679,12 +4880,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         //consumer update
         mutableClient.getHeadChangesForBranch(BRANCH1)
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         consumerCube = mutableClient.getCube(BRANCH1, 'TestCube')
         Axis genderAxis = consumerCube.getAxis('Gender')
@@ -4713,12 +4914,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         //consumer update
         mutableClient.getHeadChangesForBranch(BRANCH1)
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         NCube consumerCube = mutableClient.getCube(BRANCH1, 'TestCube')
         Axis genderAxis = consumerCube.getAxis('Gender')
@@ -4736,12 +4937,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         //consumer update
         mutableClient.getHeadChangesForBranch(BRANCH1)
         result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         consumerCube = mutableClient.getCube(BRANCH1, 'TestCube')
         genderAxis = consumerCube.getAxis('Gender')
@@ -4781,13 +4982,13 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     void testConflictOverwriteBranch()
 	{
         NCube cube = createCubeFromResource(BRANCH2, "test.branch.2.json")
-        assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", cube.sha1())
+        assertEquals("EF05D590F7F2DA94B880EA9F4730EB6D53031B54", cube.sha1())
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH2)
         mutableClient.commitBranch(BRANCH2, dtos)
 
         cube = mutableClient.getCube(HEAD, "TestBranch")
-        assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", cube.sha1())
+        assertEquals("EF05D590F7F2DA94B880EA9F4730EB6D53031B54", cube.sha1())
 
         cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -4796,7 +4997,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         createCubeFromResource(BRANCH1, "test.branch.1.json")
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
-        assertEquals("B4020BFB1B47942D8661640E560881E34993B608", cube.sha1())
+        assertEquals("D71891F6BD1CE8644F6BF5E2E553E2ECA652E785", cube.sha1())
         assertEquals(3, cube.cellMap.size())
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
@@ -4815,11 +5016,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
 
         assertEquals(1, mutableClient.acceptTheirs(BRANCH1, 'TestBranch'))
@@ -4843,12 +5044,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 
         NCube cube = ncubeRuntime.getNCubeFromResource(BRANCH2, "test.branch.2.json")
         mutableClient.updateCube(cube)
-        assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", cube.sha1())
+        assertEquals("EF05D590F7F2DA94B880EA9F4730EB6D53031B54", cube.sha1())
 
         mutableClient.commitBranch(BRANCH2)
 
         cube = mutableClient.getCube(HEAD, "TestBranch")
-        assertEquals("BE7891140C2404A14A6C093C26B1740C749E815B", cube.sha1())
+        assertEquals("EF05D590F7F2DA94B880EA9F4730EB6D53031B54", cube.sha1())
 
         cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -4858,7 +5059,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube)
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
-        assertEquals("B4020BFB1B47942D8661640E560881E34993B608", cube.sha1())
+        assertEquals("D71891F6BD1CE8644F6BF5E2E553E2ECA652E785", cube.sha1())
         assertEquals(3, cube.cellMap.size())
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
@@ -4869,11 +5070,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
 
         assertEquals(1, mutableClient.acceptTheirs(BRANCH1, 'TestBranch'))
@@ -5149,7 +5350,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testMergeAcceptTheirsTheirsIsChangeAndOursIsNotChanged()
+    void testMergeAcceptTheirsTheirsIsChangedAndOursIsNotChanged()
     {
         preloadCubes(BRANCH1, 'test.branch.1.json')
         mutableClient.commitBranch(BRANCH1)
@@ -5182,7 +5383,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
-    void testMergeAcceptTheirsTheirsIsChangeAndOursIsChanged()
+    void testMergeAcceptTheirsTheirsIsChangedAndOursIsChanged()
     {
         preloadCubes(BRANCH1, 'test.branch.1.json')
         mutableClient.commitBranch(BRANCH1)
@@ -5289,11 +5490,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
 
         List<NCubeInfoDto> infos = mutableClient.search(BRANCH1, 'TestBranch', null, null)
@@ -5346,7 +5547,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube)
 
         cube = mutableClient.getCube(BRANCH1, "TestBranch")
-        assertEquals("B4020BFB1B47942D8661640E560881E34993B608", cube.sha1())
+        assertEquals("D71891F6BD1CE8644F6BF5E2E553E2ECA652E785", cube.sha1())
         assertEquals(3, cube.cellMap.size())
         assertEquals("GHI", cube.getCell([Code : 10.0]))
 
@@ -5357,11 +5558,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
 
         List<NCubeInfoDto> infos = mutableClient.search(BRANCH1, 'TestBranch', null, null)
@@ -5485,11 +5686,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube1)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         headCube = mutableClient.getCube(HEAD, "merge1")
         coord = [row:3, column:'C']
@@ -5501,11 +5702,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.updateCube(cube2)
 
         result = mutableClient.commitBranch(BRANCH2)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         headCube = mutableClient.getCube(HEAD, "merge1")
 
@@ -5534,8 +5735,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH2))
 
         createCubeFromResource(BRANCH2, "test.branch.age.2.json")
 
@@ -5556,11 +5757,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
 
         dtos = mutableClient.search(HEAD, "TestAge", null, [(SEARCH_ACTIVE_RECORDS_ONLY):true])
@@ -5583,8 +5784,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(BRANCH1, "test.branch.1.json")
         mutableClient.commitBranch(BRANCH1)
         mutableClient.deleteBranch(BRANCH1)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH2))
 
         NCube cube = mutableClient.getCube(BRANCH1, 'TestBranch')
         NCube cube2 = mutableClient.getCube(BRANCH2, 'TestBranch')
@@ -5627,6 +5828,48 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     }
 
     @Test
+    void testMergeNewColumnWithMetaPropertyOnBranch()
+    {
+        String cubeName = 'TestBranch'
+        String axisName = 'Code'
+        Integer colVal = 20
+        String cubeMetaKey = 'cubekey'
+        String cubeMetaVal = 'cubeval'
+        String colMetaKey = 'key'
+        String colMetaVal = 'val'
+
+        preloadCubes(BRANCH1, "test.branch.1.json")
+        mutableClient.commitBranch(BRANCH1)
+        mutableClient.deleteBranch(BRANCH1)
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH2))
+
+        NCube cube = mutableClient.getCube(BRANCH1, cubeName)
+        NCube cube2 = mutableClient.getCube(BRANCH2, cubeName)
+
+        // make changes
+        cube.addColumn(axisName, colVal)
+        Column column = cube.getAxis(axisName).findColumn(colVal)
+        column.addMetaProperties([(colMetaKey): colMetaVal as Object])
+        mutableClient.updateCube(cube)
+
+        // make change in other cube / head
+        cube2.addMetaProperties([(cubeMetaKey): cubeMetaVal as Object])
+        mutableClient.updateCube(cube2)
+        mutableClient.commitBranch(cube2.applicationID)
+
+        // update cube1 from head
+        mutableClient.updateBranch(cube.applicationID)
+        cube = mutableClient.getCube(cube.applicationID, cube.name)
+
+        // verify metaproperty on new column stays (bug fix)
+        Column newColumn = cube.getAxis(axisName).findColumn(colVal)
+        assert cubeMetaVal == cube.metaProperties[cubeMetaKey]
+        assert newColumn
+        assert colMetaVal == newColumn.metaProperties[colMetaKey]
+    }
+
+    @Test
     void testAddAxis()
     {
         preloadCubes(BRANCH1, "test.branch.1.json")
@@ -5663,27 +5906,27 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.deleteBranch(BRANCH1)
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         createCubeFromResource(BRANCH2, "test.branch.age.2.json")
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH2)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         createCubeFromResource(BRANCH1, "test.branch.age.1.json")
 
         result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
 
         mutableClient.acceptTheirs(BRANCH1, "TestAge")
         assertEquals(0, mutableClient.getBranchChangesForHead(BRANCH1).size())
@@ -5696,8 +5939,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         NCube cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5734,8 +5977,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         NCube cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5757,11 +6000,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
         catch (BranchMergeException e)
         {
-            assert (e.errors[mutableClient.BRANCH_ADDS] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_DELETES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_UPDATES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_RESTORES] as Map).empty
-            assert (e.errors[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+            assert (e.errors[mutableClient.BRANCH_ADDS] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_DELETES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_UPDATES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_RESTORES] as Collection).empty
+            assert (e.errors[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
         }
     }
 
@@ -5771,8 +6014,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         NCube cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5815,8 +6058,8 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         preloadCubes(HEAD, "test.branch.1.json")
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(1, mutableClient.copyBranch(HEAD, BRANCH1))
-        assertEquals(1,  mutableClient.copyBranch(HEAD, BRANCH2))
+        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(2,  mutableClient.copyBranch(HEAD, BRANCH2))
 
         NCube cube = mutableClient.getCube(BRANCH2, "TestBranch")
         assertEquals(3, cube.cellMap.size())
@@ -5839,12 +6082,12 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, dtos.length)
 
         Map<String, Object> result = mutableClient.updateBranch(BRANCH1)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).empty
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).size() == 1
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).empty
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_FASTFORWARDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).size() == 1
     }
 
     @Test
@@ -5864,7 +6107,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(3, cube.cellMap.size())
 
         //  create the branch (TestAge, TestBranch)
-        assertEquals(2, mutableClient.copyBranch(HEAD, BRANCH1))
+        assertEquals(3, mutableClient.copyBranch(HEAD, BRANCH1))
 
         Object[] dtos = mutableClient.getBranchChangesForHead(BRANCH1)
         assertEquals(0, dtos.length)
@@ -5919,11 +6162,11 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         assertEquals(1, dtos.length)
 
         Map<String, Object> result = mutableClient.commitBranch(BRANCH1, dtos)
-        assert (result[mutableClient.BRANCH_ADDS] as Map).empty
-        assert (result[mutableClient.BRANCH_DELETES] as Map).empty
-        assert (result[mutableClient.BRANCH_UPDATES] as Map).size() == 1
-        assert (result[mutableClient.BRANCH_RESTORES] as Map).empty
-        assert (result[mutableClient.BRANCH_REJECTS] as Map).empty
+        assert (result[mutableClient.BRANCH_ADDS] as Collection).empty
+        assert (result[mutableClient.BRANCH_DELETES] as Collection).empty
+        assert (result[mutableClient.BRANCH_UPDATES] as Collection).size() == 1
+        assert (result[mutableClient.BRANCH_RESTORES] as Collection).empty
+        assert (result[mutableClient.BRANCH_REJECTS] as Collection).empty
 
         assertEquals(2, mutableClient.getRevisionHistory(HEAD, "TestBranch").size())
         assertEquals(1, mutableClient.getRevisionHistory(HEAD, "TestAge").size())
@@ -6047,7 +6290,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
 	{
         preloadCubes(appId, "sys.classpath.system.params.user.overloaded.json", "sys.versions.2.json", "sys.resources.base.url.json")
 
-        // force reload of system params, you wouln't usually do this because it wouldn't be thread safe this way.
+        // force reload of system params, you wouldn't usually do this because it wouldn't be thread safe this way.
         testClient.clearSysParams()
 
         // Check DEV
@@ -6056,15 +6299,15 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         System.setProperty('NCUBE_PARAMS', '{"foo", "bar"}')
 
         CdnClassLoader devLoader = cube.getCell([env:"DEV"])
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', devLoader.URLs[0].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', devLoader.URLs[1].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', devLoader.URLs[2].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.31.0-SNAPSHOT/public/".toString(), devLoader.URLs[0].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.31.0-SNAPSHOT/private/".toString(), devLoader.URLs[1].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.31.0-SNAPSHOT/private/groovy/".toString(), devLoader.URLs[2].toString())
 
         // Check INT
         CdnClassLoader intLoader = cube.getCell([env:"INT"])
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/public/', intLoader.URLs[0].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/', intLoader.URLs[1].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.31.0-SNAPSHOT/private/groovy/', intLoader.URLs[2].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.31.0-SNAPSHOT/public/".toString(), intLoader.URLs[0].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.31.0-SNAPSHOT/private/".toString(), intLoader.URLs[1].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.31.0-SNAPSHOT/private/groovy/".toString(), intLoader.URLs[2].toString())
 
         // Check with overload
         cube = mutableClient.getCube(appId, "sys.classpath")
@@ -6102,9 +6345,9 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         System.setProperty("NCUBE_PARAMS", '{"version":"1.28.0"}')
         // SAND hasn't been loaded yet so it should give us updated values based on the system params.
         URLClassLoader loader = cube.getCell([env:"SAND"])
-        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/public/', loader.URLs[0].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/', loader.URLs[1].toString())
-        assertEquals('http://files.cedarsoftware.com/foo/1.28.0/private/groovy/', loader.URLs[2].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.28.0/public/".toString(), loader.URLs[0].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.28.0/private/".toString(), loader.URLs[1].toString())
+        assertEquals("${baseRemoteUrl}/foo/1.28.0/private/groovy/".toString(), loader.URLs[2].toString())
     }
 
     @Test
@@ -6241,8 +6484,7 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         }
     }
 
-    @Test
-    void testMultipleReferenceAxisVersionPerApp()
+    private static void setUpReferenceCubeForAxisReferenceTests()
     {
         ApplicationID firstReleaseAppId = ApplicationID.testAppId.asVersion('1.0.0')
         ApplicationID secondReleaseAppId = ApplicationID.testAppId.asVersion('2.0.0')
@@ -6254,6 +6496,15 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         mutableClient.commitBranch(firstReleaseAppId)
         mutableClient.releaseCubes(firstReleaseAppId, secondReleaseAppId.version)
         mutableClient.releaseCubes(secondReleaseAppId, snapshotAppId.version)
+    }
+
+    @Test
+    void testMultipleReferenceAxisVersionPerCommit()
+    {
+        setUpReferenceCubeForAxisReferenceTests()
+        ApplicationID firstReleaseAppId = ApplicationID.testAppId.asVersion('1.0.0')
+        ApplicationID secondReleaseAppId = ApplicationID.testAppId.asVersion('2.0.0')
+        ApplicationID snapshotAppId = ApplicationID.testAppId.asVersion('3.0.0')
 
         Map<String, Object> args = [:]
         args[REF_TENANT] = firstReleaseAppId.tenant
@@ -6284,6 +6535,127 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
         try
         {
             mutableClient.commitBranch(snapshotAppId)
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'not performed', 'versions')
+        }
+
+        try
+        { // make sure going around commitBranch doesn't work (bugfix)
+            String prId = mutableClient.generatePullRequestHash(snapshotAppId, mutableClient.getBranchChangesForHead(snapshotAppId).toArray())
+            mutableClient.mergePullRequest(prId)
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'not performed', 'versions')
+        }
+    }
+
+    @Test
+    void testMultipleReferenceAxisVersionPerApp()
+    {
+        setUpReferenceCubeForAxisReferenceTests()
+        ApplicationID firstReleaseAppId = ApplicationID.testAppId.asVersion('1.0.0')
+        ApplicationID secondReleaseAppId = ApplicationID.testAppId.asVersion('2.0.0')
+        ApplicationID snapshotAppId = ApplicationID.testAppId.asVersion('3.0.0')
+
+        Map<String, Object> args = [:]
+        args[REF_TENANT] = firstReleaseAppId.tenant
+        args[REF_APP] = firstReleaseAppId.app
+        args[REF_VERSION] = firstReleaseAppId.version
+        args[REF_STATUS] = ReleaseStatus.RELEASE.name()
+        args[REF_BRANCH] = ApplicationID.HEAD
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
+
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource1', args)
+        Axis axis = new Axis('stateSource1', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.applicationID = snapshotAppId
+        two.addAxis(axis)
+        mutableClient.createCube(two)
+        mutableClient.commitBranch(snapshotAppId)
+
+        NCube three = new NCube('Mongo2')
+        three.applicationID = snapshotAppId
+        args[REF_VERSION] = secondReleaseAppId.version
+        refAxisLoader = new ReferenceAxisLoader(three.name, 'stateSource2', args)
+        axis = new Axis('stateSource2', 1, false, refAxisLoader)
+        three.addAxis(axis)
+        mutableClient.createCube(three)
+
+        List<AxisRef> axisRefs = mutableClient.getReferenceAxes(snapshotAppId)
+        assert 2 == axisRefs.size()
+        assert axisRefs[0].destVersion != axisRefs[1].destVersion
+
+        try
+        {
+            mutableClient.commitBranch(snapshotAppId)
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'not performed', 'versions')
+        }
+
+        try
+        {
+            List<NCubeInfoDto> dtos = mutableClient.getBranchChangesForHead(snapshotAppId)
+            assert 1 == dtos.size()
+            String prId = mutableClient.generatePullRequestHash(snapshotAppId, dtos.toArray())
+            mutableClient.mergePullRequest(prId)
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'not performed', 'versions')
+        }
+    }
+
+    @Test
+    void testMergePRWithNewCubeWithDifferentReferenceVersion()
+    {
+        setUpReferenceCubeForAxisReferenceTests()
+        ApplicationID firstReleaseAppId = ApplicationID.testAppId.asVersion('1.0.0')
+        ApplicationID secondReleaseAppId = ApplicationID.testAppId.asVersion('2.0.0')
+        ApplicationID snapshotAppId = ApplicationID.testAppId.asVersion('3.0.0')
+        ApplicationID otherAppId = snapshotAppId.asBranch('other')
+
+        Map<String, Object> args = [:]
+        args[REF_TENANT] = firstReleaseAppId.tenant
+        args[REF_APP] = firstReleaseAppId.app
+        args[REF_VERSION] = firstReleaseAppId.version
+        args[REF_STATUS] = ReleaseStatus.RELEASE.name()
+        args[REF_BRANCH] = ApplicationID.HEAD
+        args[REF_CUBE_NAME] = 'SimpleDiscrete'
+        args[REF_AXIS_NAME] = 'state'
+
+        mutableClient.copyBranch(otherAppId.asHead(), otherAppId)
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('Mongo', 'stateSource1', args)
+        Axis axis = new Axis('stateSource1', 1, false, refAxisLoader)
+        NCube two = new NCube('Mongo')
+        two.applicationID = otherAppId
+        two.addAxis(axis)
+        mutableClient.createCube(two)
+        mutableClient.commitBranch(otherAppId)
+
+        mutableClient.updateBranch(snapshotAppId)
+        NCube newCube = new NCube('MongoTest')
+        newCube.applicationID = snapshotAppId
+        newCube.addAxis(axis)
+        mutableClient.createCube(newCube)
+        String prId = mutableClient.generatePullRequestHash(snapshotAppId, mutableClient.getBranchChangesForHead(snapshotAppId).toArray())
+
+        args[REF_VERSION] = secondReleaseAppId.version
+        mutableClient.updateAxisMetaProperties(otherAppId, two.name, axis.name, args)
+        mutableClient.commitBranch(otherAppId)
+
+        try
+        {
+            mutableClient.mergePullRequest(prId)
             fail()
         }
         catch(IllegalStateException e)
@@ -6364,11 +6736,10 @@ class TestWithPreloadedDatabase extends NCubeCleanupBaseTest
     @Test
     void testDynamicallyLoadedCode()
     {
-        String save = ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS]
-        ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = 'org.apache.'
         NCube ncube = NCubeBuilder.discrete1DEmpty
         GroovyExpression exp = new GroovyExpression('''\
 import org.apache.commons.collections.primitives.*
+import static com.cedarsoftware.ncube.NCubeConstants.*
 @Grab(group='commons-primitives', module='commons-primitives', version='1.0')
 
 Object ints = new ArrayIntList()
@@ -6379,15 +6750,6 @@ return ints''', null, false)
         ncube.setCell(exp, [state: 'OH'])
         def x = ncube.getCell([state: 'OH'])
         assert 'org.apache.commons.collections.primitives.ArrayIntList' == x.class.name
-
-        if (save)
-        {
-            ncubeRuntime.systemParams[NCUBE_ACCEPTED_DOMAINS] = save
-        }
-        else
-        {
-            ncubeRuntime.systemParams.remove(NCUBE_ACCEPTED_DOMAINS)
-        }
     }
 
     @Test
@@ -6397,7 +6759,7 @@ return ints''', null, false)
 
         // Mark TestCube as red
         NCube testCube = mutableClient.getCube(appId, 'TestCube')
-        testCube.setMetaProperty("cube_tags", "red")
+        testCube.setMetaProperty(CUBE_TAGS, "red")
         mutableClient.updateCube(testCube)
 
         // Mark TestBranch as red & white
@@ -6407,8 +6769,8 @@ return ints''', null, false)
 
         List<NCubeInfoDto> list = mutableClient.search(appId, null, null, [(SEARCH_FILTER_INCLUDE):['red', 'white']])
         assert list.size() == 2
-        assert 'TestCube' == list[0].name || 'TestBranch' == list[0].name
-        assert 'TestCube' == list[1].name || 'TestBranch' == list[1].name
+        assert list.name.contains('TestCube')
+        assert list.name.contains('TestBranch')
 
         list = mutableClient.search(appId, null, null, [(SEARCH_FILTER_INCLUDE):['red', 'white'], (SEARCH_FILTER_EXCLUDE):['white', 'blue']])
         assert list.size() == 1
@@ -6422,12 +6784,12 @@ return ints''', null, false)
 
         // Mark TestCube as red
         NCube testCube = mutableClient.getCube(appId, 'TestCube')
-        testCube.setMetaProperty("cube_tags", "red")
+        testCube.setMetaProperty(CUBE_TAGS, "red")
         mutableClient.updateCube(testCube)
 
         // Mark TestBranch as red & white
         NCube testBranch = mutableClient.getCube(appId, 'TestBranch')
-        testBranch.setMetaProperty("cube_tags", "red , WHIte")
+        testBranch.setMetaProperty(CUBE_TAGS, "red , WHIte")
         mutableClient.updateCube(testBranch)
 
         List<NCubeInfoDto> list = mutableClient.search(appId, null, null, [(SEARCH_FILTER_EXCLUDE):['red', 'white']])
@@ -6469,7 +6831,7 @@ return ints''', null, false)
         assert axis.size() == 4
         assert axis.findColumn('D') instanceof Column
     }
-
+    
     /**
      * Get List<NCubeInfoDto> for the given ApplicationID, filtered by the pattern.  If using
      * JDBC, it will be used with a LIKE clause.  For Mongo...TBD.

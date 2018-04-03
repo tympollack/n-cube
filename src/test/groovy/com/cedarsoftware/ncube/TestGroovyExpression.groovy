@@ -62,6 +62,19 @@ class TestGroovyExpression extends NCubeBaseTest
     }
 
     @Test
+    void testExpThatCallsGetAxis()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'test.CellGetAxis.json')
+        Map coord = [name: 'OH'] as Map
+        Axis x = ncube.getCell(coord)
+        assert x instanceof Axis
+
+        coord = [name: 'IN'] as Map
+        x = ncube.getCell(coord)
+        assert x instanceof Axis
+    }
+
+    @Test
     void testRegexSubstitutions()
     {
         NCube ncube = new NCube('test')
@@ -229,15 +242,9 @@ return ret
     }
 
     @Test
-    void testSysProtoErrorHandling2()
-    {
-        assert null == (new GroovyExpression('1', null, false)).getSysPrototype(null)
-    }
-
-    @Test
     void testSysProtoErrorHandling3()
     {
-        GroovyExpression.addPrototypeExpImports(null, null, null)
+        GroovyExpression.addPrototypeExpImports(null,  null)
     }
 
     @Test

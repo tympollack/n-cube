@@ -4,6 +4,8 @@ import groovy.transform.CompileStatic
 
 import java.util.regex.Pattern
 
+import static com.cedarsoftware.ncube.ReferenceAxisLoader.REF_APP
+
 /**
  * Regular Expressions used throughout n-cube implementation.
  *
@@ -35,9 +37,11 @@ interface Regexes
     String bracketMatch = '\\s*\\[.*?:.*?\\]'
     String varMatch = '[^)=]+'
 
-    Pattern importPattern = ~/(?m)^(\s*import\s+[^;\n"'\/ ]+;?)/
+    Pattern importPattern = ~/(?m)^(\s*import\s+(static\s+)?[^;\n"'\/ ]+;?)/
     Pattern grapePattern = ~/(@Grapes\s*?\((?:.*?|\n)+\]\s*?\))/
     Pattern grabPattern = ~/(@(?:Grab|GrabConfig|GrabExclude|GrabResolver)\s*?\(.*?\))/
+    Pattern compileStaticPattern = ~/(@(?:CompileStatic)\s+?.*?)/
+    Pattern typeCheckPattern = ~/(@(?:TypeChecked)\s*?(?:\(.*?\)|))/
     Pattern inputVar = ~/(?i)([^a-zA-Z0-9_.]|^)input[?]?[.]([a-zA-Z0-9_]+)/
 
     Pattern scripletPattern = ~/<%(.*?)%>/
@@ -48,28 +52,31 @@ interface Regexes
     Pattern validVersion = ~/^\d+\.\d+\.\d+$/
     Pattern validCubeName = ~/^[$validNameChars]+$/
 
-    Pattern valid2Doubles = ~/^\s*(\-?\d+(?:\.\d+)?)\s*,\s*(\-?\d+(?:\.\d+)?)\s*$/
-    Pattern valid3Doubles = ~/^\s*(\-?\d+(?:\.\d+)?)\s*,\s*(\-?\d+(?:\.\d+)?)\s*,\s*(\-?\d+(?:\.\d+)?)\s*$/
+    Pattern valid2Doubles = ~/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/
+    Pattern valid3Doubles = ~/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/
 
-    Pattern groovyAbsRefCubeCellPattern =  ~/([^a-zA-Z0-9_]|^)[$]\s*([$validNameChars]+)\s*[(]($bracketMatch|$varMatch)[)]/
-    Pattern groovyAbsRefCubeCellPatternA = ~/([^a-zA-Z0-9_]|^)[$]\s*([$validNameChars]+)\s*($bracketMatch)/
-    Pattern groovyAbsRefCellPattern =  ~/([^a-zA-Z0-9_]|^)[$]\s*[(]($bracketMatch|$varMatch)[)]/
-    Pattern groovyAbsRefCellPatternA = ~/([^a-zA-Z0-9_]|^)[$]\s*($bracketMatch)/
-    Pattern groovyRelRefCubeCellPattern =  ~/([^a-zA-Z0-9_$]|^)@\s*$invalidNames([$validNameChars]+)\s*[(]($bracketMatch|$varMatch)[)]/
-    Pattern groovyRelRefCubeCellPatternA = ~/([^a-zA-Z0-9_$]|^)@\s*([$validNameChars]+)[\s]*($bracketMatch)/
-    Pattern groovyRelRefCellPattern =  ~/([^a-zA-Z0-9_$]|^)@\s*[(]($bracketMatch|$varMatch)[)]/
-    Pattern groovyRelRefCellPatternA = ~/([^a-zA-Z0-9_$]|^)@\s*($bracketMatch)/
-    Pattern groovyExplicitCubeRefPattern = ~/([^a-zA-Z0-9_$"']|^)getCube\s*[(]\s*['"]([$validNameChars]+)['"]\s*[)]/
-    Pattern groovyExplicitJumpPattern = ~/([^a-zA-Z0-9_$]|^)jump\s*[(]\s*['"]([$validNameChars]+)['"].*?[)]/
-    Pattern groovyExplicitAtPattern = ~/([^a-zA-Z0-9_$'"]|^)at\s*[(][^,]+?,\s*['"]([$validNameChars]+)['"].*?[)]/
-    Pattern groovyExplicitGoPattern = ~/([^a-zA-Z0-9_$'"]|^)go\s*[(][^,]+?,\s*['"]([$validNameChars]+)['"].*?[)]/
+    Pattern groovyAbsRefCubeCellPattern =  ~/([^a-zA-Z0-9_]|^)[$]\s*(?<cubeName>[$validNameChars]+)\s*[(](?<input>$bracketMatch|$varMatch)[)]/
+    Pattern groovyAbsRefCubeCellPatternA = ~/([^a-zA-Z0-9_]|^)[$]\s*(?<cubeName>[$validNameChars]+)\s*(?<input>$bracketMatch)/
+    Pattern groovyAbsRefCellPattern =  ~/([^a-zA-Z0-9_]|^)[$]\s*[(](?<input>$bracketMatch|$varMatch)[)]/
+    Pattern groovyAbsRefCellPatternA = ~/([^a-zA-Z0-9_]|^)[$]\s*(?<input>$bracketMatch)/
+    Pattern groovyRelRefCubeCellPattern =  ~/([^a-zA-Z0-9_$]|^)@\s*$invalidNames(?<cubeName>[$validNameChars]+)\s*[(](?<input>$bracketMatch|$varMatch)[)]/
+    Pattern groovyRelRefCubeCellPatternA = ~/([^a-zA-Z0-9_$]|^)@\s*(?<cubeName>[$validNameChars]+)[\s]*(?<input>$bracketMatch)/
+    Pattern groovyRelRefCellPattern =  ~/([^a-zA-Z0-9_$]|^)@\s*[(](?<input>$bracketMatch|$varMatch)[)]/
+    Pattern groovyRelRefCellPatternA = ~/([^a-zA-Z0-9_$]|^)@\s*(?<input>$bracketMatch)/
+    Pattern groovyExplicitCubeRefPattern = ~/([^a-zA-Z0-9_$"']|^)getCube\s*[(]\s*['"](?<cubeName>[$validNameChars]+)['"]\s*[)]/
+    Pattern groovyExplicitJumpPattern = ~/([^a-zA-Z0-9_$]|^)jump\s*[(]\s*['"](?<cubeName>[$validNameChars]+)['"].*?[)]/
+    Pattern groovyExplicitAtPattern = ~/([^a-zA-Z0-9_$'"]|^)at\s*[(][^,]+?,\s*['"](?<cubeName>[$validNameChars]+)['"].*?[)]/
+    Pattern groovyExplicitGoPattern = ~/([^a-zA-Z0-9_$'"]|^)go\s*[(][^,]+?,\s*['"](?<cubeName>[$validNameChars]+)['"].*?[)]/
 
     Pattern cdnUrlPattern = ~/^\/dyn\/([^\/]+)\/(.*)$/
 
-    Pattern hasClassDefPattern = Pattern.compile('^(|.*?\\s+)class\\s+([a-zA-Z_0-9$\\.]+).*?\\{.*?\\}.*$', Pattern.DOTALL)
+    Pattern hasClassDefPattern = ~/(?s)^(package\s+(?<packageName>[a-zA-Z_0-9$.]+))?(|.*[;\s]+)class\s+(?<className>[a-zA-Z_0-9$.]+).*?\{.*?}.*$/
 
-    Pattern isOraclePattern = ~/(?i)^.*Oracle.*$/
-    Pattern isHSQLDBPattern = ~/(?i)^.*HSQL Database Engine Driver.*$/
+    Pattern isOraclePattern = ~/(?i)oracle/
+    Pattern isHSQLDBPattern = ~/(?i)hsql/
+    Pattern isMySQLPattern = ~/(?i)mysql/
 
     Pattern rangePattern = ~/\s*([^,]+)[,](.*)\s*$/
+
+    Pattern refAppSearchPattern = ~/${REF_APP}/
 }

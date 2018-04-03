@@ -5,7 +5,7 @@
     <groupId>com.cedarsoftware</groupId>
 	<artifactId>n-cube</artifactId>
     <packaging>jar</packaging>
-	<version>4.0.6-SNAPSHOT</version>
+	<version>4.3.1-SNAPSHOT</version>
 	<description>n-cube Engine</description>
     <url>https://github.com/jdereg/n-cube</url>
     <profiles>
@@ -68,53 +68,37 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>1.5.3.RELEASE</version>
+        <version>1.5.9.RELEASE</version>  <!-- must be inlined, properties not allowed here -->
     </parent>
 
     <properties>
-        <version.json-io>4.9.12</version.json-io>
-        <version.java-util>1.26.0</version.java-util>
-        <version.json-command-servlet>1.5.3</version.json-command-servlet>
-        <version.groovy>2.4.11</version.groovy>
-        <version.guava>21.0</version.guava>
+        <version.json-io>4.10.0</version.json-io>
+        <version.java-util>1.34.0</version.java-util>
+        <version.json-command-servlet>1.8.3</version.json-command-servlet>
+        <version.groovy>2.4.13</version.groovy>
+        <version.guava>23.0</version.guava>
         <version.httpclient>4.5.3</version.httpclient>
-        <version.spring>4.3.8.RELEASE</version.spring>
-        <version.springboot>1.5.3.RELEASE</version.springboot>
-        <version.mysql.connector.java>5.1.40</version.mysql.connector.java>
-        <version.tomcat.jdbc>8.0.41</version.tomcat.jdbc>
-        <version.ojdbc>12.2.0.1</version.ojdbc>
-        <version.hsqldb>2.3.4</version.hsqldb>
-        <version.net.sf.trove4j>3.0.3</version.net.sf.trove4j>
+        <version.spring>4.3.13.RELEASE</version.spring>
+        <version.springboot>1.5.9.RELEASE</version.springboot>
+        <version.mysql.connector.java>6.0.6</version.mysql.connector.java>
+        <version.hsqldb>2.4.0</version.hsqldb>
         <version.apache.ivy>2.4.0</version.apache.ivy>
-        <version.plugin.assembly>2.6</version.plugin.assembly>
-        <version.plugin.maven-compiler>3.6.1</version.plugin.maven-compiler>
-        <version.plugin.gmavenplus>1.5</version.plugin.gmavenplus>
-        <version.plugin.nexus>1.6.7</version.plugin.nexus>
+        <version.plugin.assembly>3.0.0</version.plugin.assembly>
+        <version.plugin.maven-compiler>3.6.2</version.plugin.maven-compiler>
+        <version.plugin.build-helper>3.0.0</version.plugin.build-helper>
+        <version.plugin.gmavenplus>1.6</version.plugin.gmavenplus>
+        <version.plugin.nexus>1.6.8</version.plugin.nexus>
         <version.plugin.source>3.0.1</version.plugin.source>
-        <version.plugin.javadoc>2.10.3</version.plugin.javadoc>
         <version.plugin.gpg>1.6</version.plugin.gpg>
-        <version.plugin.surefire>2.19.1</version.plugin.surefire>
-        <version.plugin.tomcat7>2.0</version.plugin.tomcat7>
+        <version.plugin.surefire>2.20</version.plugin.surefire>
         <version.servlet.api>2.5</version.servlet.api>
         <version.servlet>3.1.0</version.servlet>
-        <version.plugin.war>2.6</version.plugin.war>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <tomcat.version>8.5.12</tomcat.version>
+        <tomcat.version>8.5.24</tomcat.version>
     </properties>
 
     <repositories>
-        <repository>
-            <id>maven.oracle.com</id>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <url>https://maven.oracle.com</url>
-            <layout>default</layout>
-        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -129,10 +113,6 @@
             <releases>
                 <updatePolicy>never</updatePolicy>
             </releases>
-        </pluginRepository>
-        <pluginRepository>
-            <id>maven.oracle.com</id>
-            <url>https://maven.oracle.com</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -171,13 +151,28 @@
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
                 <version>${version.plugin.gmavenplus}</version>
+                <configuration>
+                    <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+                    <scope>public</scope>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
                             <goal>addSources</goal>
                             <goal>addTestSources</goal>
                             <goal>compile</goal>
-                            <goal>testCompile</goal>
+                            <goal>compileTests</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jre7</id>
+                        <configuration>
+                            <targetBytecode>1.7</targetBytecode>
+                            <outputDirectory>${project.basedir}/target/classes-jre7</outputDirectory>
+                        </configuration>
+                        <goals>
+                            <goal>addSources</goal>
+                            <goal>compile</goal>
                         </goals>
                     </execution>
                     <execution>
@@ -186,6 +181,52 @@
                         <goals>
                             <goal>groovydoc</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>${version.plugin.build-helper}</version>
+                <executions>
+                    <execution>
+                        <id>add-groovy-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/main/groovy</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>add-test-source</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/test/groovy</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>add-test-resources</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>add-test-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>src/test/scripts</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -207,14 +248,26 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${version.plugin.assembly}</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/groovydoc.xml</descriptor>
-                    </descriptors>
-                </configuration>
                 <executions>
                     <execution>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/groovydoc.xml</descriptor>
+                            </descriptors>
+                        </configuration>
                         <id>javadoc</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/jre7.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <id>jre7</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
@@ -240,6 +293,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${version.plugin.surefire}</version>
                 <configuration>
+                    <argLine>-Xmx1500m -XX:MaxPermSize=256m</argLine>
                     <forkCount>2</forkCount>
                     <includes>
                         <include>**/*Test*</include>
@@ -247,37 +301,26 @@
                 </configuration>
             </plugin>
 
-            <!--<plugin>-->
-                <!--<groupId>org.springframework.boot</groupId>-->
-                <!--<artifactId>spring-boot-maven-plugin</artifactId>-->
-                <!--<version>${version.springboot}</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<goals>-->
-                            <!--<goal>repackage</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<executable>true</executable>-->
-                            <!--<classifier>exec</classifier>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
-
         </plugins>
     </build>
 
     <dependencies>
-        
-        <dependency>
-            <groupId>com.oracle.jdbc</groupId>
-            <artifactId>ojdbc8</artifactId>
-            <version>${version.ojdbc}</version>
-        </dependency>
 
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -290,11 +333,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>org.springframework.boot</groupId>-->
-            <!--<artifactId>spring-boot-starter-security</artifactId>-->
-        <!--</dependency>-->
         
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -381,12 +419,6 @@
             <groupId>com.cedarsoftware</groupId>
             <artifactId>java-util</artifactId>
             <version>${version.java-util}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>net.sf.trove4j</groupId>
-            <artifactId>trove4j</artifactId>
-            <version>${version.net.sf.trove4j}</version>
         </dependency>
 
         <dependency>

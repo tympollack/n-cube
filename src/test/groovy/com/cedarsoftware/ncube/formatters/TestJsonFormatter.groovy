@@ -5,7 +5,11 @@ import com.cedarsoftware.util.IOUtilities
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.Test
+import org.springframework.util.FastByteArrayOutputStream
+
+import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static org.junit.Assert.assertEquals
@@ -47,10 +51,100 @@ class TestJsonFormatter extends NCubeBaseTest
         runAllTests(s)
     }
 
+    @Ignore
+    void testFoo()
+    {
+        int runs = 5
+        long oldTime = 0
+        long newTime = 0
+
+        NCube<String> states2 = (NCube<String>) NCubeBuilder.discrete1D
+        states2.applicationID = ApplicationID.testAppId.asVersion('1.0.0').asHead().asRelease()
+        ncubeRuntime.addCube(states2)
+//        File file = new File('/Users/jsnyder4/Development/IdeaProjects/n-cube/src/test/resources/sys.bootstrap.multi.api.json')
+//        File file = new File('/Users/jsnyder4/Development/mdm.WC.gz')
+        File file = new File('/workspace/n-cube/src/test/resources/mdm.WC.gz')
+
+        NCube oldCube = null
+        NCube newCube = null
+
+        for (int i=0; i < runs; i++)
+        {
+            InputStream is1 = new GZIPInputStream(new FileInputStream(file), 65536)
+            long oldStart = System.nanoTime()
+//            oldCube = NCube.fromSimpleJsonOld(is1)
+            long oldStop = System.nanoTime()
+            oldTime += (oldStop - oldStart)
+
+//            println "Goin' from the old to the new!"
+
+            InputStream is2 = new GZIPInputStream(new FileInputStream(file), 65536)
+            long newStart  = System.nanoTime()
+            newCube = NCube.fromSimpleJson(is2)
+            long newStop = System.nanoTime()
+            newTime += (newStop - newStart)
+
+//            if (i % 1000 == 0)
+//            {
+//                println "Run: ${i}  ${(oldStop - oldStart)}  ${(newStop - newStart)}"
+//            }
+//              println "Run: ${i}  ${(oldStop - oldStart)}  ${(newStop - newStart)}"
+            println "Run: ${i}  ${(newStop - newStart)}"
+        }
+
+//        List<Delta> deltas = DeltaProcessor.getDeltaDescription(newCube, oldCube)
+//        assert deltas.size() == 0
+//        assert oldCube == newCube
+
+        println "Timing across ${runs} runs"
+        println "Old time: ${oldTime / 1000000.0d} ms"
+        println "New time: ${newTime / 1000000.0d} ms"
+    }
+
+    @Test
+    void testCanParse()
+    {
+        List<String> fileNames = allTestFiles
+        List<String> parsed = []
+        List<String> failed = []
+        List<String> equals = []
+        for (String fileName : fileNames)
+        {
+            InputStream isOld = NCubeRuntime.getResourceAsStream("/${fileName}")
+            InputStream isNew = NCubeRuntime.getResourceAsStream("/${fileName}")
+//            println "begin parse: ${fileName}"
+            try
+            {
+                NCube oldCube = NCube.fromSimpleJsonOld(isOld)
+                NCube newCube = NCube.fromSimpleJson(isNew)
+                parsed.add(fileName)
+                List<Delta> deltas = DeltaProcessor.getDeltaDescription(newCube, oldCube)
+                if (oldCube == newCube && deltas.size() == 0)
+                {
+                    equals.add(fileName)
+                }
+                else
+                {
+                    println fileName
+                    println deltas
+                }
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace()
+                failed.add(fileName)
+                println fileName
+            }
+        }
+        println "parsed: ${parsed.size()}"
+        println "failed: ${failed.size()}"
+        println "equals: ${equals.size()}"
+    }
+
     @Test
     void testConvertArray()
     {
-        ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
+        createRuntimeCubeFromResource(ApplicationID.testAppId, 'sys.classpath.tests.json')
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'arrays.json')
         
         def coord = [Code:'longs']
@@ -160,7 +254,7 @@ class TestJsonFormatter extends NCubeBaseTest
     @Test
     void testTryingToUseFormatToWriteToStream()
     {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream()
+        FastByteArrayOutputStream stream = new FastByteArrayOutputStream()
         JsonFormatter formatter = new JsonFormatter(stream)
         try
         {
@@ -220,7 +314,7 @@ class TestJsonFormatter extends NCubeBaseTest
         assert json.contains('":{"type":"string","value":"CA"}')
 
         json = ncube.toFormattedJson([indexFormat: false])
-        assert json.contains('"cells":[{"id":[1')
+        assert json.contains('"cells":[{"id":[')
         assert json.contains('],"type":"string","value":"1 10"}')
         assert json.contains('"axes":[{"id":1,"name":"Age"')
         assert json.contains('"columns":[{"id":2')
@@ -279,7 +373,7 @@ class TestJsonFormatter extends NCubeBaseTest
     {
         for (String f : strings)
         {
-            String original = NCubeRuntime.getResourceAsString(f)
+            InputStream original = NCubeRuntime.getResourceAsStream("/${f}")
             NCube ncube = NCube.fromSimpleJson(original)
 
             //long start = System.nanoTime()
@@ -287,6 +381,11 @@ class TestJsonFormatter extends NCubeBaseTest
 //            System.out.println(s)
             NCube res = NCube.fromSimpleJson((String)s)
             //long end = System.nanoTime()
+
+//            println f
+//            println ncube.sha1()
+//            println res.sha1()
+
             assertEquals(res, ncube)
             //long time = (end-start)/1000000;
             //if (time > 250) {

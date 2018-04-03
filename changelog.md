@@ -1,38 +1,269 @@
 ### Revision History
+* 4.3.1-SNAPSHOT
+  * --
+* 4.3.0
+  * `NCubeRuntime` now has the option to cache .json files locally of `NCubes` that have been loaded. Subsequent requests will potentially load from the cache, following the options listed below.  If no `application.properties` entry exists for this, nothing is cached.  Otherwise set the key `ncube.cache.snapshotPolicy` equal to one of the values from `SnapshotPolicy` `enum` and set the key `ncube.cache.dir` to the location of where the files should be stored. Valid cache policy options:
+     * `RELEASE_ONLY`: prevent caching of snapshots; only cache release versions (default)
+     * `OFFLINE`: only use cubes found in file cache; exceptions are thrown for missing cubes
+     * `UPDATE`: snapshot cubes are only loaded if not found in the file cache; manual cleanup of cache required
+     * `FORCE`: sha1 check is performed before loading cubes from file cache to ensure latest snapshot is used 
+* 4.2.5
+  * `NCubeManager.getPullRequests()` can now accept a pull request ID to find if it's otherwise outside of the date range.
+* 4.2.4
+  * `NCube.mapReduce()` - input/output Map when passed in was not getting used if it was empty (Groovy truth - empty map is false - threw off comparison). @gmorefield.
+  * `NCube.mapReduce()` - when ran against a rule cube, the row and column axis names need to be added to the tracking map.  @gmorefield.
+* 4.2.3
+  * Updated `NCube.mapReduce()` to return errors in cells vs ending the entire call when error occurs.
+  * Updated `NCube.mapReduce()` to include an option for executing cells while running (default is no execute).
+* 4.2.2
+  * Updated to consume `json-command-servlet 1.8.3`
+  * Updated to consume `spring 4.3.13.RELEASE`
+  * Updated to consume `spring-boot 1.5.9.RELEASE`
+  * Updated to consume `tomcat 8.5.24`
+* 4.2.1
+  * Remove old sha1 algorithm and sha1 versioning as it is no longer needed.
+  * Bug fix: `NCube.mapReduce()` not properly handling case-sensitive columns.
+* 4.2.0
+  * Bug fix: Updated sha1 algorithm for an issue with symmetrical cubes. Application property is required to set running sha1 version until we can convert the records in our DB.
+* 4.1.30
+  * `NCube.mapReduce()` - If input is bound to the axis marked as the rowAxis (on the input map), then the columns on the rows axis will be matched to it - either directly by value (meaning only 0 or 1 row will be returned) or a Collection can be bound to the row axis, in which the only rows considered for `mapReduce()` must also be in the `Collection`.  If nothing is bound to the rowAxis on input, then all rows will be attempted to be matched. Supplied by Greg Morefield.
+* 4.1.29
+  * `@PostConstruct` added to `NCubeConfiguration` to set compiled cache directories, acceptedDomains, and max stack size string after Spring intialize.  These were getting set too soon in the app start up phase preventing consuming apps from properly using their values.  Fix provided by Greg Morefield.
+  * Bug fix: `NCubeRuntime.prepareCube()` was caching the `NCube` before applying advices, allow another thread to pull an `NCube` from the cache before the advices were applied.  Fix provided by Greg Morefield. 
+* 4.1.28
+  * Removed `String.join()`, which is Java 8 functionality, from `GroovyExpression` and replaced it with Guava's `Joiner` so that consumers using `<classifier>jre7</classifier>` can use NCube.
+  * Bug fix: Updated `NCube.createStubCube()` so it doesn't try to delete columns reference axes. Reference axes on "stub NCubes" will now contain all columns. Non-reference axes continue to have no columns.
+  * Cleaned up `NCubeJdbcPersister.createCube()`
+* 4.1.27
+  * `NCube.mapReduce()` allows any number of dimensions (one must act as the 'where' axis).
+  * `NCube.mapReduce()` takes new 'options' `Map` where the additional arguments are passed.  
+  * Consumed java-util 1.34.0
+* 4.1.26
+  * Add `NCube.hyperMapReduce` that allows mapReduce with multiple unknown axis values.
+  * Add global menu `sys.menu.global` in `sys.app` which provides a template for all apps across the system. Application-specific menus override properties of the global menu.
+  * Bug fix: During rule execution, the name of the rule column is placed on input.  When a rule references another cell via `use()`, `at()`, or `go()` this will ensure that the appropriate rule is executed.
+* 4.1.25
+  * Bug fix: `NCubeRuntime.isCached()` (just added) was giving incorrect results.  Test and fix added.
+* 4.1.24
+  * Enhancement: `NCube.getCells()` API added to support *Values* mode (default is *Formulas* mode).
+  * Enhancement: `NCubeRuntime.isCached()` API added to allow testing whether an n-cube is cached.  Useful in unit tests. 
+* 4.1.23
+  * Enhancement: `NCube.mapReduce()` now allows a defaultValue to be passed in (similar to `getCell()`), and the execution stack is maintained just like `getCell()`, and axes with default columns do not need to have input bound to them.
+  * Moved search logic from `NCubeController` to `NCubeRuntime`.
+  * Disallow search closure from NCE server.
+  * Storage server can cache for the life of one operation to prevent the same cubes being loaded from reference axes.
+  * Bug fix: Fix issues with default cell url and default values on default columns in NCube.fromSimpleJson.
+  * Bug fix: Tests were not merged if the branch cube was changed.
+  * `create_hid` on database records when copying branches now shows current user instead of copied user id.
+  * Accepted domains for the CdnClassLoader is now an application property instead of part of `NCUBE_PARAMS`.
+  * Made transitive dependency on logback, optional in pom.xml.  This will stop the dependency from become a dependency to those who consume n-cube as a library.
+  * Improved speed when parsing cells
+* 4.1.22
+  * `NCube.fromSimpleJson(inputStream)` has been sped up by about 33% and uses much less memory when loading an n-cube.
+  * Replaced a few `search()` calls with `doCubesExist()`.
+  * Added ability to define advice for an app using `sys.advice` cube.
+* 4.1.21
+  * Bug fix: Return `null` from deprecated `NCubeController` methods `getCubeRawJson()` and `getCubeRawJsonBytes()` when `NCube` does not exist.
+  * Added better exception and error message for invalid reference axes and transforms.
+  * Added `NCubeController.getUrlContent()` to resolve issues viewing files on the CDN.
+  * Sped up `NCube` parsing and formatting.  Technique 1) using casting instead of 'as' when LHS is known, 2) Using Map's of Closures instead of if-else or swtich statments where the decision variable is a String, and 3) Sped up `NCube.ensureFullCoordinate()` by converting code that was performing as X * Y to X + Y iterations. 
+* 4.1.20
+  * Enhancement: Removed cube data from `NCubeInfoDto` for searches that did not specifically request the `SEARCH_INCLUDE_CUBE_DATA` option.
+* 4.1.19
+  * Added Java 7 compatible jar. To use as a dependency, add `<classifier>jre7</classifier>`.
+  * Bug fix: PR Notes now work for Commit
+  * Enhancement: Content search uses less CPU and RAM
+  * Enhancement: Added optional limiting clauses to specific SQL queries
+* 4.1.17/4.1.18
+  * Enhancement: Allow notes on pull requests that are tied to revision history.
+  * Enhancement: Allow a `Closure` to be sent as a search option when retrieving records from the database in order to eliminate the need to return to the database to perform additional processing.   
+  * Enhancement: APIs that returned `NCube` now return a `Map` with entries like appId, bytes, cubeName, sha1, testData. The old APIs are now `@Deprecated`
+  * Enhancement: Added `deleteApp` API only for sys admins to remove apps that have no released version.
+  * Pushed work being done in `NCubeController` methods `promoteRevision()`, `fetchJsonRevDiffs()` and `fetchJsonBranchDiffs()` to `NCubeManager`.
+  * Removed unnecessary `NCubeJdbcPersister.loadCube()` method in lieu of `search()`
+  * Removed unnecessary regex wildcard characters that match JSON.
+  * Bug fix: Inline `GroovyExpressions` did not recognize `import static` statements in regex.
+* 4.1.16
+  * Enhancement: Updated `NCubeRuntime.clearCache()` to take a second argument `Collection<String>` of NCube names which defaults to null. Passing null retains previous functionality, whereas passing NCube names will only evict the specified NCubes from the cache.
+  * Consumed `json-command-servlet 1.8.2`
+* 4.1.15
+  * Enhancement: Added `NCubeManager.isSysAdmin()` to allow global admin permissions.
+  * Enhancement: Cache admin/sysAdmin permissions to eliminate frequent calls.
+  * Enhancement: SQL queries in `NCubeJdbcPersister` methods `doCubesExist()`, `getAppNames()`, `getVersions()`, and `getBranches()` sped up by matching sys.info cube name exact, not using `LOWER()`. 
+  * Updated permissions cache time-to-live (TTL) from 2 to 3 minutes. 
+  * Bug fix: Fix `NCubeManager.fastCheckPermissions()` to not load cubes when permissions are already cached.
+  * Bug fix: Catch `BranchMergeException` during `NCubeManager.mergePullRequest()`, obsolete the pull request and re-throw the exception.
+  * Bug fix: Admin could be cached before test setup permissions cubes properly.
+* 4.1.14
+  * Enhancement: Improved error handling when comparing a cube against a branch where it does not exist.
+  * Enhancement: Added `ApplicationID.asBootVersion()` to avoid repetition.
+  * Bug fix: `NCubeManager.mergePullRequest()` handles merge exceptions by obsoleting the pull request within the transaction boundary.
+  * Bug fix: Test updated metaproperty was changing even when test data was not updated.
+  * Bug fix: `NCubeManager.generatePullRequestHash()` was not using `runSystemRequest()` for one of its calls, forcing a failure when making tx cubes unreadable.
+  * Removed all remaining references and support of using transforms with a method axis.
+  * Enhancement: Consumed `json-command-servlet 1.8.0` which provides faster response serialization and uses less memory during the process. 
+* 4.1.13
+  * Enhancement: `JsonHttpProxy` connects the `HttpClient's` inputStream directly to `JsonReader` so that construction of objects from JSON begins immediately as data arrives.
+  * Enhancement: Improved performance of `NCubeJdbcPersister.doCubesExist()` by including sys.info in where clause
+  * Bug fix: Added `createSysInfoCube()` to `pullToBranch()` in `NCubeJdbcPersister`
+* 4.1.12
+  * Updated to consume `json-command-servlet 1.7.1`
+* 4.1.11
+  * Updated to consume `json-command-servlet 1.7.0`
+* 4.1.10
+  * Removed `LOG` static member from `NCubeGroovyExpression` as it conflicts with existing, derived classes.
+* 4.1.9
+  * Added `StandardHttpRequestRetryHandler` to `JsonHttpProxy` to handle retrying `HttpNoResponseException` due to client connection being stale.
+  * Increased default value from 6 to 100 for client side HTTP connection pool used by `JsonHttpProxy`.
+  * To reduce memory usage, removed code that created servlet session.  It was doing this only to track connected users, not store session data.
+  * Added `LOG` to `NCubeGroovyExpression`.
+  * Bug fix: Release process inhibited by `copyBranch()` not allowing HEAD for target
+* 4.1.8
+  * NCE timeout to NCUBE updated to wait 420 seconds max, instead of the default 30 seconds.
+  * JDBC Query Timeout changed to 300 seconds, up from default of no timeout.
+  * `NCubeRuntimeClient.getJson()` now calls the backend `getCubeRawJsonBytes()` API.
+  * Updated `ncube-beans.xml` to order parameters of `JsonHttpProxy` correctly.
+  * Performance: Remove superfluous persister calls in `mergeCubesIfPossible`
+* 4.1.7
+  * Performance: `NCubeRuntime.createCube()` / `NCubeRuntime.updateCube()` now pass gzipped `byte[]` to storage server.
+* 4.1.6
+  * Performance: The `NCube` storage server now ships `NCubes` to the NCE server in compressed `byte[]` form. Reduces CPU load on `NCube` storage servers.
+* 4.1.5
+  * Enhancement: Added better logging around jdbc connections and more jdbc connection information to `NCubeController.health()`
+  * Bug fix: Shallow branch copy failed when cube was changed then changed back in a later revision.
+  * Bug fix: Copy branch would not return the correct error message if target branch already existed.
+  * Bug fix: `ApplicationID.validateBranchIsNotHead()` did not match lowercase `head`. 
+* 4.1.4
+  * Switched to using Spring's `FastByteArrayOutputStream` (no synchronized, fast access to internal `byte[]`) instead of JDK's `ByteArrayOutputStream`.
+* 4.1.3
+  * Consumed `java-util 1.29.0`
+  * Consumed `json-command-servlet 1.6.5`
+* 4.1.2
+  * Enhancement: Added support for compressed HTTP POST data
+  * Consumed `json-command-servlet 1.6.4`
+* 4.1.1
+  * Enhancement: Cube filter search uses regex instead of converting JSON to map.
+  * Consumed `json-command-servlet 1.6.3`
+* 4.1.0
+  * The `NCube` cache in the `NCubeRuntime` environment only caches a cube if it has never been added (in the current session). Before, if a cube was loaded subsequently, the cache entry was updated.  From a runtime client point of view, they should not be working with n-cubes that are changing.  If they need to accept updates or changes, then the client can call the `NCubeRuntime.clearCache()` API.
+  * Increased the time the execution thread will wait to obtain the per-cell lock before it can dynamically compile a cell.  Value increased from 10 seconds to 60 seconds.
+* 4.0.24
+  * Added `use()` API to `NCube` and `NCubeGroovyExpression`.  This API allows the user to point a cell to another cell, which is then fetched, but executed in the input context of the calling cell.  This allows creating reference cells that can be re-used.  Often these are placed on Default columns, or an `NCube` can be created with reference cells in it, and other cells can `use()` these reference cells (again their input will be used when calling the other cell).
+  * Bug fix: `getReferenceAxes()` and `updateReferenceAxes()` would fail when cubes could not be loaded due to invalid references.
+  * Bug fix: contains search would not return anything if an invalid reference axis was encountered.
+* 4.0.23
+  * Introduced hidden sys.info n-cube in all n-cube applications. This n-cube will help speed up queries used by `NCubeController` methods `getAppNames()`, `getVersions()` and `getBranches()`. 
+* 4.0.22
+  * Enhancement: Added reliable method to obtain n-cube and n-cube-editor versions
+* 4.0.21
+  * Enhancement: Included n-cube-editor version number in `NCubeController.health()`
+  * Enhancement: Release cubes and version no longer require a new SNAPSHOT to be made.
+  * Enhancement: `NCube` cache within `NCubeRuntime` is now refreshed such that cubes marked with `evict=false` (also `sys.classpath`) will no longer be evicted.  Set `application.properties` entry `ncube.cache.refresh.min=75`, for example, to refresh every 75 minutes.  The interval should be less than the duration (typically about 1/3 of the duration.) 
+  * Separated out server stats from `NCubeController.heartBeat()` into `NCubeController.health()`
+  * Updated `JsonHttpProxy` constructor to take `org.apache.http.HttpHost` parameter instead of individual hostname, port, scheme parameters in order to construct the `HttpHost`
+  * Bug fix: `sys.branch.permissions` not being created when creating branch in sys boot version.
+  * Bug fix: A new column would lose any metaproperties associated with it on merge / update.
+  * Bug fix: Custom sys.menu would not open properly when viewing a released version.
+  * Bug fix: Read default Spring configuration properties correctly
+* 4.0.20
+  * Bug fix: Updated `NCube.convertExistingAxisToRefAxis()` to not throw NPE when axis and axis to reference do not have any overlapping columns
+  * `NCube` stack traces, when listing the coordinate, only show the first 'n' characters of the value (default 1000 - can be overridden in `application.properties`). 
+* 4.0.19
+  * Consumed `json-command-servlet 1.5.4`
+  * Enhancement: Handle non-json responses from REST calls via `JsonHttpProxy`
+  * Bug fix: Standardize argument types for permissions checking methods
+  * Bug fix: Update `NCube.mapReduce()` to copy input to the execution of the result row fetch 
+  * Bug fix: copy branch only records the most recent appId copied from
+  * `NCube.mapReduce()` updated to take a `Closure` instead of String for `where` clause.  `Closure` is passed a `Map` of the input and evaluates for each record.
+* 4.0.18
+  * Enhancement: Create a reference axis from an existing axis
+  * Enhancement: mapReduce() - the 'where' parameter (condition test) can be a Closure or a String.
+* 4.0.17
+  * Added getters for `NCubeRuntimeClient` and `NCubeMutableClient` on `NCubeGroovyExpression`
+  * Bug fix: updated property defaults in Spring beans configuration
+  * NCube with METAPROPERTY_TEST_DATA now has same SHA-1 as with no test data.
+* 4.0.16    
+  * Added methods to `NCubeController` that were previously added to runtime and mutable interfaces. Added test to ensure that methods added to interfaces are also added to the controller in the future.
+  * Updated `NCubeManager` exception messages with more information
+  * Enhancement: Add default, sorted, and fireAll to `addAxis`
+  * Test Enhancement: Updated tests to use an embedded Tomcat container for remote urls, replacing `files.cedarsoftware.com`
+    * This allows tests to be executed without being connected to a network
+    * If the entry `ncube.tests.baseRemoteUrl=http://remote.site.com` is set in `application.properties`, the tests will run against that site instead of the embedded container
+  * Bug fix: Merging a pull request with a new cube with an axis reference after other references were updated in HEAD could cause reference version mismatch in HEAD.
+  * Performance: Compiling is slightly faster - code that builds class around user's statement block improved.
+  * Consumption as a library for a Springboot app simplified.  Overrideable options are easily overridden in the consuming Springboot app's application properties.  All properties start with 'ncube' and modern IDEs will actually suggest available properties when editing the consuming application's `application.properties` file.   
+* 4.0.15
+  * Bug fix: Updated version fetching code
+  * Updated n-cube related application properties to be prefixed with ncube.*
+* 4.0.14
+  * Added n-cube version to `NCubeController.heartBeat()`
+  * Bug fix: Removed "Content-Length" header in `JsonHttpProxy`. Added `ncube.proxy.headersToRemove` application.property in case other headers need to be removed.
+  * Bug fix: Removing the last `NCubeTest` on an `NCube` would not save properly.
+* 4.0.13
+  * L3 Cache support - dynamically compiled script classes are cached in an L3 cache. The L3 cache survives server restarts and allows the JVM to load already compiled classes without requiring the compilation step.
+    * Usage: In the `application.properties` file, if the entry `ncube.classes.dir=/x/y/classes` is set, the L3 cache is activated and compiled scripts will be stored here.
+    * If the entry `ncube.sources.dir=/x/y/source` is found, then the generated Groovy source will be written to the path specified.
+    * In an upcoming release, the L3 CacheManager will overrideable, allowing alternative storage like Redis, SQL, etc.
+* 4.0.12
+  * Bug fix: Check for `ncubeManager` bean before trying to set userId on it
+* 4.0.11
+  * Performance fix: removed Upper() from SQL statements on SHA-1 columns.
+  * Added `NCube.mapReduce()` API.  Filter rows of an n-cube.  Use this API to fetch a subset of an n-cube, similar to `SQL SELECT`.
+* 4.0.10
+  * Separated out server.port property. Renamed server.* properties for `JsonHttpProxy` to target.*.
+  * Added `NCubeTest` as part of `DeltaProcessor`.
+  * Added `loadCubeWithTests` to get both the cube and its tests together.
+  * Removed `saveTests` from `NCubeManager`; this is now wrapped into `updateCube` in the persister.
+  * Bug fix: Reference Axes not get checked properly on pull request merge vs straight commit branch.
+  * Added appId to a couple `InvalidCoordinateExceptions` for more clarity in logs
+  * Some system requests override user-based permissions, focused mainly around pull requests.
+* 4.0.9
+  * Bug fix: Separated `checkPermissions()` and `checkMultiplePermissions()` from overridden API to two distinct APIs.
+* 4.0.8
+  * Bug fix: no longer need branch permissions to merge a pull request from that branch.
+  * Bug fix: check permissions for multiple permissions now only makes one server call.
+* 4.0.7
+  * Add ability to get and run all tests for an app.
+  * Add username to all persister methods.
+  * Equivalent primitive values (including Strings and Dates) are folded into one instance (interned) for cells and column values.
 * 4.0.6
+  * Removed Oracle jdbc driver dependency
   * Removed explicit spring dependencies in pom.xml that are consumed transitively via spring-boot-starter-* dependencies
   * Changed log statements for method calls to include 125 (was 50) characters per argument
   * Changed log level from INFO to DEBUG when sys.menu is not found
+  * Enhancement: `saveTests` creates a new db record and uses the testUpdated `NCube` metaproperty.
+  * Updated `NCube.duplicate()` to include `ApplicationID`
+  * Update `hsqldb 2.4.0` and `mysql 6.0.6` dependencies
 * 4.0.5
   * Support mode for json format when getting raw json (json-pretty, json)
   * Update to Spring Boot 1.5.3, Spring 4.3.8, and Groovy 2.4.11
 * 4.0.4
-  * NCubeController.commitCube() was passing an incompatable argument to commitBranch. Fixed bug and added test coverage for commitCube. 
+  * `NCubeController.commitCube()` was passing an incompatible argument to commitBranch. Fixed bug and added test coverage for commitCube. 
 * 4.0.3
-  * NCubeManager.getReferenceAxes() was incorrectly validating reference versions. 
+  * `NCubeManager.getReferenceAxes()` was incorrectly validating reference versions. 
 * 4.0.2
-  * Changed NCubeRuntime.getResourceAsString() to use Groovy APIs to get stream from Spring Boot executable jar, due to  zipfs execption using regular resource APIs.
+  * Changed `NCubeRuntime.getResourceAsString()` to use Groovy APIs to get stream from Spring Boot executable jar, due to  zipfs execption using regular resource APIs.
 * 4.0.1
   * Removed redundant executable flag in pom.xml related to making a spring boot executable jar.
-  * Added optional beanName to NCubeRuntime constructor
+  * Added optional beanName to `NCubeRuntime` constructor
   * Updated pom.xml to create executable jar
-  * Bug fix: Removed unnecessary URL encoding in JsonHttpProxy  
+  * Bug fix: Removed unnecessary URL encoding in `JsonHttpProxy`  
 * 4.0.0
   * Built as a Spring Boot application
-  * NCubeManager converted from having static APIs to being a Spring injected instance (accessible through interface)
+  * `NCubeManager` converted from having static APIs to being a Spring injected instance (accessible through interface)
   * Enhancement: Changed way pull request data is accessed for efficiency.
   * Enhancement: Added search options for start and end create date parameters to cut down on cubes searched.
-  * Bug fix: NCubeController - promoteRevision calls updateCube directly and saveJson loop
-  * Bug fix: Update n-cube changed flag during fast foward based on whether sha1 matches headSha1
+  * Bug fix: `NCubeController` - `promoteRevision` calls `updateCube` directly and `saveJson` loop
+  * Bug fix: Update n-cube changed flag during fast-forward based on whether sha1 matches headSha1
 * 3.6.17
-  * Bug fix: Update n-cube changed flag during fast foward based on whether sha1 matches headSha1
+  * Bug fix: Update n-cube changed flag during fast-forward based on whether sha1 matches headSha1
 * 3.6.16
   * Bug fix: Added delta processing for meta-properties on n-cube, axis, and column.
 * 3.6.15
   * Bug fix: Batch updating reference axes would remove transforms
 * 3.6.13/3.6.14
   * Enhancement: Updated reference axes transforms so they won't execute code on the server (support for transforms that execute code remains)
-  * Enhancement: Axis supports a new ValueType (CISTRING - case insenstive string)
+  * Enhancement: Axis supports a new ValueType (`CISTRING` - case insenstive string)
 * 3.6.12
   * Bug fix: Committing merged cube into branch was not resetting the change flag in the case when the n-cube SHA-1 was the same as the HEAD n-cube's SHA-1.
 * 3.6.11
@@ -49,13 +280,13 @@
     * Note: All database transactions use real user for a proper audit trail.
 * 3.6.7
   * Enhancement: Easily remove a transform from a reference axis
-  * Enhancement: NCube serialized through json-io now brings along ApplicationID
+  * Enhancement: `NCube` serialized through json-io now brings along `ApplicationID`
 * 3.6.6
-  * Enhancement: Added custom reader and writer for NCube when used with json-io.
+  * Enhancement: Added custom reader and writer for `NCube` when used with json-io.
 * 3.6.5
   * Enhancement: Rewrite copy branch in persister to allow a thin copy of branch instead of with full history.
 * 3.6.4
-  * Enhancement: Create NCubeConstants
+  * Enhancement: Create `NCubeConstants`
 * 3.6.3
   * Enhancement: Re-ordering of columns on a non-sorted axis are now handled in all cases, API: `DeltaProcessor.getDeltaDescription()` and `NCube.mergeDeltas()`.  Reorder column delta's only show up when there are no outstanding `ADD` or `DELETE` deltas for the same axis.
 * 3.6.2
@@ -67,7 +298,7 @@
   * Columns on a rule axis must have a name.  The name must be unique on the axis.  This is now enforced with an IllegalArgumentException.
   * When a new branch is created, sys.permissions is set to allow UPDATE action by default.  @tpollack 
   * Re-ordering support added for delta/merge.
-  * Bug fix: NCubeManager.updateAxisMetaProperties() was temporarily not working on a non-reference axis.  Fixed and test added.  @jsynder4 
+  * Bug fix: `NCubeManager.updateAxisMetaProperties()` was temporarily not working on a non-reference axis.  Fixed and test added.  @jsynder4 
 * 3.5.6
   * Bug fix: When merging updated reference axis, the cells from deleted columns were being attached to the default column if present.
   * Bug fix: When merging reference axis, the column meta-properties were being overwritten from the new column on the updated reference.  Now those properties are brought over, and then the existing meta-properties are overlaid.

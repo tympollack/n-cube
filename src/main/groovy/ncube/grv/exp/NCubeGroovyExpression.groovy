@@ -1,15 +1,22 @@
 package ncube.grv.exp
 
-import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.Column
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeAppContext
+import com.cedarsoftware.ncube.NCubeInfoDto
+import com.cedarsoftware.ncube.NCubeMutableClient
+import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.UrlUtilities
 import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
+import static com.cedarsoftware.ncube.NCubeConstants.*
 
 /**
  * Base class for all GroovyExpression and GroovyMethod's within n-cube CommandCells.
@@ -55,7 +62,7 @@ class NCubeGroovyExpression
         NCube cube = ncubeRuntime.getCube(ncube.applicationID, name)
         if (cube == null && !quiet)
         {
-            throw new IllegalArgumentException('n-cube: ' + name + ' not found.')
+            throw new IllegalArgumentException("n-cube: ${name} not found.")
         }
         return cube
     }
@@ -135,7 +142,7 @@ class NCubeGroovyExpression
      * @param cubeName String n-cube name.  This argument is optional and defaults
      * to the same cube as the cell currently executing.
      * @param defaultValue Object to return when no cell exists at the target coordinate
-     * and the cube does not have a cube-level default.  This argument is optional.
+     * and the cube does not have a cube-level default.
      * @param ApplicationID of a different application (reference data application for
      * example) from which the running cube exists.
      * @return executed cell contents at the given coordinate.
@@ -145,7 +152,7 @@ class NCubeGroovyExpression
         NCube target = ncubeRuntime.getCube(appId, cubeName)
         if (target == null)
         {
-            throw new IllegalArgumentException('n-cube: ' + cubeName + ' not found, app: ' + appId)
+            throw new IllegalArgumentException("n-cube: ${cubeName} not found, app: ${appId}")
         }
         return target.getCell(coord, output, defaultValue)
     }
@@ -191,7 +198,7 @@ class NCubeGroovyExpression
      * @param cubeName String n-cube name.  This argument is optional and defaults
      * to the same cube as the cell currently executing.
      * @param defaultValue Object to return when no cell exists at the target coordinate
-     * and the cube does not have a cube-level default.  This argument is optional.
+     * and the cube does not have a cube-level default.
      * @param ApplicationID of a different application (reference data application for
      * example) from which the running cube exists.
      * @return executed cell contents at the current input location and specified n-cube,
@@ -202,10 +209,108 @@ class NCubeGroovyExpression
         NCube target = ncubeRuntime.getCube(appId, cubeName)
         if (target == null)
         {
-            throw new IllegalArgumentException('n-cube: ' + cubeName + ' not found, app: ' + appId)
+            throw new IllegalArgumentException("n-cube: ${cubeName} not found, app: ${appId}")
         }
         input.putAll(coord)
         return target.getCell(input, output, defaultValue)
+    }
+
+    /**
+     * Fetch the cell at location 'altInput', but execute with the current cell location (input).  This
+     * API allows you to create reference cells and execute them from anywhere, with the context (input
+     * coordinate) of the calling cell.
+     * @param altInput Map coordinate of reference cell (often a cell on a default column, e.g [businessUnit:null] as input)
+     * The original input is implied, so all that is typically added to altInput, is the necessary changes to input
+     * to have it point to another cell.
+     * @param cubeName String name of a cube (optional), when pointing to a cell in another n-cube.
+     * @param defaultValue Object to return when no cell exists at the target coordinate
+     * and the cube does not have a cube-level default.
+     * @return value from executing the cell identified by current input map + modifications from altInput.
+     */
+    def use(Map altInput, String cubeName = ncube.name, def defaultValue = null)
+    {
+        Map origInput = new CaseInsensitiveMap(input)
+        input.putAll(altInput)
+        return getCube(cubeName).use(input, origInput, output, defaultValue)
+    }
+
+    /**
+     * Fetch the cell at location 'altInput', but execute with the current cell location (input).  This
+     * API allows you to create reference cells and execute them from anywhere, with the context (input
+     * coordinate) of the calling cell.
+     * @param altInput Map coordinate of reference cell (often a cell on a default column, e.g [businessUnit:null] as input)
+     * The original input is implied, so all that is typically added to altInput, is the necessary changes to input
+     * to have it point to another cell.
+     * @param cubeName String name of a cube (optional), when pointing to a cell in another n-cube.
+     * @param defaultValue Object to return when no cell exists at the target coordinate
+     * and the cube does not have a cube-level default.
+     * @param ApplicationID of a different application, needed only if reference cell resides in another app, for
+     * example, an n-cube full of reference cells by design.
+     * @return value from executing the cell identified by current input map + modifications from altInput.
+     */
+    def use(Map altInput, String cubeName, def defaultValue, ApplicationID appId)
+    {
+        NCube target = ncubeRuntime.getCube(appId, cubeName)
+        if (target == null)
+        {
+            throw new IllegalArgumentException("n-cube: ${cubeName} not found, app: ${appId}")
+        }
+        Map origInput = new CaseInsensitiveMap(input)
+        input.putAll(altInput)
+        return target.use(input, origInput, output, defaultValue)
+    }
+
+    /**
+     * Filter rows of an n-cube.  Use this API to fetch a subset of an n-cube, similar to SQL SELECT.
+     * @param rowAxisName String name of axis acting as the ROW axis.
+     * @param colAxisName String name of axis acting as the COLUMN axis.
+     * @param where String groovy statement block (or expression) written as condition in terms of the columns on the colAxisName.
+     * Example: "(input.state == 'TX' || input.state == 'OH') && (input.attribute == 'fuzzy')".  This will only return rows
+     * where this condition is met ('state' and 'attribute' are two column values from the colAxisName).  The values for each
+     * row in the rowAxis is bound to the where expression for each row.  If the row passes the 'where' condition, it is
+     * included in the output.
+     * @param columnsToSearch Set which allows reducing the number of columns bound for use in the where clause.  If not
+     * specified, all columns on the colAxisName can be used.  For example, if you had an axis named 'attribute', and it
+     * has 10 columns on it, you could list just two (2) of the columns here, and only those columns would be placed into
+     * values accessible to the where clause via input.xxx == 'someValue'.  The mapReduce() API runs faster when fewer
+     * columns are included in the columnsToSearch.
+     * @param columnsToReturn Set of values to indicate which columns to return.  If not specified, the entire 'row' is
+     * returned.  For example, if you had an axis named 'attribute', and it has 10 columns on it, you could list just
+     * two (2) of the columns here, in the returned Map of rows, only these two columns will be in the returned Map.
+     * The columnsToSearch and columnsToReturn can be completely different, overlap, or not be specified.  This param
+     * is similar to the 'Select List' portion of the SQL SELECT statement.  It essentially defaults to '*', but you
+     * can have it return less column/value pairs in the returned Map if you add only the columns you want returned
+     * here.
+     * @param cubeName String name of another cube (when the reference is to an n-cube other than 'this' n-cube).  If not
+     * specified, the mapReduce() is run against the cube containing 'this' cell.
+     * @param appId ApplicationID of another n-cube application.  If not specified, the appId of the n-cube containing
+     * 'this' cell is used.
+     * @param defaultValue Object placed here will be returned if there is no cell at the location
+     *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
+     *                     n-cube is returned, but if this parameter is passed a non-null value,
+     *                     then it will be returned.  Optional.
+     * @return Map of Maps - The outer Map is keyed by the column values of all row columns.  If the row Axis is a discrete
+     * axis, then the keys of the map are all the values of the columns.  If a non-discrete axis is used, then the keys
+     * are the name meta-key for each column.  If a non-discrete axis is used and there are no name attributes on the columns,
+     * and exception will be thrown.  The 'value' associated to the key (column value or column name) is a Map record,
+     * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
+     * for each cell in the same column, for when the 'where' condition holds true (groovy true).
+     */
+    Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:], String cubeName = null, ApplicationID appId = null)
+    {
+        NCube target
+        if (cubeName)
+        {
+            appId = appId ?: applicationID
+            target = ncubeRuntime.getCube(appId, cubeName)
+        }
+        else
+        {
+            target = ncube
+        }
+        options.input = input
+        options.output = output
+        return target.mapReduce(colAxisName, where, options)
     }
 
     /**
@@ -215,7 +320,7 @@ class NCubeGroovyExpression
      * @param coord Map of rule axis names, to rule names.  If the map is empty, it is the same as calling
      * jump() with no args.
      */
-    void jump(Map coord)
+    void jump(Map coord = [:])
     {
         input.putAll(coord)
         throw new RuleJump(input)
@@ -263,10 +368,10 @@ class NCubeGroovyExpression
      */
     Axis getAxis(String axisName)
     {
-        Axis axis = (Axis) ncube[axisName]
+        Axis axis = (Axis) ncube.getAxis(axisName)
         if (axis == null)
         {
-            throw new IllegalArgumentException("Axis '" + axisName + "' does not exist on n-cube: " + ncube.name)
+            throw new IllegalArgumentException("Axis: ${axisName} does not exist on n-cube: ${ncube.name}")
         }
 
         return axis
@@ -281,10 +386,10 @@ class NCubeGroovyExpression
      */
     Axis getAxis(String cubeName, String axisName)
     {
-        Axis axis = (Axis) getCube(cubeName)[axisName]
+        Axis axis = (Axis) getCube(cubeName).getAxis(axisName)
         if (axis == null)
         {
-            throw new IllegalArgumentException("Axis '" + axisName + "' does not exist on n-cube: " + cubeName)
+            throw new IllegalArgumentException("Axis: ${axisName} does not exist on n-cube: ${cubeName}")
         }
 
         return axis
@@ -320,6 +425,16 @@ class NCubeGroovyExpression
         return UrlUtilities.getContentFromUrl(actualUrl, true)
     }
 
+    NCubeRuntimeClient getNcubeRuntime()
+    {
+        return NCubeAppContext.ncubeRuntime
+    }
+
+    NCubeMutableClient getMutableClient()
+    {
+        return NCubeAppContext.getBean(RUNTIME_BEAN) as NCubeMutableClient
+    }
+
     /**
      * @return long Current time in nano seconds (used to compute how long something takes to execute)
      */
@@ -339,8 +454,8 @@ class NCubeGroovyExpression
         return (double) (end - begin) / 1000000.0d
     }
 
-    def run()
+    Object run()
     {
-        throw new IllegalStateException('run() should never be called on ' + getClass().name + '. This can occur for a cell marked GroovyExpression which should be set to GroovyMethod.')
+        throw new IllegalStateException("run() should never be called on ${getClass().name}. This can occur for a cell marked GroovyExpression which should be set to GroovyMethod. NCube: ${ncube.name}, input: ${input.toString()}")
     }
 }

@@ -2,14 +2,16 @@ package com.cedarsoftware.ncube
 
 import com.cedarsoftware.controller.NCubeController
 import groovy.transform.CompileStatic
+import org.junit.After
 import org.junit.Ignore
 import org.junit.runner.RunWith
 import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.junit4.SpringRunner
 
+import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
 import static org.junit.Assert.assertTrue
 
 /**
@@ -31,13 +33,21 @@ import static org.junit.Assert.assertTrue
  */
 @CompileStatic
 @RunWith(SpringRunner.class)
-@TestPropertySource(properties = ['ncube.allow.mutable.methods=true','logging.level.root=INFO'])
 @ContextConfiguration(classes = NCubeApplication.class, initializers = ConfigFileApplicationContextInitializer.class)
-//@ActiveProfiles(profiles = ['client'])  // requires server running
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
+//@ActiveProfiles(profiles = [NCubeConstants.NCUBE_CLIENT_BEAN])  // requires server running
 @ActiveProfiles(profiles = ['combined-server','test-database'])
 @Ignore
 class NCubeBaseTest implements NCubeConstants
 {
+    static String baseRemoteUrl
+
+    @After
+    void teardown()
+    {
+        testClient.clearCache()
+    }
+    
     static NCubeMutableClient getMutableClient()
     {
         String beanName = NCubeAppContext.containsBean(RUNTIME_BEAN) ? RUNTIME_BEAN : MANAGER_BEAN
@@ -83,5 +93,17 @@ class NCubeBaseTest implements NCubeConstants
             lowerSource = lowerSource.substring(idx)
         }
         return true
+    }
+
+    /**
+     * Loads ncube into the runtimeClient, replacing references to ${baseRemoteUrl}, if found in the json
+     */
+    static NCube createRuntimeCubeFromResource(ApplicationID appId = ApplicationID.testAppId, String fileName)
+    {
+        String json = NCubeRuntime.getResourceAsString(fileName).replaceAll('\\$\\{baseRemoteUrl\\}',baseRemoteUrl)
+        NCube ncube = NCube.fromSimpleJson(json)
+        ncube.applicationID = appId
+        ncubeRuntime.addCube(ncube)
+        return ncube
     }
 }

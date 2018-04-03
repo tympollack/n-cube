@@ -3,8 +3,8 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
-import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.Converter
+import groovy.transform.CompileStatic
 import org.junit.Test
 
 import java.lang.reflect.Constructor
@@ -13,6 +13,7 @@ import java.lang.reflect.Modifier
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com)
@@ -31,7 +32,7 @@ import static org.junit.Assert.assertTrue
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-
+@CompileStatic
 class TestProximity
 {
     @Test(expected = IllegalArgumentException.class)
@@ -231,18 +232,6 @@ class TestProximity
     }
 
     @Test
-    void testLongHashSet()
-    {
-        Set codes = new HashSet()
-        for (int i=0; i < 10; i++)
-        {
-            codes.add(i as long)
-        }
-        LongHashSet set = new LongHashSet(codes)
-        assert set.size() == 10
-    }
-
-    @Test
     void testProximityDistance()
     {
         assert 4L == Proximity.distance(1L, 5L)
@@ -252,17 +241,17 @@ class TestProximity
     @Test
     void testProximityDistanceDays()
     {
-        Calendar c1 = Calendar.getInstance()
-        Calendar c2 = Calendar.getInstance()
+        Calendar c1 = Calendar.instance
+        Calendar c2 = Calendar.instance
         c1.clear()
         c2.clear()
         c1.set(2015, 0, 1)
         c2.set(2016, 0, 1)
-        long millis = Converter.convert(Proximity.distance(c1.getTime(), c2.getTime()), long.class)
-        long seconds = millis / 1000
-        long minutes = seconds / 60
-        long hours = minutes / 60
-        long days = hours / 24
+        long millis = Converter.convertToLong(Proximity.distance(c1.time, c2.time))
+        long seconds = (long)(millis / 1000)
+        long minutes = (long)(seconds / 60)
+        long hours = (long) (minutes / 60)
+        long days = (long) (hours / 24)
         assert 365L == days
     }
 }

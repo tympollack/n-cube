@@ -1,16 +1,22 @@
 package com.cedarsoftware.ncube.util
 
-import com.cedarsoftware.util.StringUtilities
 import groovy.transform.CompileStatic
+import org.codehaus.groovy.GroovyBugError
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.control.ClassNodeResolver
+import org.codehaus.groovy.control.CompilationFailedException
+import org.codehaus.groovy.control.CompilationUnit
+import org.codehaus.groovy.control.SourceUnit
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ConcurrentHashMap
 
-import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_ACCEPTED_DOMAINS
-
 /**
  *  @author Ken Partlow (kpartlow@gmail.com)
- *  @author John DeRegnaucourt (jdereg@gmail.com)
+ *          Greg Morefield (morefigs@hotmail.com)
+ *          John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
@@ -32,25 +38,29 @@ class CdnClassLoader extends GroovyClassLoader
     private final boolean _preventRemoteBeanInfo
     private final boolean _preventRemoteCustomizer
     private final Map<String, URL> resourceCache = new ConcurrentHashMap<>()
-    private final Map<String, Enumeration<URL>> resourcesCache = new ConcurrentHashMap<>()
+    private final Map<String, List<URL>> resourcesCache = new ConcurrentHashMap<>()
     private final URL nullUrl = new URL('http://null.com:8080')
     private final List<String> whiteList
+    private ClassNodeResolver classNodeResolver = new PreferClassNodeResolver()
+
+    private static String generatedClassesDir = ''
+    private static String ncubeAcceptedDomains
+    private static final Logger LOG = LoggerFactory.getLogger(CdnClassLoader.class)
 
     /**
      * Create a GroovyClassLoader using the given ClassLoader as parent
      */
     CdnClassLoader(ClassLoader loader, boolean preventRemoteBeanInfo = true, boolean preventRemoteCustomizer = true, List<String> acceptedDomains = null)
     {
-        super(loader, null)
+        super(configureParentClassLoader(loader), null)
         _preventRemoteBeanInfo = preventRemoteBeanInfo
         _preventRemoteCustomizer = preventRemoteCustomizer
 
         if (acceptedDomains == null)
         {
-            String accepted = ncubeRuntime.systemParams[(NCUBE_ACCEPTED_DOMAINS)]
-            if (StringUtilities.hasContent(accepted))
+            if (ncubeAcceptedDomains)
             {
-                whiteList = Arrays.asList(accepted.split(";"))
+                whiteList = Arrays.asList(ncubeAcceptedDomains.split(";"))
             }
             else
             {
@@ -64,6 +74,19 @@ class CdnClassLoader extends GroovyClassLoader
     }
 
     /**
+     * Injects URLClassLoader as parent to pickup generated classes directory, if configured
+     */
+    private static ClassLoader configureParentClassLoader(ClassLoader parent) {
+        String classesDir = generatedClassesDirectory
+        if (classesDir)
+        {
+            File classesFile = new File(classesDir)
+            return new URLClassLoader([classesFile.toURI().toURL()] as URL [], parent)
+        }
+        return parent
+    }
+
+    /**
      * Create a class loader that will have the additional URLs added to the classpath.
      * @param urlList List of String URLs to be added to the classpath.
      * @param acceptedDomains List of String prefixes of white-list domains which are
@@ -73,6 +96,44 @@ class CdnClassLoader extends GroovyClassLoader
     {
         this(CdnClassLoader.class.classLoader, true, true, acceptedDomains)
         addURLs(urlList)
+    }
+
+    /**
+     * Caches the class, if name is supplied and caching is configured,
+     * then delegates to super class to defineClass from raw bytes
+     *
+     * @param name String name of class to define, or null, if unknown
+     * @param byteCode byte [] of raw Class bytes
+     * @return generated Class definition
+     */
+    Class defineClass(String name, byte[] byteCode) {
+        if (name && generatedClassesDir)
+        {
+            dumpGeneratedClass(name,byteCode)
+        }
+
+        return super.defineClass(name, byteCode)
+    }
+
+    /**
+     * Writes the generated Groovy class to the directory identified by the NCUBE_PARAM:genClsDir
+     * @param name String of fully qualified name of the class
+     * @param byteCode byte [] of Class to write
+     */
+    private void dumpGeneratedClass(String name, byte [] byteCode) {
+        File classFile = null
+        try
+        {
+            classFile = new File("${generatedClassesDir}/${name.replace('.',File.separator)}.class")
+            if (ensureDirectoryExists(classFile.parentFile))
+            {
+                classFile.bytes = byteCode
+            }
+        }
+        catch (Exception e)
+        {
+            LOG.warn("Failed to write class file with path=${classFile?.path}",e)
+        }
     }
 
     /**
@@ -220,21 +281,18 @@ class CdnClassLoader extends GroovyClassLoader
     Enumeration<URL> getResources(String name) throws IOException
     {
 //        println "getResources(${name})"
-        if (resourcesCache.containsKey(name))
+        if (!resourcesCache.containsKey(name))
         {
-            return resourcesCache[name]
-        }
-        if (isLocalOnlyResource(name))
-        {
-            Enumeration<URL> nullEnum = new Enumeration() {
-                boolean hasMoreElements() { return false }
-                URL nextElement() { throw new NoSuchElementException() }
+            if (isLocalOnlyResource(name))
+            {
+                resourcesCache[name] = []
             }
-            resourcesCache[name] = nullEnum
-            return nullEnum
+            else
+            {
+                resourcesCache[name] = super.getResources(name).toList()
+            }
         }
-        Enumeration<URL> res = super.getResources(name)
-        return resourcesCache[name] = res
+        return Collections.enumeration(resourcesCache[name])
     }
 
     /**
@@ -288,21 +346,18 @@ class CdnClassLoader extends GroovyClassLoader
     Enumeration<URL> findResources(String name) throws IOException
     {
 //        println "findResources(${name})"
-        if (resourcesCache.containsKey(name))
+        if (!resourcesCache.containsKey(name))
         {
-            return resourcesCache[name]
-        }
-        if (isLocalOnlyResource(name))
-        {
-            Enumeration<URL> nullEnum = new Enumeration() {
-                boolean hasMoreElements() { return false }
-                URL nextElement() { throw new NoSuchElementException() }
+            if (isLocalOnlyResource(name))
+            {
+                resourcesCache[name] = []
             }
-            resourcesCache[name] = nullEnum
-            return nullEnum
+            else
+            {
+                resourcesCache[name] = super.findResources(name).toList()
+            }
         }
-        Enumeration<URL> res = super.findResources(name)
-        return resourcesCache[name] = res
+        return Collections.enumeration(resourcesCache[name])
     }
 
     /**
@@ -342,5 +397,157 @@ class CdnClassLoader extends GroovyClassLoader
         resourceCache.clear()
         resourcesCache.clear()
         super.clearCache()
+    }
+
+    /**
+     * Specifies directory to use for caching Class files generated during Groovy compiles.
+     * If the directory doesn't exist and can't be created, the Class caching will be disabled
+     * @param classesDir String containing relative or absolute path to use for Class caching. A null or empty string will disable caching
+     */
+    static void setGeneratedClassesDirectory(String classesDir)
+    {
+        try
+        {
+            if (classesDir)
+            {
+                generatedClassesDir = ensureDirectoryExists(new File(classesDir)) ? classesDir : ''
+            }
+            else
+            {
+                generatedClassesDir = ''
+            }
+
+            if (generatedClassesDir)
+            {
+                LOG.info("Generated classes configured to use path=${generatedClassesDir}")
+            }
+        }
+        catch (Exception e)
+        {
+            LOG.warn("Unable to set classes directory to ${classesDir}", e)
+            generatedClassesDir = ''
+        }
+    }
+
+    /**
+     * Returns directory to use for Class caching.
+     * @return String path to directory to use for Class caching, if enabled; otherwise, empty string
+     */
+    static String getGeneratedClassesDirectory()
+    {
+        return generatedClassesDir
+    }
+
+    static String setNcubeAcceptedDomains(String acceptedDomains)
+    {
+        ncubeAcceptedDomains = acceptedDomains
+    }
+
+    static String getNcubeAcceptedDomains()
+    {
+        return ncubeAcceptedDomains
+    }
+
+    /**
+     * Tries to validate the directory specified.
+     *
+     * @param dir File containing directory path to validate/create
+     * @return true if directory exists or can be created; otherwise, false
+     * @throws SecurityException from mkdirs invocation
+     */
+    private static boolean ensureDirectoryExists(File dir)
+    {
+        if (!dir.exists())
+        {
+            dir.mkdirs()
+        }
+        boolean valid = dir.directory
+        if (!valid)
+        {
+            LOG.warn("Failed to locate or create generated classes directory with path=${dir.path}")
+        }
+        return valid
+    }
+
+    ClassNodeResolver getClassNodeResolver()
+    {
+        return classNodeResolver
+    }
+
+    static class PreferClassNodeResolver extends ClassNodeResolver
+    {
+        // Map to store cached classes
+        private Map<String,ClassNode> cachedClasses = new ConcurrentHashMap<>();
+
+        /**
+         * Method adapted from ClassNodeResolver.tryAsLoaderClassOrScript, only looking up source if class doesn't exist
+         * @param name
+         * @param compilationUnit
+         * @return
+         */
+        @Override
+        ClassNodeResolver.LookupResult findClassNode(String name, CompilationUnit compilationUnit) {
+            GroovyClassLoader loader = compilationUnit.getClassLoader();
+            Class cls;
+            try {
+                // NOTE: it's important to do no lookup against script files
+                // here since the GroovyClassLoader would create a new CompilationUnit
+                cls = loader.loadClass(name, false, true);
+            } catch (ClassNotFoundException cnfe) {
+                return tryAsScript(name, compilationUnit)
+            } catch (CompilationFailedException cfe) {
+                throw new GroovyBugError("The lookup for "+name+" caused a failed compilaton. There should not have been any compilation from this call.", cfe);
+            }
+
+            ClassNode cn = ClassHelper.make(cls);
+            return new ClassNodeResolver.LookupResult(null,cn);
+        }
+
+        /**
+         * Method adapted from ClassNodeResolver.tryAsScript, only doing script lookup
+         */
+        private static ClassNodeResolver.LookupResult tryAsScript(String name, CompilationUnit compilationUnit) {
+            ClassNodeResolver.LookupResult lr = null;
+
+            if (name.startsWith("java.")) return lr;
+            //TODO: don't ignore inner static classes completely
+            if (name.indexOf('$') != -1) return lr;
+
+            // try to find a script from classpath*/
+            GroovyClassLoader gcl = compilationUnit.getClassLoader();
+            URL url = null;
+            try {
+                url = gcl.getResourceLoader().loadGroovySource(name);
+            } catch (MalformedURLException e) {
+                // fall through and let the URL be null
+            }
+            if (url != null) {
+                SourceUnit su = compilationUnit.addSource(url);
+                return new ClassNodeResolver.LookupResult(su,null);
+            }
+            return lr;
+        }
+
+        /**
+         * caches a ClassNode (taken from ClassNodeResolver.cacheClass)
+         * @param name - the name of the class
+         * @param res - the ClassNode for that name
+         */
+        void cacheClass(String name, ClassNode res) {
+            cachedClasses.put(name, res);
+        }
+
+        /**
+         * returns whatever is stored in the class cache for the given name (taken from ClassNodeResolver.getFromClassCache)
+         * @param name - the name of the class
+         * @return the result of the lookup, which may be null
+         */
+        ClassNode getFromClassCache(String name) {
+            // We use here the class cache cachedClasses to prevent
+            // calls to ClassLoader#loadClass. Disabling this cache will
+            // cause a major performance hit.
+            ClassNode cached = cachedClasses.get(name);
+            return cached;
+        }
     }
 }

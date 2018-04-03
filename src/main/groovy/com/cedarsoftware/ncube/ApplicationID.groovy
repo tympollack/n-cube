@@ -29,6 +29,7 @@ import java.util.regex.Pattern
 @CompileStatic
 class ApplicationID
 {
+    public static final String SYS_BOOT_VERSION = '0.0.0'
     public static final String DEFAULT_TENANT = 'NONE'
     public static final String DEFAULT_APP = 'DEFAULT_APP'
     public static final String DEFAULT_VERSION = '999.99.9'
@@ -247,6 +248,11 @@ class ApplicationID
         return new ApplicationID(tenant, app, ver, status, branch)
     }
 
+    ApplicationID asBootVersion()
+    {
+        return this.asVersion(SYS_BOOT_VERSION)
+    }
+
     /**
      * Ensure that all components of the ApplicationID are valid (with their specs in terms of allowable characters.)
      */
@@ -320,7 +326,7 @@ class ApplicationID
 
     boolean isHead()
     {
-        return HEAD == branch
+        return HEAD.equalsIgnoreCase(branch)
     }
 
     void validateBranchIsNotHead()

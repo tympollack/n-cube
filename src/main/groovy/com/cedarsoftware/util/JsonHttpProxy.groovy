@@ -1,5 +1,9 @@
 package com.cedarsoftware.util
 
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.impl.client.StandardHttpRequestRetryHandler
+import org.springframework.util.FastByteArrayOutputStream
+
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
@@ -14,18 +18,26 @@ import org.apache.http.client.CredentialsProvider
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.client.protocol.HttpClientContext
 import org.apache.http.conn.routing.HttpRoute
-import org.apache.http.entity.ContentType
-import org.apache.http.entity.StringEntity
+import org.apache.http.entity.ByteArrayEntity
 import org.apache.http.impl.auth.BasicScheme
-import org.apache.http.impl.client.*
+import org.apache.http.impl.client.BasicAuthCache
+import org.apache.http.impl.client.BasicCredentialsProvider
+import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.util.EntityUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.PropertySource
 
+import javax.servlet.http.Cookie
 import javax.servlet.http.HttpServletRequest
+import java.util.zip.Deflater
 
 import static com.cedarsoftware.ncube.NCubeConstants.LOG_ARG_LENGTH
+import static org.apache.http.HttpHeaders.*
+import static org.apache.http.entity.ContentType.APPLICATION_JSON
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
@@ -46,42 +58,51 @@ import static com.cedarsoftware.ncube.NCubeConstants.LOG_ARG_LENGTH
  */
 
 @CompileStatic
+@PropertySource(value='classpath:application.properties')
 class JsonHttpProxy implements CallableBean
 {
+    @Value("#{\${ncube.proxy.cookiesToInclude:'JSESSIONID'}.split(',')}")
+    private List<String> cookiesToInclude
+
     private final CloseableHttpClient httpClient
     private CredentialsProvider credsProvider
     private AuthCache authCache
     private final HttpHost httpHost
+    private final HttpHost proxyHost
     private final String context
     private final String username
     private final String password
     private final int numConnections
     private static final Logger LOG = LoggerFactory.getLogger(JsonHttpProxy.class)
 
-    JsonHttpProxy(String scheme, String hostname, int port, String context, String username = null, String password = null, int numConnections = 6)
+    JsonHttpProxy(HttpHost httpHost, String context, String username = null, String password = null, int numConnections = 100)
     {
-        httpHost = new HttpHost(hostname, port, scheme)
+        this.httpHost = httpHost
+        proxyHost = null
         this.context = context
         this.username = username
         this.password = password
         this.numConnections = numConnections
         httpClient = createClient()
+        createAuthCache()
+    }
 
-        if (username && password)
-        {
-            credsProvider = new BasicCredentialsProvider()
-            AuthScope authScope = new AuthScope(httpHost.hostName, httpHost.port)
-            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, password)
-            credsProvider.setCredentials(authScope, credentials)
-            authCache = new BasicAuthCache()
-            authCache.put(httpHost, new BasicScheme())
-        }
+    JsonHttpProxy(HttpHost httpHost, HttpHost proxyHost, String context, String username = null, String password = null, int numConnections = 100)
+    {
+        this.httpHost = httpHost
+        this.proxyHost = proxyHost
+        this.context = context
+        this.username = username
+        this.password = password
+        this.numConnections = numConnections
+        httpClient = createClient()
+        createAuthCache()
     }
 
     /**
      * Creates the client object with the proxy and cookie store for later use.
      *
-     * @return A {@link CloseableHttpClient} with the GAIG proxy
+     * @return A {@link CloseableHttpClient} 
      */
     protected CloseableHttpClient createClient()
     {
@@ -90,22 +111,40 @@ class JsonHttpProxy implements CallableBean
         cm.defaultMaxPerRoute = numConnections // Default max connection per route
         cm.setMaxPerRoute(new HttpRoute(httpHost), numConnections) // Max connections per route
 
+        RequestConfig.Builder configBuilder = RequestConfig.custom()
+        configBuilder.connectTimeout = 10 * 1000
+        configBuilder.connectionRequestTimeout = 10 * 1000
+        configBuilder.socketTimeout = 420 * 1000
+        RequestConfig config = configBuilder.build()
+
         HttpClientBuilder builder = HttpClientBuilder.create()
+        builder.defaultRequestConfig = config
         builder.connectionManager = cm
-        builder.defaultCookieStore = new BasicCookieStore()
+        builder.disableCookieManagement()
+        builder.retryHandler = new StandardHttpRequestRetryHandler(5, true)
+
+        if (proxyHost)
+        {
+            builder.proxy = proxyHost
+        }
+
         CloseableHttpClient httpClient = builder.build()
         return httpClient
     }
 
     Object call(String bean, String methodName, List args)
     {
-        String jsonArgs = JsonWriter.objectToJson(args.toArray())
+        Object[] params = args.toArray()
+        FastByteArrayOutputStream stream = new FastByteArrayOutputStream(1024)
+        JsonWriter writer = new JsonWriter(new AdjustableGZIPOutputStream(stream, Deflater.BEST_SPEED))
+        writer.write(params)
+        writer.flush()
+        writer.close()
 
         if (LOG.debugEnabled)
         {
-            LOG.debug("${bean}.${MetaUtils.getLogMessage(methodName, args.toArray(), LOG_ARG_LENGTH)}")
+            LOG.debug("${bean}.${MetaUtils.getLogMessage(methodName, params, LOG_ARG_LENGTH)}")
         }
-        long start = System.nanoTime()
 
         HttpClientContext clientContext = HttpClientContext.create()
         HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${methodName}")
@@ -116,57 +155,97 @@ class JsonHttpProxy implements CallableBean
         }
         else
         {
-            addHeaders(request)
+            assignCookieHeader(request)
         }
+        request.setHeader(USER_AGENT, 'ncube')
+        request.setHeader(ACCEPT, APPLICATION_JSON.mimeType)
+        request.setHeader(ACCEPT_ENCODING, 'gzip, deflate')
+        request.setHeader(CONTENT_TYPE, "application/json; charset=UTF-8")
+        request.setHeader(CONTENT_ENCODING, 'gzip')
+        request.entity = new ByteArrayEntity(stream.toByteArrayUnsafe(), 0, stream.size())
 
-        request.entity = new StringEntity(jsonArgs, ContentType.APPLICATION_JSON)
         HttpResponse response = httpClient.execute(request, clientContext)
-        String json = EntityUtils.toString(response.entity)
-        EntityUtils.consume(response.entity)
-
-        long stop = System.nanoTime()
-        if (LOG.debugEnabled)
+        request.entity = null
+        boolean parsedJsonOk = false
+        try
         {
-            LOG.debug("    ${Math.round((stop - start) / 1000000.0d)}ms - ${json}")
+            JsonReader reader = new JsonReader(new BufferedInputStream(response.entity.content))
+            Map envelope = reader.readObject() as Map
+            reader.close()
+            parsedJsonOk = true
+            
+            if (envelope.exception != null)
+            {
+                throw envelope.exception
+            }
+            if (!envelope.status)
+            {
+                String msg
+                if (envelope.data instanceof String)
+                {
+                    msg = envelope.data
+                }
+                else if (envelope.data != null)
+                {
+                    msg = envelope.data.toString()
+                }
+                else
+                {
+                    msg = 'no extra info provided.'
+                }
+                throw new RuntimeException("REST call [${bean}.${methodName}] indicated failure on server: ${msg}")
+            }
+            return envelope.data
         }
-
-        Map envelope = JsonReader.jsonToJava(json) as Map
-        if (envelope.exception != null)
+        catch (ThreadDeath t)
         {
-            throw envelope.exception
+            throw t
         }
-        if (envelope.status == false)
+        catch (Throwable e)
         {
-            String msg
-            if (envelope.data instanceof String)
+            if (!parsedJsonOk)
             {
-                msg = envelope.data
+                LOG.warn("Failed to process response (code: ${response.statusLine.statusCode}) from server with call: ${bean}.${MetaUtils.getLogMessage(methodName, args.toArray(), LOG_ARG_LENGTH)}, headers: ${request.allHeaders}")
             }
-            else if (envelope.data != null)
-            {
-                msg = envelope.data.toString()
-            }
-            else
-            {
-                msg = 'no extra info provided.'
-            }
-            throw new RuntimeException("REST call [${bean}.${methodName}] indicated failure on server: ${msg}")
+            throw e
         }
-        return envelope.data
     }
 
-    private void addHeaders(HttpPost proxyRequest)
+    private void assignCookieHeader(HttpPost proxyRequest)
     {
         HttpServletRequest servletRequest = JsonCommandServlet.servletRequest.get()
         if (servletRequest instanceof HttpServletRequest)
         {
-            Enumeration<String> e = servletRequest.headerNames
-            while (e.hasMoreElements())
+            Cookie[] cookies = servletRequest.cookies
+            if (cookies == null)
             {
-                String headerName = e.nextElement()
-                String headerValue = servletRequest.getHeader(headerName)
-                proxyRequest.setHeader(headerName, headerValue)
+                return
             }
+            StringJoiner joiner = new StringJoiner("; ")
+            for (Cookie cookie: cookies)
+            {
+                if (cookiesToInclude.contains(cookie.name))
+                {
+                    joiner.add("${cookie.name}=${cookie.value}")
+                }
+            }
+            if (joiner.length())
+            {
+                proxyRequest.setHeader('Cookie', joiner.toString())
+            }
+        }
+    }
+
+    private void createAuthCache()
+    {
+        if (username && password)
+        {
+            credsProvider = new BasicCredentialsProvider()
+            AuthScope authScope = new AuthScope(httpHost.hostName, httpHost.port)
+            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(username, password)
+            credsProvider.setCredentials(authScope, credentials)
+            authCache = new BasicAuthCache()
+            authCache.put(httpHost, new BasicScheme())
         }
     }
 }

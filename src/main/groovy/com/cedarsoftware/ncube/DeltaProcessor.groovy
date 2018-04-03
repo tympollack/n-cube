@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.DeepEquals
@@ -34,6 +33,7 @@ class DeltaProcessor
     public static final String DELTA_CELLS = 'delta-cel'
     public static final String DELTA_AXES_COLUMNS = 'delta-col'
     public static final String DELTA_AXES = 'delta-axis'
+    public static final String DELTA_TESTS = 'delta-test'
 
     public static final String DELTA_NCUBE_META_PUT = 'ncube-meta-put'
     public static final String DELTA_NCUBE_META_REMOVE = 'ncube-meta-del'
@@ -90,7 +90,6 @@ class DeltaProcessor
             return null
         }
 
-
         Map<String, Map<String, Object>> metaDeltaMap = new CaseInsensitiveMap<>()
         delta[DELTA_NCUBE] = metaDeltaMap
         List<Delta> metaChanges = compareMetaProperties(baseCube.metaProperties, changeCube.metaProperties, Delta.Location.NCUBE_META, "ncube: ${changeCube.name}", changeCube.name)
@@ -129,6 +128,7 @@ class DeltaProcessor
         // Store updates-to-be-made so that if cell equality tests pass, these can be 'played' at the end to
         // transactionally apply the merge.  We do not want a partial merge.
         delta[DELTA_CELLS] = getCellDelta(baseCube, changeCube)
+        delta[DELTA_TESTS] = getTestDeltas(baseCube, changeCube)
         return delta
     }
 
@@ -207,6 +207,7 @@ class DeltaProcessor
                         if (findCol == null || (findCol.default && value != null))
                         {
                             mergeTarget.addColumn(axisName, column.value, column.columnName, column.id)
+                            mergeTarget.getAxis(axisName).getColumnById(column.id).addMetaProperties(column.metaProperties)
                         }
                     }
                     else if (DELTA_COLUMN_REMOVE == colDelta.changeType)
@@ -239,7 +240,7 @@ class DeltaProcessor
         Map<Map<String, Object>, T> cellDelta = (Map<Map<String, Object>, T>) deltaSet[DELTA_CELLS]
         // Passed all cell conflict tests, update 'this' cube with the new cells from the other cube (merge)
         cellDelta.each { k, v ->
-            LongHashSet cols = deltaCoordToSetOfLong(mergeTarget, k)
+            Set<Long> cols = deltaCoordToSetOfLong(mergeTarget, k)
             if (cols != null && cols.size() > 0)
             {
                 T value = v
@@ -283,7 +284,8 @@ class DeltaProcessor
         return areNCubeDifferencesOK(branchDelta, headDelta) &&
                 areAxisDifferencesOK(branchDelta, headDelta) &&
                 areColumnDifferencesOK(branchDelta, headDelta) &&
-                areCellDifferencesOK(branchDelta, headDelta)
+                areCellDifferencesOK(branchDelta, headDelta) &&
+                areTestDifferencesOK(branchDelta, headDelta)
     }
 
     /**
@@ -473,6 +475,38 @@ class DeltaProcessor
         return true
     }
 
+    private static boolean areTestDifferencesOK(Map<String, Object> branchDelta, Map<String, Object> headDelta)
+    {
+        Map<String, Map<String, Delta>> deltaMap1 = branchDelta[DELTA_TESTS] as Map
+        Map<String, Map<String, Delta>> deltaMap2 = headDelta[DELTA_TESTS] as Map
+
+        for (Map.Entry<String, Map<String, Delta>> entry1 : deltaMap1.entrySet())
+        {
+            String testName = entry1.key
+            if (!deltaMap2.containsKey(testName))
+            {
+                continue // no test changed with same ID
+            }
+
+            Map<String, Delta> changes2 = deltaMap2[testName]
+            for (Map.Entry<String, Delta> changes1 : entry1.value)
+            {
+                String objName = changes1.key
+                if (!changes2.containsKey(objName)) {
+                    continue // no coord or assertion changes with same ID
+                }
+
+                Delta delta1 = changes1.value
+                Delta delta2 = changes2[objName]
+                if (!DeepEquals.deepEquals(delta1.destVal, delta2.destVal))
+                {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
     /**
      * Gather difference between two axes as pertaining only to the Axis properties itself, not
      * the associated columns.
@@ -623,15 +657,15 @@ class DeltaProcessor
         Map<Map<String, Object>, T> delta = new HashMap<>()
         Set<Map<String, Object>> copyCells = new HashSet<>()
 
-        thisCube.cellMap.each { LongHashSet colIds, T value ->
+        thisCube.cellMap.each { Set<Long> colIds, T value ->
             copyCells.add(thisCube.getCoordinateFromIds(colIds))
         }
 
         // At this point, the cubes have the same number of axes and same axis types.
         // Now, compute cell deltas.
-        other.cellMap.each { LongHashSet colIds, T value ->
+        other.cellMap.each { Set<Long> colIds, T value ->
             Map<String, Object> deltaCoord = other.getCoordinateFromIds(colIds)
-            LongHashSet idKey = deltaCoordToSetOfLong(other, deltaCoord)
+            Set<Long> idKey = deltaCoordToSetOfLong(other, deltaCoord)
             if (idKey != null)
             {   // Was able to bind deltaCoord between cubes
                 T content = thisCube.getCellByIdNoExecute(idKey)
@@ -656,16 +690,150 @@ class DeltaProcessor
         return delta
     }
 
+    private static List<Delta> getTestDeltaList(NCube newCube, NCube oldCube)
+    {
+        List<Delta> deltas = []
+        Map<String, Map<String, Delta>> deltaMap = getTestDeltas(newCube, oldCube)
+        for (Map.Entry<String, Map<String, Delta>> testDeltaEntry : deltaMap)
+        {
+            Map<String, Delta> objMap = testDeltaEntry.value
+            for (Map.Entry<String, Delta> objDeltaEntry : objMap)
+            {
+                Delta delta = objDeltaEntry.value
+                deltas.add(delta)
+            }
+        }
+        return deltas
+    }
+
+    private static Map<String, Map<String, Delta>> getTestDeltas(NCube newCube, NCube oldCube)
+    {
+        List<NCubeTest> newCubeTests = newCube.testData
+        List<NCubeTest> oldCubeTests = oldCube.testData
+        Map<String, Map<String, Delta>> deltaMap = new CaseInsensitiveMap()
+        if (!newCubeTests && !oldCubeTests)
+        {
+            return deltaMap
+        }
+
+        Object[] newCubeTestObj = newCubeTests.toArray()
+        Object[] oldCubeTestObj = oldCubeTests.toArray()
+
+        for (NCubeTest newCubeTest : newCubeTests)
+        {
+            String newCubeTestName = newCubeTest.name
+            NCubeTest oldCubeTest = oldCubeTests.find { NCubeTest test -> test.name == newCubeTestName }
+
+            if (oldCubeTest)
+            {   // has the same test
+                Map<String, Delta> testDeltaMap = new CaseInsensitiveMap()
+
+                // coords
+                Map<String, CellInfo> oldTestCoords = oldCubeTest.coord
+                for (Map.Entry<String, CellInfo> newTestCoordEntry : newCubeTest.coord)
+                {
+                    String key = newTestCoordEntry.key
+                    CellInfo newTestCoord = newTestCoordEntry.value
+                    MapEntry newEntry = new MapEntry(key, newTestCoord)
+                    if (oldTestCoords.containsKey(key))
+                    {   // has the same coord name
+                        CellInfo oldTestCoord = oldTestCoords[key]
+                        oldTestCoords.remove(key)
+                        if (!DeepEquals.deepEquals(newTestCoord, oldTestCoord))
+                        {   // value changed
+                            String s = "Change ${newCubeTestName} coord ${key}: ${oldTestCoord.value} ==> ${newTestCoord.value}"
+                            MapEntry oldEntry = new MapEntry(key, oldTestCoord)
+                            testDeltaMap[key] = new Delta(Delta.Location.TEST_COORD, Delta.Type.UPDATE, s, newCubeTestName, oldEntry, newEntry, oldCubeTestObj, newCubeTestObj)
+                        }
+                    }
+                    else
+                    {   // coord no longer present
+                        String s = "Add ${newCubeTestName} coord {${key}: ${newTestCoord.value}}"
+                        testDeltaMap[key] = new Delta(Delta.Location.TEST_COORD, Delta.Type.ADD, s, newCubeTestName, null, newEntry, oldCubeTestObj, newCubeTestObj)
+                    }
+                }
+                for (Map.Entry<String, CellInfo> oldTestCoordEntry : oldTestCoords)
+                {   // coord added
+                    String key = oldTestCoordEntry.key
+                    CellInfo value = oldTestCoordEntry.value
+                    String s = "Remove ${newCubeTest.name} coord {${key}: ${value.value}}"
+                    MapEntry oldEntry = new MapEntry(key, value)
+                    testDeltaMap[key] = new Delta(Delta.Location.TEST_COORD, Delta.Type.DELETE, s, newCubeTestName, oldEntry, null, oldCubeTestObj, newCubeTestObj)
+                }
+
+                // assertions
+                CellInfo[] oldCubeAsserts = oldCubeTest.assertions
+                Set<String> checkedAsserts = []
+                for (CellInfo newAssert : newCubeTest.assertions)
+                {
+                    String newVal = newAssert.value
+                    CellInfo oldAssert = oldCubeAsserts.find { CellInfo oldAssert ->
+                        oldAssert.value == newVal
+                    }
+                    if (oldAssert)
+                    {
+                        checkedAsserts.add(newVal)
+                        if (!(oldAssert.isUrl == newAssert.isUrl))
+                        {
+                            String s = "Change assertion ${newVal} ${oldAssert.isUrl ? 'URL' : 'Value'} ==> ${newAssert.isUrl ? 'URL' : 'Value'}"
+                            testDeltaMap[newVal] = new Delta(Delta.Location.TEST_ASSERT, Delta.Type.UPDATE, s, newCubeTestName, new CellInfo(oldAssert), new CellInfo(newAssert), oldCubeTestObj, newCubeTestObj)
+                        }
+                    }
+                    else
+                    {
+                        String s = "Add assertion ${newVal}"
+                        testDeltaMap[newVal] = new Delta(Delta.Location.TEST_ASSERT, Delta.Type.ADD, s, newCubeTestName, null, new CellInfo(newAssert), oldCubeTestObj, newCubeTestObj)
+                    }
+                }
+                for (CellInfo oldAssert : oldCubeTest.assertions)
+                {
+                    String oldVal = oldAssert.value
+                    if (!checkedAsserts.contains(oldVal))
+                    {
+                        String s = "Remove assertion ${oldVal}"
+                        testDeltaMap[oldVal] = new Delta(Delta.Location.TEST_ASSERT, Delta.Type.DELETE, s, newCubeTestName, new CellInfo(oldAssert), null, oldCubeTestObj, newCubeTestObj)
+                    }
+                }
+
+                oldCubeTests.remove(oldCubeTest) // remove to have shortened list
+                if (!testDeltaMap.empty)
+                {
+                    deltaMap[newCubeTestName] = testDeltaMap
+                }
+            }
+            else
+            {   // added test
+                String s = "Add test ${newCubeTest.name}"
+                deltaMap[newCubeTestName] = [(Delta.Type.ADD.name()): new Delta(Delta.Location.TEST, Delta.Type.ADD, s, newCubeTestName, null, newCubeTest, oldCubeTestObj, newCubeTestObj)]
+            }
+        }
+
+        for (NCubeTest oldCubeTest : oldCubeTests)
+        {   // deleted test
+            String oldCubeTestName = oldCubeTest.name
+            String s = "Remove test ${oldCubeTestName}"
+            deltaMap[oldCubeTestName] = [(Delta.Type.DELETE.name()): new Delta(Delta.Location.TEST, Delta.Type.DELETE, s, oldCubeTestName, oldCubeTest, null, oldCubeTestObj, newCubeTestObj)]
+        }
+
+        return deltaMap
+    }
+
     /**
      * Return a list of Delta objects describing the differences between two n-cubes.
      * @param oldCube NCube to compare 'this' n-cube to
      * @return List<Delta> object.  The Delta class contains a Location (loc) which describes the
      * part of an n-cube that differs (ncube, axis, column, or cell) and the Type (type) of difference
      * (ADD, UPDATE, or DELETE).  Finally, it includes an English description of the difference.
+     * NOTE: this will remove test data from the cube in order to not affect sha1 calculation.
      */
     static List<Delta> getDeltaDescription(NCube newCube, NCube oldCube)
     {
         List<Delta> changes = []
+
+        changes.addAll(getTestDeltaList(newCube, oldCube))
+        // remove test data to not affect the cubes
+        newCube.removeMetaProperty(NCube.METAPROPERTY_TEST_DATA)
+        oldCube.removeMetaProperty(NCube.METAPROPERTY_TEST_DATA)
 
         getNCubeChanges(newCube, oldCube, changes)
 
@@ -888,9 +1056,9 @@ class DeltaProcessor
 
     private static void getCellChanges(NCube newCube, NCube oldCube, Map<Long, Long> idMap, List<Delta> changes)
     {
-        Map<LongHashSet, Object> cellMap = newCube.cellMap
-        cellMap.each { LongHashSet colIds, value ->
-            LongHashSet coord = adjustCoord(colIds, oldCube.cellMap, idMap)
+        Map<Set<Long>, Object> cellMap = newCube.cellMap
+        cellMap.each { Set<Long> colIds, value ->
+            Set<Long> coord = adjustCoord(colIds, oldCube.cellMap, idMap)
             if (oldCube.cellMap.containsKey(coord))
             {
                 Object oldCellValue = oldCube.cellMap[coord]
@@ -909,9 +1077,9 @@ class DeltaProcessor
             }
         }
 
-        Map<LongHashSet, Object> srcCellMap = oldCube.cellMap
-        srcCellMap.each { LongHashSet colIds, value ->
-            LongHashSet coord = adjustCoord(colIds, newCube.cellMap, idMap)
+        Map<Set<Long>, Object> srcCellMap = oldCube.cellMap
+        srcCellMap.each { Set<Long> colIds, value ->
+            Set<Long> coord = adjustCoord(colIds, newCube.cellMap, idMap)
             if (!newCube.cellMap.containsKey(coord))
             {
                 boolean allColsStillExist = true
@@ -958,7 +1126,7 @@ class DeltaProcessor
         }
     }
 
-    private static LongHashSet adjustCoord(LongHashSet colIds, Map cellMap, Map<Long, Long> idMap)
+    private static Set<Long> adjustCoord(Set<Long> colIds, Map cellMap, Map<Long, Long> idMap)
     {
         // 1st attempt - is it there with the exact same coordinate ids?
         if (cellMap.containsKey(colIds))
@@ -967,7 +1135,7 @@ class DeltaProcessor
         }
 
         // Is it there with substituted coordinate ids (column was matched by value, so trying the id of THAT column)
-        LongHashSet coord = new LongHashSet()
+        Set<Long> coord = new LinkedHashSet<>()
         Iterator<Long> i = colIds.iterator()
         while (i.hasNext())
         {
@@ -1076,7 +1244,7 @@ class DeltaProcessor
      * @return Set<Long> that can be used with any n-cube API that binds by ID (getCellById, etc.) or null
      * if the deltaCoord could not bind to this n-cube.
      */
-    private static <T> LongHashSet deltaCoordToSetOfLong(NCube<T> target, final Map<String, Object> deltaCoord)
+    private static <T> Set<Long> deltaCoordToSetOfLong(NCube<T> target, final Map<String, Object> deltaCoord)
     {
         Set<Long> set = new TreeSet<>()
         for (final Axis axis : target.axes)
@@ -1089,6 +1257,6 @@ class DeltaProcessor
             }
             set.add(column.id)
         }
-        return new LongHashSet(set)
+        return new LinkedHashSet<>(set)
     }
 }

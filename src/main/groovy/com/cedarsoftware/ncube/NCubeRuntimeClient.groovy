@@ -25,7 +25,13 @@ interface NCubeRuntimeClient extends NCubeClient
 {
     void clearCache(ApplicationID appId)
 
+    void clearCache(ApplicationID appId, Collection<String> cubeNames)
+
+    boolean isCached(ApplicationID appId, String cubeName)
+
     URL getActualUrl(ApplicationID appId, String url, Map input)
+
+    String getUrlContent(ApplicationID appId, String url, Map input)
 
     URLClassLoader getLocalClassloader(ApplicationID appId)
 
@@ -44,4 +50,32 @@ interface NCubeRuntimeClient extends NCubeClient
     ApplicationID getApplicationID(String tenant, String app, Map<String, Object> coord)
 
     ApplicationID getBootVersion(String tenant, String app)
+
+    Map runTests(ApplicationID appId)
+
+    Map runTests(ApplicationID appId, String cubeName, Object[] tests)
+
+    Map runTest(ApplicationID appId, String cubeName, NCubeTest test)
+
+    String getTestCauses(Throwable t)
+
+    Map getMenu(ApplicationID appId)
+
+    Map mapReduce(ApplicationID appId, String cubeName, String colAxisName, String where, Map options)
+
+    Map<String, Object> getVisualizerGraph(ApplicationID appId, Map options)
+
+    Map<String, Object> getVisualizerNodeDetails(ApplicationID appId, Map options)
+
+    Map<String, Object> getVisualizerScopeChange(ApplicationID appId, Map options)
+
+    Map getCell(ApplicationID appId, String cubeName, Map coordinate, defaultValue)
+
+    Map execute(ApplicationID appId, String cubeName, String method, Map args)
+
+    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input)
+
+    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Map output)
+
+    Object[] getCells(ApplicationID appId, String cubeName, Object[] idArrays, Map input, Map output, Object defaultValue)
 }

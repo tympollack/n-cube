@@ -4,7 +4,6 @@ import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point3D
-import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.io.JsonWriter
@@ -817,7 +816,7 @@ class TestAxis extends NCubeBaseTest
     {
         NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'testCube4.json')
         ncube.deleteColumn('code', 'b')
-        Axis axis = ncube['code'] as Axis
+        Axis axis = ncube.getAxis('code') as Axis
         assert axis.id != 0
         assert axis.columns.size() == 2
         axis.deleteColumn('o')
@@ -924,11 +923,11 @@ class TestAxis extends NCubeBaseTest
 
         // Doubles
         Axis doubles = new Axis('bigDec', AxisType.DISCRETE, AxisValueType.DOUBLE, false)
-        assertEquals(-1.0, (double) doubles.standardizeColumnValue('-1'), 0.000001d)
-        assertEquals(0.0, (double) doubles.standardizeColumnValue('0'), 0.000001d)
-        assertEquals(1.0, (double) doubles.standardizeColumnValue('1'), 0.00001d)
-        assertEquals(12345678901234.0, (double) doubles.standardizeColumnValue('12345678901234'), 0.00001d)
-        assertEquals(-12345678901234.0, (double) doubles.standardizeColumnValue('-12345678901234'), 0.00001d)
+        assertEquals(-1.0d, (double) doubles.standardizeColumnValue('-1'), 0.000001d)
+        assertEquals(0.0d, (double) doubles.standardizeColumnValue('0'), 0.000001d)
+        assertEquals(1.0d, (double) doubles.standardizeColumnValue('1'), 0.00001d)
+        assertEquals(12345678901234.0d, (double) doubles.standardizeColumnValue('12345678901234'), 0.00001d)
+        assertEquals(-12345678901234.0d, (double) doubles.standardizeColumnValue('-12345678901234'), 0.00001d)
         assertEquals(-12345.678901234d, (double) doubles.standardizeColumnValue('-12345.678901234'), 0.00001d)
 
         // Dates
@@ -1141,22 +1140,22 @@ class TestAxis extends NCubeBaseTest
     {
         Axis axis = new Axis('loc', AxisType.NEAREST, AxisValueType.COMPARABLE, false)
         LatLon latlon = (LatLon) axis.standardizeColumnValue('1.0, 2.0')
-        assertEquals 1.0, latlon.lat, 0.00001d
-        assertEquals 2.0, latlon.lon, 0.00001d
+        assertEquals 1.0d, latlon.lat, 0.00001d
+        assertEquals 2.0d, latlon.lon, 0.00001d
 
         latlon = (LatLon) axis.standardizeColumnValue('1,2')
-        assertEquals 1.0, latlon.lat, 0.00001d
-        assertEquals 2.0, latlon.lon, 0.00001d
+        assertEquals 1.0d, latlon.lat, 0.00001d
+        assertEquals 2.0d, latlon.lon, 0.00001d
 
         latlon = (LatLon) axis.standardizeColumnValue('-1,-2')
-        assertEquals(-1.0, latlon.lat, 0.00001d)
-        assertEquals(-2.0, latlon.lon, 0.001d)
+        assertEquals(-1.0d, latlon.lat, 0.00001d)
+        assertEquals(-2.0d, latlon.lon, 0.001d)
 
         axis = new Axis('loc', AxisType.NEAREST, AxisValueType.COMPARABLE, false)
         Point3D pt3d = (Point3D) axis.standardizeColumnValue('1.0, 2.0, 3.0')
-        assertEquals 1.0, pt3d.x, 0.00001d
-        assertEquals 2.0, pt3d.y, 0.00001d
-        assertEquals 3.0, pt3d.z, 0.00001d
+        assertEquals(1.0d, pt3d.x, 0.00001d)
+        assertEquals(2.0d, pt3d.y, 0.00001d)
+        assertEquals(3.0d, pt3d.z, 0.00001d)
     }
 
     @Test
@@ -1337,14 +1336,14 @@ class TestAxis extends NCubeBaseTest
         Axis bu = cube.getAxis("BU")
         Column b = bu.findColumn("SHS")
 
-        LongHashSet longCoord = new LongHashSet()
+        Set<Long> longCoord = new LinkedHashSet<>()
         longCoord.add(t.id as Long)
         longCoord.add(v.id as Long)
         longCoord.add(b.id as Long)
 
         // Make sure all columns are bound correctly
         def coord = new CaseInsensitiveMap()
-        LongHashSet boundCols = cube.ensureFullCoordinate(longCoord)
+        Set<Long> boundCols = cube.ensureFullCoordinate(longCoord)
         for (Long colId : boundCols)
         {
             assertTrue(colId == t.id || colId == v.id || colId == b.id)
@@ -2747,7 +2746,7 @@ class TestAxis extends NCubeBaseTest
 
         NCube transform = NCubeBuilder.transformMultiply
         transform.applicationID = ApplicationID.testAppId
-        assert transform.getAxis('method').size() == 2
+        assert transform.getAxis('transform').size() == 4
         ncubeRuntime.addCube(transform)
 
         Map<String, Object> args = [:]
@@ -2765,7 +2764,6 @@ class TestAxis extends NCubeBaseTest
         args[TRANSFORM_STATUS] = appId.status
         args[TRANSFORM_BRANCH] = appId.branch
         args[TRANSFORM_CUBE_NAME] = 'multiplier'
-        args[TRANSFORM_METHOD_NAME] = 'double'
 
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
@@ -2806,7 +2804,7 @@ class TestAxis extends NCubeBaseTest
 
         NCube transform = NCubeBuilder.transformMultiply
         transform.applicationID = ApplicationID.testAppId
-        assert transform.getAxis('method').size() == 2
+        assert transform.getAxis('transform').size() == 4
         ncubeRuntime.addCube(transform)
 
         Map<String, Object> args = [:]
@@ -2824,7 +2822,6 @@ class TestAxis extends NCubeBaseTest
         args[TRANSFORM_STATUS] = appId.status
         args[TRANSFORM_BRANCH] = appId.branch
         args[TRANSFORM_CUBE_NAME] = 'multiplier'
-        args[TRANSFORM_METHOD_NAME] = 'double'
 
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
@@ -2852,11 +2849,16 @@ class TestAxis extends NCubeBaseTest
         two.removeAxisReferenceTransform('age')
         json = two.toFormattedJson()
         reload = NCube.fromSimpleJson(json)
-        assert reload.numCells == 3
+        assert reload.numCells == 0
 
-        // 1, 2, 3 should not be transformed
+        // should have original columns
+        reload.setCell('a', [age:1] as Map)
         assert 'a' == reload.getCell([age:1] as Map)
+
+        reload.setCell('b', [age:2] as Map)
         assert 'b' == reload.getCell([age:2] as Map)
+
+        reload.setCell('c', [age:3] as Map)
         assert 'c' == reload.getCell([age:3] as Map)
 
     }
@@ -2923,7 +2925,7 @@ class TestAxis extends NCubeBaseTest
 
         NCube transform = NCubeBuilder.transformMultiply
         transform.applicationID = ApplicationID.testAppId
-        assert transform.getAxis('method').size() == 2
+        assert transform.getAxis('transform').size() == 4
         ncubeRuntime.addCube(transform)
 
         Map<String, Object> args = [:]
@@ -2941,7 +2943,6 @@ class TestAxis extends NCubeBaseTest
         args[TRANSFORM_STATUS] = appId.status
         args[TRANSFORM_BRANCH] = appId.branch
         args[TRANSFORM_CUBE_NAME] = 'multiplierNotThere'
-        args[TRANSFORM_METHOD_NAME] = 'double'
 
         // stateSource instead of 'state' to prove the axis on the referring cube does not have to have the same name
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
@@ -2955,8 +2956,7 @@ class TestAxis extends NCubeBaseTest
             assertContainsIgnoreCase(e.message, 'unable to load', 'TestTransform', 'reference axis', 'failed to load transform')
         }
 
-        args[TRANSFORM_CUBE_NAME] = 'discreteLong'  // this cube has no 'method' axis
-        args[TRANSFORM_METHOD_NAME] = 'double'
+        args[TRANSFORM_CUBE_NAME] = 'discreteLong'  // this cube does not have correct axes
         refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
         try
         {
@@ -2966,19 +2966,6 @@ class TestAxis extends NCubeBaseTest
         catch (IllegalArgumentException e)
         {
             assertContainsIgnoreCase(e.message, 'unable to load', 'TestTransform', 'reference axis: age', 'must have two discrete')
-        }
-
-        args[TRANSFORM_CUBE_NAME] = 'multiplier'  // this cube has no 'method' axis
-        args[TRANSFORM_METHOD_NAME] = 'doubleNotThere'
-        refAxisLoader = new ReferenceAxisLoader('TestTransform', 'age', args)
-        try
-        {
-            Axis ignore = new Axis('age', 1, false, refAxisLoader)
-            fail(ignore.name)
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'unable to load', 'TestTransform', 'reference axis: age', 'doubleNotThere does not exist')
         }
     }
 

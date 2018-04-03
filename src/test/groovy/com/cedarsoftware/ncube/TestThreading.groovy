@@ -1,7 +1,9 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.util.CdnClassLoader
 import com.cedarsoftware.util.StringUtilities
 import org.codehaus.groovy.runtime.StackTraceUtils
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,6 +45,8 @@ class TestThreading extends NCubeCleanupBaseTest
     private NCube cp
 
     private static final Logger LOG = LoggerFactory.getLogger(TestThreading.class)
+    private static String savedSourcesDir
+    private static String savedClassesDir
 
     @Parameterized.Parameters(name = "{0}")
     static Collection<Object[]> data() {
@@ -54,24 +58,26 @@ class TestThreading extends NCubeCleanupBaseTest
         int threads = 5
         int count = 5
 
-        data << [ ['load':load,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-        data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-        data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
+        data << [ [load:load,threads:threads,count:count, clearCache:false, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load,threads:threads,count:count,clearCache:false, loopTest:loopTest, preCache:true, sleep:sleep] ]
+        data << [ [load:load,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:true, sleep:sleep] ]
 
         load = 50; threads = 5; count = 5
-        data << [ ['load':load * 2,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-        data << [ ['load':load * 2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-        data << [ ['load':load * 2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
+        data << [ [load:load * 2,threads:threads,count:count,clearCache:false, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load * 2,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load * 2,threads:threads,count:count,clearCache:false, loopTest:loopTest, preCache:true, sleep:sleep] ]
+        data << [ [load:load * 2,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:true, sleep:sleep] ]
 
-//        load = 25; threads = 5; count = 15
-//        data << [ ['load':load,'threads':threads,'count':count*10,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-//        data << [ ['load':load,'threads':threads,'count':count*10,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-//        data << [ ['load':load*2,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
-//
-//        load = 25; threads = 15; count = 15
-//        data << [ ['load':load,'threads':threads,'count':count,'clearCache':false, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-//        data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':false, 'sleep':sleep] ]
-//        data << [ ['load':load,'threads':threads,'count':count,'clearCache':true, 'loopTest':loopTest, 'preCache':true, 'sleep':sleep] ]
+        load = 25; threads = 5; count = 15
+        data << [ [load:load,threads:threads,count:count*10,clearCache:false, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load,threads:threads,count:count*10,clearCache:true, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load*2,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:true, sleep:sleep] ]
+
+        load = 25; threads = 15; count = 15
+        data << [ [load:load,threads:threads,count:count,clearCache:false, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:false, sleep:sleep] ]
+        data << [ [load:load,threads:threads,count:count,clearCache:true, loopTest:loopTest, preCache:true, sleep:sleep] ]
 
         return data as Object [][]
     }
@@ -82,7 +88,13 @@ class TestThreading extends NCubeCleanupBaseTest
     }
 
     @Test
-    void test() {
+    void testQuiet()
+    {
+    }
+
+    @Test
+    void test()
+    {
         runTest testArgs
     }
 
@@ -95,6 +107,28 @@ class TestThreading extends NCubeCleanupBaseTest
         cp = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'sys.classpath.threading.json')
         ncubeRuntime.clearCache(ApplicationID.testAppId)
         ncubeRuntime.addCube(cp)
+
+        savedSourcesDir = GroovyBase.generatedSourcesDirectory
+        savedClassesDir = CdnClassLoader.generatedClassesDirectory
+
+        File genSourcesDir = new File('target/generated-sources')
+        File genClassesDir = new File('target/generated-classes')
+
+        String srcDirPath = genSourcesDir.path
+        String clsDirPath = genClassesDir.path
+
+        GroovyBase.generatedSourcesDirectory = srcDirPath
+        CdnClassLoader.generatedClassesDirectory = genClassesDir.path
+        assertEquals(srcDirPath,GroovyBase.generatedSourcesDirectory)
+        assertEquals(clsDirPath,CdnClassLoader.generatedClassesDirectory)
+    }
+
+    @After
+    void tearDown()
+    {
+        GroovyBase.generatedSourcesDirectory = savedSourcesDir
+        CdnClassLoader.generatedClassesDirectory = savedClassesDir
+        super.teardown()
     }
 
 //    @Ignore
@@ -186,23 +220,10 @@ class TestThreading extends NCubeCleanupBaseTest
             }
 
             if (preCache) {
-                LOG.debug '==>pre-cache'
-                maxThreads.times { tid ->
-                    count.times { cnt ->
-                        try
-                        {
-                            cube.getCell(['tid':tid,'cnt':cnt,'sleep':0L,'interface':ifc])
-                        }
-                        catch (Exception e)
-                        {
-                            Throwable rootCause = StackTraceUtils.extractRootCause(e)
-                            if (!rootCause.message.toLowerCase().contains('code cleared while'))
-                            {
-                                failures.add(rootCause)
-                            }
-                        }
-                    }
-                }
+                long startCache = System.currentTimeMillis()
+                ncubeRuntime.getCube(ApplicationID.testAppId,'thread').compile()
+                ncubeRuntime.getCube(ApplicationID.testAppId,'threadCount').compile()
+                LOG.info "==>pre-cache, took ${System.currentTimeMillis()-startCache}ms"
             }
 
             LOG.debug '==>creating threads'
@@ -224,7 +245,7 @@ class TestThreading extends NCubeCleanupBaseTest
                                 catch (Exception e)
                                 {
                                     Throwable rootCause = StackTraceUtils.extractRootCause(e)
-                                    if (!rootCause.message.toLowerCase().contains('code cleared while'))
+                                    if (!rootCause?.message?.toLowerCase()?.contains('code cleared while'))
                                     {
                                         failures.add(rootCause)
                                     }
@@ -251,6 +272,8 @@ class TestThreading extends NCubeCleanupBaseTest
                 }
             }
 
+            validateRunnableCode(maxThreads,count,failures)
+
             long duration = System.currentTimeMillis()-start
             totalDuration += duration
             LOG.info "Loop ${i} took " + duration + "ms with failure rate of " + failures.size() + "/" + (maxThreads*count*loopCount*load)
@@ -262,6 +285,23 @@ class TestThreading extends NCubeCleanupBaseTest
         dumpFailures(allFailures)
         assertEquals(0,allFailures.size())
         return allFailures as List
+    }
+
+    private void validateRunnableCode(int maxThreads, int maxCount, Collection failures) {
+        NCube threadCube = ncubeRuntime.getCube(ApplicationID.testAppId, 'threadCount')
+        ClassLoader cdnLoader = ncubeRuntime.getCube(ApplicationID.testAppId,cp.name).getCell([:],[:])
+
+        maxThreads.times { int tid ->
+            maxCount.times { int cnt ->
+                GroovyBase cell = threadCube.getCellNoExecute(['tid':tid,'cnt':cnt,'sleep':0L]) as GroovyBase
+                ClassLoader cellLoader = cell.runnableCode.classLoader
+                if (cdnLoader != cellLoader && cdnLoader.parent != cellLoader) {
+                    def nm = "test-${tid}-${cnt}"
+                    failures.add( new IllegalStateException("ClassLoader did not match for cell"))
+                }
+            }
+        }
+
     }
 
     private static void dumpFailures(ConcurrentLinkedQueue<Exception> failures) {
@@ -356,63 +396,9 @@ class TestThreading extends NCubeCleanupBaseTest
             }
         }
 
-
-//        NCubeManager.clearCache()
-//        NCubeManager.addCube(ApplicationID.testAppId,cp)
-//        NCubeManager.addCube(ApplicationID.testAppId,threadCube)
-//        NCubeManager.addCube(ApplicationID.testAppId,cube)
-
         LOG.debug 'done'
         return cube
     }
-
-    static String cachingDef='''{
-            "ncube": "router",
-            "axes": [
-                {
-                    "name": "nm",
-                    "type": "DISCRETE",
-                    "valueType": "STRING",
-                    "hasDefault": true,
-                    "preferredOrder": 0,
-                    "columns": [
-                        {
-                            "id": "static"
-                        }
-                ]
-                },
-                {
-                    "name": "divId",
-                    "type": "DISCRETE",
-                    "valueType": "STRING",
-                    "hasDefault": true,
-                    "preferredOrder": 0,
-                    "columns": []
-                }
-            ],
-            "cells": [
-                {
-                    "id": [
-                        "static"
-                ],
-                    "type": "string",
-                    "value": "static"
-                },
-                {
-                    "id": [],
-                    "type": "exp",
-                    "value": "def lfn=input.get('nm')
-                    String f=ncube.getApplicationID().cacheKey(ncube.getName())
-                    def cmd=\\"'\\" + lfn + \\"'\\"
-                    GroovyExpression exp = new GroovyExpression(cmd, null, false)
-                    synchronized(f.intern()) {
-                        ncube.addColumn('nm',lfn)
-                        ncube.setCell(exp,input)
-                        return ncube.getCell(input)
-                    }"
-                }
-            ]
-            }'''
 
     static String threadCountDef ='''{
             "ncube": "threadCount",

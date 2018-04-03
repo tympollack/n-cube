@@ -41,9 +41,28 @@ class GroovyTemplate extends ContentCmdCell
     //  Private constructor only for serialization.
     private GroovyTemplate() { }
 
-    GroovyTemplate(String cmd, String url, boolean cache)
+    GroovyTemplate(String cmd, String url = null, boolean cache = false)
     {
         super(cmd, url, cache)
+    }
+
+    protected def fetchResult(Map<String, Object> ctx)
+    {
+        Object data = null
+
+        if (resolvedTemplate == null)
+        {
+            if (url == null)
+            {
+                data = cmd
+            }
+            else
+            {
+                data = fetchContentFromUrl(ctx)
+            }
+        }
+
+        return executeInternal(data, ctx)
     }
 
     void getCubeNamesFromCommandText(final Set<String> cubeNames)
@@ -117,7 +136,7 @@ class GroovyTemplate extends ContentCmdCell
             String groovyClosures = new String(IOUtilities.inputStreamToBytes(inStream))
             IOUtilities.close(inStream)
 
-            cmd = '<% ' + groovyClosures + ' %>' + cmd
+            cmd = "<% ${groovyClosures} %>${cmd}"
 
             // Create Groovy Standard Template
             SimpleTemplateEngine engine = new SimpleTemplateEngine(urlLoader)
@@ -129,11 +148,6 @@ class GroovyTemplate extends ContentCmdCell
 
         // Do normal Groovy substitutions.
         String result = resolvedTemplate.make(ctx).toString()
-        if (cacheable)
-        {   // No need to hold onto the template since cache:true on the cell, meaning that the substitution
-            // is only being done once.
-            resolvedTemplate = null
-        }
         return result
     }
 
