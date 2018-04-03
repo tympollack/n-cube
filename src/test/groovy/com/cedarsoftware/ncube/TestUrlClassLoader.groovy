@@ -36,7 +36,7 @@ class TestUrlClassLoader extends NCubeCleanupBaseTest
 
     static int getCacheSize(ApplicationID applicationID)
     {
-        return ((CaffeineCache) testClient.getCacheForApp(ApplicationID.testAppId)).nativeCache.asMap().size()
+        return ((CaffeineCache) testClient.getCacheForApp(applicationID)).nativeCache.asMap().size()
     }
 
     @Test

@@ -44,13 +44,11 @@ class NCubeConfiguration
     @Value('${ncube.cache.evict.type:expireAfterAccess}') String typeNCubeCache
     @Value('${ncube.cache.evict.duration:4}') int durationNCubeCache
     @Value('${ncube.cache.evict.units:hours}') String unitsNCubeCache
-    @Value('${ncube.cache.concurrency:16}') int concurrencyNCubeCache
 
     @Value('${ncube.perm.cache.max.size:100000}') int maxSizePermCache
     @Value('${ncube.perm.cache.evict.type:expireAfterAccess}') String typePermCache
     @Value('${ncube.perm.cache.evict.duration:3}') int durationPermCache
     @Value('${ncube.perm.cache.evict.units:minutes}') String unitsPermCache
-    @Value('${ncube.perm.cache.concurrency:16}') int concurrencyPermCache
 
     @Value('${ncube.allow.mutable.methods:false}') boolean allowMutableMethods
     @Value('${ncube.accepted.domains:}') String ncubeAcceptedDomains
@@ -96,14 +94,14 @@ class NCubeConfiguration
     @Bean(name = "ncubeCacheManager")
     CCacheManager getNcubeCacheManager()
     {
-        CCacheManager cacheManager = new CCacheManager(ncubeRemoval, maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache, concurrencyNCubeCache)
+        CCacheManager cacheManager = new CCacheManager(ncubeRemoval, maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache)
         return cacheManager
     }
 
     @Bean(name = 'permCacheManager')
     CCacheManager getPermCacheManager()
     {
-        CCacheManager cacheManager = new CCacheManager(null, maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
+        CCacheManager cacheManager = new CCacheManager(null, maxSizePermCache, typePermCache, durationPermCache, unitsPermCache)
         return cacheManager
     }
 

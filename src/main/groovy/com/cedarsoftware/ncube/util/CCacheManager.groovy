@@ -37,17 +37,15 @@ class CCacheManager implements CacheManager
 {
     private static final Logger LOG = LoggerFactory.getLogger(CCacheManager.class)
     private final ConcurrentMap<String, Cache> caches = new ConcurrentHashMap<>()
-    private final int concurrencyLevel
     private final int maximumSize
     private final int evictionDuration
     private final String evictionTimeUnit
     private final String evictionType
     private final Closure removalClosure
 
-    CCacheManager(Closure removalClosure = null, int maximumSize = 0, String evictionType = 'none', int evictionDuration = 0, String evictionTimeUnit = 'hours', int concurrencyLevel = 16)
+    CCacheManager(Closure removalClosure = null, int maximumSize = 0, String evictionType = 'none', int evictionDuration = 0, String evictionTimeUnit = 'hours')
     {
         this.removalClosure = removalClosure
-        this.concurrencyLevel = concurrencyLevel
         this.maximumSize = maximumSize
         this.evictionType = evictionType
         this.evictionDuration = evictionDuration

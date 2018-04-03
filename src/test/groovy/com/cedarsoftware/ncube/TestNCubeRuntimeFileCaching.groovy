@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.ncube.util.CCacheManager
 import com.cedarsoftware.ncube.util.LocalFileCache
 import com.cedarsoftware.util.CallableBean
 import groovy.transform.CompileStatic
@@ -12,6 +13,7 @@ import org.mockito.Mockito
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.springframework.cache.Cache
+import org.springframework.cache.caffeine.CaffeineCache
 import org.springframework.cache.concurrent.ConcurrentMapCache
 import org.springframework.cache.support.SimpleCacheManager
 
@@ -624,7 +626,7 @@ class TestNCubeRuntimeFileCaching extends NCubeBaseTest
         // mark sha1 as non-readable to trigger read exception
         getFileForCachedSha1(appId, cubeName).setReadable(false)
 
-        exception.expectMessage("Failed to load sha1 for cube: TestBranch from offline cache")
+        exception.expectMessage("Failed to find cube: TestBranch in offline cache")
         getCubeFromRuntime(appId, cubeName)
     }
 
