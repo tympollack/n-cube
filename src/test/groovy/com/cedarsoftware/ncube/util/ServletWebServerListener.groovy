@@ -17,7 +17,7 @@ class ServletWebServerListener implements ApplicationListener<ServletWebServerIn
     private static Pattern leadingSlash = ~/^[\/]?/
     private static Pattern trailingSlash = ~/[\/]?$/
 
-    @Value('${server.contextPath}')
+    @Value('${server.servlet.contextPath}')
     private String contextPath
 
     // allow for testing against a remote URL instead of embedded Tomcat (assuming static files available)
