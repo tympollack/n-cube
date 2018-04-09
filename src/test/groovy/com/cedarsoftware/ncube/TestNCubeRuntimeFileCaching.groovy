@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.util.CCacheManager
 import com.cedarsoftware.ncube.util.LocalFileCache
 import com.cedarsoftware.util.CallableBean
 import groovy.transform.CompileStatic
@@ -13,7 +12,6 @@ import org.mockito.Mockito
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.springframework.cache.Cache
-import org.springframework.cache.caffeine.CaffeineCache
 import org.springframework.cache.concurrent.ConcurrentMapCache
 import org.springframework.cache.support.SimpleCacheManager
 
@@ -55,7 +53,7 @@ class TestNCubeRuntimeFileCaching extends NCubeBaseTest
         Mockito.when(callableBean.call(Mockito.eq(MOCK_BEAN_NAME),Mockito.anyString(),Mockito.anyListOf(String.class))).then(new Answer<Object>() {
             @Override
             Object answer(InvocationOnMock invocation) throws Throwable {
-                String method = invocation.getArgumentAt(1,String.class)
+                String method = invocation.getArgument(1)
                 List<Object> methodArgs = (List) invocation.arguments[2]
                 if (METHOD_LOAD_CUBE_RECORD==method ) {
                     ApplicationID appId = (ApplicationID) methodArgs[0]

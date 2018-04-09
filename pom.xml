@@ -68,7 +68,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>1.5.10.RELEASE</version>  <!-- must be inlined, properties not allowed here -->
+        <version>2.0.1.RELEASE</version>  <!-- must be inlined, properties not allowed here -->
     </parent>
 
     <properties>
@@ -80,7 +80,7 @@
         <version.caffeine>2.6.2</version.caffeine>
         <version.httpclient>4.5.3</version.httpclient>
         <version.spring>4.3.13.RELEASE</version.spring>
-        <version.springboot>1.5.10.RELEASE</version.springboot>
+        <version.springboot>2.0.1.RELEASE</version.springboot>
         <version.mysql.connector.java>6.0.6</version.mysql.connector.java>
         <version.hsqldb>2.4.0</version.hsqldb>
         <version.apache.ivy>2.4.0</version.apache.ivy>
@@ -96,7 +96,7 @@
         <version.servlet>3.1.0</version.servlet>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <tomcat.version>8.5.24</tomcat.version>
+        <tomcat.version>8.5.29</tomcat.version>
     </properties>
 
     <repositories>
@@ -431,6 +431,18 @@
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
             <version>${version.apache.ivy}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-jdbc</artifactId>
+            <version>${tomcat.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-properties-migrator</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
     </dependencies>
