@@ -649,6 +649,20 @@ class TestAxis extends NCubeBaseTest
     }
 
     @Test
+    void testAxisCistringSet()
+    {
+        Axis states = new Axis('States', AxisType.SET, AxisValueType.CISTRING, false, Axis.SORTED)
+        RangeSet set = new RangeSet('GA')
+        set.add 'OH'
+        set.add 'TX'
+        states.addColumn set
+        set = new RangeSet('AL')
+        set.add 'WY'
+        states.addColumn set
+        states.findColumn('al') == states.findColumn('AL')
+    }
+
+    @Test
     void testAxisLongType()
     {
         Axis axis = new Axis('foo', AxisType.DISCRETE, AxisValueType.LONG, false, Axis.DISPLAY)

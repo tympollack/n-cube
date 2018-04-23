@@ -1598,8 +1598,25 @@ class Axis
             return colToFind == null ? defaultCol : colToFind
         }
         else if (type == AxisType.RANGE || type == AxisType.SET)
-        {	// RANGE axis searched in O(Log n) time using a binary search
-            Column column = rangeToCol.get(promotedValue)
+        {
+            Column column
+            if (valueType == AxisValueType.CISTRING && value instanceof String)
+            {
+                Map<com.google.common.collect.Range<Comparable>, Column> rangeMap = rangeToCol.asMapOfRanges()
+                for (Map.Entry<com.google.common.collect.Range<Comparable>, Column> entry : rangeMap)
+                {
+                    RangeSet rangeSet = (RangeSet)entry.value.value
+                    if (rangeSet.containsIgnoreCase(value))
+                    {
+                        column = entry.value
+                        break
+                    }
+                }
+            }
+            else
+            { // RANGE axis searched in O(Log n) time using a binary search
+                column = rangeToCol.get(promotedValue)
+            }
             return column == null ? defaultCol : column
         }
         else if (type == AxisType.RULE)

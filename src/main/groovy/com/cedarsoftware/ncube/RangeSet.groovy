@@ -145,6 +145,20 @@ class RangeSet implements Comparable<RangeSet>
         return false
     }
 
+    boolean containsIgnoreCase(String value)
+    {
+        Iterator<Comparable> i = iterator()
+        while (i.hasNext())
+        {
+            Comparable item = i.next()
+            if (item instanceof String && item.equalsIgnoreCase(value))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
     /**
      * @return boolean true if the points and line segments represented by these
      * two RangeSets overlap.  Assumption that the Range objects 'low' value is less
