@@ -2533,7 +2533,11 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         {
             Connection connection = threadBoundConnection
             connection.rollback() // rollback in case any work was done before this point
-            obsoletePullRequest(prId)
+            try
+            {
+                obsoletePullRequest(prId)
+            }
+            catch (IllegalArgumentException ignore) {} // pr was rolled back
             connection.commit() // force database changes before throwing exception
             throw e
         }
@@ -2743,7 +2747,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         List<NCubeInfoDto> finalUpdates
         String userId = getUserId()
 
-        List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects, true)
+        List<NCubeInfoDto> cubesToUpdate = getCubesToUpdate(appId, inputCubes, rejects)
 
         ApplicationID headAppId = appId.asHead()
         for (NCubeInfoDto updateCube : cubesToUpdate)
@@ -2825,7 +2829,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
         for (NCubeInfoDto updateCube : cubesToUpdate)
         {
-            if (!checkPermissions(appId, updateCube.name, Action.COMMIT) || updateCube.changeType == ChangeType.CONFLICT.code)
+            if (!checkPermissions(appId, updateCube.name, Action.UPDATE) || updateCube.changeType == ChangeType.CONFLICT.code)
             {
                 rejects.add(updateCube)
             }
@@ -2854,17 +2858,13 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         return commitRecords
     }
 
-    private List<NCubeInfoDto> getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> rejects, boolean isMerge = false)
+    private List<NCubeInfoDto> getCubesToUpdate(ApplicationID appId, Object[] inputCubes, List<NCubeInfoDto> rejects)
     {
         ApplicationID.validateAppId(appId)
         appId.validateBranchIsNotHead()
         appId.validateStatusIsNotRelease()
         validateReferenceAxesAppIds(appId, inputCubes as List<NCubeInfoDto>)
         assertNotLockBlocked(appId)
-        if (!isMerge)
-        {
-            assertPermissions(appId, null, Action.COMMIT)
-        }
 
         List<NCubeInfoDto> newDtoList = getBranchChangesForHead(appId)
         if (!inputCubes)
