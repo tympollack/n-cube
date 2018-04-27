@@ -624,7 +624,7 @@ class TestNCubeRuntimeFileCaching extends NCubeBaseTest
         // mark sha1 as non-readable to trigger read exception
         getFileForCachedSha1(appId, cubeName).setReadable(false)
 
-        exception.expectMessage("Failed to find cube: TestBranch in offline cache")
+        exception.expectMessage("Failed to load sha1 for cube: TestBranch from offline cache")
         getCubeFromRuntime(appId, cubeName)
     }
 
