@@ -184,7 +184,7 @@ class Visualizer
 				nextRelInfo.sourceId = relInfo.targetId
 				nextRelInfo.sourceTrail = new ArrayList(relInfo.sourceTrail)
 		 		nextRelInfo.sourceTrail << relInfo.targetId
-				nextRelInfo.sourceFieldName = coordinates.toMapString()[1..-2]
+				nextRelInfo.sourceFieldName = coordinates.isEmpty() ? '' : coordinates.toMapString()[1..-2]
 				nextRelInfo.targetScope = new CaseInsensitiveMap(coordinates)
 				nextRelInfo.availableTargetScope = new CaseInsensitiveMap(relInfo.availableTargetScope)
 				nextRelInfo.availableTargetScope.putAll(coordinates)

@@ -86,7 +86,7 @@ class VisualizerTest extends VisualizerBaseTest
 
         //Check one target node
         node = nodes.values().find { Map node2 ->'CubeHasTwoRefsToSameCube' == node2.cubeName}
-        assert 'CubeDAxis1: CubeDAxis1Col3' == node.fromFieldName
+        assert 'CubeDAxis1:CubeDAxis1Col3' == node.fromFieldName
         assert 'CubeHasTwoRefsToSameCube' == node.title
         assert 'CubeHasTwoRefsToSameCube' == node.detailsTitle1
         assert null == node.detailsTitle2
@@ -112,10 +112,10 @@ class VisualizerTest extends VisualizerBaseTest
 
         //Check edge between top node and target node above
         Map edge = edges.values().find { Map edge -> 'CubeHasTwoRefsToSameCube' == edge.toName && 'CubeWithRefs' == edge.fromName}
-        assert 'CubeDAxis1: CubeDAxis1Col3' == edge.fromFieldName
+        assert 'CubeDAxis1:CubeDAxis1Col3' == edge.fromFieldName
         assert '2' == edge.level
         assert !edge.label
-        assert  'CubeDAxis1: CubeDAxis1Col3' == edge.title
+        assert  'CubeDAxis1:CubeDAxis1Col3' == edge.title
     }
 
     @Test
@@ -196,15 +196,15 @@ class VisualizerTest extends VisualizerBaseTest
 
         //Cube ref is a column level default from a rule axis
         edge = level2Edges.find { Map edge2 -> 'CubeWithDefaultsAndNoValues' == edge2.toName}
-        assert 'RuleAxis1: (Condition3): true' == edge.fromFieldName
+        assert 'RuleAxis1:(Condition3): true' == edge.fromFieldName
 
         // Cube ref is a condition on a rule axis
         edge = level2Edges.find { Map edge3 -> 'CubeWithSingleValue' == edge3.toName}
-        assert 'RuleAxis1: (Condition1): @CubeWithSingleValue[:]' == edge.fromFieldName
+        assert 'RuleAxis1:(Condition1): @CubeWithSingleValue[:]' == edge.fromFieldName
 
         // Cube ref is a column level default from non-rule axis
         edge = level2Edges.find { Map edge4 -> 'CubeWithRefs' == edge4.toName}
-        assert 'Axis2: Axis2Col2' == edge.fromFieldName
+        assert 'Axis2:Axis2Col2' == edge.fromFieldName
     }
 
     @Test
@@ -223,12 +223,12 @@ class VisualizerTest extends VisualizerBaseTest
         assert [:] == node.availableScope
 
         node = nodes.values().find { Map node2 ->'CubeWithNoDefaultsAndNoValues' == node2.cubeName &&
-                'CubeEAxis1: CubeEAxis1Col3, CubeEAxis2: CubeEAxis2Col1' == node2.fromFieldName}
+                'CubeEAxis1:CubeEAxis1Col3, CubeEAxis2:CubeEAxis2Col1' == node2.fromFieldName}
         assert [CubeEAxis1: 'CubeEAxis1Col3', CubeEAxis2: 'CubeEAxis2Col1']  as CaseInsensitiveMap == node.scope
         assert [CubeEAxis1: 'CubeEAxis1Col3', CubeEAxis2: 'CubeEAxis2Col1']  as CaseInsensitiveMap == node.availableScope
 
         node = nodes.values().find { Map node3 ->'CubeWithNoDefaultsAndNoValues' == node3.cubeName &&
-                'CubeEAxis1: default column, CubeEAxis2: default column' == node3.fromFieldName}
+                'CubeEAxis1:default column, CubeEAxis2:default column' == node3.fromFieldName}
         assert [CubeEAxis1: 'default column', CubeEAxis2: 'default column'] as CaseInsensitiveMap == node.scope
         assert [CubeEAxis1: 'default column', CubeEAxis2: 'default column'] as CaseInsensitiveMap == node.availableScope
     }
@@ -248,21 +248,21 @@ class VisualizerTest extends VisualizerBaseTest
         assert 'CubeHasCircularRef1' == node.title
 
         node = nodes.values().find { Map node2 ->'CubeHasCircularRef2' == node2.cubeName && 'CubeHasCircularRef1' == node2.sourceCubeName && '2' == node2.level}
-        assert 'CubeGAxis1: CubeGAxis1Col3, CubeGAxis2: CubeGAxis2Col2' == node.fromFieldName
+        assert 'CubeGAxis1:CubeGAxis1Col3, CubeGAxis2:CubeGAxis2Col2' == node.fromFieldName
         assert 'CubeHasCircularRef2' == node.title
         assert 'CubeHasCircularRef1' == node.sourceDescription
         assert [CubeGAxis1: 'CubeGAxis1Col3', CubeGAxis2: 'CubeGAxis2Col2'] as CaseInsensitiveMap == node.scope
         assert [CubeGAxis1: 'CubeGAxis1Col3', CubeGAxis2: 'CubeGAxis2Col2'] as CaseInsensitiveMap == node.availableScope
 
         node = nodes.values().find { Map node2 ->'CubeHasCircularRef1' == node2.cubeName && 'CubeHasCircularRef2' == node2.sourceCubeName && '3' == node2.level}
-        assert 'CubeHAxis1: CubeHAxis1Col1, CubeHAxis2: CubeHAxis2Col1' == node.fromFieldName
+        assert 'CubeHAxis1:CubeHAxis1Col1, CubeHAxis2:CubeHAxis2Col1' == node.fromFieldName
         assert 'CubeHasCircularRef1' == node.title
         assert 'CubeHasCircularRef2' == node.sourceDescription
         assert [CubeHAxis1: 'CubeHAxis1Col1', CubeHAxis2: 'CubeHAxis2Col1'] as CaseInsensitiveMap== node.scope
         assert [CubeHAxis1: 'CubeHAxis1Col1', CubeHAxis2: 'CubeHAxis2Col1', CubeGAxis1: 'CubeGAxis1Col3', CubeGAxis2: 'CubeGAxis2Col2'] as CaseInsensitiveMap ==  node.availableScope
 
         node = nodes.values().find { Map node2 ->'CubeHasCircularRef2' == node2.cubeName && 'CubeHasCircularRef1' == node2.sourceCubeName && '4' == node2.level}
-        assert 'CubeGAxis1: CubeGAxis1Col3, CubeGAxis2: CubeGAxis2Col2' == node.fromFieldName
+        assert 'CubeGAxis1:CubeGAxis1Col3, CubeGAxis2:CubeGAxis2Col2' == node.fromFieldName
         assert 'CubeHasCircularRef2' == node.title
         assert 'CubeHasCircularRef1' == node.sourceDescription
         assert [CubeGAxis1: 'CubeGAxis1Col3', CubeGAxis2: 'CubeGAxis2Col2'] as CaseInsensitiveMap == node.scope
