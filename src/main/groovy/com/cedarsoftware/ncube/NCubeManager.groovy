@@ -3,7 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.util.BranchComparator
-import com.cedarsoftware.ncube.util.GCacheManager
+import com.cedarsoftware.ncube.util.CCacheManager
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
@@ -72,8 +72,8 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
         }
     }
 
-    private ThreadLocal<GCacheManager> tempCacheManager = new ThreadLocal<GCacheManager>() {
-        GCacheManager initialValue()
+    private ThreadLocal<CCacheManager> tempCacheManager = new ThreadLocal<CCacheManager>() {
+        CCacheManager initialValue()
         {
             return null
         }
@@ -191,7 +191,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
 
     private NCubeInfoDto loadCubeRecordInternal(ApplicationID appId, String cubeName, Map options = null)
     {
-        GCacheManager cm = getTempCacheManager()
+        CCacheManager cm = getTempCacheManager()
         Cache cache
         String cubeNameLower
         if (cm != null)
@@ -1951,12 +1951,12 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         return isSystemRequest.get()
     }
 
-    private void setTempCacheManager(GCacheManager cacheManager)
+    private void setTempCacheManager(CCacheManager cacheManager)
     {
         tempCacheManager.set(cacheManager)
     }
 
-    private GCacheManager getTempCacheManager()
+    private CCacheManager getTempCacheManager()
     {
         return tempCacheManager.get()
     }
@@ -2514,7 +2514,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     {
         try
         {
-            setTempCacheManager(GCacheManager.newInstance())
+            setTempCacheManager(CCacheManager.newInstance())
             return closure()
         }
         finally
